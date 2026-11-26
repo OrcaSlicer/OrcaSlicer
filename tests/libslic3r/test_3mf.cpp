@@ -2939,3 +2939,28 @@ TEST_CASE("A text part's arc radius survives a project round trip", "[3mf][Embos
     REQUIRE(volumes[1]->text_configuration.has_value());
     CHECK_FALSE(volumes[1]->text_configuration->style.prop.arc_radius.has_value());
 }
+
+TEST_CASE("A text part's arc radius that is not a number is dropped on load", "[3mf][Emboss]")
+{
+    const std::string   bad = GENERATE("nan", "inf", "-inf");
+    ScopedTemporaryDir  backup_dir("orca_arc_text_bad");
+    ScopedTemporaryFile file(".3mf");
+    Model               source;
+    ModelObject        *object = source.add_object();
+    object->add_instance();
+    ModelVolume      *volume = object->add_volume(make_cube(1., 1., 1.));
+    TextConfiguration text;
+    text.style.prop.arc_radius = 12.5f;
+    volume->text_configuration = text;
+    volume->emboss_shape       = EmbossShape{};
+    store_project(source, file.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+    REQUIRE(replace_in_3mf_entry(file.string(), "model_settings.config", "arc_radius=\"12.5\"", "arc_radius=\"" + bad + "\""));
+
+    Model restored;
+    REQUIRE(load_project(file.string(), restored, backup_dir));
+    REQUIRE(restored.objects.size() == 1);
+    REQUIRE(restored.objects.front()->volumes.size() == 1);
+    const ModelVolume &loaded = *restored.objects.front()->volumes.front();
+    REQUIRE(loaded.text_configuration.has_value());
+    CHECK_FALSE(loaded.text_configuration->style.prop.arc_radius.has_value());
+}

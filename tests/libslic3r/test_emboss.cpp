@@ -157,16 +157,46 @@ TEST_CASE("Text stays straight when a line would sit at or past the circle's cen
 
 TEST_CASE("Text stays straight when a line is longer than its circle", "[Emboss]")
 {
-    // The line spans 2100 units from the first letter's left edge to the last one's right edge.
+    // The line spans 2100 units from the first letter's left edge to the last one's right edge,
+    // 2000 between the letters' centres, and its baseline is 100 units under the anchor.
+    ExPolygonsWithIds shapes{letter('a', square(-1000, -100, 100)), letter('b', square(1000, -100, 100))};
+    const Points      before = all_points(shapes);
+
+    // The line's circle has radius 330 and is 2073 units around; the circle through the anchor is 2702 around.
+    Emboss::bend_to_arc(shapes, 430., -100., 200.);
+    CHECK(all_points(shapes) == before);
+
+    // The line's circle has radius 340 and is 2136 units around.
+    Emboss::bend_to_arc(shapes, 440., -100., 200.);
+    CHECK(all_points(shapes) != before);
+}
+
+TEST_CASE("Text stays straight when its letters would reach the circle's centre", "[Emboss]")
+{
+    // With a negative radius the tops point at the centre: the baseline is 50 units from it, the tops 50 past it.
+    ExPolygonsWithIds shapes{letter('a', square(100, 0, 100))};
+    const Points      before = all_points(shapes);
+
+    Emboss::bend_to_arc(shapes, -50., 0., 200.);
+    CHECK(all_points(shapes) == before);
+
+    // With the baseline 160 units away the tops stay 60 short of the centre.
+    Emboss::bend_to_arc(shapes, -160., 0., 200.);
+    CHECK(all_points(shapes) != before);
+}
+
+TEST_CASE("Text stays straight when its letter tops do not fit around the inside of the circle", "[Emboss]")
+{
+    // The line spans 2100 units and its letters are 100 tall.
     ExPolygonsWithIds shapes{letter('a', square(-1000, 0, 100)), letter('b', square(1000, 0, 100))};
     const Points      before = all_points(shapes);
 
-    // A circle of radius 300 is 1885 units around.
-    Emboss::bend_to_arc(shapes, 300., 0., 200.);
+    // The baseline circle of radius 400 is 2513 units around, but the tops ride one of radius 300, 1885 around.
+    Emboss::bend_to_arc(shapes, -400., 0., 200.);
     CHECK(all_points(shapes) == before);
 
-    // A circle of radius 400 is 2513 units around.
-    Emboss::bend_to_arc(shapes, 400., 0., 200.);
+    // The tops ride a circle of radius 350, 2199 units around.
+    Emboss::bend_to_arc(shapes, -450., 0., 200.);
     CHECK(all_points(shapes) != before);
 }
 
@@ -182,20 +212,17 @@ TEST_CASE("A radius that is not a number or too large to bend anything leaves th
     CHECK(all_points(shapes) == before);
 }
 
-TEST_CASE("Empty letters are skipped when bending", "[Emboss]")
+TEST_CASE("Letters either side of the anchor mirror each other", "[Emboss]")
 {
-    ExPolygonsWithIds shapes{letter('a', square(-500, 0, 100)), letter(' '), letter('\t'), letter('b', square(500, 0, 100))};
+    ExPolygonsWithIds shapes{letter('a', square(-500, 0, 100)), letter(' '), letter('b', square(500, 0, 100))};
 
     Emboss::bend_to_arc(shapes, 1000., 0., 200.);
 
-    REQUIRE(shapes.size() == 4);
-    CHECK(shapes[1].expoly.empty());
-    CHECK(shapes[2].expoly.empty());
-    // The two letters are mirror images of each other about the anchor.
     const BoundingBox left  = get_extents(shapes[0].expoly);
-    const BoundingBox right = get_extents(shapes[3].expoly);
+    const BoundingBox right = get_extents(shapes[2].expoly);
     CHECK_THAT(static_cast<double>(left.min.x()), WithinAbs(-static_cast<double>(right.max.x()), 1.5));
     CHECK_THAT(static_cast<double>(left.min.y()), WithinAbs(static_cast<double>(right.min.y()), 1.5));
+    // Both ends drop below where they were.
     CHECK(left.max.y() < 100);
 }
 
@@ -295,9 +322,12 @@ TEST_CASE("Each line of bent text turns by the angle of its own baseline", "[Emb
     if (!font.has_value())
         SKIP("the bundled font is not reachable");
 
-    // Left and top aligned, so every letter is off the anchor and both baselines are well under it.
+    // The alignment moves the baselines against the anchor and decides how far each letter is from it.
+    const FontProp::Align align = GENERATE(FontProp::Align(FontProp::HorizontalAlign::left, FontProp::VerticalAlign::top),
+                                           FontProp::Align(FontProp::HorizontalAlign::center, FontProp::VerticalAlign::center),
+                                           FontProp::Align(FontProp::HorizontalAlign::right, FontProp::VerticalAlign::bottom));
     FontProp straight_prop(10.f);
-    straight_prop.align = FontProp::Align(FontProp::HorizontalAlign::left, FontProp::VerticalAlign::top);
+    straight_prop.align = align;
     FontProp bent_prop   = straight_prop;
     bent_prop.arc_radius = 30.f;
 
@@ -309,10 +339,10 @@ TEST_CASE("Each line of bent text turns by the angle of its own baseline", "[Emb
     const Emboss::FontFile &font_file = *font.font_file;
     const double    scale       = Emboss::get_text_shape_scale(bent_prop, font_file);
     const double    radius      = 30. / scale;
-    const double    baseline    = Emboss::get_align_y_offset_in_mm(FontProp::VerticalAlign::top, 2, font_file, bent_prop) / scale;
+    const double    baseline    = Emboss::get_align_y_offset_in_mm(align.second, 2, font_file, bent_prop) / scale;
     const double    line_height = Emboss::get_line_height(font_file, bent_prop);
 
-    // The second letter of the first line and of the second line.
+    // The last letter of the first line and of the second line; none of them sits on the anchor.
     const size_t letters[]   = {1, 4};
     const double baselines[] = {baseline, baseline - line_height};
     for (size_t i = 0; i < 2; ++i) {

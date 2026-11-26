@@ -166,8 +166,9 @@ namespace Emboss
     /// <summary>
     /// Lay aligned text along a circle that goes through the origin and has its center on the Y axis.
     /// Letters keep their shape: each one turns about the point of its line's baseline under its center.
-    /// Lines share the center. The whole text stays straight when a line would reach the center
-    /// or is longer than its circle, and when the radius is not finite.
+    /// Lines share the center. The whole text stays straight when the radius is zero, not finite or too
+    /// large to bend anything, when a line's baseline or its letters would reach the center, and when a
+    /// line is longer than the circle its letters' inner edge rides.
     /// </summary>
     /// <param name="shapes">Letters of aligned text, ENTER_UNICODE separates lines</param>
     /// <param name="radius">[in shape units] Positive puts the center below the text, negative above</param>

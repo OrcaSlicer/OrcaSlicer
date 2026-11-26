@@ -1442,6 +1442,8 @@ namespace {
 const double MAX_ARC_RADIUS = 1e12; // [in shape units]
 
 // Each line with letters has to stay clear of the circle's center and end before it meets its own start.
+// Letters stand on the baseline's circle and reach toward the center with their bottoms when it is
+// below them and with their tops when it is above, so that inner edge has the least room.
 bool fits_on_arc(const ExPolygonsWithIds &shapes, double radius, double first_baseline_y, double line_height)
 {
     if (!std::isfinite(radius) || std::abs(radius) > MAX_ARC_RADIUS)
@@ -1452,8 +1454,11 @@ bool fits_on_arc(const ExPolygonsWithIds &shapes, double radius, double first_ba
     auto line_fits = [&]() {
         if (!line_bb.defined)
             return true;
-        const double line_radius = radius + baseline_y;
-        return line_radius * radius > 0. && static_cast<double>(line_bb.size().x()) < 2. * M_PI * std::abs(line_radius);
+        const double line_radius  = radius + baseline_y;
+        const double inner_radius = radius + static_cast<double>(radius > 0. ? line_bb.min.y() : line_bb.max.y());
+        if (line_radius * radius <= 0. || inner_radius * radius <= 0.)
+            return false;
+        return static_cast<double>(line_bb.size().x()) < 2. * M_PI * std::min(std::abs(line_radius), std::abs(inner_radius));
     };
     for (const ExPolygonsWithId &letter : shapes) {
         if (letter.id == Emboss::ENTER_UNICODE) {
