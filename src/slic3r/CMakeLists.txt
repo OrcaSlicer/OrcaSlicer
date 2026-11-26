@@ -594,6 +594,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Project.hpp
     GUI/PublishSettingsDialog.cpp
     GUI/PublishSettingsDialog.hpp
+    GUI/MultipartImportDialog.cpp
+    GUI/MultipartImportDialog.hpp
     GUI/PurgeModeDialog.cpp
     GUI/PurgeModeDialog.hpp
     GUI/RammingChart.cpp

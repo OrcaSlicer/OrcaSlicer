@@ -395,6 +395,7 @@ src/slic3r/GUI/PluginsDialog.cpp
 src/slic3r/GUI/PrinterWebView.cpp
 src/slic3r/GUI/Project.cpp
 src/slic3r/GUI/PublishSettingsDialog.hpp
+src/slic3r/GUI/MultipartImportDialog.cpp
 src/slic3r/GUI/PurgeModeDialog.cpp
 src/slic3r/GUI/TerminalDialog.cpp
 src/slic3r/GUI/TextureImportDialog.cpp
