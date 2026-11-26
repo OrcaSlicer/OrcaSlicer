@@ -166,7 +166,7 @@ private:
     
     // Filament remapping methods
     void remap_filament_assignments();
-    void render_filament_remap_ui(float window_width, float max_tooltip_width, float scale);
+    void render_filament_remap_ui(float window_width, float scale);
     // ORCA: Helper to update the cache of used filaments
     void update_used_filaments();
 

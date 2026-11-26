@@ -2,6 +2,7 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include "slic3r/GUI/Widgets/DialogButtons.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
@@ -136,6 +137,15 @@ DesignTextDialog::DesignTextDialog(wxWindow* parent, const Spec* initial)
     m_preview->Bind(wxEVT_PAINT, [this](wxPaintEvent&) { draw_preview(m_preview); });
     m_preview->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { m_preview->Refresh(); e.Skip(); });
     m_size = new wxStaticText(this, wxID_ANY, wxEmptyString);
+
+    set_illustrated_tooltip(m_text, _L("The text to insert. Its letters become closed outlines in the sketch, which "
+                                       "extrude like any other shape."));
+    set_illustrated_tooltip(m_face, _L("The font, from those installed on this computer. The project keeps the "
+                                       "outlines of the letters, so it opens the same on a computer without this font."));
+    set_illustrated_tooltip(m_height, _L("The size of the font: the height of a line of text, so capital letters come "
+                                         "out somewhat smaller. The line under the preview gives the size of the text itself."));
+    set_illustrated_tooltip(m_preview, _L("The outlines that will be inserted, fitted to this box. The text itself "
+                                          "appears in the canvas, at its real size and where it will go."));
 
     auto* buttons = new DialogButtons(this, {"OK", "Cancel"});
     m_ok = buttons->GetOK();

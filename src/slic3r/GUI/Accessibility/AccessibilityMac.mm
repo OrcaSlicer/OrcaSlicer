@@ -3,6 +3,7 @@
 #include <objc/runtime.h>
 #include <wx/window.h>
 #include "wx/osx/core/cfstring.h"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #import <Cocoa/Cocoa.h>
 
 // ---------------------------------------------------------------------------
@@ -105,6 +106,8 @@ void apply(wxWindow* win, const Descriptor& desc)
     wxString name = desc.name;
     if (name.empty())
         name = win->GetToolTipText();
+    if (name.empty())
+        name = Slic3r::GUI::illustrated_tooltip_text(win);
     [view setAccessibilityTitle:name.empty() ? nil : wxCFStringRef(name).AsNSString()];
 
     // A stable id Voice Control uses to map spoken commands back to the element.

@@ -26,6 +26,7 @@
 #include <wx/wrapsizer.h>
 
 #include "GUI_Utils.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "wxExtensions.hpp"
 #include "DeviceManager.hpp"
 #include "Plater.hpp"
@@ -48,7 +49,8 @@ private:
     wxWindow* select_nozzle_cali{ nullptr };
     wxWindow* select_heatbed_cali{ nullptr };
     wxWindow* select_clumppos_cali{ nullptr };
-    wxWindow* create_check_option(wxString title, wxWindow *parent, wxString tooltip, std::string param);
+    wxWindow* create_check_option(wxString title, wxWindow *parent, wxString tooltip, std::string param,
+                                  const std::vector<TipMedia> &media = {});
 
 public:
     CalibrationDialog(Plater *plater = nullptr);
