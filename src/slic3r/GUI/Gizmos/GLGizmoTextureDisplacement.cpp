@@ -673,11 +673,10 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
 
     // Once anything is painted, m_preview_glmodel holds the true displaced result (same algorithm
     // Bake uses). The untouched original topology (what render_triangles() draws) coincides exactly
-    // with it everywhere except the displaced area, so both can be drawn: the real preview geometry
-    // first, then the selectors' highlight with a small depth bias so it wins the depth test on the
+    // with it everywhere except the displaced area, so both can be drawn: the real preview geometry,
+    // and the selectors' highlight with a small depth bias so it wins the depth test on the
     // coincident surface. Where the surface has actually been displaced, the raised preview geometry
-    // legitimately occludes the flat highlight - that visible relief is itself the "this is painted"
-    // indicator in that area.
+    // stands in front of the flat highlight, so during a stroke it is drawn see-through.
     //
     // The shaded preview never actually moves geometry (it only shades), so its depth is identical to
     // the highlight's *everywhere*: the depth-biased opaque highlight would win the depth test across the
@@ -766,7 +765,6 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
         // the rest.
         render_triangles(selection, paint_feedback ? std::vector<const ModelVolume *>{} : previewed);
         glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
-        // Reduced Opacity of displaced preview during a stroke, so paint highlight under existing relief shows
         if (see_through)
             render_preview_mesh(0.35f);
         textured_selector_drawn = paint_feedback;
