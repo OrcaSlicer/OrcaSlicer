@@ -1017,6 +1017,9 @@ wxDataViewItem ObjectDataViewModel::Delete(const wxDataViewItem &item)
     }
 
     if (node->m_type & itObject) {
+        // The plater deletes the ModelObject before its row, and on macOS each notification below
+        // has the control re-read the tree at once, so the row must not read it from here on.
+        node->m_model_object = nullptr;
         auto it = find(m_objects.begin(), m_objects.end(), node);
         if (it != m_objects.end())
         {
@@ -1231,6 +1234,12 @@ wxDataViewItem ObjectDataViewModel::DeleteLastInstance(const wxDataViewItem &par
 
 void ObjectDataViewModel::ResetAll()
 {
+    // Every object row goes, and their ModelObjects may already be deleted (a new project clears the
+    // model first). On macOS each notification while the plates go has the control re-read the
+    // remaining rows at once, so none of them may read its ModelObject any more.
+    for (auto object : m_objects)
+        object->m_model_object = nullptr;
+
     // BBS
     // FIX: should remove from children collection soon, or will conflict GetChildren
     while (!m_plates.empty()) {
@@ -2092,6 +2101,13 @@ bool ObjectDataViewModel::IsContainer(const wxDataViewItem &item) const
 	return node->IsContainer();
 }
 
+const ModelObject* ObjectDataViewModel::live_model_object(const ModelObject* row_object, const std::vector<ModelObject*>& model_objects)
+{
+    if (row_object == nullptr)
+        return nullptr;
+    return std::find(model_objects.begin(), model_objects.end(), row_object) != model_objects.end() ? row_object : nullptr;
+}
+
 unsigned int ObjectDataViewModel::GetChildren(const wxDataViewItem &parent, wxDataViewItemArray &array) const
 {
 	ObjectDataViewModelNode *node = static_cast<ObjectDataViewModelNode*>(parent.GetID());
@@ -2119,8 +2135,9 @@ unsigned int ObjectDataViewModel::GetChildren(const wxDataViewItem &parent, wxDa
     std::vector<ObjectDataViewModelNode*> children;
     for (auto* child : node->GetChildren())
         children.push_back(child);
-    if (node->m_type == itObject && node->m_model_object != nullptr) {
-        const ModelObject& object = *node->m_model_object;
+    const ModelObject* live_object = node->m_type == itObject ? live_model_object(node->m_model_object, wxGetApp().model().objects) : nullptr;
+    if (live_object != nullptr) {
+        const ModelObject& object = *live_object;
         if (std::any_of(object.volumes.begin(), object.volumes.end(), [](const ModelVolume* volume) {
                 return volume->import_display_order >= 0;
             })) {

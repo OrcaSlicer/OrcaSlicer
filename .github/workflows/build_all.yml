@@ -16,6 +16,7 @@ on:
      - 'resources/**'
      - ".github/workflows/build_*.yml"
      - ".github/workflows/unit_tests*.yml"
+     - ".github/workflows/mcp_sweep.yml"
      - 'build_linux.sh'
      - 'build_win.bat'
      - 'scripts/test_build_win.ps1'
@@ -44,6 +45,7 @@ on:
      - 'version.inc'
      - ".github/workflows/build_*.yml"
      - ".github/workflows/unit_tests*.yml"
+     - ".github/workflows/mcp_sweep.yml"
      - 'build_linux.sh'
      - 'build_win.bat'
      - 'scripts/test_build_win.ps1'
@@ -252,6 +254,14 @@ jobs:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       artifact: ${{ github.sha }}-tests-macos-arm64
       test-dir: build/arm64/tests
+  # Drive the x86_64 AppImage's GUI through every MCP sweep test on Xvfb.
+  # GitHub-hosted only, as the job installs Xvfb, Openbox and the AppImage's
+  # host libraries with apt.
+  mcp_sweep_linux_x86_64:
+    name: Linux x86_64
+    needs: build_linux
+    if: ${{ !cancelled() && success() && !inputs.build-deps-only && !vars.SELF_HOSTED }}
+    uses: ./.github/workflows/mcp_sweep.yml
   # Slice a two-colour cube through every shipped printer, and through every
   # system process/filament whose templates no printer's own slice reaches, so
   # every custom g-code and filename_format shipped is expanded (names in {if}

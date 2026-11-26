@@ -1242,6 +1242,10 @@ macOS. On MSW it breaks `wxTopLevelWindowMSW::OnActivate`'s focus restore in the
 - `append_shortcut_item` records the item in `m_shortcut_menu_items`, and `update_shortcut_labels()` rewrites the
   labels with `SetItemLabel` after the user rebinds a key. Menu text for a registry shortcut always goes through
   these helpers, never through a hard-coded `"\tCtrl+X"`.
+- `GetItemLabelText()` drops a key after `"\t"` but keeps one after `" - "`, so on macOS it returns the label with
+  the key text. `MainFrame::menu_item_label()` gives a menu bar item's label without it, from the label the item was
+  made with: the MCP server names menu items by it, so a menu path is the same on every platform. A menu bar item
+  that writes a fixed key after `sep` itself, outside these helpers, records its plain label in `m_key_text_items`.
 
 **`Plater::PopupMenu(menu, pos)`** (`Plater.cpp`).
 - It calls `wxGetApp().mainframe->PopupMenu(menu, pos)`. The invoking window is MainFrame, so **`pos` is in
@@ -1296,7 +1300,9 @@ wxMenuItem* append_menu_check_item(wxMenu*, int id, const wxString&, const wxStr
   pass `nullptr`.
 - A non-null `parent` binds a `wxEVT_UPDATE_UI` handler for that id on `parent` that is never unbound. It calls
   `enable_menu_item` (`evt.Enable(cb_condition())`), which on macOS also re-applies the icon, grayscale when
-  disabled, on every validation (§14). `append_menu_check_item` binds `Enable` + `Check` the same way.
+  disabled, on every validation (§14). It finds the item by the event's id in the menu that sent the event and
+  keeps no pointer to it: the handler outlives a menu that is destroyed and an item that is removed.
+  `append_menu_check_item` binds `Enable` + `Check` the same way.
   `append_menu_radio_item` takes no conditions.
 - Without `parent`, `cb_condition` is ignored: no enable callback is wired.
 

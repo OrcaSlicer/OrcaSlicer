@@ -19,17 +19,21 @@
 #include <wx/string.h>
 #include <wx/filehistory.h>
 #include <wx/timer.h>
+#include <wx/dialog.h>
+#include <wx/weakref.h>
 #ifdef __APPLE__
 #include <wx/taskbar.h>
 #endif // __APPLE__
 
 #include <string>
 #include <map>
+#include <utility>
 #include <vector>
 
 #include "GUI_Utils.hpp"
 #include "Event.hpp"
 #include "IdleScheduler.hpp"
+#include "wxExtensions.hpp"
 
 
 #include <boost/property_tree/ptree_fwd.hpp>
@@ -73,6 +77,7 @@ namespace GUI
 {
 
 class Tab;
+class CodeEditorWindow;
 class PrintHostQueueDialog;
 class DiffPresetDialog;
 class ParamsPanel;
@@ -99,6 +104,7 @@ class DesignPanel;
 class MainFrame;
 class WebViewPanel;
 class ParamsDialog;
+class RecordingIndicator;
 enum class Shortcut : uint8_t;
 struct KeyChord;
 #ifdef __WXGTK__
@@ -271,6 +277,8 @@ class MainFrame : public DPIFrame
         bool        accelerator;   // false keeps the binding display-only on macOS, where the menu bar's accelerators are live
     };
     std::vector<ShortcutMenuItem> m_shortcut_menu_items;
+    // Menu bar items whose label shows a fixed key as text after sep, and their label without it.
+    std::vector<std::pair<const wxMenuItem*, wxString>> m_key_text_items;
 
     wxString shortcut_label(const wxString& label, Shortcut shortcut, bool accelerator);
     template<typename... Args>
@@ -280,8 +288,23 @@ class MainFrame : public DPIFrame
         m_shortcut_menu_items.push_back({ item, shortcut, label, accelerator });
         return item;
     }
+    // A check item showing the shortcut's key: display-only on macOS, a live accelerator elsewhere.
+    wxMenuItem* append_shortcut_check_item(wxMenu* menu, Shortcut shortcut, const wxString& label, const wxString& description,
+                                           std::function<void(wxCommandEvent&)> cb, std::function<bool()> enable,
+                                           std::function<bool()> check)
+    {
+        wxMenuItem* item = append_menu_check_item(menu, wxID_ANY, shortcut_label(label, shortcut, false), description, std::move(cb), this,
+                                                  std::move(enable), std::move(check), this);
+        m_shortcut_menu_items.push_back({ item, shortcut, label, false });
+        return item;
+    }
     // Runs the Global shortcut bound to chord; false when the focused control should see the key as well.
     bool handle_global_shortcut(const KeyChord& chord);
+    // Sends a Save or Edit menu action to the code editor that has the focus; false when none has it.
+    bool forward_to_editor(const char* action);
+    // Cut ('x'), copy ('c') or paste ('v') in the code editor that has the focus; false when none has it.
+    bool editor_clipboard(char command);
+    void bind_code_editor_menu_rule();
     void add_common_view_menu_items(wxMenu* view_menu, std::function<bool(void)> can_change_view);
     wxMenu* generate_help_menu();
 
@@ -386,6 +409,8 @@ public:
 
 	void        update_title_colour_after_set_title();
     void        show_option(bool show);
+    // The tab bar's REC pill, shown while a recording runs.
+    void        show_recording_indicator(bool show);
     void        init_tabpanel();
     void        create_preset_tabs();
     //BBS: GUI refactor
@@ -419,8 +444,16 @@ public:
 
     void        reslice_now();
     void        export_config();
+    // Shows the Action Replay window, creating it the first time and raising the open one after.
+    void        show_action_replay();
+    // The code editor window (the Run Script panel, Action Replay) that has the focus, or nullptr.
+    CodeEditorWindow* focused_code_editor() const;
     // Query user for the config file and open it.
     void        load_config_file();
+    // Import preset files (.json, .zip, .orca_printer, .orca_filament, .orca_bundle) as the Import Configs
+    // dialog does, then refresh the presets. `confirm` answers for each preset that exists already
+    // (0 no, 1 yes, 2 no to all, 3 yes to all). Returns the files imported.
+    std::vector<std::string> import_configs(std::vector<std::string> files, std::function<int(const std::string &)> confirm);
     // Open a config file. Return true if loaded.
     bool        load_config_file(const std::string &path);
 
@@ -447,10 +480,15 @@ public:
     void        select_prepare_for_gl_init();
     // Builds the lazy tab pages while the user is idle; post_init() calls it once.
     void        prebuild_pages_when_idle();
+    bool        prebuild_pending() const { return m_idle.pending(); }
     bool        Show(bool show = true) override;
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);
     void        update_shortcut_labels();
+    // A menu item's label without the key shown after it, the name automation gives the item. GetItemLabelText()
+    // drops a key that follows "\t"; on macOS a key the menu bar must not take follows sep instead (shortcut_label()),
+    // which it keeps, so for MainFrame's own items that label is the one the item was made with.
+    wxString    menu_item_label(const wxMenuItem& item) const;
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
     void        on_config_changed(DynamicPrintConfig* cfg) const ;
     void        set_print_button_to_default(PrintSelectType select_type);
@@ -509,6 +547,8 @@ public:
     Input_Shaping_Freq_Test_Dlg* m_IS_freq_calib_dlg{ nullptr };
     Input_Shaping_Damp_Test_Dlg* m_IS_damp_calib_dlg{ nullptr };
     Cornering_Test_Dlg* m_cornering_calib_dlg{ nullptr };
+    // Modeless and owned by this frame; the weak ref clears when it is destroyed.
+    wxWeakRef<wxDialog> m_action_replay;
 
     // BBS. Replace title bar and menu bar with top bar.
     BBLTopbar*            m_topbar{ nullptr };
@@ -557,6 +597,7 @@ public:
     SideButton* m_slice_option_btn{ nullptr };
     SideButton* m_print_btn{ nullptr };
     SideButton* m_print_option_btn{ nullptr };
+    RecordingIndicator* m_recording{ nullptr };
 
     SidePopup*  m_slice_option_pop_up{ nullptr };
 
@@ -565,6 +606,9 @@ public:
     mutable bool          m_print_enable{ true };
     bool get_enable_slice_status();
     bool get_enable_print_status();
+    // Whether the Print button would be enabled for `action`: get_enable_print_status()'s rule, which it asks for the
+    // button's selected action. The print commands ask it for the action they stand for.
+    bool print_action_enabled(PrintSelectType action);
     //BBS
     void update_side_button_style();
     void update_slice_print_status(SlicePrintEventType event, bool can_slice = true, bool can_print = true);

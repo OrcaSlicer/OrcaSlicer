@@ -3396,6 +3396,14 @@ void ModelVolume::convert_from_meters()
     this->source.is_converted_from_meters = true;
 }
 
+bool ModelVolume::is_mm_painted_everywhere() const
+{
+    const TriangleSelector::TriangleSplittingData &data = this->mmu_segmentation_facets.get_data();
+    // Unpainted facets are not stored, and the unpainted parts of a split facet are stored as NONE.
+    return data.triangles_to_split.size() == this->mesh().its.indices.size() &&
+           !data.used_states[static_cast<size_t>(EnforcerBlockerType::NONE)];
+}
+
 // Orca: Implement prusa's filament shrink compensation approach
 // Returns 0-based indices of extruders painted by multi-material painting gizmo.
 std::vector<size_t> ModelVolume::get_extruders_from_multi_material_painting() const {
