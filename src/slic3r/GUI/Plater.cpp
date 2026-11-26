@@ -7247,6 +7247,14 @@ void Sidebar::load_ams_list(MachineObject* obj)
     // - Then it always reads from DevFilaSystem to build the filament list
     if (obj) {
         filament_ams_list = build_filament_ams_list(obj);
+        // A generic printer keys an external spool by its virtual tray id (255 -> toolhead 0, 254 ->
+        // 1, ...), so ascending map order, which the sync, the AMS combo entries and the sync badges
+        // all follow, lists the external spools last toolhead first. Only the sidebar's copy is
+        // reordered, so build_filament_ams_list keeps the keys its other callers decode; Bambu's
+        // left/right key order is intentional and stays as it is.
+        if (wxGetApp().preset_bundle != nullptr && !wxGetApp().preset_bundle->is_bbl_vendor())
+            filament_ams_list = PresetBundle::order_external_filaments_by_toolhead(
+                std::move(filament_ams_list), VIRTUAL_TRAY_MAIN_ID, wxGetApp().preset_bundle->get_printer_extruder_count());
     }
 
     const std::string& device = obj ? obj->get_dev_id() : "";
@@ -7256,14 +7264,18 @@ void Sidebar::load_ams_list(MachineObject* obj)
     // subscription refresh when the physical filament in a slot is unchanged.
     // Otherwise the refreshed configs differ only by the missing
     // filament_changed key, causing combo boxes to rebuild and lose their
-    // transient post-sync badges.
+    // transient post-sync badges. A key identifies a slot only while the list keeps its key scheme,
+    // so the slot's ams_id/slot_id must match too; otherwise an identical filament id would let one
+    // slot inherit another's metadata.
     auto &previous_filament_ams_list = wxGetApp().preset_bundle->filament_ams_list;
     for (auto &entry : filament_ams_list) {
         auto previous = previous_filament_ams_list.find(entry.first);
         const auto *previous_changed = previous == previous_filament_ams_list.end() ? nullptr :
                                        dynamic_cast<const ConfigOptionBool *>(previous->second.option("filament_changed"));
         if (!same_device || previous_changed == nullptr ||
-            previous->second.opt_string("filament_id", 0u) != entry.second.opt_string("filament_id", 0u)) {
+            previous->second.opt_string("filament_id", 0u) != entry.second.opt_string("filament_id", 0u) ||
+            previous->second.opt_string("ams_id", 0u) != entry.second.opt_string("ams_id", 0u) ||
+            previous->second.opt_string("slot_id", 0u) != entry.second.opt_string("slot_id", 0u)) {
             continue;
         }
         entry.second.set_key_value("filament_changed",
