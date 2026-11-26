@@ -293,67 +293,116 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     }
 
     auto json = nlohmann::json::parse(response_body, nullptr, false, true);
-    if (json.is_discarded()) {
+    if (json.is_discarded() || !json.contains("result") || !json["result"].contains("status")) {
         BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: Invalid JSON response";
         return false;
     }
 
-    // Navigate to result.status.print_task_config
-    if (!json.contains("result") || !json["result"].contains("status") ||
-        !json["result"]["status"].contains("print_task_config")) {
-        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: Missing print_task_config in response";
-        return false;
-    }
-
-    auto& ptc = json["result"]["status"]["print_task_config"];
-
-    // Read parallel arrays from print_task_config
-    auto filament_exist    = ptc.value("filament_exist", std::vector<bool>{});
-    auto filament_type     = ptc.value("filament_type", std::vector<std::string>{});
-    auto filament_sub_type = ptc.value("filament_sub_type", std::vector<std::string>{});
-    auto filament_color    = ptc.value("filament_color_rgba", std::vector<std::string>{});
-    auto filament_vendor   = ptc.value("filament_vendor", std::vector<std::string>{});
-
-    const int slot_count = static_cast<int>(filament_exist.size());
-    if (slot_count == 0) {
-        BOOST_LOG_TRIVIAL(info) << "SnapmakerPrinterAgent::fetch_filament_info: No filament slots reported";
-        return false;
-    }
-
-    // Read NFC filament_detect data for temperature info (optional)
-    nlohmann::json nfc_info;
-    if (json["result"]["status"].contains("filament_detect") &&
-        json["result"]["status"]["filament_detect"].contains("info")) {
-        nfc_info = json["result"]["status"]["filament_detect"]["info"];
-    }
-
-    static const std::string empty_str;
-    static const std::string default_color = "FFFFFFFF";
-
+    auto*                    bundle = GUI::wxGetApp().preset_bundle;
     std::vector<AmsTrayData> trays;
-    trays.reserve(slot_count);
+    if (!parse_filament_status(json["result"]["status"], bundle ? &bundle->filaments : nullptr, trays))
+        return false;
 
-    for (int i = 0; i < slot_count; ++i) {
-        AmsTrayData tray;
-        tray.slot_index   = i;
-        tray.has_filament = filament_exist[i];
+    build_ams_payload(1, static_cast<int>(trays.size()) - 1, trays);
+    return true;
+}
 
-        if (tray.has_filament) {
-            const std::string raw_sub_type = safe_at(filament_sub_type, i, empty_str);
-            tray.tray_type     = combine_filament_type(safe_at(filament_type, i, empty_str), raw_sub_type);
-            tray.tray_color    = safe_at(filament_color, i, empty_str);
+bool SnapmakerPrinterAgent::parse_filament_status(const nlohmann::json&     status,
+                                                  const PresetCollection*   filaments,
+                                                  std::vector<AmsTrayData>& trays)
+{
+    trays.clear();
+    if (!status.is_object() || !status.contains("print_task_config") || !status["print_task_config"].is_object()) {
+        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::parse_filament_status: Missing print_task_config in response";
+        return false;
+    }
+
+    // value() throws when a field holds the wrong type; a printer that reports one must not
+    // abort the sync with an exception.
+    try {
+        const auto& ptc = status["print_task_config"];
+
+        // Read parallel arrays from print_task_config
+        auto filament_exist    = ptc.value("filament_exist", std::vector<bool>{});
+        auto filament_type     = ptc.value("filament_type", std::vector<std::string>{});
+        auto filament_sub_type = ptc.value("filament_sub_type", std::vector<std::string>{});
+        auto filament_color    = ptc.value("filament_color_rgba", std::vector<std::string>{});
+        auto filament_vendor   = ptc.value("filament_vendor", std::vector<std::string>{});
+
+        const int slot_count = static_cast<int>(filament_exist.size());
+        if (slot_count == 0) {
+            BOOST_LOG_TRIVIAL(info) << "SnapmakerPrinterAgent::parse_filament_status: No filament slots reported";
+            return false;
+        }
+
+        // Read NFC filament_detect data for temperature info (optional)
+        nlohmann::json nfc_info;
+        if (status.contains("filament_detect") && status["filament_detect"].is_object() &&
+            status["filament_detect"].contains("info")) {
+            nfc_info = status["filament_detect"]["info"];
+        }
+
+        // Every colour of a multi-colour spool: {nums, alpha, mode, colors: [RRGGBB, ...]}. The
+        // firmware does not document what `mode` means, so the colours are shown as segments.
+        const nlohmann::json color_multi = ptc.value("filament_color_multi", nlohmann::json::array());
+
+        static const std::string empty_str;
+        static const std::string default_color = "FFFFFFFF";
+
+        trays.reserve(slot_count);
+
+        for (int i = 0; i < slot_count; ++i) {
+            AmsTrayData tray;
+            tray.slot_index   = i;
+            tray.has_filament = filament_exist[i];
+
+            if (!tray.has_filament) {
+                trays.emplace_back(std::move(tray));
+                continue;
+            }
+
+            tray.tray_color = safe_at(filament_color, i, empty_str);
             if (tray.tray_color.empty())
                 tray.tray_color = default_color;
 
-            auto* bundle = GUI::wxGetApp().preset_bundle;
+            // A head with filament that nobody has named (a spool without a tag that was never set
+            // up on the screen) reports NONE, or no type at all. It names no preset, so the sync keeps
+            // the project filament in that position instead of painting it in the firmware's default
+            // colour. The empty tray_type is intentional: build_ams_payload marks a tray without a
+            // preset as a placeholder, as it does for an empty head, whose tray_type is empty too.
+            const std::string raw_type = safe_at(filament_type, i, empty_str);
+            const std::string upper    = trim_and_upper(raw_type);
+            if (upper.empty() || upper == "NONE") {
+                trays.emplace_back(std::move(tray));
+                continue;
+            }
+
+            const std::string raw_sub_type = safe_at(filament_sub_type, i, empty_str);
+            tray.tray_type = combine_filament_type(raw_type, raw_sub_type);
+
+            if (color_multi.is_array() && i < static_cast<int>(color_multi.size()) && color_multi[i].is_object()) {
+                // The colours are optional: a malformed record leaves this head with its single
+                // colour rather than failing the whole sync.
+                try {
+                    const auto& multi  = color_multi[i];
+                    const auto  colors = multi.value("colors", std::vector<std::string>{});
+                    const int   nums   = std::min(multi.value("nums", 1), static_cast<int>(colors.size()));
+                    if (nums > 1)
+                        tray.tray_colors.assign(colors.begin(), colors.begin() + nums);
+                } catch (const nlohmann::json::exception& e) {
+                    BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::parse_filament_status: Ignoring malformed "
+                                                  "filament_color_multi for head " << i << ": " << e.what();
+                }
+            }
+
             // Try to find a matching preset for this filament based on vendor, type and color.
             // If not found, default to traditional search by type only or generic type mapping.
-            if (bundle) {
+            if (filaments) {
                 std::string vendor   = safe_at(filament_vendor, i, empty_str);
                 std::string sub_type = raw_sub_type;
                 if (trim_and_upper(sub_type) == "NONE")
                     sub_type.clear();
-                std::string filament_id = find_closest_color_preset_by_vendor_and_type(bundle->filaments, vendor, tray.tray_type,
+                std::string filament_id = find_closest_color_preset_by_vendor_and_type(*filaments, vendor, tray.tray_type,
                                                                                        sub_type, tray.tray_color);
 
                 if (!filament_id.empty()) {
@@ -361,7 +410,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
                     BOOST_LOG_TRIVIAL(warning) << "Filament sync: Found profile for slot " << i << ": "
                                                << filament_id;
                 } else {
-                    tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+                    tray.tray_info_idx = filaments->filament_id_by_type(tray.tray_type);
                     if (tray.tray_info_idx.empty())
                         tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
                 }
@@ -376,13 +425,15 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
                 // build_ams_payload publishes this as `nozzle_temp_max`, and FIRST_LAYER_TEMP is 0 for external tags.
                 tray.nozzle_temp = safe_json_int(nfc_slot, "HOTEND_MAX_TEMP");
             }
+
+            trays.emplace_back(std::move(tray));
         }
-
-        trays.emplace_back(std::move(tray));
+        return true;
+    } catch (const nlohmann::json::exception& e) {
+        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::parse_filament_status: Malformed print_task_config: " << e.what();
+        trays.clear();
+        return false;
     }
-
-    build_ams_payload(1, slot_count - 1, trays);
-    return true;
 }
 
 } // namespace Slic3r
