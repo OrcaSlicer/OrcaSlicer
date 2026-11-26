@@ -495,6 +495,52 @@ assert.deepEqual(ctx.visibleFavourites(["b", "a", "b"], [{ id: "a" }, { id: "b" 
 assert.deepEqual(ctx.visibleFavourites([], [{ id: "a" }]), [], "no pins renders an empty quick-bar");
 assert.deepEqual(ctx.visibleFavourites(["a"], []), [], "a stale config with no actions renders nothing");
 
+// The bar C++ sends after a pin, an unpin or a reorder replaces the page's: an unpin can bring a pin past the
+// tenth onto the bar. Rendering needs the DOM, which this test has not, so it is stubbed.
+var renderBefore = ctx.render, favsBefore = ctx.FAVS;
+ctx.render = function () {};
+ctx.FAVS = ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9"];
+ctx.HandleStudio({ command: "favourites", favourites: ["p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11"] });
+assert.deepEqual(ctx.FAVS, ["p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11"],
+    "the bar C++ sends replaces the page's, a pin past the tenth promoted onto it");
+ctx.HandleStudio(JSON.stringify({ command: "favourites", favourites: [] }));
+assert.deepEqual(ctx.FAVS, [], "an empty bar, sent as text, empties the page's");
+ctx.render = renderBefore;
+ctx.FAVS = favsBefore;
+
+// The list C++ sends with each open runs a moment after the dial shows: a query typed by then, by a person or a call,
+// is kept and filters the new list, and the field is empty otherwise, as C++'s "closed" at the end of an open empties
+// it. Rendering and focusing need the DOM, so they are stubbed, and the field is a stand-in.
+var listBefore = { render: ctx.render, focusInput: ctx.focusInput, qEl: ctx.qEl, actions: ctx.ACTIONS };
+ctx.render = function () {};
+ctx.focusInput = function () {};
+ctx.qEl = { value: "", placeholder: "" };
+var listPayload = { command: "list_actions", actions: duplicateActions, favourites: [], recent: [] };
+ctx.qEl.value = "rep";
+ctx.onQueryInput();
+ctx.HandleStudio(listPayload);
+assert.equal(ctx.qEl.value, "rep", "a query typed before the open's list arrives stays in the field");
+assert.equal(ctx.query, "rep", "and is the query");
+assert.deepEqual(ctx.currentList(), ctx.commandList(duplicateActions, [], "rep"), "which filters the new list");
+ctx.HandleStudio({ command: "closed" });
+ctx.HandleStudio(listPayload);
+assert.equal(ctx.qEl.value, "", "the next open's list finds the field the last open left empty");
+assert.equal(ctx.query, "", "and its query");
+// A search, the dial closed, and a query typed in the next open before its list arrives: the field holds only what
+// was typed in that open, since closing empties it, and the list keeps it.
+ctx.qEl.value = "shell";
+ctx.onQueryInput();
+ctx.HandleStudio({ command: "closed" });
+ctx.qEl.value += "fillet";
+ctx.onQueryInput();
+ctx.HandleStudio(listPayload);
+assert.equal(ctx.qEl.value, "fillet", "a query typed after a reopen, before its list, is that open's alone");
+assert.equal(ctx.query, "fillet", "and is the query");
+ctx.render = listBefore.render;
+ctx.focusInput = listBefore.focusInput;
+ctx.qEl = listBefore.qEl;
+ctx.ACTIONS = listBefore.actions;
+
 // actionIcon: the SVG base name for a tile's pictogram, or "" when the action has none (blank tile).
 assert.equal(ctx.actionIcon({ id: "x", title: "Slice", icon: "media_play" }), "media_play",
     "an action's icon base name is returned verbatim");
@@ -604,6 +650,28 @@ assert.equal(ctx.stateFromPayload({ tooltip_expanded: true }).tooltipExpanded, t
 assert.equal(ctx.resultCountText(100, 3, "lay"), "Matching actions: 3", "a search reports the shown match count only");
 assert.equal(ctx.resultCountText(100, 100, ""), "Actions: 100", "an empty query reports the total");
 
+// run_action: a pick sends the command's arguments as an object, none for a plain pick, and the value
+// of the second phase for Go to layer and Go to tab.
+var sent = [];
+var actionsBefore = ctx.ACTIONS;
+ctx.SendWXMessage = function (text) { sent.push(JSON.parse(text)); };
+ctx.ACTIONS = [{ id: "layer", title: "Go to layer", input: "percent" }, { id: "tab", title: "Go to tab...", input: "tab" }];
+function lastRun() {
+    var m = sent[sent.length - 1];
+    return { command: m.command, id: m.id, title: m.title, args: m.args };
+}
+ctx.run({ id: "undo", title: "Undo" });
+assert.deepStrictEqual(lastRun(), { command: "run_action", id: "undo", title: "Undo", args: {} }, "a plain pick sends no arguments");
+ctx.runJumpToLayer("50");
+assert.deepStrictEqual(lastRun(), { command: "run_action", id: "layer", title: "Go to layer", args: { percent: 50 } },
+    "the percent phase sends the percent as a number");
+ctx.jumpToTab({ id: "preview", title: "Preview" });
+assert.deepStrictEqual(lastRun(), { command: "run_action", id: "tab", title: "Go to tab...", args: { tab: "preview" } },
+    "the tab phase sends the tab's id");
+assert.equal(sent.length, 3, "each pick sends one message");
+delete ctx.SendWXMessage;
+ctx.ACTIONS = actionsBefore;
+
 // ---- hover preview commit timing ---------------------------------------------------------
 // The footer preview commits only after the pointer rests on a row, so a pointer crossing the rows
 // between a rested row and the footer must not preview them (style.css rows are 44px). The timing
@@ -614,7 +682,8 @@ var fakeNow = 0;
 var fakeTimers = [];
 var nextTimerId = 1;
 ctx.document = { body: null };                // requestResize stops at the missing body
-ctx.Date.now = function () { return fakeNow; };
+// Date is a built-in of the context, not a property of the sandbox object, so it is reached by evaluation.
+vm.runInContext("Date", ctx).now = function () { return fakeNow; };
 ctx.setTimeout = function (fn, ms) {
     var t = { id: nextTimerId++, at: fakeNow + Math.max(0, ms || 0), fn: fn };
     fakeTimers.push(t);

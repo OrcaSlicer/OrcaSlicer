@@ -19,6 +19,8 @@
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Mcp/WindowNames.hpp"
 #include <boost/nowide/fstream.hpp>
 #include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <exception>
@@ -1494,6 +1496,7 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
     m_tips_access_code->SetMaxSize(wxSize(FromDIP(168), -1));
 
     m_input_access_code = new TextInput(ip_input_top_panel, wxEmptyString, wxEmptyString);
+    m_input_access_code->SetName(Mcp::kSecretField);
     m_input_access_code->Bind(wxEVT_TEXT, &InputIpAddressDialog::on_text, this);
     m_input_access_code->SetMinSize(wxSize(FromDIP(168), FromDIP(28)));
     m_input_access_code->SetMaxSize(wxSize(FromDIP(168), FromDIP(28)));
@@ -2254,7 +2257,7 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
     m_button_ok->Enable(enable_btns);
 
     if (current_input_index == 1)
-        m_button_ok->Enable(!str_name.IsEmpty() && str_sn.length() == 15);
+        m_button_ok->Enable(!str_name.IsEmpty() && (str_sn.length() == 15 || str_sn.length() == 18)); // A2L serials have 18 characters
 
 }
 

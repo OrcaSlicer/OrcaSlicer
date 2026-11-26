@@ -646,8 +646,12 @@ TEST_CASE("Exported moves use the decimal places selected by the G-code precisio
 TEST_CASE("An exported G-code's settings load back as the settings it was sliced with", "[GCode]")
 {
     // Two filaments, so the config block carries the flush matrix already multiplied by flush_multiplier.
+    const double file_multiplier = GENERATE(0.5, 0.);
+    // The config block leaves prime_volume_mode out, so the receiver's choice has to survive the load.
+    const PrimeVolumeMode mode = GENERATE(PrimeVolumeMode::pvmDefault, PrimeVolumeMode::pvmFast);
+    CAPTURE(file_multiplier, int(mode));
     const DynamicPrintConfig config = Test::multifilament_config(2, {
-        { "flush_multiplier", "0.5" },
+        { "flush_multiplier", std::to_string(file_multiplier) },
         { "printable_area", "0x0,250x0,250x210,0x210" },
         { "printable_height", "180" },
     });
@@ -662,21 +666,29 @@ TEST_CASE("An exported G-code's settings load back as the settings it was sliced
     }
 
     PresetBundle bundle;
-    // The config block leaves prime_volume_mode out, so the receiver's choice has to survive the load.
-    bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value = PrimeVolumeMode::pvmFast;
+    bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value = mode;
+    const std::vector<double> fast_multiplier = bundle.project_config.option<ConfigOptionFloats>("flush_multiplier_fast")->values;
     ConfigSubstitutions substitutions;
     bundle.load_config_model(file.string(), bundle.config_from_gcode(file.string(), ForwardCompatibilitySubstitutionRule::Enable, substitutions));
 
     const DynamicPrintConfig &printer = bundle.printers.get_edited_preset().config;
     CHECK(printer.opt_serialize("printable_area") == config.opt_serialize("printable_area"));
     CHECK_THAT(printer.opt_float("printable_height"), Catch::Matchers::WithinAbs(180., 1e-6));
-    // The purge between the two filaments is what the slice used: 280 at a 0.5 multiplier.
-    const std::vector<double> &matrix     = bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
+    // The multipliers stay with the project after the file is closed and scale every table the app recalculates,
+    // so they are the file's own and, for Fast mode, which the block leaves out, the receiver's.
     const std::vector<double> &multiplier = bundle.project_config.option<ConfigOptionFloats>("flush_multiplier")->values;
-    REQUIRE(matrix.size() == 4);
+    const std::vector<double> &fast_after = bundle.project_config.option<ConfigOptionFloats>("flush_multiplier_fast")->values;
     REQUIRE(multiplier.size() == 1);
-    CHECK_THAT(matrix[1] * multiplier[0], Catch::Matchers::WithinAbs(140., 1e-6));
-    CHECK(bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value == PrimeVolumeMode::pvmFast);
+    REQUIRE(fast_multiplier.size() == 1);
+    REQUIRE(fast_after.size() == 1);
+    CHECK_THAT(multiplier[0], Catch::Matchers::WithinAbs(file_multiplier, 1e-9));
+    CHECK_THAT(fast_after[0], Catch::Matchers::WithinAbs(fast_multiplier[0], 1e-9));
+    // The purge between the two filaments is what the slice used: 280 at the file's multiplier.
+    const std::vector<double> &matrix = bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
+    REQUIRE(matrix.size() == 4);
+    const double slicing_multiplier = mode == PrimeVolumeMode::pvmFast ? fast_after[0] : multiplier[0];
+    CHECK_THAT(matrix[1] * slicing_multiplier, Catch::Matchers::WithinAbs(280. * file_multiplier, 1e-6));
+    CHECK(bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value == mode);
 }
 
 TEST_CASE("Z hop follows the lift settings of the filament printing", "[GCode]")

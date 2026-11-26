@@ -179,7 +179,8 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
         icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon};
     else
         icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon };
-    std::array<wxString, 2> tool_tips = { _L("Circle"), _L("Sphere")};
+    // English, as the tools are named for automation; the tooltips translate them.
+    std::array<const char*, 2> tool_names = { L("Circle"), L("Sphere") };
     for (int i = 0; i < tool_ids.size(); i++) {
         //std::string  str_label = std::string("##");
         //std::wstring btn_name = icons[i] + boost::nowide::widen(str_label);
@@ -196,7 +197,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
         ImGui::PushStyleColor(ImGuiCol_ButtonActive , is_active ? ImVec4(0.f, .59f, .53f, .30f) : ImVec4(0,0,0,0));         // ORCA
         ImGui::PushStyleColor(ImGuiCol_Border       , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA
         ImGui::PushStyleColor(ImGuiCol_BorderActive , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA matched color for fixing flicker on click
-        bool btn_clicked = m_imgui->glyph_button(icons[i], ImVec2(16.f  * scale, 16.f  * scale)); // ORCA glyph_button for fixing unequal paddings
+        bool btn_clicked = m_imgui->glyph_button(icons[i], ImVec2(16.f  * scale, 16.f  * scale), tool_names[i]); // ORCA glyph_button for fixing unequal paddings
         ImGui::PopStyleColor(6);
         ImGui::PopStyleVar(3);
 
@@ -209,7 +210,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
         }
 
         if (ImGui::IsItemHovered()) {
-            m_imgui->tooltip(tool_tips[i], max_tooltip_width);
+            m_imgui->tooltip(_(tool_names[i]), max_tooltip_width);
         }
     }
 

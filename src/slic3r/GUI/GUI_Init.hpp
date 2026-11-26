@@ -3,6 +3,7 @@
 
 #include <libslic3r/Preset.hpp>
 #include <libslic3r/PrintConfig.hpp>
+#include "slic3r/GUI/Mcp/McpOptions.hpp"
 #include <vector>
 #include <utility>
 #include <string>
@@ -35,6 +36,11 @@ struct GUI_InitParams
     //BBS: remove start_as_gcodeviewer logic
 	//bool	                    start_as_gcodeviewer;
 	bool                        input_gcode { false };
+
+    Mcp::McpLaunchOptions       mcp;
+    // On for this run only: the command line never writes these settings.
+    bool unrestricted_scripts = false;   // --unrestricted-scripts
+    bool cad                  = false;   // --cad
 };
 
 int GUI_Run(GUI_InitParams &params);

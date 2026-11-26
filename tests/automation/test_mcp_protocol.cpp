@@ -1,0 +1,788 @@
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+
+#include "automation_test_utils.hpp"
+
+#include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
+#include "slic3r/GUI/Mcp/McpArguments.hpp"
+#include "slic3r/GUI/Mcp/McpProtocol.hpp"
+#include "slic3r/GUI/Mcp/McpStdioBridge.hpp"
+
+#include <nlohmann/json.hpp>
+
+#include <cstddef>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
+
+using namespace Slic3r::GUI;
+using namespace Slic3r::GUI::Mcp;
+using nlohmann::json;
+using Slic3r::GUI::CommandCatalog;
+using Slic3r::GUI::CommandSource;
+using Slic3r::GUI::NativeCommand;
+using Slic3r::GUI::Mcp::Test::DirectCaller;
+using Catch::Matchers::ContainsSubstring;
+
+namespace {
+
+struct Fixture
+{
+    CommandCatalog registry;
+    DirectCaller   caller;
+    McpProtocol    protocol{registry, caller, ServerInfo{"orcaslicer", "OrcaSlicer", "9.9.9", "Use app_state first."}};
+
+    Fixture()
+    {
+        NativeCommand echo;
+        echo.key          = "echo";
+        echo.title        = "Echo";
+        echo.listed       = true;
+        echo.description  = "Echo text back.";
+        echo.read_only    = true;
+        echo.idempotent   = true;
+        echo.input_schema = {{"type", "object"},
+                             {"properties", {{"text", {{"type", "string"}}}}},
+                             {"required", {"text"}},
+                             {"additionalProperties", false}};
+        echo.run          = [](const json& args, ToolContext&) { return ToolResult::ok({{"echo", args["text"]}}); };
+        registry.add(echo);
+
+        NativeCommand fail;
+        fail.key         = "fail";
+        fail.listed      = true;
+        fail.destructive = true;
+        fail.open_world  = true;
+        fail.run         = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("it broke", {{"why", "test"}}); };
+        registry.add(fail);
+    }
+
+    PostReply post(const json& msg, const std::string& version = {}, const std::string& method = {}, const std::string& name = {})
+    {
+        return protocol.handle_post(PostRequest{msg.dump(), version, method, name});
+    }
+};
+
+json body(const PostReply& r) { return json::parse(r.body); }
+
+// The details an error result's text gives after its message, on the line after it.
+json details_of(const json& result)
+{
+    const std::string text = result["content"][0]["text"];
+    const std::size_t line = text.find('\n');
+    return line == std::string::npos ? json() : json::parse(text.substr(line + 1));
+}
+
+json modern_params(json params = json::object())
+{
+    params["_meta"] = {{"io.modelcontextprotocol/protocolVersion", "2026-07-28"}};
+    return params;
+}
+
+} // namespace
+
+TEST_CASE("initialize echoes a supported client version", "[Mcp]")
+{
+    Fixture f;
+    const PostReply r = f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "initialize"}, {"params", {{"protocolVersion", "2025-06-18"}}}});
+    REQUIRE(r.status == 200);
+    const json result = body(r)["result"];
+    CHECK(result["protocolVersion"] == "2025-06-18");
+    CHECK(result["serverInfo"]["name"] == "orcaslicer");
+    CHECK(result["capabilities"].contains("tools"));
+    CHECK(result["instructions"] == "Use app_state first.");
+}
+
+TEST_CASE("initialize answers an unsupported version with the latest supported one", "[Mcp]")
+{
+    Fixture f;
+    for (const char* requested : {"2025-03-26", "1999-01-01"}) {
+        const json result = body(f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "initialize"}, {"params", {{"protocolVersion", requested}}}}))["result"];
+        CHECK(result["protocolVersion"] == "2025-11-25");
+    }
+}
+
+TEST_CASE("notifications are accepted with 202 and no body", "[Mcp]")
+{
+    Fixture f;
+    const PostReply r = f.post({{"jsonrpc", "2.0"}, {"method", "notifications/initialized"}});
+    CHECK(r.status == 202);
+    CHECK(r.body.empty());
+}
+
+TEST_CASE("tools/list keeps registration order and maps annotations", "[Mcp]")
+{
+    Fixture f;
+    const json tools = body(f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}}))["result"]["tools"];
+    REQUIRE(tools.size() == 2);
+    CHECK(tools[0]["name"] == "echo");
+    CHECK(tools[1]["name"] == "fail");
+    CHECK(tools[0]["annotations"]["readOnlyHint"] == true);
+    CHECK(tools[0]["annotations"]["idempotentHint"] == true);
+    CHECK(tools[0]["annotations"]["destructiveHint"] == false);
+    CHECK(tools[0]["annotations"]["openWorldHint"] == false);
+    CHECK(tools[1]["annotations"]["readOnlyHint"] == false);
+    CHECK(tools[1]["annotations"]["destructiveHint"] == true);
+    CHECK(tools[1]["annotations"]["openWorldHint"] == true);
+    CHECK(tools[0]["inputSchema"]["required"][0] == "text");
+    // The title is the tool's own, which every protocol version the server speaks has; the annotations don't repeat it.
+    CHECK(tools[0]["title"] == "Echo");
+    CHECK_FALSE(tools[0]["annotations"].contains("title"));
+    CHECK_FALSE(tools[1].contains("title"));
+}
+
+TEST_CASE("a reply's numbers reach the client with the digits that say something", "[Mcp]")
+{
+    const json data{{"float32", 60.001007080078125},
+                    {"sum", 134.99999999999994},
+                    {"kernel_zero", 4.440892098500626e-16},
+                    {"negative_zero", -0.0},
+                    {"tolerance", 1.5e-05},
+                    {"count", 3},
+                    {"large", 1e12 + 0.125},
+                    {"nested", {{"at", json::array({-3.0680601260208065e-12, 158.53807454003905})}}},
+                    {"text", "0.123456789"}};
+    // Keys come out in order: count, float32, kernel_zero, large, negative_zero, nested, sum, text, tolerance.
+    const std::string sent = McpProtocol::result_to_json(ToolResult::ok(data))["content"][0]["text"];
+    CHECK_THAT(sent, ContainsSubstring("\"count\":3,"));
+    CHECK_THAT(sent, ContainsSubstring("\"float32\":60.001,"));
+    CHECK_THAT(sent, ContainsSubstring("\"kernel_zero\":0.0,"));
+    CHECK_THAT(sent, ContainsSubstring("\"large\":1000000000000.125,"));
+    CHECK_THAT(sent, ContainsSubstring("\"negative_zero\":0.0,"));
+    CHECK_THAT(sent, ContainsSubstring("\"at\":[0.0,158.5381]"));
+    CHECK_THAT(sent, ContainsSubstring("\"sum\":135.0,"));
+    // A string keeps every digit, and a small value its own three.
+    CHECK_THAT(sent, ContainsSubstring("\"text\":\"0.123456789\""));
+    CHECK_THAT(sent, ContainsSubstring("\"tolerance\":1.5e-05"));
+    // An error's details too.
+    const std::string refused = McpProtocol::result_to_json(ToolResult::error("out of range", {{"max", 2.0000000000000004}}))["content"][0]["text"];
+    CHECK(refused == "out of range\n{\"max\":2.0}");
+}
+
+TEST_CASE("tools/call returns the result as a JSON text block", "[Mcp]")
+{
+    Fixture f;
+    const json result = body(f.post({{"jsonrpc", "2.0"}, {"id", 3}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", {{"text", "hi"}}}}}}))["result"];
+    CHECK_FALSE(result.contains("isError"));
+    CHECK_FALSE(result.contains("structuredContent"));
+    REQUIRE(result["content"].size() == 1);
+    CHECK(json::parse(result["content"][0]["text"].get<std::string>()) == json{{"echo", "hi"}});
+}
+
+TEST_CASE("tool failures and invalid arguments are isError results", "[Mcp]")
+{
+    Fixture f;
+    const json failed = body(f.post({{"jsonrpc", "2.0"}, {"id", 4}, {"method", "tools/call"}, {"params", {{"name", "fail"}}}}))["result"];
+    CHECK(failed["isError"] == true);
+    CHECK(failed["content"][0]["text"].get<std::string>().find("it broke") != std::string::npos);
+
+    // A misspelt argument is named, with the names the tool takes, before the one it then misses.
+    const json bad = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", {{"txt", "hi"}}}}}}))["result"];
+    CHECK(bad["isError"] == true);
+    const std::string text = bad["content"][0]["text"];
+    CHECK(text.find("unknown argument txt") != std::string::npos);
+    CHECK(text.find("\"text\"") != std::string::npos);
+    // Its code says it is the call's arguments, as a command's own argument checks say, and its hint where the
+    // command's parameters are.
+    CHECK(text.rfind("Invalid arguments for echo: ", 0) == 0);
+    CHECK(details_of(bad) == json{{"code", "invalid_argument"}, {"hint", "tool_describe {tool: \"echo\"} gives its parameters"}});
+    const json missing = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", json::object()}}}}))["result"];
+    CHECK(missing["isError"] == true);
+    CHECK(missing["content"][0]["text"].get<std::string>().find("text is required") != std::string::npos);
+    CHECK(details_of(missing).at("code") == "invalid_argument");
+    // Arguments that are no object are refused the same way.
+    const json scalar = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", json::array({1})}}}}))["result"];
+    CHECK(scalar["isError"] == true);
+    CHECK(scalar["content"][0]["text"].get<std::string>().rfind("Invalid arguments for echo: arguments must be an object", 0) == 0);
+    CHECK(details_of(scalar).at("hint") == "tool_describe {tool: \"echo\"} gives its parameters");
+    // The tool's own failure is not about the arguments.
+    CHECK(failed["content"][0]["text"].get<std::string>().find("invalid_argument") == std::string::npos);
+}
+
+TEST_CASE("an unknown tool is a JSON-RPC error with suggestions", "[Mcp]")
+{
+    Fixture f;
+    const json reply = body(f.post({{"jsonrpc", "2.0"}, {"id", 6}, {"method", "tools/call"}, {"params", {{"name", "ecko"}}}}));
+    CHECK(reply["error"]["code"] == -32602);
+    CHECK(reply["error"]["data"]["did_you_mean"][0] == "echo");
+}
+
+TEST_CASE("one edit distance serves every did-you-mean", "[Mcp]")
+{
+    CHECK(edit_distance("fillet", "filet") == 1);
+    CHECK(edit_distance("", "abc") == 3);
+    CHECK(edit_distance("a", "a") == 0);
+}
+
+TEST_CASE("malformed messages are rejected", "[Mcp]")
+{
+    Fixture f;
+    PostReply r = f.protocol.handle_post(PostRequest{"{not json", {}, {}, {}});
+    CHECK(r.status == 400);
+    CHECK(body(r)["error"]["code"] == -32700);
+
+    r = f.post(json::array({{{"jsonrpc", "2.0"}, {"id", 1}, {"method", "ping"}}}));
+    CHECK(r.status == 400);
+    CHECK(body(r)["error"]["code"] == -32600);
+
+    r = f.post({{"jsonrpc", "2.0"}, {"id", nullptr}, {"method", "ping"}});
+    CHECK(body(r)["error"]["code"] == -32600);
+
+    r = f.post({{"jsonrpc", "1.0"}, {"id", 1}, {"method", "ping"}});
+    CHECK(body(r)["error"]["code"] == -32600);
+
+    // A jsonrpc that is not a string is the same error, never an exception: the stdio bridge calls
+    // handle_post directly.
+    for (const json& version : {json(2), json(nullptr), json::object()}) {
+        r = f.post({{"jsonrpc", version}, {"id", 1}, {"method", "ping"}});
+        CHECK(r.status == 400);
+        CHECK(body(r)["error"]["code"] == -32600);
+    }
+}
+
+TEST_CASE("params that are not an object are invalid params", "[Mcp]")
+{
+    Fixture   f;
+    PostReply r = f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/list"}, {"params", json::array()}});
+    CHECK(body(r)["error"]["code"] == -32602);
+    r = f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "ping"}, {"params", 3}});
+    CHECK(body(r)["error"]["code"] == -32602);
+}
+
+TEST_CASE("the stdio bridge derives no headers from a line that is not a message object", "[Mcp]")
+{
+    CHECK(bridge_headers(json::array({{{"method", "ping"}}}), "2025-06-18").empty());
+    CHECK(bridge_headers(json(42), {}).empty());
+    CHECK(bridge_headers({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"}, {"params", {{"name", "app_state"}}}}, "2025-06-18")
+              .count("MCP-Protocol-Version") == 1);
+    // Members of the wrong type are left out rather than thrown on.
+    CHECK(bridge_headers({{"jsonrpc", "2.0"}, {"id", 1}, {"method", 5}}, "").empty());
+    CHECK(bridge_headers({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"}, {"params", {{"name", 3}}}}, "").count("Mcp-Name") == 0);
+}
+
+TEST_CASE("ping returns an empty result", "[Mcp]")
+{
+    Fixture f;
+    CHECK(body(f.post({{"jsonrpc", "2.0"}, {"id", "p"}, {"method", "ping"}}))["result"] == json::object());
+}
+
+TEST_CASE("a legacy request with an unsupported MCP-Protocol-Version header is 400", "[Mcp]")
+{
+    Fixture f;
+    const PostReply r = f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/list"}}, "2024-01-01");
+    CHECK(r.status == 400);
+    CHECK(f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/list"}}, "2025-11-25").status == 200);
+}
+
+TEST_CASE("2026-07-28 server/discover lists versions and capabilities", "[Mcp]")
+{
+    Fixture f;
+    const PostReply r = f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "server/discover"}, {"params", modern_params()}}, "2026-07-28", "server/discover");
+    REQUIRE(r.status == 200);
+    const json result = body(r)["result"];
+    CHECK(result["resultType"] == "complete");
+    CHECK(result["supportedVersions"][0] == "2026-07-28");
+    CHECK(result["capabilities"].contains("tools"));
+    CHECK(result["_meta"]["io.modelcontextprotocol/serverInfo"]["name"] == "orcaslicer");
+    CHECK(result.contains("ttlMs"));
+    CHECK(result.contains("cacheScope"));
+}
+
+TEST_CASE("2026-07-28 results carry resultType complete", "[Mcp]")
+{
+    Fixture f;
+    const json list = body(f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/list"}, {"params", modern_params()}}, "2026-07-28", "tools/list"))["result"];
+    CHECK(list["resultType"] == "complete");
+    CHECK(list.contains("ttlMs"));
+    CHECK(list.contains("cacheScope"));
+
+    const json call = body(f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/call"},
+                                    {"params", modern_params({{"name", "echo"}, {"arguments", {{"text", "x"}}}})}},
+                                   "2026-07-28", "tools/call", "echo"))["result"];
+    CHECK(call["resultType"] == "complete");
+}
+
+TEST_CASE("2026-07-28 header mismatches are 400 -32020", "[Mcp]")
+{
+    Fixture f;
+    const json req{{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"}, {"params", modern_params({{"name", "echo"}, {"arguments", {{"text", "x"}}}})}};
+    PostReply r = f.post(req, "2026-07-28", "tools/list", "echo");
+    CHECK(r.status == 400);
+    CHECK(body(r)["error"]["code"] == -32020);
+
+    r = f.post(req, "2026-07-28", "tools/call", "");
+    CHECK(body(r)["error"]["code"] == -32020);
+
+    r = f.post(req, "", "tools/call", "echo");
+    CHECK(body(r)["error"]["code"] == -32020);
+
+    // Mcp-Name may arrive base64-encoded.
+    r = f.post(req, "2026-07-28", "tools/call", "=?base64?ZWNobw==?=");
+    CHECK(r.status == 200);
+}
+
+TEST_CASE("2026-07-28 unsupported _meta version is 400 -32022 with the supported list", "[Mcp]")
+{
+    Fixture f;
+    json params = modern_params();
+    params["_meta"]["io.modelcontextprotocol/protocolVersion"] = "2030-01-01";
+    const PostReply r = f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/list"}, {"params", params}}, "2030-01-01", "tools/list");
+    CHECK(r.status == 400);
+    const json err = body(r)["error"];
+    CHECK(err["code"] == -32022);
+    CHECK(err["data"]["requested"] == "2030-01-01");
+    CHECK(err["data"]["supported"][0] == "2026-07-28");
+}
+
+TEST_CASE("2026-07-28 unknown method is 404 -32601", "[Mcp]")
+{
+    Fixture f;
+    const PostReply r = f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "resources/list"}, {"params", modern_params()}}, "2026-07-28", "resources/list");
+    CHECK(r.status == 404);
+    CHECK(body(r)["error"]["code"] == -32601);
+}
+
+TEST_CASE("argument validation covers types, enums, ranges and arrays", "[Mcp]")
+{
+    const json schema = {{"type", "object"},
+                         {"properties",
+                          {{"n", {{"type", "integer"}, {"minimum", 1}, {"maximum", 5}}},
+                           {"zoom", {{"type", "number"}, {"exclusiveMinimum", 0}}},
+                           {"mode", {{"type", "string"}, {"enum", {"a", "b"}}}},
+                           {"paths", {{"type", "array"}, {"items", {{"type", "string"}}}}},
+                           {"entries", {{"type", "array"}, {"items", {{"type", "string"}}}, {"minItems", 1}}}}},
+                         {"additionalProperties", false}};
+    CHECK(validate_arguments(schema, {{"n", 3}, {"mode", "a"}, {"paths", {"x"}}}).empty());
+    CHECK(validate_arguments(schema, {{"n", 0}}).find("n must be >= 1") != std::string::npos);
+    CHECK(validate_arguments(schema, {{"zoom", 0}}).find("zoom must be > 0") != std::string::npos);
+    CHECK(validate_arguments(schema, {{"zoom", 0.5}}).empty());
+    CHECK(validate_arguments(schema, {{"n", 2.5}}).find("integer") != std::string::npos);
+    // A whole number written as a float is an integer, within the int64 range callers read it into; past it, and
+    // past what a double holds exactly, it is not one (checked without a cast, which there would be undefined).
+    CHECK(validate_arguments(schema, {{"n", 3.0}}).empty());
+    const json wide = {{"type", "object"}, {"properties", {{"i", {{"type", "integer"}}}}}};
+    CHECK(validate_arguments(wide, {{"i", 9.0e18}}).empty());
+    CHECK(validate_arguments(wide, {{"i", 9.3e18}}).find("integer") != std::string::npos);
+    CHECK(validate_arguments(wide, {{"i", 1.0e300}}).find("integer") != std::string::npos);
+    CHECK(validate_arguments(schema, {{"mode", "c"}}).find("one of") != std::string::npos);
+    CHECK(validate_arguments(schema, {{"paths", {1}}}).find("paths[0]") != std::string::npos);
+    CHECK(validate_arguments(schema, {{"paths", json::array()}}).empty());
+    CHECK(validate_arguments(schema, {{"entries", json::array()}}).find("entries must hold at least 1 item") != std::string::npos);
+    CHECK(validate_arguments(schema, {{"entries", {"a.stl"}}}).empty());
+    CHECK(validate_arguments(schema, {{"extra", 1}}).find("unknown argument extra") != std::string::npos);
+
+    // An argument the tool does not take is named before one the call leaves out: a call that gives an old name for
+    // a required argument is told that name is not taken.
+    const json required = {{"type", "object"},
+                           {"properties", {{"suppressed", {{"type", "boolean"}}}}},
+                           {"required", {"suppressed"}},
+                           {"additionalProperties", false}};
+    CHECK(validate_arguments(required, {{"enabled", false}}).find("unknown argument enabled") != std::string::npos);
+    CHECK(validate_arguments(required, json::object()).find("suppressed is required") != std::string::npos);
+
+    // A plugin operation's draft-04 schema gives exclusiveMinimum as a boolean that qualifies minimum.
+    const json draft4 = {{"type", "object"}, {"properties", {{"zoom", {{"type", "number"}, {"minimum", 0}, {"exclusiveMinimum", true}}}}}};
+    std::string draft4_error;
+    CHECK_NOTHROW(draft4_error = validate_arguments(draft4, {{"zoom", 0.5}}));
+    CHECK(draft4_error.empty());
+}
+
+TEST_CASE("argument normalization reads the names agents reach for as the ones a tool takes", "[Mcp]")
+{
+    const json schema = {{"type", "object"},
+                         {"properties",
+                          {{"target", {{"type", {"string", "object"}}}},
+                           {"button", {{"type", "string"}}},
+                           {"objects", {{"type", "array"}, {"items", {{"type", "integer"}}}}}}},
+                         {"additionalProperties", false}};
+    const auto normalized = [&](json args) {
+        normalize_arguments(schema, args);
+        return args;
+    };
+    CHECK(normalized({{"ref", "w12"}}) == json{{"target", "w12"}});
+    // action stands for id or button, whichever the tool takes.
+    CHECK(normalized({{"action", "close"}}) == json{{"button", "close"}});
+    CHECK(normalized({{"object", 2}}) == json{{"objects", {2}}});
+    CHECK(normalized({{"object", "0"}}) == json{{"objects", {0}}});
+    // Given both, the call keeps them and validation names the stray one.
+    const json both = normalized({{"ref", "w12"}, {"target", "w13"}});
+    CHECK(both == json{{"ref", "w12"}, {"target", "w13"}});
+    CHECK(validate_arguments(schema, both).find("unknown argument ref") != std::string::npos);
+    // A tool that takes the name itself keeps it.
+    const json own = {{"type", "object"}, {"properties", {{"text", {{"type", "string"}}}, {"value", {{"type", "string"}}}}}};
+    json       text{{"text", "abc"}};
+    normalize_arguments(own, text);
+    CHECK(text == json{{"text", "abc"}});
+    // Only a value that fits: a click is no button, so the call keeps action for the validator to name.
+    const json clicks = {{"type", "object"},
+                         {"properties", {{"button", {{"type", "string"}, {"enum", {"left", "right", "middle"}}}}}},
+                         {"additionalProperties", false}};
+    json       click{{"action", "click"}};
+    normalize_arguments(clicks, click);
+    CHECK(click == json{{"action", "click"}});
+}
+
+TEST_CASE("argument normalization reads a capture's output path as its save_path", "[Mcp]")
+{
+    const auto normalized = [](const json& properties, json args) {
+        normalize_arguments({{"type", "object"}, {"properties", properties}, {"additionalProperties", false}}, args);
+        return args;
+    };
+    // A capture's output file is its save_path; a tool with a path of its own keeps that.
+    const json capture = {{"save_path", {{"type", "string"}}}};
+    CHECK(normalized(capture, {{"path", "/a.png"}}) == json{{"save_path", "/a.png"}});
+    const json encode = {{"path", {{"type", "string"}}}, {"save_path", {{"type", "string"}}}};
+    CHECK(normalized(encode, {{"path", "/a.mkv"}}) == json{{"path", "/a.mkv"}});
+}
+
+TEST_CASE("argument normalization reads a guessed type as operation, and operation as type", "[Mcp]")
+{
+    const auto normalized = [](const json& properties, json args) {
+        normalize_arguments({{"type", "object"}, {"properties", properties}, {"additionalProperties", false}}, args);
+        return args;
+    };
+    // What the result does to the bodies, and which variant a command makes: a call gives one for the other.
+    const json operation = {{"operation", {{"type", "string"}, {"enum", {"join", "cut", "intersect"}}}}};
+    CHECK(normalized(operation, {{"type", "cut"}}) == json{{"operation", "cut"}});
+    const json type = {{"type", {{"type", "string"}, {"enum", {"offset", "angle"}}}}};
+    CHECK(normalized(type, {{"operation", "offset"}}) == json{{"type", "offset"}});
+    // A value the other does not take stays, for the validator to name.
+    CHECK(normalized(operation, {{"type", "sideways"}}) == json{{"type", "sideways"}});
+    // A tool that takes both keeps each where the call put it.
+    const json both = {{"operation", {{"type", "string"}, {"enum", {"join", "cut"}}}},
+                       {"type", {{"type", "string"}, {"enum", {"cut", "linear"}}}}};
+    CHECK(normalized(both, {{"type", "cut"}}) == json{{"type", "cut"}});
+    CHECK(normalized(both, {{"operation", "cut"}}) == json{{"operation", "cut"}});
+}
+
+TEST_CASE("argument normalization leaves a value its enum lacks, and a 3D view under another name, for the validator", "[Mcp]")
+{
+    const json schema = {{"type", "object"},
+                         {"properties",
+                          {{"scope", {{"type", "string"}, {"enum", {"process", "filament", "part"}}}},
+                           {"target", {{"type", "string"}, {"enum", {"main", "canvas"}}}},
+                           {"canvas", {{"type", "string"}, {"enum", {"3d", "preview"}}}}}},
+                         {"additionalProperties", false}};
+    const auto normalized = [&](json args) {
+        normalize_arguments(schema, args);
+        return args;
+    };
+    // No value stands for another: the process scope and the main window go by those names alone.
+    CHECK(normalized({{"scope", "print"}}) == json{{"scope", "print"}});
+    CHECK(normalized({{"target", "window"}}) == json{{"target", "window"}});
+    CHECK_FALSE(validate_arguments(schema, normalized({{"scope", "print"}})).empty());
+    // view_set's 3D view is its canvas.
+    const json view = normalized({{"view", "preview"}});
+    CHECK(view == json{{"view", "preview"}});
+    CHECK(validate_arguments(schema, view).find("unknown argument view") != std::string::npos);
+}
+
+TEST_CASE("argument normalization reads values written in another JSON form", "[Mcp]")
+{
+    const json schema = {{"type", "object"},
+                         {"properties",
+                          {{"n", {{"type", "integer"}}},
+                           {"flag", {{"type", "boolean"}}},
+                           {"plate", {{"type", {"string", "integer"}}}},
+                           {"point", {{"type", "array"}, {"items", {{"type", "number"}}}}},
+                           {"paths", {{"type", "array"}, {"items", {{"type", "string"}}}}},
+                           {"name", {{"type", "string"}}}}},
+                         {"additionalProperties", false}};
+    json args{{"n", "3"}, {"flag", "true"}, {"plate", "1"}, {"point", "[1, 2.5, 3]"}, {"paths", "/a.stl"}, {"name", "7"}};
+    normalize_arguments(schema, args);
+    CHECK(args["n"] == 3);
+    CHECK(args["flag"] == true);
+    CHECK(args["plate"] == 1);
+    CHECK(args["point"] == json{1, 2.5, 3});
+    CHECK(args["paths"] == json{"/a.stl"});
+    // A string where a string goes stays one.
+    CHECK(args["name"] == "7");
+    CHECK(validate_arguments(schema, args).empty());
+
+    json kept{{"plate", "all"}, {"n", "2.5"}};
+    normalize_arguments(schema, kept);
+    CHECK(kept["plate"] == "all");
+    CHECK(validate_arguments(schema, kept).find("n must be of type integer") != std::string::npos);
+}
+
+TEST_CASE("argument normalization moves a value outside its enum to the argument whose enum takes it", "[Mcp]")
+{
+    const json schema = {{"type", "object"},
+                         {"properties",
+                          {{"view", {{"type", "string"}, {"enum", {"3d", "preview"}}}},
+                           {"camera", {{"type", "string"}, {"enum", {"front", "top", "fit"}}}},
+                           {"tab", {{"type", "string"}, {"enum", {"prepare", "preview"}}}}}},
+                         {"additionalProperties", false}};
+    json moved{{"view", "front"}};
+    normalize_arguments(schema, moved);
+    CHECK(moved == json{{"camera", "front"}});
+
+    // Both given: the call names its camera, so view's value is an error, not a second camera.
+    json both{{"view", "front"}, {"camera", "fit"}};
+    normalize_arguments(schema, both);
+    CHECK(both["view"] == "front");
+    CHECK(validate_arguments(schema, both).find("view must be one of") != std::string::npos);
+
+    // A value of its own enum stays, even where another enum also takes it.
+    json own{{"view", "preview"}};
+    normalize_arguments(schema, own);
+    CHECK(own == json{{"view", "preview"}});
+
+    // Taken by no other enum: left for the validator.
+    json unknown{{"view", "sideways"}};
+    normalize_arguments(schema, unknown);
+    CHECK(unknown == json{{"view", "sideways"}});
+}
+
+TEST_CASE("pairs window_list reports are read as position and size", "[Mcp]")
+{
+    const json schema = {{"type", "object"},
+                         {"properties", {{"position", {{"type", "array"}, {"items", {{"type", "integer"}}}}},
+                                         {"size", {{"type", "array"}, {"items", {{"type", "integer"}}}}}}},
+                         {"additionalProperties", false}};
+    json flat{{"x", 10}, {"y", 20}, {"width", 800}, {"height", 600}};
+    normalize_arguments(schema, flat);
+    CHECK(flat == json{{"position", {10, 20}}, {"size", {800, 600}}});
+    json half{{"x", 10}};
+    normalize_arguments(schema, half);
+    CHECK(half == json{{"x", 10}});                        // left for the validator to name
+    json given{{"x", 1}, {"y", 2}, {"position", {3, 4}}};
+    normalize_arguments(schema, given);
+    CHECK(given["position"] == json{3, 4});                // never replaces a given argument
+    const json own = {{"type", "object"}, {"properties", {{"x", {{"type", "integer"}}}, {"y", {{"type", "integer"}}}}}};
+    json kept{{"x", 1}, {"y", 2}};
+    normalize_arguments(own, kept);
+    CHECK(kept == json{{"x", 1}, {"y", 2}});               // a tool that takes x and y keeps them
+}
+
+TEST_CASE("a position or size in mm, an array of numbers, takes no pair window_list reports", "[Mcp]")
+{
+    // part_add's position and size, and object_transform's position.
+    const json schema = {{"type", "object"},
+                         {"properties", {{"position", {{"type", "array"}, {"items", {{"type", "number"}}}}},
+                                         {"size", {{"type", "array"}, {"items", {{"type", "number"}}}}}}},
+                         {"additionalProperties", false}};
+    const json flat{{"x", 10}, {"y", 20}, {"width", 30}, {"height", 5}};
+    json       args = flat;
+    normalize_arguments(schema, args);
+    CHECK(args == flat);
+    CHECK(validate_arguments(schema, args).find("unknown argument") != std::string::npos);
+    // object_transform's size, whose null keeps an axis.
+    const json nullable = {{"type", "object"},
+                           {"properties", {{"size", {{"type", "array"}, {"items", {{"type", {"number", "null"}}}}}}}},
+                           {"additionalProperties", false}};
+    json sized{{"width", 30}, {"height", 5}};
+    normalize_arguments(nullable, sized);
+    CHECK(sized == json{{"width", 30}, {"height", 5}});
+}
+
+TEST_CASE("an unknown tool is answered with the closest names", "[Mcp]")
+{
+    Fixture f;
+    const json direct = body(f.post({{"jsonrpc", "2.0"}, {"id", 7}, {"method", "tools/call"}, {"params", {{"name", "no_such_tool"}}}}));
+    CHECK(direct["error"]["message"] == "Unknown tool: no_such_tool");
+
+    NativeCommand api;
+    api.key          = "tool_call";
+    api.input_schema = {{"type", "object"},
+                        {"properties", {{"tool", {{"type", "string"}}}, {"args", {{"type", "object"}}}}},
+                        {"required", {"tool"}}};
+    api.run          = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); };
+    f.registry.add(api);
+    // tool_call's target names the closest command, and nothing else; the code says the call's `tool` is wrong.
+    const json typo = body(f.post({{"jsonrpc", "2.0"}, {"id", 9}, {"method", "tools/call"},
+                                   {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "ech"}}}}}}))["result"];
+    CHECK(typo["isError"] == true);
+    CHECK(typo["content"][0]["text"] == "Unknown tool: ech (did you mean echo?)\n" R"({"code":"invalid_argument"})");
+    // A target the catalog leaves out is named right: its code is the one it was left out with, which says what keeps
+    // it from this run.
+    f.registry.leave_out("holes", "the feature was off", "feature_off");
+    const json left_out = body(f.post({{"jsonrpc", "2.0"}, {"id", 10}, {"method", "tools/call"},
+                                       {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "holes"}}}}}}))["result"];
+    CHECK(left_out["isError"] == true);
+    CHECK(left_out["content"][0]["text"] == "Unknown tool: holes; the feature was off\n" R"({"code":"feature_off"})");
+}
+
+TEST_CASE("a tools/call whose name is not a string is a parameter error", "[Mcp]")
+{
+    Fixture f;
+    // Both dispatches read the name as a string, the modern one in its header check first.
+    const PostReply legacy = f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"}, {"params", {{"name", 5}}}});
+    CHECK(legacy.status == 200);
+    CHECK(body(legacy)["error"]["code"] == -32602);
+    CHECK(body(legacy)["error"]["message"] == "name must be a string");
+    const PostReply modern = f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/call"}, {"params", modern_params({{"name", 5}})}},
+                                    "2026-07-28", "tools/call", "5");
+    CHECK(modern.status == 200);
+    CHECK(body(modern)["error"]["code"] == -32602);
+}
+
+TEST_CASE("a call's arguments are normalized, then validated", "[Mcp]")
+{
+    NativeCommand capture;
+    capture.key          = "window_screenshot";
+    capture.input_schema = {{"type", "object"},
+                            {"properties", {{"target", {{"type", "string"}}}, {"save_path", {{"type", "string"}}}}},
+                            {"additionalProperties", false}};
+    // A name agents reach for is read as the one the tool takes.
+    json aliased{{"path", "/a.png"}};
+    CHECK(argument_error(capture, aliased).empty());
+    CHECK(aliased == json{{"save_path", "/a.png"}});
+    // An argument the tool does not take is refused with the ones it does.
+    json unknown{{"colour", "red"}};
+    const std::string refused = argument_error(capture, unknown);
+    CHECK(refused.find("unknown argument colour") != std::string::npos);
+    CHECK(refused.find("save_path") != std::string::npos);
+}
+
+TEST_CASE("tool_call runs and is journaled as the tool it names", "[Mcp]")
+{
+    Fixture f;
+    NativeCommand api;
+    api.key          = "tool_call";
+    api.input_schema = {{"type", "object"},
+                        {"properties", {{"tool", {{"type", "string"}}}, {"args", {{"type", "object"}}}}},
+                        {"required", {"tool"}}};
+    api.run          = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); };
+    f.registry.add(api);
+
+    const json result = body(f.post({{"jsonrpc", "2.0"}, {"id", 4}, {"method", "tools/call"},
+                                     {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "echo"}, {"args", {{"text", "hi"}}}}}}}}))["result"];
+    CHECK(json::parse(result["content"][0]["text"].get<std::string>()) == json{{"echo", "hi"}});
+    REQUIRE(f.caller.called.size() == 1);
+    CHECK(f.caller.called.back() == "echo");
+
+    // The target's arguments are checked against its schema, and an unknown tool is named.
+    const json invalid = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"},
+                                      {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "echo"}, {"args", json::object()}}}}}}))["result"];
+    CHECK(invalid["isError"] == true);
+    // The hint names the target, whose arguments failed, not tool_call.
+    CHECK(invalid["content"][0]["text"].get<std::string>().rfind("Invalid arguments for echo: ", 0) == 0);
+    CHECK(details_of(invalid) == json{{"code", "invalid_argument"}, {"hint", "tool_describe {tool: \"echo\"} gives its parameters"}});
+    // tool_call's own argument names nothing: that is its arguments too.
+    const json unknown = body(f.post({{"jsonrpc", "2.0"}, {"id", 6}, {"method", "tools/call"},
+                                      {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "ech"}}}}}}))["result"];
+    CHECK(unknown["isError"] == true);
+    CHECK(unknown["content"][0]["text"].get<std::string>().find("did you mean echo") != std::string::npos);
+    CHECK(unknown["content"][0]["text"].get<std::string>().find(R"({"code":"invalid_argument"})") != std::string::npos);
+}
+
+TEST_CASE("a call carries its client's name while one client has said its name, and none once two have", "[Mcp]")
+{
+    Fixture    f;
+    const auto initialize = [&f](const char* name) {
+        f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "initialize"},
+                {"params", {{"protocolVersion", "2025-06-18"}, {"clientInfo", {{"name", name}, {"version", "1"}}}}}});
+    };
+    const json call{{"jsonrpc", "2.0"}, {"id", 3}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", {{"text", "hi"}}}}}};
+
+    // Before any handshake a call is the agent's, unnamed, and carries the message it came in.
+    f.post(call);
+    REQUIRE(f.caller.origins.size() == 1);
+    CHECK(f.caller.origins.back() == json{{"source", "agent"}, {"client", ""}, {"request", call}});
+
+    initialize("Claude Code");
+    initialize("Claude Code"); // the same client reconnecting is still one name
+    f.post(call);
+    CHECK(f.caller.origins.back()["client"] == "Claude Code");
+
+    initialize("Codex");
+    f.post(call);
+    CHECK(f.caller.origins.back()["client"] == "");
+
+    // A 2026-07-28 call has no handshake: whoever it is, it is unnamed.
+    Fixture fresh;
+    fresh.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "initialize"},
+                {"params", {{"protocolVersion", "2025-06-18"}, {"clientInfo", {{"name", "Claude Code"}}}}}});
+    fresh.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/call"}, {"params", modern_params({{"name", "echo"}, {"arguments", {{"text", "hi"}}}})}},
+               "2026-07-28", "tools/call", "echo");
+    REQUIRE(fresh.caller.origins.size() == 1);
+    CHECK(fresh.caller.origins.back()["client"] == "");
+}
+
+TEST_CASE("a tool_call reaches the caller with its message as sent, and a call refused before it is reported", "[Mcp]")
+{
+    Fixture f;
+    NativeCommand api;
+    api.key          = "tool_call";
+    api.input_schema = {{"type", "object"},
+                        {"properties", {{"tool", {{"type", "string"}}}, {"args", {{"type", "object"}}}}},
+                        {"required", {"tool"}}};
+    api.run          = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); };
+    f.registry.add(api);
+    struct Refusal
+    {
+        std::string tool;
+        json        origin;
+        ToolResult  error;
+    };
+    std::vector<Refusal> refusals;
+    f.protocol.set_on_refused([&refusals](const std::string& tool, const json& origin, const ToolResult& error) {
+        refusals.push_back({tool, origin, error});
+    });
+
+    const json wrapped{{"jsonrpc", "2.0"}, {"id", 4}, {"method", "tools/call"},
+                       {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "echo"}, {"args", {{"text", "hi"}}}}}}}};
+    f.post(wrapped);
+    REQUIRE(f.caller.called == std::vector<std::string>{"echo"});
+    CHECK(f.caller.origins.back()["request"] == wrapped);
+    CHECK(refusals.empty());
+
+    const json bad{{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", {{"txt", "hi"}}}}}};
+    f.post(bad);
+    REQUIRE(refusals.size() == 1);
+    CHECK(refusals[0].tool == "echo");
+    CHECK(refusals[0].origin == json{{"source", "agent"}, {"client", ""}, {"request", bad}});
+    CHECK(refusals[0].error.is_error);
+    CHECK(refusals[0].error.message.rfind("Invalid arguments for echo: unknown argument txt", 0) == 0);
+
+    // A tool_call that names an unknown tool is the call of the tool it names; an unknown tool is refused too.
+    f.post({{"jsonrpc", "2.0"}, {"id", 6}, {"method", "tools/call"}, {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "ech"}}}}}});
+    f.post({{"jsonrpc", "2.0"}, {"id", 7}, {"method", "tools/call"}, {"params", {{"name", "ecko"}}}});
+    REQUIRE(refusals.size() == 3);
+    CHECK(refusals[1].tool == "ech");
+    CHECK(refusals[2].tool == "ecko");
+    CHECK(refusals[2].error.message == f.registry.unknown_command("ecko"));
+    CHECK(f.caller.called.size() == 1); // none of them reached the caller
+
+    // What the listener throws never reaches the client.
+    f.protocol.set_on_refused([](const std::string&, const json&, const ToolResult&) { throw std::runtime_error("listener"); });
+    CHECK(f.post(bad).status == 200);
+}
+
+// Holds the one operation a plugin offers while it is loaded.
+class MeasureSource final : public CommandSource
+{
+public:
+    MeasureSource()
+    {
+        auto area = std::make_shared<NativeCommand>();
+        area->key = "plugin.measure.area";
+        area->run = [](const json&, ToolContext&) { return ToolResult::ok({{"area", 12.5}}); };
+        m_area    = std::move(area);
+    }
+    std::shared_ptr<const NativeCommand> find(const std::string& key) const override { return key == m_area->key ? m_area : nullptr; }
+    std::vector<std::shared_ptr<const NativeCommand>> all() const override { return {m_area}; }
+
+private:
+    std::shared_ptr<const NativeCommand> m_area;
+};
+
+TEST_CASE("a name the table lacks resolves through a source, without being listed", "[Mcp]")
+{
+    Fixture f;
+    f.registry.add_source(std::make_unique<MeasureSource>());
+    REQUIRE(f.registry.lookup("plugin.measure.area") != nullptr);
+    CHECK(f.registry.lookup("plugin.measure.volume") == nullptr);
+    CHECK(f.registry.lookup("echo")->key == "echo");
+    const json tools = body(f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}}))["result"]["tools"];
+    for (const json& t : tools)
+        CHECK(t["name"] != "plugin.measure.area");
+    const json result = body(f.post({{"jsonrpc", "2.0"}, {"id", 3}, {"method", "tools/call"},
+                                     {"params", {{"name", "plugin.measure.area"}, {"arguments", json::object()}}}}))["result"];
+    CHECK(json::parse(result["content"][0]["text"].get<std::string>()) == json{{"area", 12.5}});
+}

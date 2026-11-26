@@ -812,6 +812,9 @@ public:
     int command_set_nozzle_new(int nozzle_id, int temp);
     int command_refresh_nozzle();
     int command_set_chamber(int temp);
+    // Whether the job may be resumed only at the printer, as certain processing tasks (such as laser) are:
+    // check_resume_condition()'s rule, which it tells the person in a dialog.
+    bool resume_only_at_printer() const;
     int check_resume_condition();
     bool printer_supports_command(const char* command) const;
     bool printer_supports_feature(const char* feature) const;

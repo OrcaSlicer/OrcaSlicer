@@ -43,6 +43,9 @@ protected:
     virtual void on_render_input_window(float x, float y, float bottom_limit) override;
     virtual bool on_is_activable() const override;
     virtual bool on_is_selectable() const override { return false; }
+    // Busy from the start of a calculation until worker_finished() has shown its result, restarts
+    // and cancellations included; once closed, until a cancelled calculation has stopped.
+    bool is_busy() const override;
     virtual void on_set_state() override;
 
     // must implement
@@ -112,7 +115,7 @@ private:
     };
 
     std::thread m_worker;
-    std::mutex m_state_mutex; // guards m_state
+    mutable std::mutex m_state_mutex; // guards m_state
     State m_state; // accessed by both threads
 
 
