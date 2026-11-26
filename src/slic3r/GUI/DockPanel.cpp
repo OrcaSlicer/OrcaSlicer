@@ -26,8 +26,9 @@ DockPanel::DockPanel(wxWindow*          parent,
                      const std::string& html,
                      MessageHandler     on_message,
                      CloseHandler       on_close,
-                     CloseHandler       on_destroyed)
-    : WebPanel(parent, web_hosting::orca_bridge_script())
+                     CloseHandler       on_destroyed,
+                     const wxString&    profile)
+    : WebPanel(parent, web_hosting::orca_bridge_script(), profile)
     , m_html(html)
     , m_on_message(std::move(on_message))
     , m_on_close(std::move(on_close))
