@@ -16744,8 +16744,16 @@ msgstr ""
 "\n"
 "Papildomai, jei funkcija „Sulėtinti greitį riečiantis perimetrams“ yra išjungta, šis greitis bus taikomas iškyšų sienelėms, kurių atrama yra mažesnė nei 13 % (nesvarbu, ar jos yra tilto, ar iškyšos dalis)."
 
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "Vidinių tiltelių spausdinimo greitis. Jei reikšmė nurodoma procentais, ji apskaičiuojama pagal „bridge_speed“ (tiltelių greitį). Numatytoji reikšmė – 150 %."
+# AI Translated
+# Needs human review: Last sentence ('The resulting speed is limited by the filament's "Max volumetric speed".') was newly translated; verify wording.
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"Vidinių tiltelių spausdinimo greitis. Jei reikšmė nurodoma procentais, ji apskaičiuojama pagal „bridge_speed“ (tiltelių greitį).\n"
+"\n"
+"Galutinį greitį riba gijos \"Maksimalus tūrinis greitis\"."
 
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Atstumas nuo modelio iki išorinės krašto linijos"
@@ -17331,8 +17339,9 @@ msgstr "Šis atskiras nustatymas valdo perimetrų, kurių spindulys <= small_per
 msgid "Small perimeters threshold"
 msgstr "Mažų perimetrų riba"
 
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "Nustato mažų perimetrų ilgio arba spindulio ribą. Numatytoji reikšmė – 0 mm."
+# AI Translated
+msgid "This sets the threshold for small perimeter length."
+msgstr "Nustato mažų perimetrų ilgio arba spindulio ribą."
 
 msgid "Small support perimeters"
 msgstr "Maži atramų perimetrai"
@@ -17344,8 +17353,9 @@ msgstr "Tas pats, kas „Mažos trajektorijos (Small perimeters)“, bet skirta 
 msgid "Small support perimeters threshold"
 msgstr "Mažo atramų perimetro ribos"
 
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "Nustatoma mažo atramų perimetro ilgio riba. Numatytoji riba yra 0 mm"
+# AI Translated
+msgid "This sets the threshold for small support perimeter length."
+msgstr "Nustatoma mažo atramų perimetro ilgio riba."
 
 msgid "Walls printing order"
 msgstr "Sienelių spausdinimo eiliškumas"
@@ -19640,16 +19650,17 @@ msgstr "mm³/s²"
 msgid "Smoothing segment length"
 msgstr "Išlyginamojo segmento ilgis"
 
+# AI Translated
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "Mažesnė reikšmė užtikrina sklandesnius išstūmimo greičio perėjimus. Tačiau dėl to G-kodo (G-code) failas tampa žymiai didesnis ir spausdintuvas turi apdoroti daugiau instrukcijų.\n"
 "\n"
-"Numatytoji reikšmė 3 puikiai tinka daugumai atvejų. Jei spausdintuvas striginėja, padidinkite šią reikšmę, kad sumažintumėte atliekamų koregavimų skaičių.\n"
+"Reikšmė 3 puikiai tinka daugumai atvejų. Jei spausdintuvas striginėja, padidinkite šią reikšmę, kad sumažintumėte atliekamų koregavimų skaičių.\n"
 "\n"
 "Leidžiamos reikšmės: 0.5–5"
 
@@ -20172,10 +20183,10 @@ msgstr "Siūlės tarpas"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "Siekiant sumažinti uždaros kilpos ekstruzijos siūlės matomumą, kilpa pertraukiama ir sutrumpinama tam tikru dydžiu.\n"
-"Šį kiekį galima nurodyti milimetrais arba procentais nuo purkštuko skersmens. Numatytoji šio parametro vertė yra 10 %."
+"Šį kiekį galima nurodyti milimetrais arba procentais nuo purkštuko skersmens."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Įstrižoji jungiamoji siūlė (Scarf joint) (beta)"
@@ -20192,31 +20203,34 @@ msgstr "Taikyti įstrižąsias jungtis (Scarf joint) tik ties lygiais perimetrai
 msgid "Conditional angle threshold"
 msgstr "Sąlyginė kampo ribinė reikšmė"
 
+# AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "Ši parinktis nustato ribinį kampą sąlyginės įstrižosios siūlės taikymui.\n"
-"Jei didžiausias kampas perimetro kilpoje viršija šią reikšmę (tai rodo, kad nėra aštrių kampų), bus naudojama įstrižoji jungiamoji siūlė (Scarf joint). Numatytoji reikšmė yra 155°."
+"Jei didžiausias kampas perimetro kilpoje viršija šią reikšmę (tai rodo, kad nėra aštrių kampų), bus naudojama įstrižoji jungiamoji siūlė (Scarf joint)."
 
 msgid "Conditional overhang threshold"
 msgstr "Sąlyginė iškyšos (overhang) ribinė reikšmė"
 
+# AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Ši parinktis nustato iškyšos (overhang) ribinę reikšmę įstrižųjų jungiamųjų siūlių taikymui. Jei neatremta perimetro dalis yra mažesnė už šią ribą, bus naudojamos įstrižosios jungiamosios siūlės (Scarf joint). Numatytoji riba yra 40 % išorinės sienelės pločio. Dėl programos našumo iškyšos laipsnis yra apytikslis."
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "Ši parinktis nustato iškyšos (overhang) ribinę reikšmę įstrižųjų jungiamųjų siūlių taikymui. Jei neatremta perimetro dalis yra mažesnė už šią ribą, bus naudojamos įstrižosios jungiamosios siūlės (Scarf joint). Riba yra procentinė išorinės sienelės pločio dalis. Dėl programos našumo iškyšos laipsnis yra apytikslis."
 
 msgid "Scarf joint speed"
 msgstr "Įstrižosios jungties (Scarf joint) greitis"
 
+# AI Translated
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "Ši parinktis nustato įstrižųjų jungčių (Scarf joint) spausdinimo greitį. Rekomenduojama jas spausdinti nedideliu greičiu (mažiau nei 100 mm/s). Taip pat patartina įjungti ekstruzijos srauto išlyginimą, jei nustatytas greitis stipriai skiriasi nuo išorinių ar vidinių sienelių greičio.\n"
 "\n"
-"Jei čia nurodytas greitis yra didesnis už išorinių ar vidinių sienelių greitį, spausdintuvas automatiškai parinks lėtesnį iš šių dviejų greičių. Nurodžius procentais (pvz., 80 %), greitis apskaičiuojamas pagal atitinkamos išorinės arba vidinės sienelės greitį. Numatytoji reikšmė yra 100 %."
+"Jei čia nurodytas greitis yra didesnis už išorinių ar vidinių sienelių greitį, spausdintuvas automatiškai parinks lėtesnį iš šių dviejų greičių. Nurodžius procentais (pvz., 80 %), greitis apskaičiuojamas pagal atitinkamos išorinės arba vidinės sienelės greitį."
 
 msgid "Scarf joint flow ratio"
 msgstr "Įstrižosios jungties (Scarf joint) srauto koeficientas"
@@ -20227,12 +20241,13 @@ msgstr "Šis koeficientas keičia medžiagos kiekį, naudojamą įstrižosioms j
 msgid "Scarf start height"
 msgstr "Įstrižosios jungties pradžios aukštis"
 
+# AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "Įstrižosios jungties pradžios aukštis.\n"
-"Šį dydį galima nurodyti milimetrais arba esamo sluoksnio aukščio procentais. Numatytoji šio parametro reikšmė yra 0."
+"Šį dydį galima nurodyti milimetrais arba esamo sluoksnio aukščio procentais."
 
 msgid "Scarf around entire wall"
 msgstr "Įstrižoji jungtis aplink visą sienelę"
@@ -20323,8 +20338,9 @@ msgstr ""
 msgid "Wipe speed"
 msgstr "Gijos valymo greitis"
 
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "Valymo greitis nustatomas pagal šioje konfigūracijoje nurodytą reikšmę. Jei reikšmė nurodyta procentais (pvz., 80%), ji bus apskaičiuojama pagal aukščiau nustatytą judėjimo (travel) greitį. Numatytoji šio parametro reikšmė yra 80%."
+# AI Translated
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "Valymo greitis nustatomas pagal šioje konfigūracijoje nurodytą reikšmę. Jei reikšmė nurodyta procentais (pvz., 80%), ji bus apskaičiuojama pagal aukščiau nustatytą judėjimo (travel) greitį."
 
 msgid "Skirt distance"
 msgstr "Apvado atstumas"
@@ -20906,8 +20922,9 @@ msgstr "Atramos linijos plotis. Jei išreiškiamas %, jis apskaičiuojamas pagal
 msgid "Loop pattern interface"
 msgstr "Kilpos modelio sąsaja."
 
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "Tai uždengia viršutinį atramų kontaktinį sluoksnį kilpomis. Pagal numatytuosius nustatymus ši funkcija yra išjungta."
+# AI Translated
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "Tai uždengia viršutinį atramų kontaktinį sluoksnį kilpomis."
 
 msgid "Support/raft interface"
 msgstr "Atramų ir (arba) platformos sąsaja"
@@ -21750,8 +21767,9 @@ msgstr "G-code miniatiūrų formatas: PNG – geriausia kokybė, JPG – mažiau
 msgid "Use relative E distances"
 msgstr "Naudoti santykinius E atstumus"
 
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "Naudojant parinktį „label_objects“ rekomenduojama naudoti santykinį išspaudimą (relative extrusion). Kai kurie ekstruderiai veikia geriau, kai ši parinktis nepažymėta (absoliutaus išspaudimo režimas). Valymo bokštelis suderinamas tik su santykiniu režimu. Jį rekomenduojama naudoti daugumoje spausdintuvų. Pagal numatytuosius nustatymus parinktis yra įjungta."
+# AI Translated
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "Naudojant parinktį „label_objects“ rekomenduojama naudoti santykinį išspaudimą (relative extrusion). Kai kurie ekstruderiai veikia geriau, kai ši parinktis nepažymėta (absoliutaus išspaudimo režimas). Valymo bokštelis suderinamas tik su santykiniu režimu. Jį rekomenduojama naudoti daugumoje spausdintuvų."
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "Klasikinis sienelių generatorius sukuria pastovaus ekstruzijos pločio sieneles, o labai plonoms vietoms užpildyti naudojamas tarpų užpildymas (angl. \"gap-fill\"). „Arachne“ variklis sukuria kintamo ekstruzijos pločio sieneles."
@@ -21806,11 +21824,11 @@ msgstr "Mažiausias sienelės ilgis"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "Pakoreguokite šią reikšmę, kad nebūtų spausdinamos trumpos, neuždaros sienelės, galinčios pailginti spausdinimo laiką. Reikšmė yra sienelės pločio kartotinis. Didesnės reikšmės pašalina daugiau ir ilgesnes sieneles.\n"
 "\n"
-"PASTABA: Šis nustatymas neturi įtakos apatiniams ir viršutiniams paviršiams, kad modelio išorėje neatsirastų matomų tuštumų. Žemiau, grupėje „Sienos ir paviršiai“, pakeiskite parametro „Vienos sienelės slenkstis“ jautrumą, apibrėžiantį, kas laikoma viršutiniu paviršiumi. „Vienos sienelės slenkstis“ matomas tik tada, kai šis nustatymas viršija numatytąją 0,5 reikšmę arba kai įjungti vienos sienelės viršutiniai paviršiai."
+"PASTABA: Šis nustatymas neturi įtakos apatiniams ir viršutiniams paviršiams, kad modelio išorėje neatsirastų matomų tuštumų. Žemiau, grupėje „Sienos ir paviršiai“, pakeiskite parametro „Vienos sienelės slenkstis“ jautrumą, apibrėžiantį, kas laikoma viršutiniu paviršiumi. „Vienos sienelės slenkstis“ matomas tik tada, kai šis nustatymas viršija 0,5 reikšmę arba kai įjungti vienos sienelės viršutiniai paviršiai."
 
 msgid "Maximum wall resolution"
 msgstr "Didžiausia sienelių skiriamoji geba (resolution)"
@@ -22085,8 +22103,9 @@ msgstr "Viso modelio pakartojimų skaičius."
 msgid "Ensure on bed"
 msgstr "Užtikrinti ant pagrindo"
 
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "Pakelti daiktą virš pagrindo, kai jis iš dalies yra žemiau. Pagal numatytuosius nustatymus išjungta."
+# AI Translated
+msgid "Lift the object above the bed when it is partially below."
+msgstr "Pakelti daiktą virš pagrindo, kai jis iš dalies yra žemiau.."
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "Išdėstyti pateiktus modelius plokštėje ir sujungti juos į vieną modelį, kad veiksmai būtų atliekami vienu metu."

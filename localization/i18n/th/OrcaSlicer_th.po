@@ -16729,8 +16729,16 @@ msgstr ""
 "\n"
 "นอกจากนี้ หากปิดใช้งาน \"ชะลอความเร็วลงสำหรับขอบเขตที่โค้งงอ\" จะเป็นความเร็วในการพิมพ์ของผนังส่วนยื่นที่รองรับน้อยกว่า 13% ไม่ว่าจะเป็นส่วนหนึ่งของสะพานหรือส่วนยื่นก็ตาม"
 
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "ความเร็วของสะพานภายใน หากค่าแสดงเป็นเปอร์เซ็นต์ ค่าดังกล่าวจะถูกคำนวณตาม bridge_speed ค่าเริ่มต้นคือ 150%"
+# AI Translated
+# Needs human review: Last sentence ('The resulting speed is limited by the filament's "Max volumetric speed".') was newly translated; verify wording.
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"ความเร็วของสะพานภายใน หากค่าแสดงเป็นเปอร์เซ็นต์ ค่าดังกล่าวจะถูกคำนวณตาม bridge_speed\n"
+"\n"
+"ความเร็วที่ได้จะถูกจำกัดด้วย \"ความเร็วปริมาตรสูงสุด\" ของเส้นใย"
 
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "ระยะห่างจากแบบจำลองถึงเส้นขอบยึดชิ้นงานด้านนอกสุด"
@@ -17310,8 +17318,9 @@ msgstr "การตั้งค่าแยกนี้จะส่งผลต
 msgid "Small perimeters threshold"
 msgstr "เกณฑ์ขอบเขตขนาดเล็ก"
 
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "นี่เป็นการกำหนดเกณฑ์สำหรับความยาวเส้นรอบวงเล็กน้อย เกณฑ์เริ่มต้นคือ 0 มม."
+# AI Translated
+msgid "This sets the threshold for small perimeter length."
+msgstr "นี่เป็นการกำหนดเกณฑ์สำหรับความยาวเส้นรอบวงเล็กน้อย"
 
 # AI Translated
 msgid "Small support perimeters"
@@ -17326,8 +17335,8 @@ msgid "Small support perimeters threshold"
 msgstr "เกณฑ์เส้นรอบรูปส่วนรองรับขนาดเล็ก"
 
 # AI Translated
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "ตั้งค่าเกณฑ์สำหรับความยาวเส้นรอบรูปส่วนรองรับขนาดเล็ก เกณฑ์เริ่มต้นคือ 0mm"
+msgid "This sets the threshold for small support perimeter length."
+msgstr "ตั้งค่าเกณฑ์สำหรับความยาวเส้นรอบรูปส่วนรองรับขนาดเล็ก"
 
 msgid "Walls printing order"
 msgstr "สั่งพิมพ์ผนัง"
@@ -19672,16 +19681,17 @@ msgstr "มิลลิเมตร³/วินาที²"
 msgid "Smoothing segment length"
 msgstr "ความยาวส่วนที่เรียบ"
 
+# AI Translated
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "ค่าที่ต่ำกว่าส่งผลให้อัตราการอัดรีดเปลี่ยนผ่านได้เรียบขึ้น อย่างไรก็ตาม ไฟล์ G-code จะมีขนาดใหญ่ขึ้นอย่างเห็นได้ชัดและมีคำสั่งให้เครื่องพิมพ์ประมวลผลมากขึ้น\n"
 "\n"
-"ค่าเริ่มต้นของ 3 ทำงานได้ดีในกรณีส่วนใหญ่ หากเครื่องพิมพ์ของคุณกระตุก ให้เพิ่มค่านี้เพื่อลดจำนวนการปรับเปลี่ยน\n"
+"ค่า 3 ทำงานได้ดีในกรณีส่วนใหญ่ หากเครื่องพิมพ์ของคุณกระตุก ให้เพิ่มค่านี้เพื่อลดจำนวนการปรับเปลี่ยน\n"
 "\n"
 "ค่าที่อนุญาต: 0.5-5"
 
@@ -20220,10 +20230,10 @@ msgstr "ช่องว่างรอยตะเข็บ"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "เพื่อลดการมองเห็นรอยตะเข็บในการอัดขึ้นรูปแบบวงปิด วงจะถูกขัดจังหวะและทำให้สั้นลงตามจำนวนที่ระบุ\n"
-"ปริมาณนี้สามารถระบุได้ในหน่วยมิลลิเมตรหรือเป็นเปอร์เซ็นต์ของเส้นผ่านศูนย์กลางของหัวฉีด ค่าเริ่มต้นสำหรับพารามิเตอร์นี้คือ 10%"
+"ปริมาณนี้สามารถระบุได้ในหน่วยมิลลิเมตรหรือเป็นเปอร์เซ็นต์ของเส้นผ่านศูนย์กลางของหัวฉีด"
 
 msgid "Scarf joint seam (beta)"
 msgstr "รอยต่อ Scarf (เบต้า)"
@@ -20240,31 +20250,34 @@ msgstr "ใช้รอยต่อ Scarf กับขอบเรียบเ�
 msgid "Conditional angle threshold"
 msgstr "เกณฑ์มุมแบบมีเงื่อนไข"
 
+# AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "ตัวเลือกนี้จะกำหนดมุมเกณฑ์สำหรับการใช้รอยต่อ Scarf แบบมีเงื่อนไข\n"
-"หากมุมสูงสุดภายในวงรอบปริมณฑลเกินค่านี้ (แสดงว่าไม่มีมุมแหลมคม) จะใช้รอยต่อ Scarf ค่าเริ่มต้นคือ 155°"
+"หากมุมสูงสุดภายในวงรอบปริมณฑลเกินค่านี้ (แสดงว่าไม่มีมุมแหลมคม) จะใช้รอยต่อ Scarf"
 
 msgid "Conditional overhang threshold"
 msgstr "เกณฑ์ระยะยื่นแบบมีเงื่อนไข"
 
+# AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "ตัวเลือกนี้จะกำหนดเกณฑ์ส่วนยื่นสำหรับการใช้รอยต่อ Scarf หากส่วนที่ไม่ได้รับส่วนรองรับของเส้นรอบวงน้อยกว่าเกณฑ์นี้ จะใช้รอยต่อ Scarf เกณฑ์เริ่มต้นตั้งไว้ที่ 40% ของความกว้างของผนังภายนอก เมื่อพิจารณาถึงประสิทธิภาพแล้ว ระดับของระยะยื่นจึงถูกประมาณไว้"
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "ตัวเลือกนี้จะกำหนดเกณฑ์ส่วนยื่นสำหรับการใช้รอยต่อ Scarf หากส่วนที่ไม่ได้รับส่วนรองรับของเส้นรอบวงน้อยกว่าเกณฑ์นี้ จะใช้รอยต่อ Scarf เกณฑ์เป็นเปอร์เซ็นต์ของความกว้างของผนังภายนอก เมื่อพิจารณาถึงประสิทธิภาพแล้ว ระดับของระยะยื่นจึงถูกประมาณไว้"
 
 msgid "Scarf joint speed"
 msgstr "ความเร็วรอยต่อ Scarf"
 
+# AI Translated
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "ตัวเลือกนี้จะตั้งค่าความเร็วในการพิมพ์สำหรับรอยต่อ Scarf ขอแนะนำให้พิมพ์รอยต่อ Scarfด้วยความเร็วต่ำ (น้อยกว่า 100 มม./วินาที) ขอแนะนำให้เปิดใช้งาน 'การปรับอัตราการอัดรีดให้เรียบ' หากความเร็วที่ตั้งไว้แตกต่างอย่างมากจากความเร็วของผนังด้านนอกหรือด้านใน\n"
 "\n"
-"หากความเร็วที่ระบุที่นี่สูงกว่าความเร็วของผนังด้านนอกหรือด้านใน เครื่องพิมพ์จะตั้งค่าเริ่มต้นไว้ที่ความเร็วที่ช้ากว่าทั้งสอง เมื่อระบุเป็นเปอร์เซ็นต์ (เช่น 80%) ความเร็วจะคำนวณตามความเร็วผนังด้านนอกหรือด้านในตามลำดับ ค่าเริ่มต้นตั้งไว้ที่ 100%"
+"หากความเร็วที่ระบุที่นี่สูงกว่าความเร็วของผนังด้านนอกหรือด้านใน เครื่องพิมพ์จะตั้งค่าเริ่มต้นไว้ที่ความเร็วที่ช้ากว่าทั้งสอง เมื่อระบุเป็นเปอร์เซ็นต์ (เช่น 80%) ความเร็วจะคำนวณตามความเร็วผนังด้านนอกหรือด้านในตามลำดับ"
 
 msgid "Scarf joint flow ratio"
 msgstr "อัตราส่วนการไหลของรอยต่อ Scarf"
@@ -20275,12 +20288,13 @@ msgstr "ปัจจัยนี้ส่งผลต่อปริมาณว
 msgid "Scarf start height"
 msgstr "ความสูงเริ่มต้นของรอยต่อ Scarf"
 
+# AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "ความสูงเริ่มต้นของรอยต่อ Scarf\n"
-"จำนวนนี้สามารถระบุได้ในหน่วยมิลลิเมตรหรือเป็นเปอร์เซ็นต์ของความสูงของเลเยอร์ปัจจุบัน ค่าเริ่มต้นสำหรับพารามิเตอร์นี้คือ 0"
+"จำนวนนี้สามารถระบุได้ในหน่วยมิลลิเมตรหรือเป็นเปอร์เซ็นต์ของความสูงของเลเยอร์ปัจจุบัน"
 
 msgid "Scarf around entire wall"
 msgstr "ใช้รอยต่อ Scarf ตลอดทั้งผนัง"
@@ -20372,8 +20386,8 @@ msgid "Wipe speed"
 msgstr "ความเร็วเช็ดหัวฉีด"
 
 # AI Translated
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "ความเร็วในการเช็ดถูกกำหนดโดยการตั้งค่าความเร็วที่ระบุในการกำหนดค่านี้ หากค่าแสดงเป็นเปอร์เซ็นต์ (เช่น 80%) ระบบจะคำนวณตามการตั้งค่าความเร็วการเดินหัวเปล่าด้านบน ค่าเริ่มต้นสำหรับพารามิเตอร์นี้คือ 80%"
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "ความเร็วในการเช็ดถูกกำหนดโดยการตั้งค่าความเร็วที่ระบุในการกำหนดค่านี้ หากค่าแสดงเป็นเปอร์เซ็นต์ (เช่น 80%) ระบบจะคำนวณตามการตั้งค่าความเร็วการเดินหัวเปล่าด้านบน"
 
 msgid "Skirt distance"
 msgstr "ระยะห่างของเส้นล้อมชิ้นงาน"
@@ -20964,8 +20978,8 @@ msgid "Loop pattern interface"
 msgstr "รูปแบบการใช้อินเทอร์เฟซแบบวนซ้ำ"
 
 # AI Translated
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "ครอบคลุมเลเยอร์สัมผัสด้านบนของส่วนรองรับด้วยลูป ปิดใช้งานตามค่าเริ่มต้น"
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "ครอบคลุมเลเยอร์สัมผัสด้านบนของส่วนรองรับด้วยลูป"
 
 msgid "Support/raft interface"
 msgstr "ส่วนต่อประสานส่วนรองรับ / ฐานรองชิ้นงาน"
@@ -21811,8 +21825,9 @@ msgstr "รูปแบบของภาพขนาดย่อ G-code: PNG �
 msgid "Use relative E distances"
 msgstr "ใช้ระยะห่าง E สัมพัทธ์"
 
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "แนะนำให้ใช้การอัดขึ้นรูปแบบสัมพัทธ์เมื่อใช้ตัวเลือก \"label_objects\" ชุดดันเส้นบางชนิดทำงานได้ดีกว่าหากไม่ได้เลือกตัวเลือกนี้ (โหมดการอัดขึ้นรูปสัมบูรณ์) Wipe Tower ใช้งานได้กับโหมดสัมพัทธ์เท่านั้น แนะนำให้ใช้กับเครื่องพิมพ์ส่วนใหญ่ เลือกค่าเริ่มต้นแล้ว"
+# AI Translated
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "แนะนำให้ใช้การอัดขึ้นรูปแบบสัมพัทธ์เมื่อใช้ตัวเลือก \"label_objects\" ชุดดันเส้นบางชนิดทำงานได้ดีกว่าหากไม่ได้เลือกตัวเลือกนี้ (โหมดการอัดขึ้นรูปสัมบูรณ์) Wipe Tower ใช้งานได้กับโหมดสัมพัทธ์เท่านั้น แนะนำให้ใช้กับเครื่องพิมพ์ส่วนใหญ่"
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "เครื่องกำเนิดผนังแบบคลาสสิกสร้างผนังที่มีความกว้างของการอัดขึ้นรูปคงที่ และสำหรับพื้นที่ที่บางมากจะใช้การเติมช่องว่าง เครื่องยนต์ Arachne สร้างผนังที่มีความกว้างของการอัดขึ้นรูปที่หลากหลาย"
@@ -21868,11 +21883,11 @@ msgstr "ความยาวผนังขั้นต่ำ"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "ปรับค่านี้เพื่อป้องกันการพิมพ์ผนังที่สั้นและไม่ปิด ซึ่งอาจเพิ่มเวลาในการพิมพ์ ค่านี้เป็นตัวคูณของความกว้างผนัง ค่าที่สูงขึ้นจะลบผนังได้มากขึ้นและยาวขึ้น\n"
 "\n"
-"หมายเหตุ: พื้นผิวด้านล่างและด้านบนจะไม่ได้รับผลกระทบจากค่านี้ เพื่อป้องกันช่องว่างที่มองเห็นได้ด้านนอกของโมเดล ปรับ 'เกณฑ์ผนังด้านหนึ่ง' ในการตั้งค่า 'ผนังและพื้นผิว' ด้านล่างเพื่อปรับความไวของสิ่งที่ถือเป็นพื้นผิวด้านบน 'เกณฑ์ผนังด้านหนึ่ง' จะแสดงก็ต่อเมื่อการตั้งค่านี้สูงกว่าค่าเริ่มต้นที่ 0.5 หรือเมื่อเปิดใช้งาน 'มีเพียงผนังเดียวบนพื้นผิวด้านบน'"
+"หมายเหตุ: พื้นผิวด้านล่างและด้านบนจะไม่ได้รับผลกระทบจากค่านี้ เพื่อป้องกันช่องว่างที่มองเห็นได้ด้านนอกของโมเดล ปรับ 'เกณฑ์ผนังด้านหนึ่ง' ในการตั้งค่า 'ผนังและพื้นผิว' ด้านล่างเพื่อปรับความไวของสิ่งที่ถือเป็นพื้นผิวด้านบน 'เกณฑ์ผนังด้านหนึ่ง' จะแสดงก็ต่อเมื่อการตั้งค่านี้สูงกว่า 0.5 หรือเมื่อเปิดใช้งาน 'มีเพียงผนังเดียวบนพื้นผิวด้านบน'"
 
 msgid "Maximum wall resolution"
 msgstr "ความละเอียดผนังสูงสุด"
@@ -22149,8 +22164,9 @@ msgstr "การนับซ้ำของทั้งโมเดล"
 msgid "Ensure on bed"
 msgstr "มั่นใจบนฐานพิมพ์"
 
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "ยกสิ่งของไว้เหนือฐานพิมพ์เมื่ออยู่ด้านล่างบางส่วน ปิดใช้งานตามค่าเริ่มต้น"
+# AI Translated
+msgid "Lift the object above the bed when it is partially below."
+msgstr "ยกสิ่งของไว้เหนือฐานพิมพ์เมื่ออยู่ด้านล่างบางส่วน"
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "จัดเรียงโมเดลที่ให้มาในจานและรวมเข้าด้วยกันเป็นโมเดลเดียวเพื่อดำเนินการเพียงครั้งเดียว"

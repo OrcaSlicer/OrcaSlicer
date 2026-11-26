@@ -16460,8 +16460,16 @@ msgstr ""
 "\n"
 "Gainera, \"Moteldu kiribildutako perimetroetan\" desgaituta badago, %13 baino gutxiagoz eutsita dauden irtengune-hormen inprimatze-abiadura izango da, zubi baten zein irtengune baten parte izan."
 
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "Barru-zubien abiadura. Balioa ehuneko gisa adierazten bada, Zubien abiadura-ren arabera kalkulatuko da. Lehenetsitako balioa % 150ekoa da."
+# AI Translated
+# Needs human review: Last sentence ('The resulting speed is limited by the filament's "Max volumetric speed".') was newly translated; verify wording.
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"Barru-zubien abiadura. Balioa ehuneko gisa adierazten bada, Zubien abiadura-ren arabera kalkulatuko da.\n"
+"\n"
+"Ondoriozko abiadura filamentuaren \"Abiadura bolumetriko maximoak\" mugatzen du."
 
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Hau da modelotik itsaspen ertzaren kanporen lerrora dagoen distantzia."
@@ -17028,8 +17036,9 @@ msgstr "Ezarpen bereizi honek erradioa <= small_perimeter_threshold duten perime
 msgid "Small perimeters threshold"
 msgstr "Perimetro txikien atalasea"
 
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "Perimetro txikien luzeraren atalasea ezartzen du. Atalase lehenetsia 0 mm da."
+# AI Translated
+msgid "This sets the threshold for small perimeter length."
+msgstr "Perimetro txikien luzeraren atalasea ezartzen du."
 
 msgid "Small support perimeters"
 msgstr "Euskarri-perimetro txikiak"
@@ -17041,8 +17050,9 @@ msgstr "\"Perimetro txikiak\" ezarpenaren berdina, baina euskarrietarako. Ezarpe
 msgid "Small support perimeters threshold"
 msgstr "Euskarri-perimetro txikien atalasea"
 
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "Honek euskarri-perimetro txikien luzera-atalasea ezartzen du. Lehenetsitako atalasea 0 mm da."
+# AI Translated
+msgid "This sets the threshold for small support perimeter length."
+msgstr "Honek euskarri-perimetro txikien luzera-atalasea ezartzen du."
 
 msgid "Walls printing order"
 msgstr "Hormen inprimatze-ordena"
@@ -19312,16 +19322,17 @@ msgstr "mm³/s²"
 msgid "Smoothing segment length"
 msgstr "Leuntze-segmentuaren luzera"
 
+# AI Translated
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "Balio txikiagoak estrusio-tasaren trantsizio leunagoak ematen ditu. Hala ere, G-code fitxategia askoz handiagoa izango da eta inprimagailuak prozesatu beharreko instrukzio gehiago izango ditu.\n"
 "\n"
-"3 balio lehenetsiak ondo funtzionatzen du kasu gehienetan. Zure inprimagailua trabatzen bada, handitu balio hau doikuntza kopurua murrizteko.\n"
+"3 balioak ondo funtzionatzen du kasu gehienetan. Zure inprimagailua trabatzen bada, handitu balio hau doikuntza kopurua murrizteko.\n"
 "\n"
 "Onartutako balioak: 0,5-5"
 
@@ -19834,10 +19845,10 @@ msgstr "Josturaren tartea"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "Begizta itxiko estrusio batean josturaren ikusgarritasuna murrizteko, begizta eten eta zehaztutako kantitate batean laburtzen da.\n"
-"Kantitate hau milimetrotan edo pitaren diametroaren ehuneko gisa zehaztu daiteke. Parametro honen balio lehenetsia %10 da."
+"Kantitate hau milimetrotan edo pitaren diametroaren ehuneko gisa zehaztu daiteke."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Alaka junturako jostura (beta)"
@@ -19854,31 +19865,34 @@ msgstr "Aplikatu alaka junturak perimetro leunetan bakarrik, jostura tradizional
 msgid "Conditional angle threshold"
 msgstr "Baldintzapeko angeluaren atalasea"
 
+# AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "Aukera honek baldintzapeko alaka junturako jostura aplikatzeko angelu-atalasea ezartzen du.\n"
-"Perimetro-begiztaren barruko gehieneko angelua balio hau baino handiagoa bada (izkina zorrotzik ez dagoela adieraziz), juntura zeiharreko jostura erabiliko da. Balio lehenetsia 155° da."
+"Perimetro-begiztaren barruko gehieneko angelua balio hau baino handiagoa bada (izkina zorrotzik ez dagoela adieraziz), juntura zeiharreko jostura erabiliko da."
 
 msgid "Conditional overhang threshold"
 msgstr "Baldintzapeko irtenguneen atalasea"
 
+# AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Aukera honek juntura zeiharreko josturak aplikatzeko irtenguneen atalasea zehazten du. Perimetroaren euskarririk gabeko zatia atalase hau baino txikiagoa bada, juntura zeiharreko josturak aplikatuko dira. Atalase lehenetsia kanpoko hormaren zabaleraren %40 da. Errendimendu-arrazoiengatik, irtengunearen maila estimatu egiten da."
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "Aukera honek juntura zeiharreko josturak aplikatzeko irtenguneen atalasea zehazten du. Perimetroaren euskarririk gabeko zatia atalase hau baino txikiagoa bada, juntura zeiharreko josturak aplikatuko dira. Atalasea kanpoko hormaren zabaleraren ehunekoa da. Errendimendu-arrazoiengatik, irtengunearen maila estimatu egiten da."
 
 msgid "Scarf joint speed"
 msgstr "Alaka junturako abiadura"
 
+# AI Translated
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "Aukera honek alaka junturako inprimatze-abiadura ezartzen du. Gomendagarria da juntura zeiharrak abiadura motelean inprimatzea (100 mm/s baino gutxiago). 'Estrusio-tasaren leuntzea' gaitzea ere komeni da ezarritako abiadura kanpoko edo barruko hormen abiaduratik nabarmen aldentzen bada.\n"
 "\n"
-"Hemen zehaztutako abiadura kanpoko edo barruko hormen abiadura baino handiagoa bada, inprimagailuak bietako motelena erabiliko du. Ehuneko gisa zehazten bada (adibidez, %80), abiadura dagokion kanpoko edo barruko hormaren abiaduraren arabera kalkulatuko da. Balio lehenetsia %100 da."
+"Hemen zehaztutako abiadura kanpoko edo barruko hormen abiadura baino handiagoa bada, inprimagailuak bietako motelena erabiliko du. Ehuneko gisa zehazten bada (adibidez, %80), abiadura dagokion kanpoko edo barruko hormaren abiaduraren arabera kalkulatuko da."
 
 msgid "Scarf joint flow ratio"
 msgstr "Alaka junturako fluxu-erlazioa"
@@ -19889,12 +19903,13 @@ msgstr "Faktore honek alaka junturako material kantitateari eragiten dio."
 msgid "Scarf start height"
 msgstr "Alakaren hasierako altuera"
 
+# AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "Junturaren hasierako altuera.\n"
-"Kantitate hau milimetrotan edo uneko geruza-altueraren ehuneko gisa zehaztu daiteke. Parametro honen balio lehenetsia 0 da."
+"Kantitate hau milimetrotan edo uneko geruza-altueraren ehuneko gisa zehaztu daiteke."
 
 msgid "Scarf around entire wall"
 msgstr "Alaka horma osoan zehar"
@@ -19988,8 +20003,8 @@ msgid "Wipe speed"
 msgstr "Garbiketa-abiadura"
 
 # AI Translated
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "Garbiketa-abiadura konfigurazio honetan zehaztutako abiadura-ezarpenak zehazten du. Balioa ehuneko gisa adierazten bada (adibidez, %80), goiko mugimendu-abiaduraren ezarpenaren arabera kalkulatuko da. Parametro honen balio lehenetsia %80 da."
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "Garbiketa-abiadura konfigurazio honetan zehaztutako abiadura-ezarpenak zehazten du. Balioa ehuneko gisa adierazten bada (adibidez, %80), goiko mugimendu-abiaduraren ezarpenaren arabera kalkulatuko da."
 
 msgid "Skirt distance"
 msgstr "Gonaren distantzia"
@@ -20562,8 +20577,9 @@ msgstr "Euskarriaren lerro-zabalera. % gisa adierazten bada, pitaren diametroare
 msgid "Loop pattern interface"
 msgstr "Begizta-patroiko interfazea"
 
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "Honek euskarrien goiko kontaktu-geruza begiztekin estaltzen du. Lehenespenez desgaituta dago."
+# AI Translated
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "Honek euskarrien goiko kontaktu-geruza begiztekin estaltzen du."
 
 msgid "Support/raft interface"
 msgstr "Euskarriaren/baltsaren interfazea"
@@ -21390,8 +21406,9 @@ msgstr "G-codearen miniaturen formatua: PNG kalitate onenerako, JPG tamaina txik
 msgid "Use relative E distances"
 msgstr "Erabili E distantzia erlatiboak"
 
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "Estrusio erlatiboa gomendatzen da \"label_objects\" aukera erabiltzean. Estrusore batzuek hobeto funtzionatzen dute aukera hau desmarkatuta dagoenean (estrusio absolutuaren modua). Purgatze-dorrea modu erlatiboarekin bakarrik da bateragarria. Inprimagailu gehienetan gomendatzen da. Lehenespenez markatuta dago."
+# AI Translated
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "Estrusio erlatiboa gomendatzen da \"label_objects\" aukera erabiltzean. Estrusore batzuek hobeto funtzionatzen dute aukera hau desmarkatuta dagoenean (estrusio absolutuaren modua). Purgatze-dorrea modu erlatiboarekin bakarrik da bateragarria. Inprimagailu gehienetan gomendatzen da."
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "Horma-sorgailu klasikoak estrusio-zabalera konstanteko hormak sortzen ditu eta eremu oso meheetan hutsune-betegarria erabiltzen du. Arachne motorrak estrusio-zabalera aldakorreko hormak sortzen ditu."
@@ -21446,11 +21463,11 @@ msgstr "Hormaren gutxieneko luzera"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "Doitu balio hau horma labur eta itxi gabeak inprima ez daitezen; horrek inprimatze-denbora handitu lezake. Balioa horma-zabaleraren multiploa da. Balio handiagoek horma gehiago eta luzeagoak kentzen dituzte.\n"
 "\n"
-"OHARRA: beheko eta goiko gainazalek ez dute balio honen eraginik izango, modeloaren kanpoaldean hutsune ikusgarriak saihesteko. Doitu beheko 'Hormak eta gainazalak' ezarpenetako 'Horma bakarraren atalasea' goiko gainazaltzat zer hartzen den zehazteko sentikortasuna doitzeko. 'Horma bakarraren atalasea' ezarpen hau 0.5 balio lehenetsiaren gainetik ezarrita badago edo horma bakarreko goiko gainazalak gaituta badaude bakarrik ikusiko da."
+"OHARRA: beheko eta goiko gainazalek ez dute balio honen eraginik izango, modeloaren kanpoaldean hutsune ikusgarriak saihesteko. Doitu beheko 'Hormak eta gainazalak' ezarpenetako 'Horma bakarraren atalasea' goiko gainazaltzat zer hartzen den zehazteko sentikortasuna doitzeko. 'Horma bakarraren atalasea' ezarpen hau 0.5 gainetik ezarrita badago edo horma bakarreko goiko gainazalak gaituta badaude bakarrik ikusiko da."
 
 msgid "Maximum wall resolution"
 msgstr "Hormen gehieneko bereizmena"
@@ -21708,8 +21725,9 @@ msgstr "Modelo osoaren errepikapen kopurua."
 msgid "Ensure on bed"
 msgstr "Ziurtatu ohean dagoela"
 
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "Altxatu objektua ohearen gainera, zati bat azpian badago. Lehenespenez desgaituta dago."
+# AI Translated
+msgid "Lift the object above the bed when it is partially below."
+msgstr "Altxatu objektua ohearen gainera, zati bat azpian badago.."
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "Antolatu emandako modeloak plaka batean eta batu modelo bakar batean, ekintzak behin bakarrik egiteko."

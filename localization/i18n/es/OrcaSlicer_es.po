@@ -16291,8 +16291,16 @@ msgstr ""
 "\n"
 "Adicionalmente, si se desactiva la función 'Reducir velocidad en perímetros curvados', también se utilizará esta velocidad para perímetros en voladizo cuyo soporte es inferior al 13%, ya sean parte de un puente o de un voladizo."
 
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "Velocidad de los puntes internos. Si se expresa como un porcentaje, será Calculado en base a la velocidad de puente. El valor por defecto es 150%."
+# AI Translated
+# Needs human review: Last sentence ('The resulting speed is limited by the filament's "Max volumetric speed".') was newly translated; verify wording.
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"Velocidad de los puntes internos. Si se expresa como un porcentaje, será Calculado en base a la velocidad de puente.\n"
+"\n"
+"La velocidad resultante está limitada por la \"Velocidad volumétrica máxima\" del filamento."
 
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Distancia del modelo a la línea más externa del borde de adherencia."
@@ -16850,8 +16858,9 @@ msgstr "Este ajuste independiente afectará a la velocidad de los perímetros co
 msgid "Small perimeters threshold"
 msgstr "Umbral de Perímetros pequeños"
 
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "Esto configura el umbral de longitud de perímetros pequeños. El umbral por defecto es 0mm."
+# AI Translated
+msgid "This sets the threshold for small perimeter length."
+msgstr "Esto configura el umbral de longitud de perímetros pequeños."
 
 msgid "Small support perimeters"
 msgstr "Perímetros pequeños de soporte"
@@ -16863,8 +16872,9 @@ msgstr "Igual que \"Perímetros pequeños\", pero para los soportes. Este ajuste
 msgid "Small support perimeters threshold"
 msgstr "Umbral de perímetros pequeños de soporte"
 
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "Esto establece el umbral para la longitud de los perímetros pequeños de soporte. El umbral predeterminado es 0mm."
+# AI Translated
+msgid "This sets the threshold for small support perimeter length."
+msgstr "Esto establece el umbral para la longitud de los perímetros pequeños de soporte."
 
 msgid "Walls printing order"
 msgstr "Orden de impresión de perímetros"
@@ -19107,16 +19117,17 @@ msgstr "mm³/s²"
 msgid "Smoothing segment length"
 msgstr "Longitud del segmento de suavizado"
 
+# AI Translated
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "Un valor más bajo da como resultado transiciones más suaves en la velocidad de extrusión. Sin embargo, esto da como resultado un archivo G-code significativamente más grande y más instrucciones que la impresora debe procesar.\n"
 "\n"
-"El valor predeterminado de 3 funciona bien en la mayoría de los casos. Si su impresora tiene interrupciones, aumente este valor para reducir el número de ajustes realizados.\n"
+"Un valor de 3 funciona bien en la mayoría de los casos. Si su impresora tiene interrupciones, aumente este valor para reducir el número de ajustes realizados.\n"
 "\n"
 "Valores permitidos: 0,5-5"
 
@@ -19628,10 +19639,10 @@ msgstr "Separación entre costuras"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "Para reducir la visibilidad de la costura en una extrusión de bucle cerrado, el bucle se interrumpe y se acorta en una cantidad especificada.\n"
-"Esta cantidad puede especificarse en milímetros o como porcentaje del diámetro de la boquilla. El valor por defecto de este parámetro es 10%."
+"Esta cantidad puede especificarse en milímetros o como porcentaje del diámetro de la boquilla."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Costura en bisel en costuras (beta)"
@@ -19648,31 +19659,34 @@ msgstr "Aplique costuras en bisel sólo en perímetros lisos en los que las junt
 msgid "Conditional angle threshold"
 msgstr "Umbral angular para costura en bisel condicional"
 
+# AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "Esta opción establece el ángulo umbral para aplicar una costura en bisel condicional.\n"
-"Si el ángulo máximo dentro del bucle perimetral supera este valor (indicando la ausencia de esquinas afiladas), se utilizará una costura en bisel. El valor por defecto es 155°."
+"Si el ángulo máximo dentro del bucle perimetral supera este valor (indicando la ausencia de esquinas afiladas), se utilizará una costura en bisel."
 
 msgid "Conditional overhang threshold"
 msgstr "Umbral de voladizo para costura en bisel condicional"
 
+# AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Esta opción establece el umbral de voladizo para aplicar una costura en bisel condicional. Si el área sin soporte del perémetro es menor a este valor se utilizará una costura en bisel. El valor por defecto está configurado como un 40% del grosor del perímetro exterior. El ángulo de voladizo es estimado automáticamente por razones de optimización."
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "Esta opción establece el umbral de voladizo para aplicar una costura en bisel condicional. Si el área sin soporte del perémetro es menor a este valor se utilizará una costura en bisel. El umbral es un porcentaje del grosor del perímetro exterior. El ángulo de voladizo es estimado automáticamente por razones de optimización."
 
 msgid "Scarf joint speed"
 msgstr "Velocidad de costura en bisel"
 
+# AI Translated
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "Esta opción ajusta la velocidad de impresión para las costuras en bisel. Se recomienda imprimir las costuras en bisel a una velocidad lenta (inferior a 100 mm/s). También es aconsejable activar la opción \"Suavizado de la velocidad de extrusión\" si la velocidad configurada varía significativamente de la velocidad de los perímetros exteriores o interiores.\n"
 "\n"
-"Si la velocidad especificada aquí es superior a la velocidad de los perímetros exteriores o interiores, la impresora utilizará por defecto la velocidad más lenta de las dos. Si se especifica como porcentaje (por ejemplo, 80%), la velocidad se calcula en función de la velocidad del perímetro exterior o interior. El valor predeterminado es 100%."
+"Si la velocidad especificada aquí es superior a la velocidad de los perímetros exteriores o interiores, la impresora utilizará por defecto la velocidad más lenta de las dos. Si se especifica como porcentaje (por ejemplo, 80%), la velocidad se calcula en función de la velocidad del perímetro exterior o interior."
 
 msgid "Scarf joint flow ratio"
 msgstr "Factor de flujo de la costura en bisel"
@@ -19683,12 +19697,13 @@ msgstr "Este factor afecta a la cantidad de material para las costuras en bisel.
 msgid "Scarf start height"
 msgstr "Altura de inicio del bisel"
 
+# AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "Altura inicial del bisel.\n"
-"Esta cantidad puede especificarse en milímetros o como porcentaje de la altura de la capa actual. El valor por defecto de este parámetro es 0."
+"Esta cantidad puede especificarse en milímetros o como porcentaje de la altura de la capa actual."
 
 msgid "Scarf around entire wall"
 msgstr "Bisel en todo el perímetro"
@@ -19779,8 +19794,9 @@ msgstr ""
 msgid "Wipe speed"
 msgstr "Velocidad de purgado"
 
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "La velocidad de purgado es determinada por este parámetro. Si el valor se expresa como un porcentaje (por ejemplo, 80%), se calculará en función del ajuste de velocidad de desplazamiento anterior. El valor por defecto de este parámetro es 80%."
+# AI Translated
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "La velocidad de purgado es determinada por este parámetro. Si el valor se expresa como un porcentaje (por ejemplo, 80%), se calculará en función del ajuste de velocidad de desplazamiento anterior."
 
 msgid "Skirt distance"
 msgstr "Distancia de falda"
@@ -20351,8 +20367,9 @@ msgstr "Ancho de línea de los soportes. Si se expresa como %, se calculará en 
 msgid "Loop pattern interface"
 msgstr "Uso de la interfaz en forma de bucle"
 
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "Cubrir la capa de contacto superior de los soportes con bucles. Desactivado por defecto."
+# AI Translated
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "Cubrir la capa de contacto superior de los soportes con bucles."
 
 msgid "Support/raft interface"
 msgstr "Interfaz de soporte/balsa"
@@ -21174,8 +21191,9 @@ msgstr "Formato de las miniaturas de G-Code: PNG para la mejor calidad, JPG para
 msgid "Use relative E distances"
 msgstr "Usar distancias E relativas"
 
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "Se recomienda la extrusión relativa cuando se utiliza la opción \"label_objects\". Algunos extrusores funcionan mejor con esta opción desactivada (modo de extrusión absoluta). La torre de purga sólo es compatible con el modo relativo. Se recomienda en la mayoría de las impresoras. Por defecto está activada."
+# AI Translated
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "Se recomienda la extrusión relativa cuando se utiliza la opción \"label_objects\". Algunos extrusores funcionan mejor con esta opción desactivada (modo de extrusión absoluta). La torre de purga sólo es compatible con el modo relativo. Se recomienda en la mayoría de las impresoras."
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "El generador de perímetros clásico produce perímetros con ancho de extrusión constante y para zonas muy finas se utiliza rellenar-espacio. El motor Arachne produce perímetros con ancho de extrusión variable."
@@ -21230,11 +21248,11 @@ msgstr "Longitud mínima de perímetro"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "Ajuste este valor para evitar que se impriman perímetros cortos y no cerrados, lo que podría aumentar el tiempo de impresión. El valor es un múltiplo del ancho del perímetro. Los valores más altos eliminan más perímetros y más largos.\n"
 "\n"
-"NOTA: Las superficies inferior y superior no se verán afectadas por este valor para evitar huecos visuales en el exterior del modelo. Ajuste \"Umbral para generar un solo perímetro\" en los ajustes de \"Perímetros y superficies\" que aparecen más abajo para ajustar la sensibilidad de lo que se considera una superficie superior. El \"Umbral para generar un solo perímetro\" solo es visible si este valor es superior al valor predeterminado de 0,5, o si las superficies superiores de un solo perímetro están activadas."
+"NOTA: Las superficies inferior y superior no se verán afectadas por este valor para evitar huecos visuales en el exterior del modelo. Ajuste \"Umbral para generar un solo perímetro\" en los ajustes de \"Perímetros y superficies\" que aparecen más abajo para ajustar la sensibilidad de lo que se considera una superficie superior. El \"Umbral para generar un solo perímetro\" solo es visible si este valor es superior a 0,5, o si las superficies superiores de un solo perímetro están activadas."
 
 msgid "Maximum wall resolution"
 msgstr "Resolución máxima de la pared"
@@ -21490,8 +21508,9 @@ msgstr "Cantidad de repeticiones del modelo completo."
 msgid "Ensure on bed"
 msgstr "Auto-ajustar a la cama"
 
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "Eleva el objeto sobre la cama cuando está parcialmente debajo. Deshabilitado por defecto."
+# AI Translated
+msgid "Lift the object above the bed when it is partially below."
+msgstr "Eleva el objeto sobre la cama cuando está parcialmente debajo."
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "Organizar los modelos suministrados en una base y combinarlos en un solo modelo para realizar acciones una vez."

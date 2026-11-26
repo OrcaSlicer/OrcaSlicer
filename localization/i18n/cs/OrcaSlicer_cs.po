@@ -16955,8 +16955,15 @@ msgstr ""
 "\n"
 "Pokud je navíc vypnutá možnost Zpomalit pro zkroucené obvody, bude to rychlost tisku stěn převisů, které jsou podepřeny méně než 13 %, ať už jsou součástí mostu nebo převisu."
 
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "Rychlost vnitřních mostů. Pokud je hodnota zadána v procentech, vypočítá se podle bridge_speed. Výchozí hodnota je 150 %."
+# AI Translated
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"Rychlost vnitřních mostů. Pokud je hodnota zadána v procentech, vypočítá se podle bridge_speed.\n"
+"\n"
+"Výsledná rychlost je omezena hodnotou \"Maximální objemová rychlost\" filamentu."
 
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Vzdálenost od modelu k nejvzdálenější brim linii."
@@ -17525,8 +17532,9 @@ msgstr "Toto samostatné nastavení ovlivní rychlost obvodů s poloměrem <= sm
 msgid "Small perimeters threshold"
 msgstr "Práh malých obvodů"
 
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "Tímto se nastavuje práh délky malého obvodu. Výchozí práh je 0 mm."
+# AI Translated
+msgid "This sets the threshold for small perimeter length."
+msgstr "Tímto se nastavuje práh délky malého obvodu."
 
 # AI Translated
 msgid "Small support perimeters"
@@ -17541,8 +17549,8 @@ msgid "Small support perimeters threshold"
 msgstr "Práh malých obvodů podpor"
 
 # AI Translated
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "Nastavuje práh pro délku malého obvodu podpor. Výchozí práh je 0 mm."
+msgid "This sets the threshold for small support perimeter length."
+msgstr "Nastavuje práh pro délku malého obvodu podpor."
 
 msgid "Walls printing order"
 msgstr "Pořadí tisku stěn"
@@ -19852,13 +19860,13 @@ msgstr "Délka segmentu vyhlazování"
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "Nižší hodnota vede k hladším přechodům rychlosti výtlače. To však vede k výrazně většímu souboru G-code a více instrukcím pro tiskárnu.\n"
 "\n"
-"Výchozí hodnota 3 funguje ve většině případů dobře. Pokud tiskárna cuká, zvyšte tuto hodnotu pro omezení počtu provedených úprav.\n"
+"3 funguje ve většině případů dobře. Pokud tiskárna cuká, zvyšte tuto hodnotu pro omezení počtu provedených úprav.\n"
 "\n"
 "Povolené hodnoty: 0,5–5"
 
@@ -20384,10 +20392,10 @@ msgstr "Mezera švu"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "Pro snížení viditelnosti spoje v uzavřené smyčce extruze je smyčka přerušena a zkrácena o zadanou hodnotu.\n"
-"Tato hodnota může být uvedena v milimetrech nebo jako procento průměru trysky. Výchozí hodnota tohoto parametru je 10 %."
+"Tato hodnota může být uvedena v milimetrech nebo jako procento průměru trysky."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Spoj límce na švu (beta)"
@@ -20404,31 +20412,34 @@ msgstr "Použít šikmé spojení pouze na hladké obvody, kde tradiční švy n
 msgid "Conditional angle threshold"
 msgstr "Prahová hodnota úhlu pro podmínku"
 
+# AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "Tato volba nastavuje prahový úhel pro použití podmíněného švu zkoseného spoje.\n"
-"Pokud maximální úhel ve smyčce obvodu překročí tuto hodnotu (což znamená, že nejsou žádné ostré rohy), použije se šev zkoseného spoje. Výchozí hodnota je 155°."
+"Pokud maximální úhel ve smyčce obvodu překročí tuto hodnotu (což znamená, že nejsou žádné ostré rohy), použije se šev zkoseného spoje."
 
 msgid "Conditional overhang threshold"
 msgstr "Prahová hodnota převisu pro podmínku"
 
+# AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Tato volba určuje práh převisu pro použití švů typu scarf joint. Pokud nepodporovaná část obvodu je menší než tento práh, použijí se švy typu scarf joint. Výchozí práh je nastaven na 40 % šířky vnější stěny. S ohledem na výkon je míra převisu pouze odhadována."
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "Tato volba určuje práh převisu pro použití švů typu scarf joint. Pokud nepodporovaná část obvodu je menší než tento práh, použijí se švy typu scarf joint. Práh je procentem šířky vnější stěny. S ohledem na výkon je míra převisu pouze odhadována."
 
 msgid "Scarf joint speed"
 msgstr "Rychlost spoje límce"
 
+# AI Translated
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "Tato volba nastavuje rychlost tisku pro zkosené spoje. Zkosené spoje se doporučuje tisknout pomalu (méně než 100 mm/s). Je také vhodné povolit 'Vyhlazování rychlosti extruze', pokud se nastavená rychlost výrazně liší od rychlosti obvodu nebo vnitřních stěn.\n"
 "\n"
-"Pokud je zde zadaná rychlost vyšší než rychlost obvodu nebo vnitřních stěn, tiskárna použije pomalejší z těchto dvou rychlostí. Pokud je zadáno jako procento (např. 80 %), rychlost se vypočítá na základě příslušné rychlosti obvodu nebo vnitřních stěn. Výchozí hodnota je nastavena na 100 %."
+"Pokud je zde zadaná rychlost vyšší než rychlost obvodu nebo vnitřních stěn, tiskárna použije pomalejší z těchto dvou rychlostí. Pokud je zadáno jako procento (např. 80 %), rychlost se vypočítá na základě příslušné rychlosti obvodu nebo vnitřních stěn."
 
 msgid "Scarf joint flow ratio"
 msgstr "Poměr průtoku spoje límce"
@@ -20439,12 +20450,13 @@ msgstr "Tento faktor ovlivňuje množství materiálu pro napojení spojů."
 msgid "Scarf start height"
 msgstr "Počáteční výška švu"
 
+# AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "Počáteční výška spoje.\n"
-"Tuto hodnotu lze zadat v milimetrech nebo jako procento aktuální výšky vrstvy. Výchozí hodnota tohoto parametru je 0."
+"Tuto hodnotu lze zadat v milimetrech nebo jako procento aktuální výšky vrstvy."
 
 msgid "Scarf around entire wall"
 msgstr "Límec kolem celé stěny"
@@ -20535,8 +20547,9 @@ msgstr ""
 msgid "Wipe speed"
 msgstr "Rychlost očištění"
 
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "Rychlost setření je určena nastavením rychlosti uvedeným v této konfiguraci. Pokud je hodnota zadána v procentech (např. 80 %), vypočítá se na základě nastavení rychlosti posuvu výše. Výchozí hodnota tohoto parametru je 80 %."
+# AI Translated
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "Rychlost setření je určena nastavením rychlosti uvedeným v této konfiguraci. Pokud je hodnota zadána v procentech (např. 80 %), vypočítá se na základě nastavení rychlosti posuvu výše."
 
 msgid "Skirt distance"
 msgstr "Vzdálenost okraje"
@@ -21128,8 +21141,9 @@ msgstr "Šířka čáry podpory. Pokud je zadáno v %, bude vypočteno vůči pr
 msgid "Loop pattern interface"
 msgstr "Rozhraní používá vzor smyčky"
 
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "Zakryjte vrchní kontaktní vrstvu podpor smyčkami. Ve výchozím nastavení vypnuto."
+# AI Translated
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "Zakryjte vrchní kontaktní vrstvu podpor smyčkami."
 
 msgid "Support/raft interface"
 msgstr "Podpora/rozhraní raftu"
@@ -21975,8 +21989,9 @@ msgstr "Formát miniatur G-code: PNG pro nejlepší kvalitu, JPG pro nejmenší 
 msgid "Use relative E distances"
 msgstr "Použít relativní vzdálenosti E"
 
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "Relativní extruze je doporučena při použití volby \"label_objects\". Některé extrudery fungují lépe, když tato volba není zaškrtnutá (absolutní režim extruze). Věž na očištění trysky je kompatibilní pouze s relativním režimem. Doporučeno pro většinu tiskáren. Výchozí stav je zaškrtnuto."
+# AI Translated
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "Relativní extruze je doporučena při použití volby \"label_objects\". Některé extrudery fungují lépe, když tato volba není zaškrtnutá (absolutní režim extruze). Věž na očištění trysky je kompatibilní pouze s relativním režimem. Doporučeno pro většinu tiskáren."
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "Klasický generátor stěn vytváří stěny se stálou šířkou extruze a pro velmi úzké oblasti používá výplň mezer. Arachne engine vytváří stěny s proměnnou šířkou extruze."
@@ -22031,11 +22046,11 @@ msgstr "Minimální délka stěny"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "Upravte tuto hodnotu, abyste zabránili tisku krátkých, neuzavřených stěn, které by mohly zvýšit dobu tisku. Hodnota je násobkem šířky stěny. Vyšší hodnoty odstraní více a delších stěn.\n"
 "\n"
-"POZNÁMKA: Spodní a horní povrchy nebudou touto hodnotou ovlivněny, aby nedocházelo k viditelným mezerám na vnější straně modelu. Upravte „Práh jedné stěny“ v nastavení „Stěny a povrchy“ níže pro nastavení citlivosti, co je považováno za horní povrch. „Práh jedné stěny“ je zobrazen pouze pokud je toto nastavení vyšší než výchozí hodnota 0,5, nebo pokud je povolena možnost horních povrchů s jednou stěnou."
+"POZNÁMKA: Spodní a horní povrchy nebudou touto hodnotou ovlivněny, aby nedocházelo k viditelným mezerám na vnější straně modelu. Upravte „Práh jedné stěny“ v nastavení „Stěny a povrchy“ níže pro nastavení citlivosti, co je považováno za horní povrch. „Práh jedné stěny“ je zobrazen pouze pokud je toto nastavení vyšší než 0,5, nebo pokud je povolena možnost horních povrchů s jednou stěnou."
 
 msgid "Maximum wall resolution"
 msgstr "Maximální rozlišení stěny"
@@ -22299,8 +22314,9 @@ msgstr "Počet opakování celého modelu."
 msgid "Ensure on bed"
 msgstr "Zajistit na desku"
 
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "Zvedne objekt nad podložku, pokud je částečně pod ní. Ve výchozím nastavení deaktivováno."
+# AI Translated
+msgid "Lift the object above the bed when it is partially below."
+msgstr "Zvedne objekt nad podložku, pokud je částečně pod ní."
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "Uspořádejte dodané modely na desku a spojte je do jednoho modelu, abyste mohli provést akce najednou."

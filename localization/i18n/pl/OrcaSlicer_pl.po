@@ -17106,8 +17106,15 @@ msgstr ""
 "\n"
 "Ponadto, jeśli opcja „Zwalnienie na łukach” jest wyłączona, ta szybkość będzie stosowana do ścian nawisu, które mają wsparcie mniejsze niż 13%, niezależnie od tego, czy są częścią mostu, czy nawisu."
 
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "Prędkość wewnętrznych mostów. Jeśli wartość jest wyrażona w procentach, będzie obliczana na podstawie prędkości mostu. Wartość domyślna wynosi 150%."
+# AI Translated
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"Prędkość wewnętrznych mostów. Jeśli wartość jest wyrażona w procentach, będzie obliczana na podstawie prędkości mostu.\n"
+"\n"
+"Ostateczna prędkość jest ograniczona przez \"Maksymalną prędkość przepływu\" filamentu."
 
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Odległość od modelu do najbardziej zewnętrznej linii brimu"
@@ -17686,8 +17693,9 @@ msgstr "To ustawienie reguluje prędkość obrysów posiadających promień <= s
 msgid "Small perimeters threshold"
 msgstr "Próg małego obrysu"
 
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "To ustawia próg długości małych obrysów. Domyślny próg to 0 mm"
+# AI Translated
+msgid "This sets the threshold for small perimeter length."
+msgstr "To ustawia próg długości małych obrysów."
 
 # AI Translated
 msgid "Small support perimeters"
@@ -17702,8 +17710,8 @@ msgid "Small support perimeters threshold"
 msgstr "Próg małych obrysów podpór"
 
 # AI Translated
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "Ustawia próg długości małego obrysu podpory. Domyślny próg to 0 mm."
+msgid "This sets the threshold for small support perimeter length."
+msgstr "Ustawia próg długości małego obrysu podpory."
 
 msgid "Walls printing order"
 msgstr "Kolejność drukowania ścian"
@@ -20065,16 +20073,17 @@ msgstr "mm³/s²"
 msgid "Smoothing segment length"
 msgstr "Długość odcinka do wygładzenia"
 
+# AI Translated
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "Mniejsza wartość zapewnia płynniejsze zmiany prędkości ekstruzji. Jednak powoduje to znaczny wzrost rozmiaru pliku G-code oraz liczby instrukcji przetwarzanych przez drukarkę.\n"
 "\n"
-"Domyślna wartość 3 sprawdza się w większości przypadków. Jeśli drukarka drukuje z krótkimi zacięciami, zwiększ tę wartość, aby ograniczyć liczbę zmian.\n"
+"3 sprawdza się w większości przypadków. Jeśli drukarka drukuje z krótkimi zacięciami, zwiększ tę wartość, aby ograniczyć liczbę zmian.\n"
 "\n"
 "Dozwolone wartości: 0.5–5"
 
@@ -20609,10 +20618,10 @@ msgstr "Szczelina szwu"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "Aby zmniejszyć widoczność szwu w ekstruzji zamkniętej pętli, pętla jest przerywana i skracana o określoną ilość.\n"
-"Ta ilość może być określona w milimetrach lub jako procent średnicy dyszy. Domyślna wartość tego parametru to 10%."
+"Ta ilość może być określona w milimetrach lub jako procent średnicy dyszy."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Szew ukośny (beta)"
@@ -20629,31 +20638,34 @@ msgstr "Zastosuj szwy ukośne jedynie do gładkich obwodów, gdzie tradycyjne sz
 msgid "Conditional angle threshold"
 msgstr "Warunkowy próg kąta"
 
+# AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "Ten parametr określa minimalny kąt do zastosowania szwu ukośnego.\n"
-"Jeśli maksymalny kąt w obrębie pętli obwodu przekroczy tę wartość (co wskazuje na brak ostrych narożników), zostanie użyty szew ukośny. Domyślna wartość to 155°."
+"Jeśli maksymalny kąt w obrębie pętli obwodu przekroczy tę wartość (co wskazuje na brak ostrych narożników), zostanie użyty szew ukośny."
 
 msgid "Conditional overhang threshold"
 msgstr "Wartość progowa nawisu"
 
+# AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Ten parametr określa wartości progowe nawisu dla zastosowania szwu ukośnego. Jeśli niepodparta część obwodu jest mniejsza niż ten próg, zostanie zastosowany szew ukośny. Domyślny próg jest ustawiony na 40% szerokości zewnętrznego obwodu. Ze względów wydajnościowych stopień nawisu jest szacowany."
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "Ten parametr określa wartości progowe nawisu dla zastosowania szwu ukośnego. Jeśli niepodparta część obwodu jest mniejsza niż ten próg, zostanie zastosowany szew ukośny. Próg jest procentem szerokości zewnętrznego obwodu. Ze względów wydajnościowych stopień nawisu jest szacowany."
 
 msgid "Scarf joint speed"
 msgstr "Prędkość szwu ukośnego"
 
+# AI Translated
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "Ta opcja ustawia prędkość druku dla szwów ukośnych. Zaleca się drukowanie szwów ukośnych z niższą prędkością (poniżej 100 mm/s). Zaleca się również włączenie „Wygładzania współczynnika ekstruzji”, jeśli ustawiona prędkość znacząco różni się od prędkości zewnętrznych lub wewnętrznych obwodów.\n"
 "\n"
-"Jeżeli prędkość określona tutaj jest wyższa niż prędkość zewnętrznych lub wewnętrznych obwodów, drukarka domyślnie użyje wolniejszej z dwóch prędkości. Jeśli prędkość jest podana w procentach (np. 80%), jest ona obliczana na podstawie prędkości zewnętrznego lub wewnętrznego obwodu. Wartość domyślna wynosi 100%."
+"Jeżeli prędkość określona tutaj jest wyższa niż prędkość zewnętrznych lub wewnętrznych obwodów, drukarka domyślnie użyje wolniejszej z dwóch prędkości. Jeśli prędkość jest podana w procentach (np. 80%), jest ona obliczana na podstawie prędkości zewnętrznego lub wewnętrznego obwodu."
 
 msgid "Scarf joint flow ratio"
 msgstr "Współczynnik przepływu szwu ukośnego"
@@ -20664,12 +20676,13 @@ msgstr "Ten współczynnik wpływa na ilość materiału potrzebną dla szwów u
 msgid "Scarf start height"
 msgstr "Wysokość początkowa szwu ukośnego"
 
+# AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "Początkowa wysokość szwu ukośnego.\n"
-"Ta wartość może być określona w milimetrach lub jako procent bieżącej wysokości warstwy. Domyślna wartość tego parametru to 0."
+"Ta wartość może być określona w milimetrach lub jako procent bieżącej wysokości warstwy."
 
 msgid "Scarf around entire wall"
 msgstr "Szew ukośny obejmujący cały obrys ściany"
@@ -20760,8 +20773,9 @@ msgstr ""
 msgid "Wipe speed"
 msgstr "Prędkość wycierania"
 
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "Prędkość wycierania dyszy jest ustalona przez ustawienie prędkości określone w tej konfiguracji. Jeśli wartość jest wyrażona w procentach (np. 80%), będzie obliczana na podstawie wcześniej ustawionej prędkości. Domyślna wartość dla tego parametru to 80%"
+# AI Translated
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "Prędkość wycierania dyszy jest ustalona przez ustawienie prędkości określone w tej konfiguracji. Jeśli wartość jest wyrażona w procentach (np. 80%), będzie obliczana na podstawie wcześniej ustawionej prędkości."
 
 msgid "Skirt distance"
 msgstr "Odstęp skirtu od obiektu"
@@ -21357,8 +21371,9 @@ msgstr "Szerokość linii podpory. Jeśli wyrażona w procentach, będzie oblicz
 msgid "Loop pattern interface"
 msgstr "Użyj wzoru pętli dla warstw łączących"
 
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "Przykryj górną warstwę stykową podpór pętlami. Domyślnie wyłączone."
+# AI Translated
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "Przykryj górną warstwę stykową podpór pętlami."
 
 msgid "Support/raft interface"
 msgstr "Warstwy łączące podpory/tratwy"
@@ -22214,8 +22229,9 @@ msgstr "Format miniatur G-code: PNG dla najlepszej jakości, JPG dla najmniejsze
 msgid "Use relative E distances"
 msgstr "Użyj względnych wartości dla Extrudera"
 
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "Względna ekstruzja jest zalecana przy użyciu opcji „label_objects”. Niektóre extrudery działają lepiej z tą opcją odznaczoną (tryb absolutnej ekstruzji). Wieża czyszcząca jest kompatybilna tylko z trybem względnym. Zalecana na większości drukarek. Domyślnie zaznaczone"
+# AI Translated
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "Względna ekstruzja jest zalecana przy użyciu opcji „label_objects”. Niektóre extrudery działają lepiej z tą opcją odznaczoną (tryb absolutnej ekstruzji). Wieża czyszcząca jest kompatybilna tylko z trybem względnym. Zalecana na większości drukarek."
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "Klasyczny generator ścian tworzy ściany o stałej szerokości ekstruzji, a do bardzo cienkich obszarów używa wypełnienia szczelin. Silnik Arachne generuje ściany o zmiennej szerokości ekstruzji"
@@ -22271,11 +22287,11 @@ msgstr "Minimalna szerokość ściany"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "Zmodyfikuj tę wartość, aby uniknąć drukowania krótkich, otwartych ścianek, co może prowadzić do wydłużenia czasu druku. Wartość jest wielokrotnością szerokości ściany. Wyższe wartości spowodują usunięcie większej ilości dłuższych ścianek.\n"
 "\n"
-"UWAGA: Ta wartość nie wpłynie na dolne i górne powierzchnie modelu, aby zapobiec widocznym przerwom na zewnątrz. Aby dostosować czułość określającą, co jest uważane za górną powierzchnię, dostosuj „Próg jednej ściany” w ustawieniach „Ściany i powierzchnie” poniżej. „Próg jednej ściany” jest widoczny tylko wtedy, gdy to ustawienie jest ustawione na wartość wyższą niż domyślna wartość 0,5 lub jeśli włączona jest opcja „Tylko jedna ściana na górnych powierzchniach”."
+"UWAGA: Ta wartość nie wpłynie na dolne i górne powierzchnie modelu, aby zapobiec widocznym przerwom na zewnątrz. Aby dostosować czułość określającą, co jest uważane za górną powierzchnię, dostosuj „Próg jednej ściany” w ustawieniach „Ściany i powierzchnie” poniżej. „Próg jednej ściany” jest widoczny tylko wtedy, gdy to ustawienie jest ustawione na wartość wyższą niż 0,5 lub jeśli włączona jest opcja „Tylko jedna ściana na górnych powierzchniach”."
 
 # AI Translated
 msgid "Maximum wall resolution"
@@ -22539,8 +22555,9 @@ msgstr "Liczba powtórzeń całego modelu"
 msgid "Ensure on bed"
 msgstr "Zapewnij na stole roboczym"
 
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "Podnieś obiekt ponad stół roboczy, gdy jest częściowo poniżej. Domyślnie wyłączone."
+# AI Translated
+msgid "Lift the object above the bed when it is partially below."
+msgstr "Podnieś obiekt ponad stół roboczy, gdy jest częściowo poniżej."
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "Ułóż modele na stole i połącz je w jedną grupę, aby zastosować ustawienia do wszystkich na raz."

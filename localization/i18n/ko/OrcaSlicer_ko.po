@@ -17005,8 +17005,15 @@ msgstr ""
 "\n"
 "또한, \"구부러진 둘레에서 감속\"이 비활성화된 경우, 브릿지의 일부이든 오버행이든 상관없이 지지율이 13% 미만인 오버행 벽의 출력 속도가 됩니다."
 
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "내부 브릿지의 속도. 값을 백분율로 표현하면 bridge_speed를 기준으로 계산됩니다. 기본값은 150%입니다."
+# AI Translated
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"내부 브릿지의 속도. 값을 백분율로 표현하면 bridge_speed를 기준으로 계산됩니다.\n"
+"\n"
+"결과 속도는 필라멘트의 '최대 압출 속도'에 의해 제한됩니다."
 
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "모델과 가장 바깥쪽 브림 선까지의 거리"
@@ -17592,8 +17599,9 @@ msgstr "이 별도의 설정은 반지름이 small_perimeter_threshold 이하인
 msgid "Small perimeters threshold"
 msgstr "작은 둘레 임계값"
 
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "작은 둘레 길이에 대한 임계값을 설정합니다. 기본 임계값은 0mm입니다"
+# AI Translated
+msgid "This sets the threshold for small perimeter length."
+msgstr "작은 둘레 길이에 대한 임계값을 설정합니다."
 
 # AI Translated
 msgid "Small support perimeters"
@@ -17608,8 +17616,8 @@ msgid "Small support perimeters threshold"
 msgstr "작은 서포트 둘레 임계값"
 
 # AI Translated
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "작은 서포트 둘레 길이의 임계값을 설정합니다. 기본 임계값은 0mm입니다."
+msgid "This sets the threshold for small support perimeter length."
+msgstr "작은 서포트 둘레 길이의 임계값을 설정합니다."
 
 msgid "Walls printing order"
 msgstr "벽 출력 순서"
@@ -19994,13 +20002,13 @@ msgstr "유연 분할 길이"
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "값이 낮을수록 압출 속도 전환이 더 부드러워집니다. 그러나 이 경우 G-code 파일이 상당히 커지고 프린터가 처리해야 할 지침이 더 많아집니다.\n"
 "\n"
-"기본값인 3이 대부분의 경우에 적합합니다. 프린터가 끊기는 경우 이 값을 늘려 조정 횟수를 줄이십시오.\n"
+"3이 대부분의 경우에 적합합니다. 프린터가 끊기는 경우 이 값을 늘려 조정 횟수를 줄이십시오.\n"
 "\n"
 "허용된 값: 0.5-5"
 
@@ -20542,10 +20550,10 @@ msgstr "재봉선 간격"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "폐쇄 루프 압출에서 재봉선의 가시성을 줄이기 위해 루프가 중단되고 지정된 양만큼 짧아집니다.\n"
-"이 양은 mm로 지정하거나 노즐 직경의 백분율로 지정할 수 있습니다. 이 매개 변수의 기본값은 10%입니다."
+"이 양은 mm로 지정하거나 노즐 직경의 백분율로 지정할 수 있습니다."
 
 msgid "Scarf joint seam (beta)"
 msgstr "스카프 조인트 재봉선(베타)"
@@ -20562,31 +20570,34 @@ msgstr "전통적인 재봉선가 날카로운 모서리의 재봉선를 효과�
 msgid "Conditional angle threshold"
 msgstr "조건부 각도 임계값"
 
+# AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "이 옵션은 조건부 스카프 접합 재봉선를 적용하기 위한 임계값 각도를 설정합니다.\n"
-"주변 루프 내의 최대 각도가 이 값을 초과하는 경우(뾰족한 모서리가 없음을 나타냄) 스카프 조인트 재봉선가 사용됩니다. 기본값은 155°입니다."
+"주변 루프 내의 최대 각도가 이 값을 초과하는 경우(뾰족한 모서리가 없음을 나타냄) 스카프 조인트 재봉선가 사용됩니다."
 
 msgid "Conditional overhang threshold"
 msgstr "조건부 오버행 임계값"
 
+# AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "이 옵션은 스카프 조인트 이음새 적용을 위한 돌출 임계값을 결정합니다. 둘레의 지지되지 않은 부분이 이 임계값보다 작으면 스카프 조인트 심이 적용됩니다. 기본 임계값은 외벽 너비의 40% of로 설정됩니다. 성능 고려 사항으로 인해 돌출 정도가 추정됩니다."
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "이 옵션은 스카프 조인트 이음새 적용을 위한 돌출 임계값을 결정합니다. 둘레의 지지되지 않은 부분이 이 임계값보다 작으면 스카프 조인트 심이 적용됩니다. 임계값은 외벽 너비의 백분율입니다. 성능 고려 사항으로 인해 돌출 정도가 추정됩니다."
 
 msgid "Scarf joint speed"
 msgstr "스카프 조인트 속도"
 
+# AI Translated
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "이 옵션은 스카프 조인트의 출력 속도를 설정합니다. 스카프 조인트를 느린 속도(100mm/s 미만)로 출력하는 것이 좋습니다. 또한 설정 속도가 외벽 또는 내벽의 속도와 크게 다른 경우 '압출 속도 평탄화'를 활성화하는 것이 좋습니다.\n"
 "\n"
-"여기에 지정된 속도가 외부 또는 내부 벽의 속도보다 높을 경우 프린터는 기본적으로 두 가지 속도 중 더 느린 속도로 설정됩니다. 백분율(예: 80%)로 지정되면 속도는 각각의 외부 또는 내부 벽 속도를 기준으로 계산됩니다. 기본값은 100%로 설정되어 있습니다."
+"여기에 지정된 속도가 외부 또는 내부 벽의 속도보다 높을 경우 프린터는 기본적으로 두 가지 속도 중 더 느린 속도로 설정됩니다. 백분율(예: 80%)로 지정되면 속도는 각각의 외부 또는 내부 벽 속도를 기준으로 계산됩니다."
 
 msgid "Scarf joint flow ratio"
 msgstr "스카프 조인트 압출량 비율"
@@ -20597,12 +20608,13 @@ msgstr "이 요소는 스카프 조인트의 재료 양에 영향을 미칩니�
 msgid "Scarf start height"
 msgstr "스카프 시작 높이"
 
+# AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "스카프의 시작 높이.\n"
-"이 양은 mm 또는 현재 레이어 높이의 백분율로 지정할 수 있습니다. 이 매개변수의 기본값은 0입니다."
+"이 양은 mm 또는 현재 레이어 높이의 백분율로 지정할 수 있습니다."
 
 msgid "Scarf around entire wall"
 msgstr "전체 벽 주위에 스카프"
@@ -20693,8 +20705,9 @@ msgstr ""
 msgid "Wipe speed"
 msgstr "노즐 청소 속도"
 
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "노즐 청소 속도는 이 구성에 지정된 속도 설정에 따라 결정됩니다. 값이 백분율(예: 80%)로 표시되면 이동 속도 설정을 기준으로 계산됩니다. 이 매개 변수의 기본값은 80%입니다."
+# AI Translated
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "노즐 청소 속도는 이 구성에 지정된 속도 설정에 따라 결정됩니다. 값이 백분율(예: 80%)로 표시되면 이동 속도 설정을 기준으로 계산됩니다."
 
 msgid "Skirt distance"
 msgstr "스커트 거리"
@@ -21290,8 +21303,9 @@ msgstr "서포트의 선 너비. %로 입력 시 노즐 직경에 대한 비율�
 msgid "Loop pattern interface"
 msgstr "접점에서 루프 패턴 사용"
 
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "서포트 상단 접촉 레이어를 루프로 덮습니다. 기본적으로 비활성화되어 있습니다."
+# AI Translated
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "서포트 상단 접촉 레이어를 루프로 덮습니다."
 
 msgid "Support/raft interface"
 msgstr "서포트/라프트 접점"
@@ -22164,8 +22178,8 @@ msgid "Use relative E distances"
 msgstr "상대적 E 거리 사용"
 
 # AI Translated
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "\"label_objects\" 옵션을 사용할 때는 상대 압출을 권장합니다. 일부 압출기는 이 옵션을 선택하지 않은 경우(절대 압출 모드) 더 잘 작동합니다. 프라임 타워는 상대 모드와만 호환됩니다. 대부분의 프린터에 권장됩니다. 기본값이 선택되어 있습니다."
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "\"label_objects\" 옵션을 사용할 때는 상대 압출을 권장합니다. 일부 압출기는 이 옵션을 선택하지 않은 경우(절대 압출 모드) 더 잘 작동합니다. 프라임 타워는 상대 모드와만 호환됩니다. 대부분의 프린터에 권장됩니다."
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "클래식 벽 생성기는 돌출 폭이 일정한 벽을 생성하며 매우 얇은 영역에는 간격 채움이 사용됩니다. 아라크네 엔진은 압출 폭이 가변적인 벽을 생성합니다."
@@ -22221,11 +22235,11 @@ msgstr "최소 벽 길이"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "짧고 닫히지 않은 벽이 출력되는 것을 방지하려면 이 값을 조정하십시오. 이로 인해 출력 시간이 늘어날 수 있습니다. 값은 벽 너비의 배수입니다. 값이 높을수록 더 많은 벽과 긴 벽이 제거됩니다.\n"
 "\n"
-"참고: 모델 외부의 시각적 틈을 방지하기 위해 하단 및 상단 표면은 이 값의 영향을 받지 않습니다. 상단 표면으로 간주되는 항목의 감도를 조정하려면 아래 '벽과 표면' 설정에서 '단일 벽 임계값'을 조정하세요. '단일 벽 임계값'은 이 설정이 기본값인 0.5보다 높게 설정되거나 '상단 표면에 단일 벽 생성'이 활성화된 경우에만 표시됩니다."
+"참고: 모델 외부의 시각적 틈을 방지하기 위해 하단 및 상단 표면은 이 값의 영향을 받지 않습니다. 상단 표면으로 간주되는 항목의 감도를 조정하려면 아래 '벽과 표면' 설정에서 '단일 벽 임계값'을 조정하세요. '단일 벽 임계값'은 이 설정이 0.5보다 높게 설정되거나 '상단 표면에 단일 벽 생성'이 활성화된 경우에만 표시됩니다."
 
 # AI Translated
 msgid "Maximum wall resolution"
@@ -22490,8 +22504,9 @@ msgstr "전체 모델의 반복 횟수"
 msgid "Ensure on bed"
 msgstr "베드에서 확인"
 
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "객체의 일부가 베드 아래에 있을 때 베드 위로 객체를 들어올립니다. 기본적으로 비활성화됩니다"
+# AI Translated
+msgid "Lift the object above the bed when it is partially below."
+msgstr "객체의 일부가 베드 아래에 있을 때 베드 위로 객체를 들어올립니다."
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "제공된 모델을 플레이트에 배열하고 단일 모델로 병합하여 작업을 한 번 수행합니다."
