@@ -297,8 +297,10 @@ protected:
     CheckBox* m_checkBox_skip_calibration;
 
     bool m_skip_fine_calibration = false;
-    float m_curr_flow_ratio;
-    float m_coarse_flow_ratio;
+    float m_curr_flow_ratio { 0.0f };
+    float m_coarse_flow_ratio { 0.0f };
+    // Recompute the result from the current flow ratio and the chosen block, when one is chosen
+    void update_coarse_flow_ratio();
 
     CaliPageSendingPanel* m_sending_panel{ nullptr };
 };
@@ -329,8 +331,10 @@ protected:
 
     Label* m_fine_calc_result_text;
 
-    float m_curr_flow_ratio;
-    float m_fine_flow_ratio;
+    float m_curr_flow_ratio { 0.0f };
+    float m_fine_flow_ratio { 0.0f };
+    // Recompute the result from the current flow ratio and the chosen block, when one is chosen
+    void update_fine_flow_ratio();
 };
 
 class CalibrationMaxVolumetricSpeedSavePage : public CalibrationCommonSavePage
