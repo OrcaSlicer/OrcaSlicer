@@ -7310,8 +7310,8 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(2));
 
     def = this->add("imex_tool_layout", coEnum);
-    def->label = L("Tool 0 Position");
-    def->tooltip = L("Physical position on the bed where tool T0 (index 0) is located. "
+    def->label = L("Tool 1 Position");
+    def->tooltip = L("Physical position on the bed where tool T1 is located. "
                      "Determines how tool indices map to bed zones. "
                      "For single-gantry setups (IDEX) only left/right matters; "
                      "for dual-gantry setups (IQEX) all four corners are selectable "
@@ -13407,9 +13407,43 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->tooltip = L("Load and store settings at the given directory. This is useful for maintaining different profiles or including configurations from a network storage.");
 
 
+    def = this->add("mcp", coBool);
+    def->label = L("MCP server");
+    def->tooltip = L("Start the MCP server for AI agents on 127.0.0.1 for this run, whatever the preference says.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("mcp_port", coInt);
+    def->label = L("MCP server port");
+    def->tooltip = L("Start the MCP server for this run on this port, as --mcp does. 0 takes the port from the preference, or 13619.");
+    def->cli_params = "port";
+    def->min = 0;
+    def->max = 65535;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("mcp_stdio", coBool);
+    def->label = L("MCP stdio bridge");
+    def->tooltip = L("Act as an MCP server on standard input and output for clients that cannot use HTTP, forwarding to the running OrcaSlicer (started with --mcp when none answers).");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("run", coString);
+    def->label = L("Run a replay or script");
+    def->tooltip = L("Run a replay (.json) or a Python script (.py) once the GUI is ready, then exit: 0 when it passed or finished, 1 when a step failed or the script did not finish, 2 when the file is invalid or cannot be read.");
+    def->cli_params = "file";
+    def->set_default_value(new ConfigOptionString());
+
+    def = this->add("unrestricted_scripts", coBool);
+    def->label = L("Unrestricted Python scripts");
+    def->tooltip = L("Let Python scripts bypass the permission checks for this run, whatever the preference says.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("cad", coBool);
+    def->label = L("Design tab");
+    def->tooltip = L("Show the Design tab and offer its commands for this run, whatever the CAD feature preference says.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("outputdir", coString);
     def->label = L("Output directory");
-    def->tooltip = L("This is the output directory for exported files.");
+    def->tooltip = L("This is the output directory for exported files. With --run, it is where the run's files go: a replay's result.json and screenshots, and the files saved without a path.");
     def->cli_params = "dir";
     def->set_default_value(new ConfigOptionString());
 

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Activity</title>
+  <link rel="stylesheet" type="text/css" href="../css/theme.css" />
+  <link rel="stylesheet" type="text/css" href="../js/code_editor.css" />
+  <link rel="stylesheet" type="text/css" href="../css/step_rail.css" />
+  <link rel="stylesheet" type="text/css" href="./style.css" />
+  <script type="text/javascript" src="../../include/i18n.js"></script>
+  <script type="text/javascript" src="../js/globalapi.js"></script>
+  <script type="text/javascript" src="../RunScript/run_script_model.js"></script>
+  <script type="text/javascript" src="./agent_activity_model.js"></script>
+  <script type="text/javascript" src="./agent_activity.js"></script>
+</head>
+<body onload="OnInit()">
+  <div class="pane">
+    <div class="toolbar" role="toolbar" aria-label="Agent Activity" data-i18n-aria-label="pane">
+      <button type="button" id="clear" class="btn" data-i18n="clear">Clear list</button>
+      <span class="tsep"></span>
+      <div class="seg" role="group" aria-label="Show" data-i18n-aria-label="show">
+        <button type="button" data-show="all" aria-pressed="true" data-i18n="show_all">Everything</button><button type="button" data-show="changes" aria-pressed="false" data-i18n="show_changes">Changes</button><button type="button" data-show="failures" aria-pressed="false" data-i18n="show_failures">Failures</button>
+      </div>
+      <div class="menu-wrap">
+        <button type="button" id="src-btn" class="btn" aria-haspopup="menu" aria-expanded="false"><span class="t-opt" data-i18n="from">From:</span><span id="src-label"></span><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 3.5 5 6.5 8 3.5"/></svg></button>
+        <div class="menu" id="src-menu" role="menu" hidden></div>
+      </div>
+      <input class="find" id="find" type="search" placeholder="Find a call" aria-label="Find a call" data-i18n-placeholder="find" data-i18n-aria-label="find" />
+      <div class="status" id="status" aria-live="polite"></div>
+    </div>
+    <div class="list-wrap">
+      <div class="list" id="list">
+        <p class="empty" id="empty"></p>
+        <ol class="rail" id="rail"></ol>
+      </div>
+      <button type="button" class="latest" id="latest" hidden><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3.5 5 6.5 8 3.5"/></svg><span id="latest-n"></span></button>
+    </div>
+  </div>
+</body>
+</html>

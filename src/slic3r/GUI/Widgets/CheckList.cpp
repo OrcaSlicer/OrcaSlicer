@@ -1,6 +1,7 @@
 #include "CheckList.hpp"
 
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include <wx/anybutton.h>
 #include <wx/arrstr.h>
 #include <wx/checklst.h>
@@ -236,5 +237,5 @@ void CheckList::ShowMenu(wxMouseEvent &evt)
     if (!src) return;
     wxPoint screen_pos = src->ClientToScreen(evt.GetPosition());
     wxPoint local_pos  = ScreenToClient(screen_pos);
-    PopupMenu(&m, local_pos);
+    Slic3r::GUI::popup_menu(*this, m, local_pos);
 }

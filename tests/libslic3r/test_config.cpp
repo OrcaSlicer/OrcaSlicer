@@ -744,6 +744,19 @@ TEST_CASE("load_from_json hands a preset's include list to the caller instead of
     CHECK(config.opt_string("machine_end_gcode") == "M84");
 }
 
+TEST_CASE("the command line has one run option and no MCP-named one", "[Config]") {
+    CHECK(cli_misc_config_def.has("run"));
+    CHECK(cli_misc_config_def.has("unrestricted_scripts"));
+    CHECK(cli_misc_config_def.has("cad"));
+    CHECK(cli_misc_config_def.has("outputdir"));
+    CHECK_FALSE(cli_misc_config_def.has("mcp_run"));
+    CHECK_FALSE(cli_misc_config_def.has("mcp_run_out"));
+    CHECK_FALSE(cli_misc_config_def.has("mcp_token"));
+    CHECK(cli_misc_config_def.has("mcp"));
+    CHECK(cli_misc_config_def.has("mcp_port"));
+    CHECK(cli_misc_config_def.has("mcp_stdio"));
+}
+
 TEST_CASE("save_to_json writes the same document to a stream as to a file", "[Config]") {
     DynamicPrintConfig config;
     config.set_key_value("layer_height", new ConfigOptionFloat(0.2));

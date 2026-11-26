@@ -9,6 +9,7 @@
 #include "libslic3r/MaterialType.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "Plater.hpp"
 
@@ -638,9 +639,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     // tower additionally reject mixed slots: the engine consumes those keys directly, so a virtual
     // slot would reach the G-code unresolved, while the per-feature keys are resolved per layer.
     static const char* physical_only_keys[] = { "support_filament", "support_interface_filament", "brim_filament_id", "wipe_tower_filament" };
-    static const char* feature_keys[] = { "outer_wall_filament_id", "inner_wall_filament_id",
-                                          "sparse_infill_filament_id", "internal_solid_filament_id",
-                                          "top_surface_filament_id", "bottom_surface_filament_id" };
     auto reset_invalid_filament = [this, config, filament_cnt](const char* key, bool allow_mixed) {
         auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
         if (opt == nullptr)
@@ -663,7 +661,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     };
     for (const char* key : physical_only_keys)
         reset_invalid_filament(key, false);
-    for (const char* key : feature_keys)
+    for (const char* key : feature_filament_keys)
         reset_invalid_filament(key, true);
 
     // Sub-layer splitting divides each layer by the mix ratio; an adaptive layer profile makes

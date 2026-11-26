@@ -266,6 +266,14 @@ public:
 
     void render_painter_gizmo() override;
 
+    // Busy while the image adjustment preview has a pass in flight or one still to start for the
+    // latest slider values. Its displacement preview runs on the plater's job worker.
+    bool is_busy() const override;
+
+    // Imports the height map at `path` into the texture library and puts it on the active layer,
+    // as the library's import tile does after its file dialog. False with `error` saying why not.
+    bool import_texture(const std::string &path, std::string &error);
+
     // Intercepts mouse input while "Adjust Texture" mode is on (dragging the on-canvas offset/
     // rotation handles instead of painting); otherwise forwards to the normal painting handling.
     bool on_mouse(const wxMouseEvent &mouse_event) override;
@@ -512,6 +520,8 @@ private:
     float m_picker_scroll_applied  = -1.f;
     void set_layer_texture(TextureDisplacementLayer &layer, const TextureLibraryEntry &entry);
     void import_custom_texture(TextureDisplacementLayer &layer);
+    // What import_custom_texture() does with the file its dialog picked.
+    bool import_texture(TextureDisplacementLayer &layer, const std::string &path, std::string &error);
 
     // Paint / Erase, from the panel. See get_left_button_state_type().
     bool m_erase_mode = false;

@@ -1,6 +1,7 @@
 #include "PythonPluginBridge.hpp"
 
 #include <algorithm>
+#include <optional>
 #include <boost/log/trivial.hpp>
 #include <exception>
 #include "libslic3r/LifecycleEvents.hpp"
@@ -8,6 +9,7 @@
 #include <mutex>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
@@ -18,6 +20,11 @@
 #include <utility>
 
 #include "PythonInterpreter.hpp"
+#include "PythonRunScope.hpp"
+#include "PythonScriptRunner.hpp"
+#include "PluginJsonPy.hpp"
+#include "PluginOperations.hpp"
+#include "host/PluginHostTools.hpp"
 #include "PluginFsUtils.hpp"
 #include "PluginConfig.hpp"
 #include "host/PluginHost.hpp"
@@ -51,6 +58,8 @@ std::mutex g_registry_mutex;
 std::unordered_map<std::string, std::vector<py::object>> g_pending_capabilities;
 std::unordered_map<std::string, py::object> g_pending_package;
 std::unordered_map<std::string, PluginPermissions> g_pending_permissions;
+// Operations a loading plugin declares with register_operation(); their handlers release under the GIL.
+std::unordered_map<std::string, std::vector<PluginOperation>> g_pending_operations;
 struct PluginInstanceHandle
 {
     // The C++ plugin interface points into a Python object. Keep both alive through one
@@ -90,6 +99,8 @@ void discard_pending_capture_without_python(const std::string& plugin_key)
     }
 
     g_pending_permissions.erase(plugin_key);
+
+    g_pending_operations.erase(plugin_key);
 }
 
 } // namespace
@@ -115,6 +126,7 @@ void PythonPluginBridge::begin_plugin_capture(const std::string& plugin_key)
         g_pending_capabilities.erase(plugin_key);
         g_pending_package.erase(plugin_key);
         g_pending_permissions.erase(plugin_key);
+        g_pending_operations.erase(plugin_key);
     }
     // From now until finalize/cancel, @orca.plugin and register_capability() calls made by
     // Python code on this thread are attributed to this plugin.
@@ -146,6 +158,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             g_pending_capabilities.erase(capture_key);
             g_pending_package.erase(capture_key);
             g_pending_permissions.erase(capture_key);
+            g_pending_operations.erase(capture_key);
         };
 
         try {
@@ -191,7 +204,8 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
                 !requested_permissions.fs_read.empty() || !requested_permissions.fs_readwrite.empty() ||
                 !requested_permissions.fs_create.empty() || !requested_permissions.fs_delete.empty() ||
                 !requested_permissions.network_http.empty() || !requested_permissions.network_socket.empty() ||
-                !requested_permissions.process.empty() || requested_permissions.threading;
+                !requested_permissions.process.empty() || requested_permissions.threading ||
+                requested_permissions.tools;
             if (has_permission_request) {
                 bool granted = false;
                 {
@@ -206,6 +220,18 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
                     return {};
                 }
             }
+            std::vector<PluginOperation> operations;
+            {
+                std::lock_guard<std::mutex> lock(g_registry_mutex);
+                auto it = g_pending_operations.find(capture_key);
+                if (it != g_pending_operations.end()) {
+                    operations = std::move(it->second);
+                    g_pending_operations.erase(it);
+                }
+            }
+            for (PluginOperation& op : operations)
+                op.plugin_key = plugin_key;
+            PluginOperations::instance().stage(plugin_key, std::move(operations));
         } catch (py::error_already_set& err) {
             log_python_exception_keep(err);
             error = err.what();
@@ -329,6 +355,7 @@ void PythonPluginBridge::cancel_plugin_capture(const std::string& plugin_key)
         g_pending_capabilities.erase(plugin_key);
         g_pending_package.erase(plugin_key);
         g_pending_permissions.erase(plugin_key);
+        g_pending_operations.erase(plugin_key);
     }
 
     if (g_active_plugin_key == plugin_key)
@@ -356,6 +383,7 @@ void PythonPluginBridge::clear_pending_captures()
         }
         g_pending_package.clear();
         g_pending_permissions.clear();
+        g_pending_operations.clear();
         g_active_plugin_key.clear();
         return;
     }
@@ -385,95 +413,197 @@ void bind_python_api(pybind11::module_& m)
         .value("Unknown", PluginCapabilityType::Unknown)
         .export_values();
 
-    py::enum_<PluginResult>(m, "PluginResult", "Execution summary code")
+    py::enum_<PluginResult>(m, "PluginResult",
+                            "Status of an ExecutionResult. What the host does with each value depends on the\n"
+                            "method that returns it; see the execute() method of each capability base.")
         .value("Success", PluginResult::Success)
         .value("Skipped", PluginResult::Skipped)
         .value("RecoverableError", PluginResult::RecoverableError)
         .value("FatalError", PluginResult::FatalError)
         .export_values();
 
-    py::enum_<LifecycleEvent>(m, "LifecycleEvent", "Application lifecycle moment passed to on_lifecycle_event")
-        .value("NewProject", LifecycleEvent::NewProject)
-        .value("ProjectOpened", LifecycleEvent::ProjectOpened)
-        .value("ProjectBeforeSave", LifecycleEvent::ProjectBeforeSave)
-        .value("ProjectAfterSave", LifecycleEvent::ProjectAfterSave)
-        .value("ProjectClosed", LifecycleEvent::ProjectClosed)
-        .value("ProjectDirtyChanged", LifecycleEvent::ProjectDirtyChanged)
-        .value("SliceStarted", LifecycleEvent::SliceStarted)
-        .value("SliceGeometryFinished", LifecycleEvent::SliceGeometryFinished)
-        .value("GCodeExportStarted", LifecycleEvent::GCodeExportStarted)
-        .value("GCodeExportFinished", LifecycleEvent::GCodeExportFinished)
-        .value("SlicingJobComplete", LifecycleEvent::SlicingJobComplete)
-        .value("ObjectAdded", LifecycleEvent::ObjectAdded)
-        .value("ObjectDeleted", LifecycleEvent::ObjectDeleted)
-        .value("ObjectTransformed", LifecycleEvent::ObjectTransformed)
-        .value("ObjectChanged", LifecycleEvent::ObjectChanged)
-        .value("ObjectRenamed", LifecycleEvent::ObjectRenamed)
-        .value("PlateCreated", LifecycleEvent::PlateCreated)
-        .value("PlateDeleted", LifecycleEvent::PlateDeleted)
-        .value("PlateSelected", LifecycleEvent::PlateSelected)
-        .value("PlateRenamed", LifecycleEvent::PlateRenamed)
-        .value("PresetSelected", LifecycleEvent::PresetSelected)
-        .value("PresetSaved", LifecycleEvent::PresetSaved)
-        .value("PrintStateChanged", LifecycleEvent::PrintStateChanged)
-        .value("DeviceOnline", LifecycleEvent::DeviceOnline)
-        .value("DeviceOffline", LifecycleEvent::DeviceOffline)
-        .value("DeviceDiscovered", LifecycleEvent::DeviceDiscovered)
-        .value("DeviceSelected", LifecycleEvent::DeviceSelected)
-        .value("UploadStarted", LifecycleEvent::UploadStarted)
-        .value("UploadFinished", LifecycleEvent::UploadFinished)
-        .value("PrintJobStarted", LifecycleEvent::PrintJobStarted)
-        .value("PrintJobFinished", LifecycleEvent::PrintJobFinished)
-        .value("SendJobStarted", LifecycleEvent::SendJobStarted)
-        .value("SendJobFinished", LifecycleEvent::SendJobFinished)
+    py::enum_<LifecycleEvent>(m, "LifecycleEvent",
+                              "Application lifecycle moment passed to on_lifecycle_event(). The LifecycleEventContext\n"
+                              "fields describe which events fill them.")
+        .value("NewProject", LifecycleEvent::NewProject,
+               "A new project is being started. It fires before the current project is reset, so a\n"
+               "ProjectClosed event for that project, when it had a file or objects, follows it.")
+        .value("ProjectOpened", LifecycleEvent::ProjectOpened, "A project was opened; name is its file path.")
+        .value("ProjectBeforeSave", LifecycleEvent::ProjectBeforeSave,
+               "The project is about to be saved; name is the target file path.")
+        .value("ProjectAfterSave", LifecycleEvent::ProjectAfterSave, "The project was saved; name is its file path.")
+        .value("ProjectClosed", LifecycleEvent::ProjectClosed,
+               "The current project, when it had a file or objects, was closed or reset; name is its file path\n"
+               "without the extension, or empty if it was never saved.")
+        .value("ProjectDirtyChanged", LifecycleEvent::ProjectDirtyChanged,
+               "The project gained or lost unsaved changes; see dirty and source.")
+        .value("SliceStarted", LifecycleEvent::SliceStarted,
+               "Slicing started, on the slicing thread; id and name identify the model.")
+        .value("SliceGeometryFinished", LifecycleEvent::SliceGeometryFinished,
+               "The slicing steps finished, before G-code export, on the slicing thread; id and name identify the\n"
+               "model.")
+        .value("GCodeExportStarted", LifecycleEvent::GCodeExportStarted,
+               "G-code export started, on the slicing thread; msg is the output path.")
+        .value("GCodeExportFinished", LifecycleEvent::GCodeExportFinished,
+               "G-code export ended; code is Ok or Error, and msg is the output path, followed by the error on\n"
+               "failure.")
+        .value("SlicingJobComplete", LifecycleEvent::SlicingJobComplete,
+               "The background slicing job ended, on the UI thread; code is Ok, Warn when cancelled, or Error with\n"
+               "the error in msg.")
+        .value("ObjectAdded", LifecycleEvent::ObjectAdded, "An object was added; name is its name.")
+        .value("ObjectDeleted", LifecycleEvent::ObjectDeleted, "An object was deleted; name is its name.")
+        .value("ObjectTransformed", LifecycleEvent::ObjectTransformed,
+               "Objects were moved, rotated, scaled, arranged or auto-oriented; msg says which, and name is the\n"
+               "object's name when exactly one object was moved, rotated or scaled.")
+        .value("ObjectChanged", LifecycleEvent::ObjectChanged,
+               "An object's geometry changed; name, id and, when known, index identify it.")
+        .value("ObjectRenamed", LifecycleEvent::ObjectRenamed,
+               "An object or one of its parts was renamed; name, previous_name, id, index and source (\"object\" or\n"
+               "\"volume\") describe it.")
+        .value("PlateCreated", LifecycleEvent::PlateCreated, "A plate was added; name and index identify it.")
+        .value("PlateDeleted", LifecycleEvent::PlateDeleted, "A plate was deleted; name and index identify it.")
+        .value("PlateSelected", LifecycleEvent::PlateSelected,
+               "Another plate became the current plate; name and index identify it.")
+        .value("PlateRenamed", LifecycleEvent::PlateRenamed,
+               "A plate was renamed; name, previous_name and index describe it.")
+        .value("PresetSelected", LifecycleEvent::PresetSelected,
+               "A preset was selected; name is the preset name and msg its type: \"print\", \"filament\",\n"
+               "\"printer\", \"sla_print\" or \"sla_material\".")
+        .value("PresetSaved", LifecycleEvent::PresetSaved,
+               "A preset was saved; name is the preset name and msg is \"new\" or \"overwrite\".")
+        .value("PrintStateChanged", LifecycleEvent::PrintStateChanged,
+               "A printer's print status changed; name is the device id and msg the new status.")
+        .value("DeviceOnline", LifecycleEvent::DeviceOnline, "A printer came online; name is its device id.")
+        .value("DeviceOffline", LifecycleEvent::DeviceOffline, "A printer went offline; name is its device id.")
+        .value("DeviceDiscovered", LifecycleEvent::DeviceDiscovered,
+               "A printer not known before was discovered on the network; name is its device id.")
+        .value("DeviceSelected", LifecycleEvent::DeviceSelected,
+               "The user selected a printer; name is its device id, or empty when the selection was cleared.")
+        .value("UploadStarted", LifecycleEvent::UploadStarted,
+               "An upload to a print host such as OctoPrint started; name is the uploaded file's name.")
+        .value("UploadFinished", LifecycleEvent::UploadFinished,
+               "A print host upload ended; code is Ok or Error, with the error in msg.")
+        .value("PrintJobStarted", LifecycleEvent::PrintJobStarted,
+               "Sending a print job to a printer started; name is the project name, device_id the printer and\n"
+               "source the sender.")
+        .value("PrintJobFinished", LifecycleEvent::PrintJobFinished,
+               "Sending a print job ended; code is Ok, Warn when cancelled, or Error, and msg is \"\", \"cancelled\",\n"
+               "\"failed\" or \"exception\".")
+        .value("SendJobStarted", LifecycleEvent::SendJobStarted,
+               "Sending a file to a printer's storage started; name is the project name and device_id the printer.")
+        .value("SendJobFinished", LifecycleEvent::SendJobFinished,
+               "Sending a file to a printer's storage ended; code and msg as for PrintJobFinished.")
         .export_values();
 
     py::enum_<LifecycleEvtCode>(m, "LifecycleEvtCode", "Outcome code accompanying a LifecycleEventContext")
-        .value("Ok", LifecycleEvtCode::Ok)
-        .value("Error", LifecycleEvtCode::Error)
-        .value("Warn", LifecycleEvtCode::Warn)
+        .value("Ok", LifecycleEvtCode::Ok, "The event happened, or the operation it reports succeeded.")
+        .value("Error", LifecycleEvtCode::Error, "The operation failed; msg holds the detail.")
+        .value("Warn", LifecycleEvtCode::Warn, "The operation was cancelled.")
         .export_values();
 
-    py::class_<LifecycleEventContext>(m, "LifecycleEventContext", "Payload accompanying a LifecycleEvent")
+    py::class_<LifecycleEventContext>(m, "LifecycleEventContext",
+                                      "Payload accompanying a LifecycleEvent. Each field says which events fill it; a\n"
+                                      "field the event does not use is empty, -1 or False.")
         .def(py::init<>())
-        .def_readonly("name", &LifecycleEventContext::name)
-        .def_readonly("code", &LifecycleEventContext::code)
-        .def_readonly("msg", &LifecycleEventContext::msg)
-        .def_readonly("id", &LifecycleEventContext::id)
-        .def_readonly("previous_name", &LifecycleEventContext::previous_name)
-        .def_readonly("device_id", &LifecycleEventContext::device_id)
-        .def_readonly("job_id", &LifecycleEventContext::job_id)
-        .def_readonly("source", &LifecycleEventContext::source)
-        .def_readonly("index", &LifecycleEventContext::index)
-        .def_readonly("dirty", &LifecycleEventContext::dirty);
+        .def_readonly("name", &LifecycleEventContext::name,
+                      "The event's subject: a file path for Project* events (see ProjectClosed), the model name for\n"
+                      "SliceStarted, SliceGeometryFinished, GCodeExport* and SlicingJobComplete, the object, plate or\n"
+                      "preset name for Object*, Plate* and Preset* events, the device id for PrintStateChanged and\n"
+                      "Device* events, the uploaded file name for Upload* events, and the project name for PrintJob*\n"
+                      "and SendJob* events. Empty for NewProject and ProjectDirtyChanged.")
+        .def_readonly("code", &LifecycleEventContext::code,
+                      "The LifecycleEvtCode. Only GCodeExportFinished, SlicingJobComplete, UploadFinished,\n"
+                      "PrintJobFinished and SendJobFinished report anything but Ok: Error on failure, Warn when\n"
+                      "cancelled.")
+        .def_readonly("msg", &LifecycleEventContext::msg,
+                      "Detail text: the output path for GCodeExport* events, followed by the error on failure;\n"
+                      "the error or \"cancelled\" for SlicingJobComplete; the error for UploadFinished; \"\",\n"
+                      "\"cancelled\", \"failed\" or \"exception\" for PrintJobFinished and SendJobFinished; \"moved\",\n"
+                      "\"rotated\", \"scaled\", \"arranged\" or \"auto_oriented\" for ObjectTransformed; the preset\n"
+                      "type for PresetSelected; \"new\" or \"overwrite\" for PresetSaved; the new status for\n"
+                      "PrintStateChanged; \"online\" or \"offline\" for DeviceOnline and DeviceOffline. Error text\n"
+                      "is for people, not for parsing.")
+        .def_readonly("id", &LifecycleEventContext::id,
+                      "A numeric id as a decimal string: the model's id for SliceStarted, SliceGeometryFinished,\n"
+                      "GCodeExport* and SlicingJobComplete, the object's or part's id for ObjectChanged and\n"
+                      "ObjectRenamed.")
+        .def_readonly("previous_name", &LifecycleEventContext::previous_name,
+                      "The old name for ObjectRenamed and PlateRenamed.")
+        .def_readonly("device_id", &LifecycleEventContext::device_id,
+                      "The target printer's device id for PrintJob* and SendJob* events. PrintStateChanged and\n"
+                      "Device* events carry the device id in name instead.")
+        .def_readonly("job_id", &LifecycleEventContext::job_id,
+                      "The task id for PrintJob* events sent through the multi-printer task queue (source\n"
+                      "\"task_manager\").")
+        .def_readonly("source", &LifecycleEventContext::source,
+                      "Where the event came from: \"object\" or \"volume\" for ObjectRenamed, \"geometry\" for\n"
+                      "ObjectChanged, \"print_job\" or \"task_manager\" for PrintJob* events, \"send_job\" for\n"
+                      "SendJob* events, and for ProjectDirtyChanged the change that flipped the state: \"plater\",\n"
+                      "\"presets\", \"undo_redo\", \"save\" or \"batch\".")
+        .def_readonly("index", &LifecycleEventContext::index,
+                      "A 0-based index: the plate for Plate* events, the object for ObjectChanged (when known) and\n"
+                      "object renames, and the part within its object for part renames.")
+        .def_readonly("dirty", &LifecycleEventContext::dirty,
+                      "For ProjectDirtyChanged, True when the project now has unsaved changes.");
 
-    py::class_<PluginContext>(m, "PluginContext", "Context shared with plugin entry points")
+    py::class_<PluginContext>(m, "PluginContext",
+                              "Holds the OrcaSlicer version. No OrcaSlicer call passes one to a plugin; slicing steps\n"
+                              "read the version from SlicingPipelineContext.orca_version.")
         .def(py::init<>())
-        .def_readwrite("orca_version", &PluginContext::orca_version);
+        .def_readwrite("orca_version", &PluginContext::orca_version, "The OrcaSlicer version string.");
 
-    py::class_<ExecutionResult>(m, "ExecutionResult", "Structured execution outcome")
-        .def(py::init<>())
-        .def(py::init<PluginResult, std::string, std::string>())
-        .def_readwrite("status", &ExecutionResult::status)
-        .def_readwrite("message", &ExecutionResult::message)
-        .def_readwrite("data", &ExecutionResult::data)
-        .def_static("success", &ExecutionResult::success, py::arg("message") = std::string(), py::arg("data") = std::string())
-        .def_static("skipped", &ExecutionResult::skipped, py::arg("message") = std::string())
-        .def_static("failure", &ExecutionResult::failure, py::arg("status"), py::arg("message"), py::arg("data") = std::string());
+    py::class_<ExecutionResult>(m, "ExecutionResult",
+                                "Outcome a capability's execute() returns: a PluginResult status, a message for the\n"
+                                "user or the log, and optional data. Build one with success(), skipped() or failure().")
+        .def(py::init<>(), "A Success result with no message or data.")
+        .def(py::init<PluginResult, std::string, std::string>(), py::arg("status"), py::arg("message"),
+             py::arg("data"), "A result with the given status, message and data.")
+        .def_readwrite("status", &ExecutionResult::status, "The PluginResult status.")
+        .def_readwrite("message", &ExecutionResult::message,
+                       "Text shown to the user or logged, depending on the capability; may be empty.")
+        .def_readwrite("data", &ExecutionResult::data,
+                       "Extra result text for the caller, such as a JSON string. The Plugins dialog logs it; the host\n"
+                       "does not otherwise read it.")
+        .def_static("success", &ExecutionResult::success, py::arg("message") = std::string(),
+                    py::arg("data") = std::string(), "Return a Success result with an optional message and data.")
+        .def_static("skipped", &ExecutionResult::skipped, py::arg("message") = std::string(),
+                    "Return a Skipped result, for a run that had nothing to do, with an optional message.")
+        .def_static("failure", &ExecutionResult::failure, py::arg("status"), py::arg("message"),
+                    py::arg("data") = std::string(),
+                    "Return a failed result: status is PluginResult.RecoverableError or PluginResult.FatalError,\n"
+                    "message says what went wrong, and data is optional.");
 
     // Config lives at the capability level, not as a global orca.* function: the host reads the
     // owning (plugin_key, capability) straight off the instance the call arrived on, so a
     // capability can only ever address its own config and never has to name itself.
     // Registered on the base, so every capability type (script/gcode/printer-agent) inherits it.
-    py::class_<PluginCapabilityInterface, PyPluginInterfaceTrampoline, std::shared_ptr<PluginCapabilityInterface>>(m, "PythonPluginBase")
+    py::class_<PluginCapabilityInterface, PyPluginInterfaceTrampoline, std::shared_ptr<PluginCapabilityInterface>>(
+        m, "PythonPluginBase",
+        "Base of every capability class, holding what all capabilities share: the required get_name(), the\n"
+        "on_load(), on_unload() and on_lifecycle_event() hooks, and the capability's config. Subclass one of\n"
+        "the typed bases rather than this class: orca.script.ScriptPluginCapabilityBase,\n"
+        "orca.pages.PagesPluginCapabilityBase, orca.printer_agent.PrinterAgentBase,\n"
+        "orca.slicing.SlicingPipelineCapabilityBase or orca.resource_texture.ResourceTexturePluginCapabilityBase.")
         .def(py::init<>())
-        .def("get_name", &PluginCapabilityInterface::get_name)
-        .def("get_type", &PluginCapabilityInterface::get_type)
-        .def("on_load", &PluginCapabilityInterface::on_load)
-        .def("on_unload", &PluginCapabilityInterface::on_unload)
-        .def("on_lifecycle_event", &PluginCapabilityInterface::on_lifecycle_event,
-             "Override to react to an application lifecycle moment (LifecycleEvent) and its\n"
-             "LifecycleEventContext payload. Available on every capability type.")
+        .def("get_name", &PluginCapabilityInterface::get_name,
+             "Required. Return this capability's name. The host reads it once when the plugin loads, shows it\n"
+             "in the UI and uses it to refer to the capability in presets and configs, so it must stay the same.\n"
+             "It must not contain ';' and must be unique among loaded capabilities of the same type.")
+        .def("get_type", &PluginCapabilityInterface::get_type,
+             "Return this capability's PluginType. Each typed capability base already returns its own type, and\n"
+             "the host reads it once when the plugin loads.")
+        .def("on_load", &PluginCapabilityInterface::on_load,
+             "Called once when the plugin loads, after all of its capabilities have been created. Raising an\n"
+             "exception fails the plugin load. The default does nothing.")
+        .def("on_unload", &PluginCapabilityInterface::on_unload,
+             "Called once when the plugin unloads (disabled, removed, reloaded or at exit), and after its own\n"
+             "on_load() raised. Exceptions are logged and ignored. The default does nothing.")
+        .def("on_lifecycle_event", &PluginCapabilityInterface::on_lifecycle_event, py::arg("event"), py::arg("ctx"),
+             "Called for every application lifecycle moment, on every loaded and enabled capability whatever\n"
+             "its type. event is a LifecycleEvent and ctx the LifecycleEventContext describing it. It runs on\n"
+             "the thread that raised the event, a background thread for slicing, export, upload and print-job\n"
+             "events. The return value is ignored, and exceptions are logged and ignored. The default does\n"
+             "nothing.")
         .def("has_config_ui", &PluginCapabilityInterface::has_config_ui,
              "Override to return True to replace the host's default JSON editor with your own HTML\n"
              "UI, returned by get_config_ui(). Every capability is configurable and appears in the\n"
@@ -522,11 +652,17 @@ void bind_python_api(pybind11::module_& m)
             "The plugin key, capability name and version are supplied by the host. Returns False if\n"
             "the string is not valid JSON, or if the config file could not be written.");
 
-    // Expose the package marker base as orca.base. @orca.plugin later verifies that the
-    // decorated class derives from this exact pybind-registered C++ type.
-    py::class_<PyPluginPackage, PyPluginPackageTrampoline>(m, "base")
+    // @orca.plugin verifies that the decorated class derives from this exact pybind-registered C++ type.
+    py::class_<PyPluginPackage, PyPluginPackageTrampoline>(
+        m, "base",
+        "Base of a plugin's package class. Subclass it once per plugin, decorate the subclass with\n"
+        "@orca.plugin, and override register_capabilities().")
         .def(py::init<>())
-        .def("register_capabilities", &PyPluginPackage::register_capabilities);
+        .def("register_capabilities", &PyPluginPackage::register_capabilities,
+             "Called once while OrcaSlicer loads the plugin, after its module is imported. Call\n"
+             "orca.register_capability() for each capability class, and orca.request_permissions() and\n"
+             "orca.register_operation() as needed. Raising an exception fails the plugin load. The default\n"
+             "registers nothing.");
 
     BOOST_LOG_TRIVIAL(debug) << "Registering embedded Python plugin type bindings";
 
@@ -560,7 +696,57 @@ void bind_python_api(pybind11::module_& m)
             g_pending_capabilities[g_active_plugin_key].push_back(std::move(plugin_cls));
             BOOST_LOG_TRIVIAL(debug) << "Registered Python plugin capability class for key " << g_active_plugin_key;
         },
-        R"pbdoc(Register a PluginCapability subclass while OrcaSlicer loads your module.)pbdoc");
+        py::arg("capability_class"),
+        R"pbdoc(Register a capability class while OrcaSlicer loads your module, normally from register_capabilities().
+
+Pass the class, not an instance: OrcaSlicer creates one instance with no arguments after
+register_capabilities() returns. The class must derive from a capability base such as
+orca.script.ScriptPluginCapabilityBase. Raises ValueError outside plugin loading or for a class that is
+not a capability.)pbdoc");
+
+    m.def(
+        "register_operation",
+        [](const std::string& name, const std::string& description, const py::object& schema, const py::object& handler, bool changes) {
+            if (g_active_plugin_key.empty())
+                throw py::value_error("register_operation() called outside plugin discovery context");
+            if (name.empty() || name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") != std::string::npos)
+                throw py::value_error("register_operation() takes a name of letters, digits and underscores");
+            if (!PyCallable_Check(handler.ptr()))
+                throw py::type_error("register_operation() takes a callable handler");
+            PluginOperation op;
+            op.name        = name;
+            op.description = description;
+            op.changes     = changes;
+            if (!schema.is_none()) {
+                op.schema = py_to_json(schema);
+                if (!op.schema.is_object() || op.schema.value("type", "") != "object")
+                    throw py::value_error("register_operation() takes an object schema: {\"type\": \"object\", \"properties\": ...}");
+            }
+            // The last reference may go on any thread: released under the GIL, or abandoned once Python is gone.
+            op.handler = std::shared_ptr<py::object>(new py::object(handler), [](py::object* held) {
+                PythonGILState gil;
+                if (!gil)
+                    (void) held->release();
+                delete held;
+            });
+            std::lock_guard<std::mutex> lock(g_registry_mutex);
+            auto& pending = g_pending_operations[g_active_plugin_key];
+            pending.erase(std::remove_if(pending.begin(), pending.end(), [&](const PluginOperation& o) { return o.name == name; }),
+                          pending.end());
+            pending.push_back(std::move(op));
+        },
+        // handler is required, and the callable check above refuses a missing one. It defaults to None only so that
+        // the signature stays one Python can declare while schema keeps its default, which lets a caller pass the
+        // handler by keyword alone.
+        py::arg("name"), py::arg("description"), py::arg("schema") = py::none(), py::arg("handler") = py::none(),
+        py::arg("changes") = true,
+        R"pbdoc(Offer an operation to AI agents and scripts while OrcaSlicer loads your module.
+
+It is reached as "plugin.<plugin>.<name>" through tool_call and orca.host.tools.call once the plugin
+has loaded. handler, which is required, is called as handler(args) with the arguments as a dict,
+validated against schema (a JSON Schema object, or None for an operation that takes no arguments); it
+runs under the plugin's identity and permissions and returns a JSON value. Pass handler by position
+after schema, or as handler= on its own. changes=False marks an operation that only reads.)pbdoc");
 
     m.def(
         "request_permissions",
@@ -572,7 +758,8 @@ void bind_python_api(pybind11::module_& m)
            bool                            threading,
            const std::vector<std::string>& network,
            const std::vector<std::string>& fs_create,
-           const std::vector<std::string>& fs_delete) {
+           const std::vector<std::string>& fs_delete,
+           bool                            tools) {
             if (g_active_plugin_key.empty())
                 throw py::value_error("request_permissions() called outside plugin discovery context");
 
@@ -649,6 +836,8 @@ void bind_python_api(pybind11::module_& m)
 
             if (threading && !requested.threading)
                 requested.threading = true;
+            if (tools)
+                requested.tools = true;
         },
         py::arg("fs_read") = std::vector<std::string>{},
         py::arg("fs_readwrite") = std::vector<std::string>{},
@@ -659,6 +848,8 @@ void bind_python_api(pybind11::module_& m)
         py::arg("network") = std::vector<std::string>{},
         py::arg("fs_create") = std::vector<std::string>{},
         py::arg("fs_delete") = std::vector<std::string>{},
+        // Last, so a call that passes the earlier arguments by position keeps its meaning.
+        py::arg("tools") = false,
         R"pbdoc(Request permissions while OrcaSlicer loads your module.
 
 Each bucket takes the target strings the plugin expects the corresponding audit event to
@@ -704,7 +895,13 @@ wildcard covers them.
 `network` also lists http(s) URLs, but each is reduced to its scheme and host, so one grant covers
 every path, query and port on that host and also authorizes raw socket events for it. The host
 presents one request to the user after register_capabilities() returns and before any capability
-instance is created. Denying the request aborts the plugin load.)pbdoc");
+instance is created. Denying the request aborts the plugin load.
+
+tools=True asks to call OrcaSlicer's tools through orca.host.tools, as an AI agent calls them: change
+the project, presets and files, work in the window and answer its dialogs, permission requests
+included. A plugin that calls the tools without this grant is asked at that call (unless its
+install state exists but cannot be read), which raises orca.host.tools.ToolError with
+details["code"] == "tools_not_allowed"; a Yes lets its next call through.)pbdoc");
 
     m.def("plugin", [](py::object cls) {
         if (g_active_plugin_key.empty())
@@ -728,7 +925,11 @@ instance is created. Denying the request aborts the plugin load.)pbdoc");
             slot = cls;
         }
         return cls; // decorator returns the class unchanged
-    }, R"pbdoc(Mark the single plugin package class (the orca.base subclass) for this file.)pbdoc");
+    }, py::arg("cls"),
+    R"pbdoc(Decorator marking the plugin's package class, its orca.base subclass, and returning it unchanged.
+
+Use it on exactly one class per plugin. Raises ValueError outside plugin loading, on something that is
+not a class, on a class that does not derive from orca.base, or on a second package class.)pbdoc");
 
 }
 
@@ -762,22 +963,75 @@ void install_python_thread_audit_shim()
 
         py::object shim = py::cpp_function(
             [original](py::object function, py::object args, py::object kwargs) -> py::object {
-                const std::string plugin_key  = PluginAuditManager::instance().current_plugin();
-                if (plugin_key.empty()) {
-                    // Not called from a plugin: preserve the stock implementation untouched.
-                    return kwargs.is_none() ? original(function, args) : original(function, args, kwargs);
+                const auto start = [&](const py::object& target) {
+                    return kwargs.is_none() ? original(target, args) : original(target, args, kwargs);
+                };
+                // A script's run reaches the threads it starts. A pool's worker is the exception: pools are reused
+                // across runs, so a worker carries neither run nor identity, and each task brings its own, as the
+                // pool's initializer does from the run that started the worker.
+                std::shared_ptr<PythonRunScope> run = current_python_run().run;
+                if (run && python_run_is_pool_worker(function)) {
+                    const PoolInitializerBinding initializer = python_run_bind_pool_initializer(function, run);
+                    if (initializer == PoolInitializerBinding::Refused)
+                        throw std::runtime_error("can't start a new thread: the script's run has ended");
+                    try {
+                        return start(function);
+                    } catch (...) {
+                        if (initializer == PoolInitializerBinding::Counted)
+                            run->task_done();
+                        throw;
+                    }
                 }
-                const std::string capability = PluginAuditManager::instance().current_capability();
+                const std::string plugin_key  = PluginAuditManager::instance().current_plugin();
+                if (plugin_key.empty() && !run) {
+                    // Not called from a plugin: preserve the stock implementation untouched.
+                    return start(function);
+                }
+                const std::string capability  = PluginAuditManager::instance().current_capability();
+                // A thread a Script worker starts may call tools as the worker may.
+                const bool        tool_caller = tool_caller_thread();
+                // Counted before the OS thread exists, so the run never misses a thread started late.
+                const bool waited = run && python_run_waits_for(function);
+                if (run && !run->thread_starting(waited))
+                    throw std::runtime_error("can't start a new thread: the script's run has ended");
 
                 py::object guarded = py::cpp_function(
-                    [function, plugin_key, capability](py::args call_args, py::kwargs call_kwargs) -> py::object {
-                        ScopedPluginAuditContext audit_scope(plugin_key, capability);
+                    [function, plugin_key, capability, tool_caller, run, waited](py::args call_args, py::kwargs call_kwargs) -> py::object {
+                        std::optional<ScopedPluginAuditContext> audit_scope;
+                        if (!plugin_key.empty())
+                            audit_scope.emplace(plugin_key, capability);
+                        std::optional<ScopedToolCallerThread> caller;
+                        if (tool_caller)
+                            caller.emplace();
+                        std::optional<ScopedPythonRun> bound;
+                        struct Ended
+                        {
+                            PythonRunScope* scope;
+                            unsigned long   ident;
+                            ~Ended()
+                            {
+                                if (scope != nullptr)
+                                    scope->thread_ended(ident);
+                            }
+                        } ended{nullptr, PyThread_get_thread_ident()};
+                        if (run) {
+                            bound.emplace(run, PythonRunThread::Started);
+                            run->allow_folder_reads();
+                            run->thread_started(ended.ident, waited);
+                            ended.scope = run.get();
+                        }
                         PyObject* result = PyObject_Call(function.ptr(), call_args.ptr(), call_kwargs.ptr());
                         if (result == nullptr)
                             throw py::error_already_set();
                         return py::reinterpret_steal<py::object>(result);
                     });
-                return kwargs.is_none() ? original(guarded, args) : original(guarded, args, kwargs);
+                try {
+                    return start(guarded);
+                } catch (...) {
+                    if (run)
+                        run->thread_start_failed(waited);
+                    throw;
+                }
             },
             py::arg("function"), py::arg("args"), py::arg("kwargs") = py::none());
 
