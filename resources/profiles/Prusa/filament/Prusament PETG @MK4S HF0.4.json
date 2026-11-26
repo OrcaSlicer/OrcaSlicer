@@ -1,0 +1,24 @@
+{
+    "type": "filament",
+    "name": "Prusament PETG @MK4S HF0.4",
+    "inherits": "Prusament PETG @MK4S",
+    "from": "system",
+    "setting_id": "PCkfLeCKekadlalX",
+    "filament_id": "OFkR8E2c",
+    "instantiation": "true",
+    "include": [
+        "fdm_filament_template_nextruder_pet_hf"
+    ],
+    "compatible_printers": [
+        "Prusa MK4S HF0.4 nozzle",
+        "Prusa MK4S MMU3 HF0.4 nozzle"
+    ],
+    "filament_max_volumetric_speed": [
+        "24"
+    ],
+    "filament_start_gcode": [
+        "M572 S{if nozzle_diameter[0]==0.4}0.05{elsif nozzle_diameter[0]==0.5}0.044{elsif nozzle_diameter[0]==0.6}0.035{elsif nozzle_diameter[0]==0.8}0.022{elsif nozzle_diameter[0]==0.25}0.18{elsif nozzle_diameter[0]==0.3}0.1{else}0{endif} ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
+    ],
+    "nozzle_temperature": "245",
+    "nozzle_temperature_initial_layer": "235"
+}

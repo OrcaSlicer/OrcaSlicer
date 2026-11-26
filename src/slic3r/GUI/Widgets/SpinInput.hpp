@@ -1,11 +1,21 @@
 #ifndef slic3r_GUI_SpinInput_hpp_
 #define slic3r_GUI_SpinInput_hpp_
 
+#include <wx/containr.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dc.h>
 #include <wx/dcclient.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/textctrl.h>
 #include <wx/valtext.h>
 #include "StaticBox.hpp"
+
+class wxDC;
+class wxTextCtrl;
+class wxWindow;
 
 class Button;
 
@@ -53,8 +63,6 @@ public:
               int            max     = 100,
               int            initial = 0,
               int            step    = 1);
-
-    void SetCornerRadius(double radius);
 
     void SetLabel(const wxString &label) wxOVERRIDE;
 

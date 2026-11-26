@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA BigNozzle @RatRig",
-	"inherits": "fdm_filament_asa",
 	"renamed_from": "RatRig BigNozzle ASA",
+	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "n2V9gkhbqWJzsQBK",
 	"filament_id": "OF4GM5qX",

@@ -8,5 +8,5 @@
 	"bed_model": "SP-5_bed.stl",
 	"bed_texture": "SP-5_texture.svg",
 	"hotend_model": "",
-	"default_materials": "TwoTrees Generic ABS;TwoTrees Generic PLA;TwoTrees Generic PLA-CF;TwoTrees Generic PETG;TwoTrees Generic TPU;TwoTrees Generic ASA;TwoTrees Generic PC;TwoTrees Generic PVA;TwoTrees Generic PA;TwoTrees Generic PA-CF"
+	"default_materials": "Generic ABS @System;Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
 }

@@ -2,9 +2,19 @@
 #include "GeneratedConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "PluginAuditManager.hpp"
+#include "PythonPluginBridge.hpp"
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <cstddef>
+#include <cstdlib>
+#include <memory>
+#include <exception>
 #include <pytypedefs.h>
-#include "PluginFsUtils.hpp"
+#include <pybind11/pybind11.h>
 
 #include <pybind11/embed.h>
 
@@ -12,12 +22,22 @@
 #include <boost/filesystem.hpp>
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/nowide/convert.hpp>
+#include <boost/system/error_code.hpp>
+#include <slic3r/Utils/BoostProcessCompat.hpp>
 #include <cstring>
 #include <ctime>
 #include <iomanip>
 #include <mutex>
+#include <shared_mutex>
 #include <sstream>
+#include <system_error>
+#include <thread>
+#include <utility>
+#include <string>
 #include <vector>
+#include <pybind11/cast.h>
+#include <pybind11/pytypes.h>
+#include <Python.h>
 
 namespace Slic3r {
 
@@ -32,7 +52,7 @@ PythonRuntimeLease::PythonRuntimeLease(PythonInterpreter& interpreter)
         return;
     }
 
-    m_lock = std::shared_lock<std::shared_mutex>(interpreter.m_runtime_mutex);
+    m_lock = std::shared_lock<std::shared_timed_mutex>(interpreter.m_runtime_mutex);
     if (!interpreter.m_initialized.load(std::memory_order_acquire)) {
         m_lock.unlock();
         return;
@@ -172,6 +192,101 @@ std::string executable_name(const char* base)
 #else
     return base;
 #endif
+}
+
+// Counts a plugin's module import from its start until its modules are recorded.
+struct ScopedPluginImport
+{
+    std::atomic<int>& count;
+    explicit ScopedPluginImport(std::atomic<int>& count) : count(count) { ++count; }
+    ~ScopedPluginImport() { --count; }
+    ScopedPluginImport(const ScopedPluginImport&)            = delete;
+    ScopedPluginImport& operator=(const ScopedPluginImport&) = delete;
+};
+
+// The plain Win32 APIs refuse paths at MAX_PATH (260) unless long paths are enabled;
+// extended_path() is what reaches past it. Off Windows there is no such limit.
+bool fits_plain_windows_path(const boost::filesystem::path& path)
+{
+#ifdef _WIN32
+    constexpr std::size_t kLegacyWindowsPathLimit = 260;
+    return path.wstring().size() < kLegacyWindowsPathLimit;
+#else
+    (void) path;
+    return true;
+#endif
+}
+
+// True when `directory` can be listed through its plain spelling and every entry file the finder
+// would probe for `stem` also fits there: "<stem>.py" or a compiled "<stem>.<tag>.pyd"/".so".
+// A namespace package has none of them, so being able to list the directory is all its import
+// needs.
+bool plain_path_reaches_entry_files(const boost::filesystem::path& directory, const std::string& stem)
+{
+    namespace fs = boost::filesystem;
+
+    const std::string leaf = stem + ".";
+    boost::system::error_code ec;
+    fs::directory_iterator it(directory, ec);
+    const fs::directory_iterator end;
+    for (; !ec && it != end; it.increment(ec)) {
+        const fs::path&   candidate = it->path();
+        const std::string filename  = candidate.filename().string();
+        if (filename.compare(0, leaf.size(), leaf) != 0)
+            continue;
+
+        const std::string ext = candidate.extension().string();
+        if (ext != ".py" && ext != ".pyd" && ext != ".so" && ext != ".dll")
+            continue;
+        if (!fits_plain_windows_path(candidate))
+            return false;
+    }
+
+    // An unreadable directory cannot be probed; the extended-length form may still reach it.
+    return !ec;
+}
+
+// True when the plain spelling of the sys.path entry `dir` reaches everything the import of
+// `pkg_name` needs. A directory below the legacy Windows MAX_PATH can still hold package files
+// above it, and the finder then silently treats the package as a namespace package: an
+// unreachable __init__.py reads exactly like a missing one. The probes here therefore check the
+// entry files themselves, so a namespace package and a compiled-only package keep the plain
+// spelling, while any entry file past the limit gets the extended-length form, which imports it
+// just as well.
+bool module_entry_reachable(const boost::filesystem::path& dir, const std::string& pkg_name)
+{
+    namespace fs = boost::filesystem;
+
+    fs::path    relative;
+    std::string component;
+    for (const char ch : pkg_name) {
+        if (ch == '.') {
+            relative /= component;
+            component.clear();
+        } else {
+            component += ch;
+        }
+    }
+    if (component.empty())
+        return false;
+    relative /= component;
+
+    const fs::path entry = dir / relative;
+
+    boost::system::error_code ec;
+    if (fs::is_directory(entry, ec))
+        return plain_path_reaches_entry_files(entry, "__init__");
+
+    // Boost reports a missing path through ec too (ENOENT, or on Windows ERROR_FILE_NOT_FOUND /
+    // ERROR_PATH_NOT_FOUND), so the code alone cannot tell the single-module layout from a path
+    // past MAX_PATH. The length can: a fitting absent entry is a module that lives next to it,
+    // while one that does not fit cannot be probed plainly and takes the extended-length form.
+    if (!fits_plain_windows_path(entry))
+        return false;
+
+    // A single module: <pkg>.py or a compiled <pkg>.<tag>.pyd/.so next to the package path.
+    const fs::path parent = relative.parent_path().empty() ? dir : dir / relative.parent_path();
+    return plain_path_reaches_entry_files(parent, relative.filename().string());
 }
 
 bool add_sys_path_entry(const boost::filesystem::path& path, std::string& error, bool* inserted = nullptr)
@@ -345,15 +460,20 @@ boost::filesystem::path find_bundled_python_home()
     fs::path bundle_python = fs::path(resources_dir()).parent_path() / "MacOS" / "python";
     if (valid_python_home(bundle_python))
         return bundle_python;
-#elif defined(_WIN32)
-    fs::path exe_python = boost::dll::program_location().parent_path() / "python";
-    if (valid_python_home(exe_python))
-        return exe_python;
-#else
+#elif !defined(_WIN32)
     fs::path linux_python = fs::path(resources_dir()).parent_path() / "lib" / "python";
     if (valid_python_home(linux_python))
         return linux_python;
 #endif
+
+    // Next to the executable: the Windows install layout, and the runtime copied
+    // beside every platform's unit-test binary (tests/slic3rutils/CMakeLists.txt).
+    // The CI test runner only receives the build/tests tree, so the candidates
+    // below -- all of which point into the deps or install trees -- never resolve
+    // there.
+    fs::path exe_python = boost::dll::program_location().parent_path() / "python";
+    if (valid_python_home(exe_python))
+        return exe_python;
 
     fs::path configured_python = ORCA_BUNDLED_PYTHON_ROOT;
     if (!configured_python.empty() && valid_python_home(configured_python))
@@ -436,8 +556,10 @@ std::string PythonInterpreter::bundled_uv_path()
 {
     namespace fs = boost::filesystem;
 
+    // The error_code overloads treat an uninspectable path (e.g. an unrecognized Windows volume) as absent.
+    boost::system::error_code ec;
     const fs::path configured_uv = ORCA_BUNDLED_UV_EXECUTABLE;
-    if (!configured_uv.empty() && fs::exists(configured_uv) && fs::is_regular_file(configured_uv))
+    if (!configured_uv.empty() && fs::is_regular_file(configured_uv, ec))
         return configured_uv.string();
 
     // <binary dir>/tools/uv covers the macOS bundle (Contents/MacOS/tools/uv)
@@ -450,16 +572,115 @@ std::string PythonInterpreter::bundled_uv_path()
     };
 
     for (const fs::path& candidate : candidates) {
-        if (fs::exists(candidate) && fs::is_regular_file(candidate))
+        if (fs::is_regular_file(candidate, ec))
             return candidate.string();
     }
 
     return {};
 }
 
+bool PythonInterpreter::run_uv(const std::vector<std::string>& args, std::chrono::seconds timeout, std::string& error)
+{
+    error.clear();
+
+    const std::string uv_path = bundled_uv_path();
+    if (uv_path.empty()) {
+        error = "Bundled uv executable not found. Python package installation is unavailable.";
+        return false;
+    }
+
+    try {
+        namespace process = boost::process;
+
+        process::ipstream std_err;
+#ifdef _WIN32
+        // boost::process' narrow overload spawns through CreateProcessA, which interprets the
+        // executable and arguments in the active ANSI codepage. The uv path and every argument
+        // here are UTF-8 (boost::nowide::nowide_filesystem makes path::string() UTF-8), so hand
+        // Boost UTF-16 strings and let it spawn through CreateProcessW instead.
+        const std::wstring        uv_path_wide = boost::nowide::widen(uv_path);
+        std::vector<std::wstring> args_wide;
+        args_wide.reserve(args.size());
+        for (const std::string& arg : args)
+            args_wide.emplace_back(boost::nowide::widen(arg));
+#endif
+        process::child child(
+#ifdef _WIN32
+            uv_path_wide, process::args(args_wide),
+#else
+            uv_path, process::args(args),
+#endif
+#ifdef _WIN32
+            // uv.exe (and the python.exe it spawns) are console-subsystem programs.
+            // OrcaSlicer is a GUI app with no console of its own, so without this flag
+            // Windows allocates a fresh console window for the child that flashes on
+            // screen during startup plugin loading. Matches ProcessRunner/MediaPlayCtrl.
+            process::windows::create_no_window,
+#endif
+            process::std_err > std_err);
+
+        std::string err_output;
+        std::thread stderr_reader([&std_err, &err_output]() {
+            std::string line;
+            while (std::getline(std_err, line)) {
+                err_output += line + '\n';
+            }
+        });
+
+        // NOTE: we poll child.running() instead of calling child.wait_for().
+        // On macOS (which lacks sigtimedwait) boost.process v1 implements the
+        // timed waits with a sigwait()-based fallback that deadlocks inside a
+        // multi-threaded process: SIGCHLD is delivered to an arbitrary thread
+        // and consumed by an async handler, so the worker thread's sigwait()
+        // never returns and the timeout never fires — the plugin load hangs
+        // forever (the "Loading" status never clears). child.running() uses
+        // waitpid(WNOHANG), which behaves correctly on every platform.
+        // (boost.process v2, in Boost >= 1.86, implements timed waits via Asio
+        // and is unaffected — revisit this when the bundled Boost is upgraded.)
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
+
+        std::error_code run_ec;
+        while (child.running(run_ec)) {
+            if (run_ec) {
+                stderr_reader.join();
+                error = "Failed to query uv process status: " + run_ec.message();
+                BOOST_LOG_TRIVIAL(error) << error;
+                return false;
+            }
+            if (std::chrono::steady_clock::now() >= deadline) {
+                std::error_code term_ec;
+                child.terminate(term_ec);
+                child.wait(term_ec);
+                stderr_reader.join();
+                error = "uv pip install timed out after " + std::to_string(timeout.count()) + "s";
+                BOOST_LOG_TRIVIAL(error) << error;
+                return false;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        stderr_reader.join();
+
+        const int exit_code = child.exit_code();
+        if (exit_code != 0) {
+            if (!err_output.empty())
+                error = "uv pip install failed (exit code " + std::to_string(exit_code) + "): " + err_output;
+            else
+                error = "uv pip install failed with exit code " + std::to_string(exit_code);
+            BOOST_LOG_TRIVIAL(error) << error;
+            return false;
+        }
+
+        return true;
+    } catch (const std::exception& ex) {
+        error = std::string("Failed to run uv: ") + ex.what();
+        BOOST_LOG_TRIVIAL(error) << error;
+        return false;
+    }
+}
+
 bool PythonInterpreter::initialize()
 {
-    std::unique_lock<std::shared_mutex> runtime_lock(m_runtime_mutex);
+    std::unique_lock<std::shared_timed_mutex> runtime_lock(m_runtime_mutex);
     if (m_initialized.load(std::memory_order_acquire)) {
         return true;
     }
@@ -567,6 +788,27 @@ bool PythonInterpreter::initialize()
         }
         BOOST_LOG_TRIVIAL(debug) << "Program name set successfully";
 
+        // Keep bytecode out of the Python home. The shipped .pyc files are stale against their
+        // sources, so a writable install would rewrite them inside the app (breaking a signed
+        // macOS bundle's seal) and a read-only one would recompile them on every launch.
+        const std::string pycache_prefix = data_dir() + "/python/pycache";
+#ifdef _WIN32
+        status = PyConfig_SetString(&config, &config.pycache_prefix, boost::nowide::widen(pycache_prefix).c_str());
+#else
+        status = PyConfig_SetBytesString(&config, &config.pycache_prefix, pycache_prefix.c_str());
+#endif
+        if (PyStatus_Exception(status))
+            BOOST_LOG_TRIVIAL(warning) << "Failed to set the Python bytecode cache to " << pycache_prefix << ": "
+                                       << (status.err_msg ? status.err_msg : "unknown error");
+
+        // Looked up before the interpreter exists: a throw after scoped_interpreter is created would
+        // leave it running and make the next initialize() attempt fail with "already running".
+        const std::string uv_path = bundled_uv_path();
+        if (!uv_path.empty())
+            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable found at: " << uv_path;
+        else
+            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable not found";
+
         // Use pybind11's scoped_interpreter which properly initializes
         // pybind11 internals for multi-threaded use — raw Py_InitializeFromConfig
         // does not set up thread state tracking that pybind11 requires.
@@ -622,17 +864,16 @@ bool PythonInterpreter::initialize()
                 BOOST_LOG_TRIVIAL(warning) << path_error;
         }
 
-        const std::string uv_path = bundled_uv_path();
-        if (!uv_path.empty())
-            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable found at: " << uv_path;
-        else
-            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable not found";
-
         PluginAuditManager::instance().install_hook();
 
         // Persist Python stderr (plugin tracebacks, including uncaught
         // background-thread exceptions) to <data_dir>/log/python_*.log.
         install_python_stderr_redirect();
+
+        // Attribute plugin-spawned Python threads to the plugin/capability that created them.
+        // Must run while the GIL is still held here, after the audit hook is in place and
+        // before the GIL is released below.
+        install_python_thread_audit_shim();
 
         // Release the GIL so other threads can acquire it via PyGILState_Ensure.
         // Without this, calls from background threads will block trying to acquire the GIL.
@@ -652,7 +893,22 @@ PythonInterpreter::~PythonInterpreter() { shutdown(); }
 
 void PythonInterpreter::shutdown()
 {
-    std::unique_lock<std::shared_mutex> runtime_lock(m_runtime_mutex);
+    // Checked before waiting for the lock too, so a second call after abandon() returns at once.
+    if (!m_initialized.load(std::memory_order_acquire))
+        return;
+
+    // A plugin call that never returns keeps its runtime lease, and Py_Finalize joins every
+    // non-daemon thread, so either would keep a closing app alive. Both are waited for briefly.
+    constexpr auto wait = std::chrono::seconds(3);
+
+    std::unique_lock<std::shared_timed_mutex> runtime_lock(m_runtime_mutex, std::defer_lock);
+    if (!runtime_lock.try_lock_for(wait)) {
+        // The GIL is not taken back here: the stuck call may be holding it, and nothing on this
+        // thread runs Python after this point.
+        BOOST_LOG_TRIVIAL(warning) << "Python interpreter left unfinalized: a plugin call is still running";
+        abandon();
+        return;
+    }
     if (!m_initialized.load(std::memory_order_acquire))
         return;
 
@@ -663,6 +919,14 @@ void PythonInterpreter::shutdown()
         BOOST_LOG_TRIVIAL(debug) << "Restoring Python main thread state before shutdown";
         PyEval_RestoreThread(m_main_thread_state);
         m_main_thread_state = nullptr;
+    }
+
+    // Before the stdio tee is torn down, so tracebacks from threads still ending reach the log.
+    if (const int running = join_non_daemon_threads(wait); running > 0) {
+        // The GIL stays with this thread, so anything released during process exit still holds it.
+        BOOST_LOG_TRIVIAL(warning) << "Python interpreter left unfinalized: " << running << " non-daemon thread(s) still running";
+        abandon();
+        return;
     }
 
     log_and_restore_python_stdio();
@@ -676,6 +940,86 @@ void PythonInterpreter::shutdown()
     m_plugin_module_users.clear();
     m_plugin_module_owned.clear();
     m_initialized.store(false, std::memory_order_release);
+}
+
+void PythonInterpreter::abandon()
+{
+    // New leases fail from here on. Releasing the scoped_interpreter without destroying it skips
+    // Py_Finalize, here and in the static destructor; the process exit ends the interpreter.
+    m_initialized.store(false, std::memory_order_release);
+    static_cast<void>(m_interpreter.release());
+}
+
+int PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds timeout)
+{
+    try {
+        const pybind11::module_ threading   = pybind11::module_::import("threading");
+        const pybind11::object  main_thread = threading.attr("main_thread")();
+        const auto              deadline    = std::chrono::steady_clock::now() + timeout;
+        const auto              seconds_left = [deadline] {
+            return std::chrono::duration<double>(
+                       std::max(deadline - std::chrono::steady_clock::now(), std::chrono::steady_clock::duration::zero()))
+                .count();
+        };
+
+        // A hook thread an earlier call gave up on may still be running the hooks. Py_Finalize must
+        // not start under it: stopped there, it unwinds through the lambda below and releases
+        // Python objects without the GIL. It is waited for and counted like this call's own.
+        constexpr const char *hook_thread_name = "orca-threading-atexit";
+        for (const pybind11::handle thread : threading.attr("enumerate")()) {
+            if (thread.attr("name").cast<std::string>() != hook_thread_name)
+                continue;
+            thread.attr("join")(seconds_left());
+            if (thread.attr("is_alive")().cast<bool>())
+                return 1;
+        }
+
+        // An idle concurrent.futures worker only ends once the hooks registered with
+        // threading._register_atexit() tell it to, which Py_Finalize does before it joins the
+        // threads. They run first here, on a daemon thread: a hook joins its workers without a
+        // timeout, so one stuck in a task would block the hook, and Py_Finalize, for good.
+        pybind11::object hooks;
+        if (pybind11::hasattr(threading, "_threading_atexits")) {
+            hooks = threading.attr("Thread")(pybind11::arg("target") = pybind11::cpp_function([threading] {
+                                                 const pybind11::list calls = threading.attr("_threading_atexits");
+                                                 for (pybind11::ssize_t i = calls.size(); i-- > 0;)
+                                                     calls[i]();
+                                             }),
+                                             pybind11::arg("name") = hook_thread_name, pybind11::arg("daemon") = true);
+            hooks.attr("start")();
+            hooks.attr("join")(seconds_left());
+        }
+
+        // Enumerated again after each pass: a thread being joined may start another one.
+        for (;;) {
+            int seen    = 0;
+            int running = 0;
+            for (const pybind11::handle thread : threading.attr("enumerate")()) {
+                // Threads Python did not start (C++ threads that entered Python) are dummy threads,
+                // which are daemon and cannot be joined.
+                if (thread.is(main_thread) || thread.attr("daemon").cast<bool>())
+                    continue;
+                ++seen;
+                thread.attr("join")(seconds_left());
+                if (thread.attr("is_alive")().cast<bool>())
+                    ++running;
+            }
+            if (seen == 0 || std::chrono::steady_clock::now() >= deadline) {
+                // A hook still running would be run again, and waited for, by Py_Finalize.
+                if (hooks && hooks.attr("is_alive")().cast<bool>())
+                    running = std::max(running, 1);
+                return running;
+            }
+        }
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(warning) << "Could not wait for Python threads: " << ex.what();
+        return 0;
+    }
+}
+
+bool PythonInterpreter::plugin_uses_module(const std::string& name) const
+{
+    return m_plugin_module_users.count(name) != 0;
 }
 
 bool PythonInterpreter::add_plugin_sys_path(const std::string& path, std::string& error)
@@ -1001,7 +1345,8 @@ PyObject* PythonInterpreter::load_module_from_file(const std::string&       file
     // Ensure module is re-imported fresh by removing any cached instance.
     remove_module_tree_locked(module_name);
 
-    // Import the module
+    // Import the module. Until its modules are recorded, a script's run leaves alone a module the import took.
+    const ScopedPluginImport importing(m_plugin_imports);
     PyObject* module = PyImport_ImportModule(module_name.c_str());
     record_plugin_modules_locked(module_name, plugin_paths ? *plugin_paths : std::vector<std::string>{}, plugin_modules);
     if (!module) {
@@ -1029,9 +1374,19 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
     }
 
     namespace fs = boost::filesystem;
-    fs::path dir(dir_path);
+    // A wheel cache below the data directory can pass the legacy Windows MAX_PATH, in the
+    // directory itself or in the package files below it, where boost::filesystem and the
+    // interpreter's finder cannot reach either. The plain spelling is what the plugin then sees as
+    // __file__ and sys.path, and what the host compares against the plain plugin root, so it is
+    // kept while the entry module is reachable through it; otherwise the extended-length form is
+    // used for the probe and for sys.path, and the recorded entry matches what is on it.
+    // extended_path() is the identity off Windows.
+    fs::path io_dir(dir_path);
+    if (!io_dir.empty() && !module_entry_reachable(io_dir, pkg_name))
+        io_dir = extended_path(io_dir);
 
-    if (!fs::exists(dir) || !fs::is_directory(dir)) {
+    boost::system::error_code ec;
+    if (!fs::is_directory(io_dir, ec) || ec) {
         error = "Directory does not exist: " + dir_path;
         return nullptr;
     }
@@ -1042,7 +1397,7 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
         return nullptr;
     }
 
-    const std::string directory = dir.string();
+    const std::string directory = io_dir.string();
     if (!add_plugin_sys_path_locked(directory, error))
         return nullptr;
     if (plugin_paths)
@@ -1050,6 +1405,7 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
 
     remove_module_tree_locked(pkg_name);
 
+    const ScopedPluginImport importing(m_plugin_imports);
     PyObject* module = PyImport_ImportModule(pkg_name.c_str());
     record_plugin_modules_locked(pkg_name, plugin_paths ? *plugin_paths : std::vector<std::string>{}, plugin_modules);
     if (!module) {
@@ -1063,36 +1419,6 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
     }
 
     return module;
-}
-
-PyObject* PythonInterpreter::load_module_from_whl(const std::string& file_path,
-                                                  const std::string& pkg_name,
-                                                  std::string&       error,
-                                                  std::vector<std::string>* plugin_paths,
-                                                  std::vector<std::string>* plugin_modules)
-{
-    if (!m_initialized.load(std::memory_order_acquire)) {
-        error = "Python interpreter not initialized";
-        return nullptr;
-    }
-
-    namespace fs = boost::filesystem;
-
-    fs::path whl_path(file_path);
-
-    if (!fs::exists(whl_path)) {
-        error = "File does not exist: " + file_path;
-        return nullptr;
-    }
-
-    fs::path extract_dir = whl_path.parent_path() / "__whl_extracted__" / pkg_name;
-
-    if (!fs::exists(extract_dir)) {
-        if (!extract_zip_to_directory(whl_path, extract_dir, error))
-            return nullptr;
-    }
-
-    return load_module_from_directory(extract_dir.string(), pkg_name, error, plugin_paths, plugin_modules);
 }
 
 } // namespace Slic3r

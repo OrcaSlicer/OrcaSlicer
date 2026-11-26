@@ -1,6 +1,7 @@
 #ifndef slic3r_OctoPrint_hpp_
 #define slic3r_OctoPrint_hpp_
 
+#include <boost/optional/optional.hpp>
 #include <string>
 #include <wx/string.h>
 #include <boost/optional.hpp>
@@ -8,6 +9,7 @@
 
 #include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/enum_bitmask.hpp"
 
 
 namespace Slic3r {
@@ -37,9 +39,13 @@ public:
 protected:
 #ifdef WIN32
     virtual bool upload_inner_with_resolved_ip(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn, const boost::asio::ip::address& resolved_addr) const;
+    // Upload half of upload_inner_with_resolved_ip(), for callers that already ran the test.
+    bool upload_after_test_with_resolved_ip(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn, const boost::asio::ip::address& resolved_addr) const;
 #endif
     virtual bool validate_version_text(const boost::optional<std::string> &version_text) const;
     virtual bool upload_inner_with_host(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const;
+    // Upload half of upload_inner_with_host(), for callers that already ran test().
+    bool upload_after_test_with_host(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn, const wxString& test_msg_or_host_ip) const;
 
     std::string m_host;
     std::string m_apikey;

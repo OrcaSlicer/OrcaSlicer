@@ -1,9 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "Z6E0SkSXvbyrgCwI",
 	"name": "0.20mm Standard @Elegoo N3Pro 0.4 nozzle",
-	"from": "system",
+	"renamed_from": "0.20mm Standard @Elegoo Neptune3;0.20mm Standard @Elegoo Neptune3Pro",
 	"inherits": "fdm_process_elegoo_04020",
+	"from": "system",
+	"setting_id": "Z6E0SkSXvbyrgCwI",
 	"instantiation": "true",
 	"filename_format": "EN3Pro_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"default_acceleration": "1000",
@@ -26,6 +27,5 @@
 	"travel_speed": "200",
 	"compatible_printers": [
 		"Elegoo Neptune 3 Pro 0.4 nozzle"
-	],
-	"renamed_from": "0.20mm Standard @Elegoo Neptune3;0.20mm Standard @Elegoo Neptune3Pro"
+	]
 }

@@ -1,17 +1,21 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Prusa MK4S",
-	"inherits": "fdm_filament_asa",
 	"renamed_from": "Prusa Generic ASA @MK4S;Prusa Generic ASA MK4S",
+	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "THc7WYsGi7nwc5wv",
 	"filament_id": "OFLPAxz3",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pet"
+	],
 	"close_fan_the_first_x_layers": "4",
 	"compatible_printers": [
 		"Prusa MK4S 0.25 nozzle",
 		"Prusa MK4S 0.3 nozzle",
 		"Prusa MK4S 0.4 nozzle",
+		"Prusa MK4S MMU3 0.4 nozzle",
 		"Prusa MK4S 0.5 nozzle"
 	],
 	"default_filament_colour": "#FFF2EC",

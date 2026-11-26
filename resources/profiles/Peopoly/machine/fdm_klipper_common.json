@@ -119,7 +119,6 @@
 	"z_hop_types": [
 		"Auto Lift"
 	],
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "PAUSE",

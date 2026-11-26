@@ -3,7 +3,8 @@
 	"name": "Generic PLA @Flashforge G3U 0.6 Nozzle",
 	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
-	"instantiation": "false",
+	"setting_id": "YSbpdZWmgTvjJmZZ",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Guider 3 Ultra 0.6 Nozzle"
 	],

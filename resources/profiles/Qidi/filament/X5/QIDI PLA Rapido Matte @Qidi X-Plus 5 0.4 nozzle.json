@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "E0gYAZUksoFlebuH",
 	"name": "QIDI PLA Rapido Matte @Qidi X-Plus 5 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Rapido Matte@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "E0gYAZUksoFlebuH",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.034"
 	],

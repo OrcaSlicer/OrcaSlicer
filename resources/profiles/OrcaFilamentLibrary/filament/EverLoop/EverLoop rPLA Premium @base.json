@@ -1,0 +1,58 @@
+{
+	"type": "filament",
+	"name": "EverLoop rPLA Premium @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OF9HxD9O",
+	"instantiation": "false",
+	"description": "Premium recycled PLA from selected post-industrial plastic, made in Germany by Recycling Fabrik. Dry at 50 °C for 4-6 h.",
+	"filament_vendor": [
+		"EverLoop"
+	],
+	"filament_cost": [
+		"26"
+	],
+	"filament_density": [
+		"1.24"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"nozzle_temperature": [
+		"230"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"nozzle_temperature_range_low": [
+		"190"
+	],
+	"nozzle_temperature_range_high": [
+		"245"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"fan_min_speed": [
+		"100"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"close_fan_the_first_x_layers": [
+		"1"
+	],
+	"compatible_printers": []
+}

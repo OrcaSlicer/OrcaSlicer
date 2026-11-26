@@ -2,6 +2,10 @@
 #define slic3r_InstanceCheck_hpp_
 
 #include "Event.hpp"
+#include <vector>
+#include <boost/filesystem/path.hpp>
+#include <cassert>
+#include <wx/event.h>
 
 #if _WIN32
 #include <windows.h>
@@ -10,6 +14,7 @@
 #include <string>
 
 #include <boost/filesystem.hpp>
+#include <cstddef>
 
 #if __linux__
 #include <boost/thread.hpp>
@@ -22,7 +27,8 @@ namespace Slic3r {
 // checks for other running instances and sends them argv,
 // if there is --single-instance argument or AppConfig is set to single_instance=1
 // returns true if this instance should terminate
-bool    instance_check(int argc, char** argv, bool app_config_single_instance);
+// `never_send`: this launch is not handed to a running instance, whatever the setting says.
+bool    instance_check(int argc, char** argv, bool app_config_single_instance, bool never_send = false);
 
 #if __APPLE__
 // apple implementation of inner functions of instance_check

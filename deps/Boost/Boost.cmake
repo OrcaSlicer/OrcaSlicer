@@ -27,8 +27,15 @@ endif ()
 # Boost.Container's bundled dlmalloc passes int* where the Win32 Interlocked API
 # takes volatile long*; cl compiles that with a warning, clang errors out.
 set(_boost_c_flags_line "")
+set(_boost_cxx_flags_line "")
 if (MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
     set(_boost_c_flags_line "-DCMAKE_C_FLAGS:STRING=-Wno-incompatible-pointer-types")
+    # The Visual Studio generator applies only the link language's flags to a
+    # project, and boost_container links as C++, so its C file never sees
+    # CMAKE_C_FLAGS. The C++ flags reach every file; keep CMake's defaults.
+    if (CMAKE_GENERATOR MATCHES "Visual Studio")
+        set(_boost_cxx_flags_line "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -Wno-incompatible-pointer-types")
+    endif ()
 endif ()
 
 orcaslicer_add_cmake_project(Boost
@@ -36,6 +43,8 @@ orcaslicer_add_cmake_project(Boost
     URL "https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.gz"
     URL_HASH SHA256=4d27e9efed0f6f152dc28db6430b9d3dfb40c0345da7342eaa5a987dde57bd95
     LIST_SEPARATOR |
+    # Lets Boost.Locale configure with CMake 4.5; see the script.
+    PATCH_COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=<SOURCE_DIR> -P ${CMAKE_CURRENT_LIST_DIR}/fix_locale_source_group.cmake
     CMAKE_ARGS
         -DBOOST_EXCLUDE_LIBRARIES:STRING=contract|fiber|numpy|stacktrace|wave|test
         -DBOOST_LOCALE_ENABLE_ICU:BOOL=OFF # do not link to libicu, breaks compatibility between distros
@@ -46,6 +55,7 @@ orcaslicer_add_cmake_project(Boost
         "${_context_arch_line}"
         "${_context_impl_line}"
         "${_boost_c_flags_line}"
+        "${_boost_cxx_flags_line}"
 )
 
 set(DEP_Boost_DEPENDS ZLIB)

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU BigNozzle @RatRig",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "RatRig BigNozzle TPU",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "9UWg2cO61XFdlWxo",
 	"filament_id": "OF5tX6va",

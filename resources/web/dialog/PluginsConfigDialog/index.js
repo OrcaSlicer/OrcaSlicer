@@ -304,7 +304,7 @@ function ValidateConfigText() {
     SetConfigValidation("");
     return true;
   } catch (err) {
-    SetConfigValidation(String(err?.message || "Invalid JSON"));
+    SetConfigValidation(String(err?.message || T("invalid_json", "Invalid JSON")));
     return false;
   }
 }
@@ -393,6 +393,8 @@ function OnCustomConfigMessage(event) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  TranslatePage();
+
   const sidebar = document.getElementById("configSidebar");
   if (sidebar)
     sidebar.addEventListener("click", OnConfigSidebarClick);

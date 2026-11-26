@@ -3,21 +3,50 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 
+#include <cassert>
 #include <chrono>
+#include <cstddef>
+#include <exception>
+#include <functional>
+#include <string>
 #include <thread>
 
+#include <wx/setup.h>
+#include <wx/webview.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/sharedptr.h>
+#include <wx/vector.h>
+#include <wx/event.h>
+#include <vector>
+#include <wx/object.h>
+#include <wx/log.h>
+#include <utility>
 #include <wx/webviewarchivehandler.h>
 #include <wx/webviewfshandler.h>
+#include <wx/weakref.h>
 #if wxUSE_WEBVIEW_EDGE
 #include <wx/msw/webview_edge.h>
 #elif defined(__WXMAC__)
 #include <wx/osx/webview_webkit.h>
+#elif defined(__linux__)
+#include <wx/gtk/webview_webkit.h>
 #endif
 #include <wx/uri.h>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <ios>
+#include <string>
+#include <wx/versioninfo.h>
+
+namespace fs = boost::filesystem;
 #if defined(__WIN32__) || defined(__WXMAC__)
 #include "wx/private/jsscriptwrapper.h"
 #endif
@@ -25,13 +54,26 @@
 #ifdef __WIN32__
 #include <WebView2.h>
 #include <Shellapi.h>
+#include <wrl/event.h>
+#include <nlohmann/json.hpp>
 #include <slic3r/Utils/Http.hpp>
 #elif defined __linux__
 #include <gtk/gtk.h>
+#include <memory>
 #define WEBKIT_API
-struct WebKitWebView;
+typedef struct _WebKitWebView WebKitWebView; // as WebKitGTK and wx/gtk/webview_webkit.h declare it
 struct WebKitJavascriptResult;
+struct WebKitSettings;
+struct _JSCValue;
 extern "C" {
+WEBKIT_API _JSCValue *
+webkit_javascript_result_get_js_value       (WebKitJavascriptResult *js_result);
+char *
+jsc_value_to_string                         (_JSCValue *value);
+WEBKIT_API WebKitSettings *
+webkit_settings_new                                  (void);
+WEBKIT_API const gchar *
+webkit_settings_get_user_agent                       (WebKitSettings            *settings);
 WEBKIT_API void
 webkit_web_view_run_javascript                       (WebKitWebView             *web_view,
                                                       const gchar               *script,
@@ -44,6 +86,10 @@ webkit_web_view_run_javascript_finish                (WebKitWebView             
 						      GError                    **error);
 WEBKIT_API void
 webkit_javascript_result_unref              (WebKitJavascriptResult *js_result);
+WEBKIT_API guint
+webkit_get_major_version                     (void);
+WEBKIT_API guint
+webkit_get_minor_version                     (void);
 }
 #endif
 
@@ -178,11 +224,13 @@ private:
     COREWEBVIEW2_PREFERRED_COLOR_SCHEME pendingColorScheme = COREWEBVIEW2_PREFERRED_COLOR_SCHEME_AUTO;
 };
 
-#elif defined __WXOSX__
+#elif defined __WXOSX__ || defined __linux__
 
+// wx's WebKit backend of this platform: WKWebView on macOS, WebKitGTK on Linux.
 class WebViewWebKit : public wxWebViewWebKit
 {
 public:
+#ifdef __WXOSX__
     WebViewWebKit()
         : wxWebViewWebKit(wxWebView::NewConfiguration(wxWebViewBackendWebKit))
     {
@@ -192,6 +240,30 @@ public:
     {
         RemoveScriptMessageHandler("wx");
     }
+#endif
+
+    // wx ends the registration by running its window.<name> bridge script through the synchronous
+    // RunScript(), which spins wxYield() until the page answers. That yield also deletes the windows
+    // waiting for destruction, so a window closed meanwhile (Escape the moment it opens) is freed
+    // inside the call, and the page's answer then reaches the freed view. Nothing reads the bridge
+    // script's result, so here it is sent without waiting.
+    bool AddScriptMessageHandler(const wxString& name) override
+    {
+        m_adding_handler = true;
+        const bool added = wxWebViewWebKit::AddScriptMessageHandler(name);
+        m_adding_handler = false;
+        return added;
+    }
+
+    bool RunScript(const wxString& javascript, wxString* output = nullptr) const override
+    {
+        if (!m_adding_handler)
+            return wxWebViewWebKit::RunScript(javascript, output);
+        return WebView::RunScript(const_cast<WebViewWebKit*>(this), javascript);
+    }
+
+private:
+    bool m_adding_handler = false;
 };
 
 #endif
@@ -235,7 +307,9 @@ class FakeWebView : public wxWebView
 wxDEFINE_EVENT(EVT_WEBVIEW_RECREATED, wxCommandEvent);
 
 static std::vector<wxWebView*> g_webviews;
-static std::vector<wxWebView*> g_delay_webviews;
+// Webviews waiting for their script handler while another one is added; adding it yields, so a
+// view can be destroyed while it waits.
+static std::vector<wxWeakRef<wxWebView>> g_delay_webviews;
 
 class WebViewRef : public wxObjectRefData
 {
@@ -256,6 +330,23 @@ static WebViewRef *webview_ref(wxWebView *webView)
 {
     return webView ? static_cast<WebViewRef *>(webView->GetRefData()) : nullptr;
 }
+
+#ifdef __linux__
+// WebKitGTK's own User-Agent with the tags the bundled pages (globalapi.js) and Bambu's cloud read
+// appended. wx's GTK backend cannot report the stock string, so it comes from a throwaway settings object.
+static wxString linux_user_agent()
+{
+    static const wxString stock = [] {
+        WebKitSettings *settings = webkit_settings_new();
+        wxString        ua       = wxString::FromUTF8(webkit_settings_get_user_agent(settings));
+        g_object_unref(settings);
+        return ua;
+    }();
+    return wxString::Format("%s BBL-Slicer/v%s (%s) BBL-Language/%s", stock, Slic3r::GUI::wxGetApp().get_bbl_client_version(),
+                            Slic3r::GUI::wxGetApp().dark_mode() ? "dark" : "light",
+                            Slic3r::GUI::wxGetApp().current_language_code().BeforeFirst('_'));
+}
+#endif
 
 wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 {
@@ -279,7 +370,7 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 
 #ifdef __WIN32__
     wxWebView* webView = new WebViewEdge;
-#elif defined(__WXOSX__)
+#elif defined(__WXOSX__) || defined(__linux__)
     wxWebView* webView = new WebViewWebKit;
 #else
     auto webView = wxWebView::New();
@@ -309,8 +400,12 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
             s_schemes_registered = true;
         }
         webView->Create(parent, wxID_ANY, url2, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+#ifdef __linux__
+        webView->SetUserAgent(linux_user_agent());
+#else
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), Slic3r::GUI::wxGetApp().dark_mode() ? "dark" : "light", language_code.mb_str()));
+#endif
 #endif
 #ifdef __WXMAC__
         WKWebView * wkWebView = (WKWebView *) webView->GetNativeBackend();
@@ -340,8 +435,9 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
                 addScriptMessageHandler(webView);
                 while (!g_delay_webviews.empty()) {
                     auto views = std::move(g_delay_webviews);
-                    for (auto wv : views)
-                        addScriptMessageHandler(wv);
+                    for (const wxWeakRef<wxWebView>& wv : views)
+                        if (wv)
+                            addScriptMessageHandler(wv.get());
                 }
             }
 #ifndef __WIN32__
@@ -362,6 +458,40 @@ void WebView::MarkScriptMessageHandlerAdded(wxWebView * webView)
     if (WebViewRef *ref = webview_ref(webView))
         ref->m_script_handler_added = true;
 }
+
+bool WebView::NeedsRecreateOnShow()
+{
+    const bool recreating = Slic3r::GUI::wxGetApp().is_recreating_gui();
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": is_recreating_gui = " << recreating;
+#ifdef __WIN32__
+    return recreating;
+#else
+    return false;
+#endif
+}
+
+bool WebView::NeedsCompositingWorkaround()
+{
+#ifdef __linux__
+    const guint major = webkit_get_major_version();
+    const guint minor = webkit_get_minor_version();
+    return major < 2 || (major == 2 && minor < 42);
+#else
+    return false;
+#endif
+}
+
+bool WebView::SupportsForceSharedMemory()
+{
+#ifdef __linux__
+    const guint major = webkit_get_major_version();
+    const guint minor = webkit_get_minor_version();
+    return major > 2 || (major == 2 && minor >= 44);
+#else
+    return false;
+#endif
+}
+
 #if wxUSE_WEBVIEW_EDGE
 bool WebView::CheckWebViewRuntime()
 {
@@ -379,6 +509,12 @@ bool WebView::DownloadAndInstallWebViewRuntime()
     return DownloadAndInstallWV2RT() == 0;
 }
 #endif
+wxString WebView::RedactUrl(const wxString& url)
+{
+    const size_t cut = url.find_first_of(wxString("?#"));
+    return cut == wxString::npos ? url : url.Left(cut);
+}
+
 void WebView::LoadUrl(wxWebView * webView, wxString const &url)
 {
     auto url2  = url;
@@ -386,28 +522,31 @@ void WebView::LoadUrl(wxWebView * webView, wxString const &url)
     url2.Replace("\\", "/");
 #endif
     if (!url2.empty()) { url2 = wxURI(url2).BuildURI(); }
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << url2.ToUTF8();
+    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << RedactUrl(url2).ToUTF8();
     webView->LoadURL(url2);
 }
 
 bool WebView::RunScript(wxWebView *webView, wxString const &javascript)
 {
+    // A web view whose page is not created yet has nothing to run the script in.
+    void *backend = webView != nullptr ? webView->GetNativeBackend() : nullptr;
+    if (backend == nullptr)
+        return false;
+
     if (Slic3r::GUI::wxGetApp().app_config->get("internal_developer_mode") == "true"
             && javascript.find("studio_userlogin") == wxString::npos)
         wxLogMessage("Running JavaScript:\n%s\n", javascript);
 
     try {
 #ifdef __WIN32__
-        ICoreWebView2 *   webView2 = (ICoreWebView2 *) webView->GetNativeBackend();
-        if (webView2 == nullptr)
-            return false;
+        ICoreWebView2 *   webView2 = (ICoreWebView2 *) backend;
         return webView2->ExecuteScript(javascript, NULL) == 0;
 #elif defined __WXMAC__
-        WKWebView * wkWebView = (WKWebView *) webView->GetNativeBackend();
+        WKWebView * wkWebView = (WKWebView *) backend;
         Slic3r::GUI::WKWebView_evaluateJavaScript(wkWebView, javascript, nullptr);
         return true;
 #else
-        WebKitWebView *wkWebView = (WebKitWebView *) webView->GetNativeBackend();
+        WebKitWebView *wkWebView = (WebKitWebView *) backend;
         webkit_web_view_run_javascript(
             wkWebView, javascript.utf8_str(), NULL,
             [](GObject *wkWebView, GAsyncResult *res, void *) {
@@ -425,14 +564,70 @@ bool WebView::RunScript(wxWebView *webView, wxString const &javascript)
     }
 }
 
+void WebView::RunScriptAsync(wxWebView* webView, const wxString& javascript, std::function<void(bool ok, const std::string& result)> done)
+{
+    void* backend = webView != nullptr ? webView->GetNativeBackend() : nullptr;
+    if (backend == nullptr) {
+        done(false, "The web view has no page yet");
+        return;
+    }
+#ifdef __WIN32__
+    auto*      webView2 = static_cast<ICoreWebView2*>(backend);
+    const auto handler  = Microsoft::WRL::Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
+        [done](HRESULT error, LPCWSTR result) -> HRESULT {
+            if (FAILED(error)) {
+                done(false, wxString::Format("The script could not run (0x%08lx)", static_cast<unsigned long>(error)).ToStdString());
+                return S_OK;
+            }
+            // WebView2 hands back the value as JSON, so a string comes quoted.
+            const std::string    text  = wxString(result).utf8_string();
+            const nlohmann::json value = nlohmann::json::parse(text, nullptr, false);
+            done(true, value.is_string() ? value.get<std::string>() : text);
+            return S_OK;
+        });
+    const HRESULT started = webView2->ExecuteScript(javascript.wc_str(), handler.Get());
+    if (FAILED(started))
+        done(false, wxString::Format("The script could not start (0x%08lx)", static_cast<unsigned long>(started)).ToStdString());
+#elif defined __WXMAC__
+    Slic3r::GUI::WKWebView_evaluateJavaScriptForResult(backend, javascript, std::move(done));
+#else
+    using Done = std::function<void(bool, const std::string&)>;
+    // The task holds the WebKitWebView until the callback, which owns `done`.
+    webkit_web_view_run_javascript(
+        static_cast<WebKitWebView*>(backend), javascript.utf8_str(), nullptr,
+        [](GObject* source, GAsyncResult* res, void* data) {
+            std::unique_ptr<Done> done(static_cast<Done*>(data));
+            GError*               error  = nullptr;
+            WebKitJavascriptResult* result = webkit_web_view_run_javascript_finish(reinterpret_cast<WebKitWebView*>(source), res, &error);
+            if (result == nullptr) {
+                const std::string why = error != nullptr && error->message != nullptr ? error->message : "The script failed";
+                if (error != nullptr)
+                    g_error_free(error);
+                (*done)(false, why);
+                return;
+            }
+            char*             text  = jsc_value_to_string(webkit_javascript_result_get_js_value(result));
+            const std::string value = text != nullptr ? text : "";
+            g_free(text);
+            webkit_javascript_result_unref(result);
+            (*done)(true, value);
+        },
+        new Done(std::move(done)));
+#endif
+}
+
 void WebView::RecreateAll()
 {
     auto dark = Slic3r::GUI::wxGetApp().dark_mode();
     wxString language_code = Slic3r::GUI::wxGetApp().current_language_code().BeforeFirst('_');
     language_code          = language_code.ToStdString();
     for (auto webView : g_webviews) {
+#ifdef __linux__
+        webView->SetUserAgent(linux_user_agent());
+#else
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), dark ? "dark" : "light", language_code.mb_str()));
+#endif
         // A host-themed WebViewHostDialog re-themes in place (no reload). If it handles
         // the event, skip the reload; legacy pages fall through and reload as before
         // (their own dark.css swap re-themes them on reload).

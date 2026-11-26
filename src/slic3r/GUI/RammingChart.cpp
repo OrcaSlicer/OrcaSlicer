@@ -1,11 +1,17 @@
 // Orca: This file is ported from latest PrusaSlicer
 
 #include <algorithm>
+#include <wx/colour.h>
+#include <wx/chartype.h>
+#include <vector>
+#include <cmath>
+#include <utility>
 #include <wx/dcbuffer.h>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
 
 #include "RammingChart.hpp"
-#include "GUI.hpp"
-#include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "Widgets/StateColor.hpp"
 

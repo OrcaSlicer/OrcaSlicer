@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @FLSun T1",
-	"inherits": "Generic ABS @FLSun",
 	"renamed_from": "FLSun T1 ABS",
+	"inherits": "Generic ABS @FLSun",
 	"from": "system",
 	"setting_id": "j185WWfVulPxWJvQ",
 	"instantiation": "true",

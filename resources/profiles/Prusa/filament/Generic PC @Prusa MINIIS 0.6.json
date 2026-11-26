@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @Prusa MINIIS 0.6",
-	"inherits": "fdm_filament_pc",
 	"renamed_from": "Prusa Generic PC @MINIIS 0.6;Prusa Generic PC MINIIS 0.6",
+	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "MOLOCn9YKfvHMmOu",
 	"filament_id": "OFLakOUI",

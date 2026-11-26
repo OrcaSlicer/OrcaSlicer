@@ -8,6 +8,14 @@
 #ifndef ImageGrid_h
 #define ImageGrid_h
 
+#include <wx/event.h>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <wx/string.h>
+#include <string>
+#include <cstddef>
+#include <utility>
+#include <wx/gdicmn.h>
+#include <wx/colour.h>
 #include <wx/window.h>
 #include <wx/timer.h>
 #include <wx/arrstr.h>

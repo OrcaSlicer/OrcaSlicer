@@ -4,28 +4,48 @@
 //#include <wx/gdicmn.h>
 
 #include "libslic3r/Preset.hpp"
-#include "wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
 #include "GUI_Utils.hpp"
-#include "Widgets/RadioGroup.hpp"
-#include "Widgets/Button.hpp"
-#include "Widgets/RoundedRectangle.hpp"
-#include "Widgets/Label.hpp"
-#include "Widgets/TextInput.hpp"
+#include <optional>
+#include <string>
+#include <wx/anybutton.h>
+#include <wx/sizer.h>
+#include <wx/checklst.h>
+#include <vector>
+#include <wx/event.h>
+#include <wx/string.h>
 
-class wxString;
+class RadioGroup;
+class TextInput;
+class wxBoxSizer;
+class wxCommandEvent;
+
 class wxStaticText;
 class wxComboBox;
 class wxStaticBitmap;
 
 #define SAVE_PRESET_DIALOG_DEF_COLOUR wxColour(255, 255, 255)
-#define SAVE_PRESET_DIALOG_INPUT_SIZE wxSize(FromDIP(360), FromDIP(24))
+#define SAVE_PRESET_DIALOG_INPUT_SIZE wxSize(FromDIP(360), FromDIP(28))
 #define SAVE_PRESET_DIALOG_BUTTON_SIZE wxSize(FromDIP(60), FromDIP(24))
 
 namespace Slic3r {
 namespace GUI {
 
+enum class PresetNameStatus { Valid, Warning, Invalid };
+
+// ORCA Shared profile name validation for SavePresetDialog and PhysicalPrinterDialog.
+PresetNameStatus check_preset_name(const PresetCollection &presets, const std::string &name, wxString &info_line);
+
+// Where a preset saved under `name` goes when that is not the person's to choose: a preset that exists is
+// saved where it is (true: inside the project), and the dialog locks its choice to that. nullopt for a new
+// name, which can go either way.
+std::optional<bool> locked_save_location(const PresetCollection &presets, const std::string &name);
+
 class SavePresetDialog : public DPIDialog
 {
+public:
+    // What happens to the selected physical printer when a printer preset is saved; the dialog
+    // offers the first three, ChangePreset by default.
     enum ActionType
     {
         ChangePreset,
@@ -34,6 +54,11 @@ class SavePresetDialog : public DPIDialog
         UndefAction
     };
 
+    // Applies `action` to the selected physical printer for the printer preset saved as `preset_name`.
+    // The dialog's OK passes the action chosen; a save made without the dialog passes ChangePreset.
+    static void update_physical_printers(ActionType action, const std::string &preset_name);
+
+private:
     class Item : public wxWindow
     {
     public:
@@ -47,7 +72,6 @@ class SavePresetDialog : public DPIDialog
         Item(Preset::Type type, const std::string& suffix, wxBoxSizer* sizer, SavePresetDialog* parent);
 
         void            update_valid_bmp();
-        void accept();
         virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags = wxSIZE_AUTO);
 
         bool            is_valid()      const { return m_valid_type != NoValid; }
@@ -75,6 +99,8 @@ class SavePresetDialog : public DPIDialog
         bool                m_save_to_project {false};
         RadioGroup*         m_radio_group; // ORCA
         bool                m_detach{false};
+
+        Button*             m_ok_btn        {nullptr};
 
         void update();
     };
@@ -118,7 +144,6 @@ protected:
 private:
     void build(std::vector<Preset::Type> types, std::string suffix = "");
     void on_select_cancel(wxCommandEvent &event);
-    void update_physical_printers(const std::string &preset_name);
     void accept(wxCommandEvent &event);
 };
 

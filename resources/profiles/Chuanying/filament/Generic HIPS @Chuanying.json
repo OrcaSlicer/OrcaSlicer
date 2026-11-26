@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic HIPS @Chuanying",
-	"inherits": "Generic ABS @Chuanying",
 	"renamed_from": "Chuanying Generic HIPS",
+	"inherits": "Generic ABS @Chuanying",
 	"from": "system",
 	"setting_id": "TV3UktlnP0aTLsOZ",
 	"filament_id": "OFsFon5l",
@@ -96,9 +96,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"0"
-	],
 	"filament_loading_speed": [
 		"28"
 	],
@@ -170,9 +167,6 @@
 	],
 	"filament_type": [
 		"HIPS"
-	],
-	"filament_unload_time": [
-		"0"
 	],
 	"filament_unloading_speed": [
 		"35"

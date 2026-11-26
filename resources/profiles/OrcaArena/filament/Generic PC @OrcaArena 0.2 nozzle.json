@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @OrcaArena 0.2 nozzle",
-	"inherits": "Generic PC @OrcaArena base",
 	"renamed_from": "OrcaArena Generic PC @0.2 nozzle;OrcaArena Generic PC 0.2 nozzle",
+	"inherits": "Generic PC @OrcaArena base",
 	"from": "system",
 	"setting_id": "AEKvB4RVBo2zOkdg",
 	"instantiation": "true",

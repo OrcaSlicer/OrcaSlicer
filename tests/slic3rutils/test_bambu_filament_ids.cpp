@@ -2,7 +2,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <nlohmann/json.hpp>
+#include <string>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/BBLPrinterAgent.hpp"
 #include "slic3r/Utils/OrcaPrinterAgent.hpp"
@@ -78,4 +80,25 @@ TEST_CASE("Payload rewrite covers nested trays, calibration lists and mapping in
     CHECK(BBLPrinterAgent::from_orca_payload(mapping) == R"([{"ams":0,"filamentId":"GFB00","filamentType":"ABS"}])");
     CHECK(BBLPrinterAgent::from_orca_payload("not json") == "not json");
     CHECK(BBLPrinterAgent::from_orca_payload(R"({"print":{"command":"pushall"}})") == R"({"print":{"command":"pushall"}})");
+}
+
+TEST_CASE("Payload rewrite covers the nozzle rack status and the auto nozzle mapping request", "[BambuFilamentIds]")
+{
+    const ScopedRepoResourcesDir repo_resources;
+    const std::string petg_hf = orca_id_of("GFG96");
+
+    const std::string rack_status =
+        R"({"print":{"device":{"nozzle":{"info":[{"id":16,"fila_id":"GFG96","color_m":"FFFFFFFF"},{"id":17,"fila_id":"P22f54c9"}]}}}})";
+    json inbound = json::parse(BBLPrinterAgent::to_orca_payload(rack_status));
+    CHECK(inbound["print"]["device"]["nozzle"]["info"][0]["fila_id"] == petg_hf);
+    CHECK(inbound["print"]["device"]["nozzle"]["info"][1]["fila_id"] == "P22f54c9");    // user id: untouched
+
+    const std::string request = R"({"print":{"command":"get_auto_nozzle_mapping","ams_mapping":[65535,65024],)"
+                                R"("fila_info":[{"id":2,"cate":")" + petg_hf + R"(","color":"FFFFFFFF"}],)"
+                                R"("nozzle_info":[{"pos":16,"cate":")" + petg_hf + R"(","color":"FFFFFFFF"},{"pos":1,"cate":""}]}})";
+    json outbound = json::parse(BBLPrinterAgent::from_orca_payload(request));
+    CHECK(outbound["print"]["fila_info"][0]["cate"] == "GFG96");
+    CHECK(outbound["print"]["nozzle_info"][0]["cate"] == "GFG96");
+    CHECK(outbound["print"]["nozzle_info"][1]["cate"] == "");                         // empty nozzle
+    CHECK(outbound["print"]["ams_mapping"] == json::parse("[65535,65024]"));
 }

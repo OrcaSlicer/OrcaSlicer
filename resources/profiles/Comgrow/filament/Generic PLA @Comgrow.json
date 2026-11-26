@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Comgrow",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Comgrow Generic PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "oxIMSlkJ8C40mJIv",
 	"filament_id": "OFDSrzZ8",

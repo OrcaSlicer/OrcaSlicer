@@ -22,7 +22,6 @@
 	"printhost_port": "",
 	"printhost_ssl_ignore_revoke": "0",
 	"printhost_user": "",
-	"silent_mode": "0",
 	"machine_max_acceleration_e": [
 		"8000"
 	],
@@ -121,7 +120,6 @@
 	"thumbnails": [
 		"160x160"
 	],
-	"z_lift_type": "Auto Lift",
 	"default_print_profile": "",
 	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",

@@ -1,14 +1,18 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Prusa MK4S HF0.4",
-	"inherits": "Generic ASA @Prusa MK4S",
 	"renamed_from": "Prusa Generic ASA @MK4S HF0.4;Prusa Generic ASA MK4S HF0.4",
+	"inherits": "Generic ASA @Prusa MK4S",
 	"from": "system",
 	"setting_id": "INXVBsLNAkRQUlPU",
 	"filament_id": "OFLPAxz3",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pet_hf"
+	],
 	"compatible_printers": [
-		"Prusa MK4S HF0.4 nozzle"
+		"Prusa MK4S HF0.4 nozzle",
+		"Prusa MK4S MMU3 HF0.4 nozzle"
 	],
 	"filament_max_volumetric_speed": [
 		"26"

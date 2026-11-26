@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Peopoly",
-	"inherits": "fdm_filament_petg",
 	"renamed_from": "Peopoly Generic PETG",
+	"inherits": "fdm_filament_petg",
 	"from": "system",
 	"setting_id": "dgMXFTyLovrMR56j",
 	"filament_id": "OFYPdQJh",

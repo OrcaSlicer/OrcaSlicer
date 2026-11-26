@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PHA @Tiertime",
-	"inherits": "fdm_filament_pha",
 	"renamed_from": "Tiertime Generic PHA",
+	"inherits": "fdm_filament_pha",
 	"from": "system",
 	"setting_id": "GvzA9Y6mP5a767Qb",
 	"filament_id": "OF74KeQR",

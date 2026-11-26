@@ -1,20 +1,58 @@
 #include <algorithm>
+#include <string>
+#include <wx/dialog.h>
+#include <sstream>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/RammingChart.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include <cstddef>
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "libslic3r/FlushVolPredictor.hpp"
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
 #include <wx/display.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/filename.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/spinctrl.h>
+#include <wx/toplevel.h>
+#include <wx/webview.h>
+#include <wx/weakref.h>
 #include "libslic3r/FlushVolCalc.hpp"
 #include "WipeTowerDialog.hpp"
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
-#include "WebViewDialog.hpp"
 #include "MsgDialog.hpp"
 #include "format.hpp"
-#include "libslic3r/Color.hpp"
 #include "Widgets/StaticLine.hpp"
+#include "Widgets/WebView.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
 #include "Widgets/Label.hpp"
 #include "MainFrame.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Preset.hpp"
+#include "DeviceCore/DevConfigUtil.h"
+#include "DeviceCore/DevDefs.h"
+#include <nlohmann/json.hpp>
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include <boost/filesystem.hpp>
+
+using json = nlohmann::json;
+
+class wxWindow;
+
+namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -197,9 +235,6 @@ std::string RammingPanel::get_parameters()
     return stream.str();
 }
 
-static const float g_min_flush_multiplier = 0.f;
-static const float g_max_flush_multiplier = 3.f;
-
 bool is_flush_config_modified()
 {
     const auto                &project_config    = wxGetApp().preset_bundle->project_config;
@@ -234,21 +269,23 @@ bool is_flush_config_modified()
     return has_modify;
 }
 
+void apply_flushing_volumes(const std::vector<double> &matrix, const std::vector<double> &multipliers)
+{
+    auto &project_config = wxGetApp().preset_bundle->project_config;
+    (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = matrix;
+    (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values     = multipliers;
+    bool flushing_volume_modify = is_flush_config_modified();
+    wxGetApp().sidebar().set_flushing_volume_warning(flushing_volume_modify);
+    wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+    wxGetApp().plater()->update_project_dirty_from_presets();
+}
+
 void open_flushing_dialog(wxEvtHandler *parent, const wxEvent &event)
 {
-    auto                      &project_config = wxGetApp().preset_bundle->project_config;
-
     WipingDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe));
     dlg.ShowModal();
     if (dlg.GetSubmitFlag()) {
-        auto matrix = dlg.GetFlattenMatrix();
-        auto flush_multipliers = dlg.GetMultipliers();
-        (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = std::vector<double>(matrix.begin(), matrix.end());
-        (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
-        bool flushing_volume_modify = is_flush_config_modified();
-        wxGetApp().sidebar().set_flushing_volume_warning(flushing_volume_modify);
-        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
-        wxGetApp().plater()->update_project_dirty_from_presets();
+        apply_flushing_volumes(dlg.GetFlattenMatrix(), dlg.GetMultipliers());
         wxPostEvent(parent, event);
     }
 }
@@ -377,14 +414,18 @@ wxString WipingDialog::BuildTextObjStr(bool multi_language)
     wxString ok_btn_label;
     wxString cancel_btn_label;
 
+    const std::string pt = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
+    const std::string extruder_name_0 = DevPrinterConfigUtil::get_toolhead_display_name(pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::SentenceCase);
+    const std::string extruder_name_1 = DevPrinterConfigUtil::get_toolhead_display_name(pt, MAIN_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::SentenceCase);
+
     if (multi_language) {
         auto_flush_tip = _L("Orca would re-calculate your flushing volumes everytime the filaments color changed or filaments changed. You could disable the auto-calculate in Orca Slicer > Preferences");
         volume_desp_panel = _L("Flushing volume (mm³) for each filament pair.");
         volume_range_panel = wxString::Format(_L("Suggestion: Flushing Volume in range [%d, %d]"), 0, 700);
-        multiplier_range_panel = wxString::Format(_L("The multiplier should be in range [%.2f, %.2f]."), 0, 3);
+        multiplier_range_panel = wxString::Format(_L("The multiplier should be in range [%.2f, %.2f]."), 0., 3.);
         calc_btn_panel = _L("Re-calculate");
-        extruder_label_0 = _L("Left extruder");
-        extruder_label_1 = _L("Right extruder");
+        extruder_label_0 = _L(extruder_name_0);
+        extruder_label_1 = _L(extruder_name_1);
         multiplier_label = _L("Multiplier");
         ok_btn_label = _L("OK");
         cancel_btn_label = _L("Cancel");
@@ -392,10 +433,10 @@ wxString WipingDialog::BuildTextObjStr(bool multi_language)
         auto_flush_tip = "Orca would re-calculate your flushing volumes everytime the filaments color changed or filaments changed. You could disable the auto-calculate in Orca Slicer > Preferences";
         volume_desp_panel = wxString::FromUTF8("Flushing volume (mm³) for each filament pair.");
         volume_range_panel = wxString::Format("Suggestion: Flushing Volume in range [%d, %d]", 0, 700);
-        multiplier_range_panel = wxString::Format("The multiplier should be in range [%.2f, %.2f].", 0, 3);
+        multiplier_range_panel = wxString::Format("The multiplier should be in range [%.2f, %.2f].", 0., 3.);
         calc_btn_panel = "Re-calculate";
-        extruder_label_0 = "Left extruder";
-        extruder_label_1 = "Right extruder";
+        extruder_label_0 = wxString::FromUTF8(extruder_name_0);
+        extruder_label_1 = wxString::FromUTF8(extruder_name_1);
         multiplier_label = "Multiplier";
         ok_btn_label = "OK";
         cancel_btn_label = "Cancel";
@@ -458,13 +499,19 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
         wxNO_BORDER);
 
     m_webview->AddScriptMessageHandler("wipingDialog");
+    // The page's strings (resources/web/flush/WipingDialog.html), keyed by their T() ids.
+    const nlohmann::json page_strings = {
+        // TRN Corner header of the flushing volume table: rows are the filament flushed from, columns the filament changed to.
+        {"from_to", _u8L("from/to")},
+    };
+    m_webview->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(page_strings)));
     main_sizer->Add(m_webview, 1, wxEXPAND);
 
     fs::path filepath = fs::path(resources_dir()) / "web/flush/WipingDialog.html";
     wxString filepath_str = from_path(filepath);
     wxFileName fn(filepath_str);
     if(fn.FileExists()) {
-        wxString url = wxFileSystem::FileNameToURL(fn);
+        wxString url = file_url_from_path(filepath);
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< "File exists and load url " << url.ToStdString();
         m_webview->LoadURL(url);
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< "Successfully loaded url: " << url.ToStdString();
@@ -495,15 +542,22 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
                 auto table_obj_str = BuildTableObjStr();
                 auto text_obj_str = BuildTextObjStr(true);
                 CallAfter([table_obj_str, text_obj_str, this] {
-                    wxString script1 = wxString::Format("buildTable(%s)", table_obj_str);
-                    m_webview->RunScript(script1);
-                    wxString script2 = wxString::Format("buildText(%s)", text_obj_str);
-                    bool result = m_webview->RunScript(script2);
-                    if (!result) {
-                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< "Failed to run buildText, retry without multi language";
-                        wxString script3 = wxString::Format("buildText(%s)", BuildTextObjStr(false));
-                        m_webview->RunScript(script3);
-                    }
+                    // The scripts run without waiting: wx's synchronous RunScript() waits by running a nested event
+                    // loop, which can wait forever and hold back every web view's scripts meanwhile. A translation can
+                    // make the text object invalid script, so the call answers "ok" once buildText has run, and
+                    // anything else (a throw, a syntax error, a failed call) is retried with the English strings.
+                    WebView::RunScript(m_webview, wxString::Format("buildTable(%s)", table_obj_str));
+                    const wxString       fallback = wxString::Format("buildText(%s)", BuildTextObjStr(false));
+                    wxWeakRef<wxWebView> web      = m_webview;
+                    WebView::RunScriptAsync(m_webview, wxString::Format("(function(){buildText(%s);return 'ok';})()", text_obj_str),
+                                            [web, fallback](bool ok, const std::string& result) {
+                                                if (ok && result == "ok")
+                                                    return;
+                                                BOOST_LOG_TRIVIAL(error) << "WipingDialog: buildText failed (" << result
+                                                                         << "), retrying without multi language";
+                                                if (wxWebView* view = web.get())
+                                                    WebView::RunScript(view, fallback);
+                                            });
                     });
             }
             else if (j["msg"].get<std::string>() == "updateMatrix") {
@@ -516,7 +570,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
                     std::string flush_volume_matrix_str = obj["flush_volume_matrix"].dump();
                     std::string extruder_id_str = std::to_string(obj["extruder_id"].get<int>());
                     wxString script = wxString::Format("updateTable(%s,%s)", flush_volume_matrix_str, extruder_id_str);
-                    m_webview->RunScript(script);
+                    WebView::RunScript(m_webview, script);
                     });
             }
             else if (j["msg"].get<std::string>() == "storeData") {

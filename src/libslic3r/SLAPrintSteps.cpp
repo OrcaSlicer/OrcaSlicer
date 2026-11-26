@@ -1,25 +1,54 @@
+#include <array>
+#include <string>
+#include <cstddef>
+#include <cassert>
+#include <algorithm>
+#include <cstdint>
+#include <cstdlib>
+#include <cmath>
+#include <mutex>
+#include <numeric>
 #include <unordered_set>
 
 #include <libslic3r/Exception.hpp>
 #include <libslic3r/SLAPrintSteps.hpp>
-#include <libslic3r/MeshBoolean.hpp>
 #include <libslic3r/TriangleMeshSlicer.hpp>
 
 // Need the cylinder method for the drainholes in hollowing step
-#include <libslic3r/SLA/SupportTreeBuilder.hpp>
 
 #include <libslic3r/SLA/Concurrency.hpp>
 #include <libslic3r/SLA/Pad.hpp>
 #include <libslic3r/SLA/SupportPointGenerator.hpp>
 
 #include <libslic3r/ElephantFootCompensation.hpp>
-#include <libslic3r/AABBTreeIndirect.hpp>
 
 #include <libslic3r/ClipperUtils.hpp>
 
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
 
+#include "ExPolygon.hpp"
+#include "Execution/ExecutionTBB.hpp"
 #include "I18N.hpp"
+#include "SLAPrint.hpp"
+#include "Point.hpp"
+#include "libslic3r.h"
+#include "SLA/Hollowing.hpp"
+#include "TriangleMesh.hpp"
+#include "Line.hpp"
+#include "Model.hpp"
+#include "SLA/SupportPoint.hpp"
+#include "SLA/JobController.hpp"
+#include "SLA/SupportTree.hpp"
+#include "SLA/RasterBase.hpp"
+#include "BoundingBox.hpp"
+#include "Config.hpp"
+#include "Polygon.hpp"
+#include "PrintConfig.hpp"
+#include "SLA/IndexedMesh.hpp"
+
+namespace Slic3r::sla { struct Interior; }
 
 //! macro used to mark string used at localization,
 //! return same string

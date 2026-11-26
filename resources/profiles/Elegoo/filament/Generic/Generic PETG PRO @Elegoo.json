@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"setting_id": "pKzSR8XeyyUDbrNW",
 	"name": "Generic PETG PRO @Elegoo",
 	"renamed_from": "Elegoo Generic PETG PRO",
+	"inherits": "Generic PETG @base",
 	"from": "system",
+	"setting_id": "pKzSR8XeyyUDbrNW",
 	"filament_id": "OFllmFhT",
 	"instantiation": "true",
-	"inherits": "Generic PETG @base",
 	"cool_plate_temp": [
 		"0"
 	],

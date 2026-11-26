@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "E0Y6g3qpoERrgSUH",
 	"name": "QIDI PET-CF @Qidi X-Plus 5 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PET-CF@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "E0Y6g3qpoERrgSUH",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.025"
 	],

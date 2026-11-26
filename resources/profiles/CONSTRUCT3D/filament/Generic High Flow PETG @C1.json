@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic High Flow PETG @C1",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "C1 Generic High Flow PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "STRDBlNRWBGfRctE",
 	"filament_id": "OFNjku08",

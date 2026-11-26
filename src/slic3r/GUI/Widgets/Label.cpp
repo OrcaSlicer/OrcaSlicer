@@ -1,10 +1,26 @@
 #include "libslic3r/Utils.hpp"
 #include "Label.hpp"
 #include "StaticBox.hpp"
+#include <wx/font.h>
+#include <string>
+#include <wx/dlimpexp.h>
+#include <wx/dc.h>
+#include <wx/arrstr.h>
+#include <wx/dynarray.h>
+#include <cstddef>
+#include <algorithm>
+#include <wx/chartype.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/colour.h>
 #include <wx/intl.h> // For wxLocale
 #include <wx/dcclient.h>
+#include <wx/language.h>
 #include <wx/settings.h>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
+#include <wx/string.h>
+#include <wx/stattext.h>
 #ifdef __linux__
 #include <fontconfig/fontconfig.h>
 #endif
@@ -92,7 +108,7 @@ void Label::initSysFont()
     // because FcConfigAppFontAddFile invalidates Pango's cached font map.
     bool load_fonts = true;
 #ifdef __linux__
-    load_fonts = !fc_font_available("HarmonyOS Sans SC") || !fc_font_available("NanumGothic");
+    load_fonts = !fc_font_available("HarmonyOS Sans SC") || !fc_font_available("NanumGothic") || !fc_font_available("Sarabun");
 #endif
     if (load_fonts) {
         const std::string &resource_path = Slic3r::resources_dir();
@@ -100,6 +116,8 @@ void Label::initSysFont()
         wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/HarmonyOS_Sans_SC_Regular.ttf"));
         wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Regular.ttf"));
         wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Bold.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/Sarabun-Medium.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/Sarabun-SemiBold.ttf"));
     }
 #endif
     Head_48 = Label::sysFont(48, true);
@@ -295,7 +313,7 @@ Label::Label(wxWindow *parent, wxFont const &font, wxString const &text, long st
     SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
     SetForegroundColour("#262E30");
     if (style & LB_PROPAGATE_MOUSE_EVENT) {
-        for (auto evt : { wxEVT_LEFT_UP, wxEVT_LEFT_DOWN })
+        for (auto evt : { wxEVT_LEFT_UP, wxEVT_LEFT_DOWN, wxEVT_LEFT_DCLICK}) // ORCA also propagete LEFT_DCLICK event that used on sidebar titlebars
             Bind(evt, [this] (auto & e) { GetParent()->GetEventHandler()->ProcessEventLocally(e); });
     };
     if (style & LB_AUTO_WRAP) {

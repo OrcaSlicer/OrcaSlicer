@@ -1,9 +1,11 @@
 #ifndef slic3r_GLToolbar_hpp_
 #define slic3r_GLToolbar_hpp_
 
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <vector>
+#include <wx/event.h>
 
 #include "GLTexture.hpp"
 #include "Event.hpp"
@@ -231,6 +233,8 @@ public:
     int generate_image_texture();
 
     void render(unsigned int tex_id, float left, float right, float bottom, float top, unsigned int tex_width, unsigned int tex_height, unsigned int icon_size) const;
+    // The ImGui window a pressed item shows, given the icon's rectangle.
+    void render_window(float left, float right, float bottom, float top) const;
     void render_image(unsigned int tex_id, float left, float right, float bottom, float top, unsigned int tex_width, unsigned int tex_height, unsigned int icon_size) const;
 private:
     void set_visible(bool visible) { m_data.visible = visible; }
@@ -264,6 +268,8 @@ class GLToolbar
 {
 public:
     static const float Default_Icons_Size;
+    // Corner radius of the toolbars along the top edge of the 3D canvas, matching its ImGui panels.
+    static constexpr float Top_Corner_Radius = 8.0f;
 
     enum EType : unsigned char
     {
@@ -303,6 +309,9 @@ public:
         float top;
         float left;
         float border;
+        // Radius of the background corners left free by the orientation, in the units of border;
+        // 0 draws every corner square.
+        float corner_radius;
         float separator_size;
         float gap_size;
         float icons_size;
@@ -367,6 +376,7 @@ public:
 
     void set_position(float top, float left);
     void set_border(float border);
+    void set_corner_radius(float radius) { m_layout.corner_radius = radius; }
     void set_separator_size(float size);
     void set_gap_size(float size);
     void set_icons_size(float size);
@@ -394,6 +404,7 @@ public:
     bool is_any_item_pressed() const;
 
     unsigned int get_items_count() const { return (unsigned int)m_items.size(); }
+    const std::vector<GLToolbarItem*>& get_items() const { return m_items; }
     int get_item_id(const std::string& name) const;
 
     void force_left_action(int item_id, GLCanvas3D& parent) { do_action(GLToolbarItem::Left, item_id, parent, false); }
@@ -410,6 +421,10 @@ public:
     bool update_items_state();
 
     void render(const GLCanvas3D& parent,GLToolbarItem::EType type = GLToolbarItem::Action);
+    // The ImGui windows of pressed items, built with the same layout as render().
+    void render_item_windows(const GLCanvas3D& parent);
+    // Hash of the state render() draws from: enabled, and each item's state and visibility.
+    size_t get_state_hash() const;
     void render_arrow(const GLCanvas3D& parent, GLToolbarItem* highlighted_item);
 
     bool on_mouse(wxMouseEvent& evt, GLCanvas3D& parent);
@@ -437,9 +452,11 @@ private:
     int contains_mouse_horizontal(const Vec2d& mouse_pos, const GLCanvas3D& parent) const;
     int contains_mouse_vertical(const Vec2d& mouse_pos, const GLCanvas3D& parent) const;
 
-    void render_background(float left, float top, float right, float bottom, float border_w, float border_h) const;
-    void render_horizontal(const GLCanvas3D &parent, GLToolbarItem::EType type);
-    void render_vertical(const GLCanvas3D& parent);
+    // Nine-slice background whose corner slices are corner_w x corner_h; the corners the orientation
+    // leaves free take the texture's rounded corners, the others its square center.
+    void render_background(float left, float top, float right, float bottom, float corner_w, float corner_h) const;
+    void render_horizontal(const GLCanvas3D &parent, GLToolbarItem::EType type, bool draw_icons);
+    void render_vertical(const GLCanvas3D& parent, bool draw_icons);
 
     bool generate_icons_texture();
 
@@ -448,6 +465,14 @@ private:
     // returns true if any item changed its state
     bool update_items_enabled_state();
 };
+
+// The canvas edge a sidebar collapse button sits on: the side its sidebar is docked on, or none
+// while that sidebar floats.
+enum class CollapseSide { None, Left, Right };
+
+// Lays `toolbar` out as a sidebar collapse button that runs `toggle`: Prepare's, and those of
+// other sidebars (GLCanvas3D::set_collapse_toolbar()).
+bool setup_collapse_toolbar(GLToolbar& toolbar, std::function<void()> toggle);
 
 } // namespace GUI
 } // namespace Slic3r

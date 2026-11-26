@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS BigNozzle @RatRig",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "RatRig BigNozzle ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "4GJ4GHOuApWBbQoS",
 	"filament_id": "OFnyHfcv",

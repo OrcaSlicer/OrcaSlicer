@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @DeltaMaker",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "DeltaMaker Generic PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "ITJo0Cig9myqk1uB",
 	"filament_id": "OFDSrzZ8",

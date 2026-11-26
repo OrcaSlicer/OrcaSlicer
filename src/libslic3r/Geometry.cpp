@@ -1,17 +1,26 @@
+#include "Point.hpp"
+#include "Polygon.hpp"
+#include "MultiPoint.hpp"
+#include "BoundingBox.hpp"
 #include "libslic3r.h"
-#include "Exception.hpp"
 #include "Geometry.hpp"
 #include "ClipperUtils.hpp"
-#include "ExPolygon.hpp"
-#include "Line.hpp"
-#include "clipper.hpp"
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <Eigen/SVD>
 #include <algorithm>
+#include <boost/algorithm/string/constants.hpp>
+#include <array>
 #include <cassert>
 #include <cmath>
+#include <cstddef>
+#include <cstdlib>
+#include <cstdint>
 #include <list>
 #include <map>
 #include <numeric>
 #include <set>
+#include <string>
 #include <utility>
 #include <stack>
 #include <vector>
@@ -19,6 +28,8 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/log/trivial.hpp>
+
+namespace boost::polygon { template <typename T> class point_data; }
 
 #if defined(_MSC_VER) && defined(__clang__)
 #define BOOST_NO_CXX17_HDR_STRING_VIEW
@@ -417,55 +428,44 @@ Transform3d Transformation::get_offset_matrix() const
     return translation_transform(get_offset());
 }
 
-static Transform3d extract_rotation_matrix(const Transform3d& trafo)
-{
-    Matrix3d rotation;
-    Matrix3d scale;
-    trafo.computeRotationScaling(&rotation, &scale);
-    return Transform3d(rotation);
-}
-
-static Transform3d extract_scale(const Transform3d& trafo)
-{
-    Matrix3d rotation;
-    Matrix3d scale;
-    trafo.computeRotationScaling(&rotation, &scale);
-    return Transform3d(scale);
-}
-
+// computeRotationScaling() may put a mirror on any axis; use the local axis needing the least rotation.
 static std::pair<Transform3d, Transform3d> extract_rotation_scale(const Transform3d& trafo)
 {
     Matrix3d rotation;
     Matrix3d scale;
-    trafo.computeRotationScaling(&rotation, &scale);
+    if (trafo.linear().determinant() >= 0.0) {
+        trafo.computeRotationScaling(&rotation, &scale);
+        return { Transform3d(rotation), Transform3d(scale) };
+    }
+    for (int axis = 0; axis < 3; ++axis) {
+        Transform3d flipped = trafo;
+        flipped.linear().col(axis) *= -1.0;
+        Matrix3d r;
+        Matrix3d s;
+        flipped.computeRotationScaling(&r, &s);
+        // EPSILON keeps the lowest axis on ties, e.g. a mirror rotated by 90 degrees.
+        if (axis == 0 || r.trace() > rotation.trace() + EPSILON) {
+            rotation = r;
+            scale    = s;
+            scale.col(axis) *= -1.0;
+        }
+    }
     return { Transform3d(rotation), Transform3d(scale) };
+}
+
+static Transform3d extract_rotation_matrix(const Transform3d& trafo)
+{
+    return extract_rotation_scale(trafo).first;
+}
+
+static Transform3d extract_scale(const Transform3d& trafo)
+{
+    return extract_rotation_scale(trafo).second;
 }
 
 static bool contains_skew(const Transform3d& trafo)
 {
-    Matrix3d rotation;
-    Matrix3d scale;
-    trafo.computeRotationScaling(&rotation, &scale);
-
-    if (scale.isDiagonal())
-      return false;
-    
-    if (scale.determinant() >= 0.0)
-      return true;
-
-    // the matrix contains mirror
-    const Matrix3d ratio = scale.cwiseQuotient(trafo.matrix().block<3,3>(0,0));
-
-    auto check_skew = [&ratio](int i, int j, bool& skew) {
-      if (!std::isnan(ratio(i, j)) && !std::isnan(ratio(j, i)))
-        skew |= std::abs(ratio(i, j) * ratio(j, i) - 1.0) > EPSILON;
-    };
-
-    bool has_skew = false;
-    check_skew(0, 1, has_skew);
-    check_skew(0, 2, has_skew);
-    check_skew(1, 2, has_skew);
-    return has_skew;
+    return !extract_scale(trafo).linear().isDiagonal();
 }
 
 Vec3d Transformation::get_rotation() const
@@ -539,7 +539,8 @@ void Transformation::set_scaling_factor(Axis axis, double scaling_factor)
     assert(scaling_factor > 0.0);
 
     auto [rotation, scale] = extract_rotation_scale(m_matrix);
-    scale(axis, axis) = scaling_factor;
+    // Keep a mirror that sits on this axis.
+    scale(axis, axis) = std::copysign(scaling_factor, scale(axis, axis));
 
     const Vec3d offset = get_offset();
     m_matrix = rotation * scale;

@@ -4,6 +4,8 @@
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
 #include <wx/artprov.h>
+#include <wx/toplevel.h>
+#include <wx/event.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/string.h>
 #include <wx/stattext.h>

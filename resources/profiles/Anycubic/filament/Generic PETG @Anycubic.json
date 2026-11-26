@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Anycubic",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "Anycubic Generic PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "ddafY4oOvEc6L6Ej",
 	"filament_id": "OFYPdQJh",

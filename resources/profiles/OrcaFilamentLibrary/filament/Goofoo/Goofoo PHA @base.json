@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Goofoo PHA @base",
+	"inherits": "Generic PHA @System",
+	"from": "system",
+	"filament_id": "OFicmNhN",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"filament_type": [
+		"PHA"
+	]
+}

@@ -2,6 +2,7 @@
 #define slic3r_FaceDetector_hpp_
 
 #include "Point.hpp"
+#include <vector>
 
 namespace Slic3r {
 class ModelObject;

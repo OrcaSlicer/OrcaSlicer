@@ -1,0 +1,239 @@
+/* Agent Activity. The step rail comes from ../css/step_rail.css, as Action Replay's; this adds the toolbar, a read's
+ * quiet line, a dialog's step, the nested steps of a run, and the request and response under an opened step. Colours
+ * come from the host theme contract (--orca-*), theme.css's status roles and code_editor.css's JSON colours. */
+
+:root {
+  --aa-tint: var(--plugin-source-mine-bg, rgba(0, 150, 136, 0.12));
+  --aa-accent-text: var(--plugin-source-mine-text, #00897b);
+  --aa-btn-bg: var(--btn-bg, #ffffff);
+  --aa-btn-border: var(--btn-border, #cccccc);
+  --aa-btn-hover: var(--btn-hover, #f0f0f0);
+  --aa-menu-bg: var(--ctx-bg, #ffffff);
+}
+:root[data-orca-theme="dark"] { --aa-accent-text: #4db6ac; }
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--sr-bg);
+  color: var(--sr-fg);
+  font-family: var(--orca-font, "Segoe UI", system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+[hidden] { display: none !important; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--sr-accent); outline-offset: 1px; }
+
+.pane { height: 100%; display: flex; flex-direction: column; container-type: inline-size; container-name: pane; }
+
+/* ---- toolbar, as the Run Script panel's ---- */
+.toolbar { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--sr-rule); }
+.btn {
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--sr-fg);
+  background: var(--aa-btn-bg);
+  border: 1px solid var(--aa-btn-border);
+  border-radius: 4px;
+  padding: 2px 10px;
+  height: 24px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn svg { width: 10px; height: 10px; flex: none; }
+.btn:hover:not(:disabled) { background: var(--aa-btn-hover); }
+.tsep { width: 1px; height: 16px; background: var(--sr-rule); margin: 0 2px; }
+.seg { display: inline-flex; border: 1px solid var(--aa-btn-border); border-radius: 4px; overflow: hidden; height: 24px; }
+.seg button { font: inherit; font-size: 12px; border: 0; background: var(--aa-btn-bg); color: var(--sr-fg); padding: 0 9px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--aa-btn-border); }
+.seg button[aria-pressed="true"] { background: var(--aa-tint); color: var(--aa-accent-text); font-weight: 600; }
+.menu-wrap { position: relative; }
+.menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 200px;
+  max-width: 280px;
+  background: var(--aa-menu-bg);
+  border: 1px solid var(--aa-btn-border);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 4px;
+}
+.menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: none;
+  color: var(--sr-fg);
+  padding: 5px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+}
+.menu button:hover { background: var(--sr-hover); }
+.menu .label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu .mc { margin-left: auto; color: var(--sr-muted); font-variant-numeric: tabular-nums; }
+.menu .tick { width: 12px; flex: none; color: var(--aa-accent-text); }
+.menu .icon { color: var(--sr-muted); }
+.find {
+  height: 24px;
+  width: 150px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--sr-fg);
+  background: var(--sr-bg);
+  border: 1px solid var(--aa-btn-border);
+  border-radius: 4px;
+  padding: 0 8px;
+}
+.find::placeholder { color: var(--sr-muted); }
+.status { margin-left: auto; min-width: 0; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--sr-muted); white-space: nowrap; }
+.status .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--sr-muted); opacity: 0.5; display: inline-block; margin-right: 5px; }
+.status .is-busy .sdot { background: var(--aa-accent-text); opacity: 1; animation: aa-pulse 1.2s ease-in-out infinite; }
+.status .who { color: var(--sr-fg); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.status > span:first-child { min-width: 0; display: inline-flex; align-items: center; }
+.status .nfail {
+  font: inherit;
+  font-size: 12px;
+  color: var(--sr-fail);
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@keyframes aa-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.icon { display: inline-flex; }
+.icon svg { width: 12px; height: 12px; flex: none; }
+.link {
+  font: inherit;
+  font-size: 12px;
+  color: var(--aa-accent-text);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+/* ---- the list ---- */
+.list-wrap { position: relative; flex: 1; min-height: 0; }
+.list { position: absolute; inset: 0; overflow: auto; }
+.empty { margin: 0; padding: 14px 16px; color: var(--sr-muted); }
+.latest {
+  position: absolute;
+  right: 16px;
+  bottom: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 12px;
+  border: 1px solid var(--sr-accent);
+  background: var(--sr-bg);
+  color: var(--aa-accent-text);
+  border-radius: 12px;
+  padding: 2px 10px 2px 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.latest svg { width: 10px; height: 10px; }
+
+/* ---- the step rail, as a list of calls ---- */
+.step { padding: 0 10px 0 12px; }
+.step.is-hidden { display: none; }
+.step::before { left: calc(12px + var(--sr-dot) / 2 - 1px); }
+.step.is-last::before { display: none; }
+/* The thread takes the accent once the call has ended, failed or not. */
+.step.is-ended::before { background: var(--sr-accent); }
+.dot { font-size: 10.5px; letter-spacing: -0.02em; }
+.dot .icon svg { width: 11px; height: 11px; }
+/* A read passed too, but changed nothing: the hollow dot. */
+.step.is-read.is-done .dot { background: var(--sr-bg); border-color: var(--sr-accent); color: var(--aa-accent-text); }
+.step.is-running .dot { color: var(--aa-accent-text); }
+.step.is-dialog .dot { background: var(--aa-tint); border-color: var(--sr-accent); color: var(--aa-accent-text); }
+.step-head:hover .step-title { text-decoration: underline; text-decoration-color: var(--sr-rule); text-underline-offset: 3px; }
+.step-what .res.is-run { color: var(--aa-accent-text); }
+.step-what .pressed {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--sr-rule);
+  border-radius: 3px;
+  color: var(--sr-fg);
+  font-size: 11px;
+  line-height: 16px;
+}
+.failure { margin: 0 0 6px; padding: 5px 8px; font-size: 12px; overflow-wrap: anywhere; }
+
+/* A read is one quiet line: title and target side by side, no weight. */
+.step.is-read .dot { margin-top: 2px; }
+.step.is-read::before { top: calc(2px + var(--sr-dot)); }
+.step.is-read .step-head { display: flex; align-items: baseline; gap: 8px; padding: 2px 4px 2px 0; min-width: 0; }
+.step.is-read .step-title { font-weight: 400; color: var(--sr-muted); white-space: nowrap; }
+.step.is-read .step-what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.step.is-read.is-open .step-what { white-space: normal; }
+
+.step-side { align-self: start; align-items: center; justify-content: flex-end; gap: 10px; font-size: 12px; color: var(--sr-muted); white-space: nowrap; }
+.step.is-read .step-side { padding-top: 3px; }
+.src { display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 140px; }
+.src-name { overflow: hidden; text-overflow: ellipsis; }
+.src.same .src-name { display: none; }
+.clock { width: 54px; text-align: right; font-variant-numeric: tabular-nums; }
+.time { width: 50px; text-align: right; }
+.step.is-running > .step-side .time { color: var(--aa-accent-text); }
+/* ---- an opened step: its request and its response, as JSON ---- */
+.kv-head { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 3px; font-weight: 600; }
+.kv-head .meta { font-weight: 400; color: var(--sr-muted); min-width: 0; overflow-wrap: anywhere; }
+.kv-head .link { margin-left: auto; }
+.args { margin: 0; }
+.args.plain dd { font-family: inherit; font-size: 12px; }
+.none { margin: 0; color: var(--sr-muted); }
+/* Long lines wrap: a pane this narrow shows a value whole rather than behind a sideways scroll, whose bar WebKit would
+   paint over the heading below. */
+.raw { margin: 0; max-height: 240px; line-height: 1.45; color: var(--sr-fg); background: var(--sr-bg); white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: hidden; }
+.raw.is-note { color: var(--sr-muted); font-family: inherit; white-space: normal; }
+.raw .j-key { color: var(--code-key); }
+.raw .j-string { color: var(--code-string); }
+.raw .j-number { color: var(--code-number); }
+.raw .j-literal { color: var(--code-keyword); }
+.raw .j-punct { color: var(--code-punct); }
+.raw .mask { color: var(--sr-muted); letter-spacing: 0.1em; }
+.files { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+.thumb { width: 168px; cursor: pointer; }
+
+/* ---- a run's own steps, nested under its row as Action Replay lists them ---- */
+.rail.nested { padding: 0 0 6px; }
+.rail.nested .step { --sr-dot: 16px; padding-left: 0; padding-right: 0; font-size: 12.5px; }
+.rail.nested .step::before { left: calc(var(--sr-dot) / 2 - 1px); }
+.rail.nested .dot { font-size: 9.5px; }
+.rail.nested .step.is-open { background: transparent; }
+
+/* A narrow pane (docked right, a small floating window) keeps the rail and drops the extras. */
+@container pane (max-width: 560px) {
+  .clock, .src-name, .t-opt, .status .counts { display: none !important; }
+  .find { flex: 1 1 90px; width: auto; min-width: 90px; }
+  .status { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status .is-busy .sdot { animation: none; }
+}

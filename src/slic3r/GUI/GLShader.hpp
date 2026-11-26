@@ -2,8 +2,12 @@
 #define slic3r_GLShader_hpp_
 
 #include <array>
+#include <cstddef>
+#include <initializer_list>
 #include <string>
 #include <string_view>
+#include <vector>
+#include <utility>
 
 #include "libslic3r/Point.hpp"
 

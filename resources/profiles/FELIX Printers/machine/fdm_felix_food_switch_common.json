@@ -1,0 +1,23 @@
+{
+  "type": "machine",
+  "name": "fdm_felix_food_switch_common",
+  "inherits": "fdm_all_machines_common",
+  "from": "system",
+  "instantiation": "false",
+  "machine_max_feedrate_x": ["150"],
+  "machine_max_feedrate_y": ["150"],
+  "machine_max_feedrate_z": ["10"],
+  "machine_max_feedrate_e": ["20"],
+  "shape": "rectangular",
+  "gcode_flavor": "repetier",
+  "layer_change_gcode": "G92 E0",
+  "use_relative_e_distances": "1",
+  "single_extruder_multi_material": "0",
+  "extruder_offset": ["0x0", "0x0"],
+  "extruder_type": ["Direct Drive", "Direct Drive"],
+  "printable_area": ["0x0", "250x0", "250x195", "0x195"],
+  "printable_height": "150",
+  "change_filament_gcode": "; FELIX Food Switch - Tool change G-code - V1.00\n{if previous_extruder>=0}; Tool [previous_extruder] deactivation\nG92 E0\nG1 E-{retract_length_toolchange[previous_extruder]} F{retraction_speed[previous_extruder]*60}\nG92 E0\n{endif}T[next_extruder]\n; Tool [next_extruder] activation\nG92 E0\nG1 E{retract_length_toolchange[next_extruder]+retract_restart_extra_toolchange[next_extruder]} F{retraction_speed[next_extruder]*60}\nG92 E0\n",
+  "machine_start_gcode": "; FELIX Food Switch - OrcaSlicer Start G-code - V1.00\n{if bed_temperature_initial_layer_single>0}M190 S[bed_temperature_initial_layer_single]\n{endif}T0\n{if nozzle_temperature[1]>0}M104 T1 S{nozzle_temperature[1]}\n{endif}{if nozzle_temperature[0]>0}M104 T0 S{nozzle_temperature[0]}\n{endif}G28\nG90\nM82\nM107\n; ============== Prime second nozzle =============\n{if is_extruder_used[1]}T1{else}T0{endif}\nG1 X70 Y10 Z10 F{travel_speed*60} S1\nM400\nG92 E0\nG1 E{2*retraction_length[1]+retract_restart_extra[1]+0.5} F15\nG92 E0\nG1 X{80+nozzle_diameter[1]*2} Y10 Z{nozzle_diameter[1]*0.5} F{travel_speed*60}\nG1 X{100+nozzle_diameter[1]*2} Y10 E{nozzle_diameter[1]*initial_layer_print_height*20/((filament_diameter[1]/2)*(filament_diameter[1]/2)*3.14159)} F{initial_layer_speed*60}\nG92 E0\nG1 E-{retract_length_toolchange[1]} F{retraction_speed[1]*60}\nG92 E0\n; ============== Prime first nozzle ==============\nT0\nG1 X70 Y20 Z10 F{travel_speed*60}\nM400\nG92 E0\nG1 E{2*retraction_length[0]+retract_restart_extra[0]+0.5} F15\nG92 E0\nG1 X{80+nozzle_diameter[0]*2} Y10 Z{nozzle_diameter[0]*0.5} F{travel_speed*60}\nG1 X{100+nozzle_diameter[0]*2} Y10 E{nozzle_diameter[0]*initial_layer_print_height*20/((filament_diameter[0]/2)*(filament_diameter[0]/2)*3.14159)} F{initial_layer_speed*60}\nG92 E0\nG1 E-{retract_length_toolchange[0]} F{retraction_speed[0]*60}\nG92 E0\n",
+  "machine_end_gcode": "; FELIX Food Switch - OrcaSlicer End G-code - V1.00\nG92 E0\nG1 E-{retraction_length[0]} F{retraction_speed[0]*60} S0\nG92 E0\nG91\nG1 Z10 F1200\nG90\nG28 X\nG28 Y\nM107\nM84\n"
+}

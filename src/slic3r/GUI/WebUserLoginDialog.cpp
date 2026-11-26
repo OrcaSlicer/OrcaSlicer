@@ -1,17 +1,44 @@
 #include "WebUserLoginDialog.hpp"
 
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include "slic3r/GUI/HttpServer.hpp"
+#include <memory>
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/GUI.hpp"
+#include <exception>
+#include <boost/filesystem/path.hpp>
+#include "libslic3r/Utils.hpp"
 #include <string.h>
+#include "CloudProvider.hpp"
 #include "I18N.hpp"
+#include "ICloudServiceAgent.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "libslic3r_version.h"
 
+#include <algorithm>
+#include <string>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/log.h>
+#include <wx/msgdlg.h>
+#include <wx/app.h>
+#include <wx/setup.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/timer.h>
 #include <wx/toolbar.h>
+#include <wx/dialog.h>
+#include <wx/display.h>
+#include <wx/toplevel.h>
 #include <wx/textdlg.h>
 
+#include <wx/webview.h>
+#include <wx/utils.h>
 #include <wx/wx.h>
 #include <wx/fileconf.h>
 #include <wx/file.h>
@@ -29,7 +56,6 @@
 #include <sstream>
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <slic3r/GUI/Widgets/HyperLink.hpp> // ORCA
-using namespace std;
 
 using namespace nlohmann;
 
@@ -48,7 +74,7 @@ namespace {
 int reserve_loopback_port()
 {
     try {
-        boost::asio::io_service       io_service;
+        boost::asio::io_context       io_service;
         boost::asio::ip::tcp::acceptor acceptor(io_service, {boost::asio::ip::tcp::v4(), 0});
         return static_cast<int>(acceptor.local_endpoint().port());
     } catch (...) {
@@ -86,7 +112,8 @@ int ZUserLogin::ensure_loopback_port()
 }
 
 ZUserLogin::ZUserLogin(std::shared_ptr<ICloudServiceAgent> cloud_agent)
-    : wxDialog((wxWindow*) (wxGetApp().mainframe), wxID_ANY, "OrcaSlicer"), m_cloud_agent(cloud_agent)
+    : wxDialog((wxWindow*) (wxGetApp().mainframe), wxID_ANY, "OrcaSlicer", wxDefaultPosition, wxDefaultSize,
+               wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER), m_cloud_agent(cloud_agent)
 {
     SetBackgroundColour(*wxWHITE);
 
@@ -161,6 +188,13 @@ ZUserLogin::ZUserLogin(std::shared_ptr<ICloudServiceAgent> cloud_agent)
         m_browser->Hide();
         m_browser->SetSize(0, 0);
 
+        // The webview fills the dialog, so it follows the dialog when the user resizes it.
+        // Plain SetSizer: the webview is still hidden and 0x0 here, so fitting would collapse the dialog;
+        // the size is set explicitly below.
+        auto* browser_sizer = new wxBoxSizer(wxVERTICAL);
+        browser_sizer->Add(m_browser, 1, wxEXPAND);
+        SetSizer(browser_sizer);
+
         // Connect the webview events
         Bind(wxEVT_WEBVIEW_NAVIGATING, &ZUserLogin::OnNavigationRequest, this, m_browser->GetId());
         Bind(wxEVT_WEBVIEW_NAVIGATED, &ZUserLogin::OnNavigationComplete, this, m_browser->GetId());
@@ -174,10 +208,23 @@ ZUserLogin::ZUserLogin(std::shared_ptr<ICloudServiceAgent> cloud_agent)
         // UI
         SetTitle(_L("Login"));
         // Set a more sensible size for web browsing
-        wxSize pSize = FromDIP(wxSize(650, 840));
-        SetSize(pSize);
+        // The preferred size can exceed the work area (e.g. 840 DIP at 150% on a 1080p screen),
+        // which would push the title bar off screen, so clamp it to the display the dialog is on.
+        const wxRect work_area = wxDisplay(GetParent()).GetClientArea();
+        const int    margin    = FromDIP(20);
+        const wxSize max_size(std::max(1, work_area.GetWidth() - margin), std::max(1, work_area.GetHeight() - margin));
+
+        const wxSize pSize = FromDIP(wxSize(650, 840));
+        SetMinSize(wxSize(std::min(FromDIP(400), max_size.GetWidth()), std::min(FromDIP(400), max_size.GetHeight())));
+        SetSize(wxSize(std::min(pSize.GetWidth(), max_size.GetWidth()), std::min(pSize.GetHeight(), max_size.GetHeight())));
 
         CentreOnParent();
+
+        // Keep the whole dialog, title bar included, inside the work area.
+        wxRect rect = GetRect();
+        rect.x = std::max(work_area.GetLeft(), std::min(rect.x, work_area.GetRight() + 1 - rect.width));
+        rect.y = std::max(work_area.GetTop(), std::min(rect.y, work_area.GetBottom() + 1 - rect.height));
+        Move(rect.GetPosition());
     }
     wxGetApp().UpdateDlgDarkUI(this);
 }
@@ -599,7 +646,7 @@ void ZUserLogin::OnScriptResponseMessage(wxCommandEvent &WXUNUSED(evt))
 
 bool  ZUserLogin::ShowErrorPage()
 {
-    wxString ErrortUrl = from_u8((boost::filesystem::path(resources_dir()) / "web\\login\\error.html").make_preferred().string());
+    wxString ErrortUrl = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/login/error.html");
     load_url(ErrortUrl);
 
     return true;

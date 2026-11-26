@@ -1,5 +1,12 @@
 #include "TextureToColor.hpp"
 
+#include <string>
+#include <cstddef>
+#include <limits>
+#include <opencv2/core/mat.hpp>
+#include <algorithm>
+#include <memory>
+#include <ratio>
 #include <tbb/parallel_for.h>
 #include <array>
 #include <atomic>
@@ -9,14 +16,20 @@
 #include <functional>
 
 #include <boost/next_prior.hpp>
+#include "Callbacks.hpp"
 #include "CgalUtils.hpp"
 #include "ColorUtils.hpp"
+#include "TriMesh.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include <filesystem>
 #include <fstream>
 #include "Repair.hpp"
 #include "libslic3r/AABBTreeIndirect.hpp"
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
+#include <unordered_map>
 
 namespace Slic3r { namespace tex2color {
 
@@ -660,14 +673,14 @@ static bool repair_cluster_smooth(
                     [&]() { return cancelled(); }, &repair_error);
                 if (repaired) {
                     if (cancelled()) return false;
-                    BOOST_LOG_TRIVIAL(info) << log_prefix << ": Windows 3D mesh repair finished.";
+                    BOOST_LOG_TRIVIAL(info) << log_prefix << ": mesh repair finished.";
                     if (!resample_face_colors(TriMesh(std::move(repaired_its))))
                         return false;
                 } else {
-                    BOOST_LOG_TRIVIAL(warning) << log_prefix << ": Windows 3D mesh repair failed: " << repair_error;
+                    BOOST_LOG_TRIVIAL(warning) << log_prefix << ": mesh repair failed: " << repair_error;
                 }
             } else {
-                BOOST_LOG_TRIVIAL(info) << log_prefix << ": importing mesh without Windows 3D repair.";
+                BOOST_LOG_TRIVIAL(info) << log_prefix << ": importing mesh without repair.";
             }
         }
     }

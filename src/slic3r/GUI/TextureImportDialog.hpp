@@ -4,14 +4,17 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "libslic3r/TexturePainting.hpp"
 
+#include <cstddef>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include "Widgets/PopupWindow.hpp"
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include "Widgets/SpinInput.hpp"
-#include <wx/checkbox.h>
+#include "Widgets/LabeledCheckBox.hpp"
 #include <wx/button.h>
 #include "Widgets/Button.hpp"
 #include <wx/glcanvas.h>
@@ -362,7 +365,7 @@ private:
     SpinInput*    m_smooth_spin    = nullptr;
     Button*       m_btn_apply      = nullptr;
 
-    wxCheckBox*           m_auto_merge_cb = nullptr;
+    LabeledCheckBox*      m_auto_merge_cb = nullptr;
     Button*               m_btn_auto_mix  = nullptr;
     Button*               m_btn_mix_reset = nullptr;
     bool                  m_auto_mix_applied = false;

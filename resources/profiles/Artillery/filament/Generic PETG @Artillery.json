@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFYPdQJh",
-	"setting_id": "6wZKfV2XvuJSUSwl",
 	"name": "Generic PETG @Artillery",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "Artillery Generic PETG",
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"setting_id": "6wZKfV2XvuJSUSwl",
+	"filament_id": "OFYPdQJh",
+	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
 		"1"
 	],

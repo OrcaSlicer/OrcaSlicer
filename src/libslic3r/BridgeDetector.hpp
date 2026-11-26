@@ -9,7 +9,14 @@
 #include "PrincipalComponents2D.hpp"
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
+#include <cmath>
+#include <cstdlib>
+#include <limits>
 #include <string>
+#include <vector>
+#include <tuple>
+#include <unordered_map>
+#include <utility>
 
 namespace Slic3r {
 

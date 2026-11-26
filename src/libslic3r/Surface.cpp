@@ -1,6 +1,11 @@
 #include "BoundingBox.hpp"
 #include "Surface.hpp"
+#include "Polygon.hpp"
+#include "Point.hpp"
+#include "ExPolygon.hpp"
 #include "SVG.hpp"
+#include <cstddef>
+#include "libslic3r.h"
 
 namespace Slic3r {
 

@@ -16,18 +16,41 @@
 		"30"
 	],
 	"filament_cost": [
-		"49.99"
+		"46.99"
 	],
 	"filament_density": [
 		"0.99"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_flow_ratio": [
+		"0.52",
+		"0.52",
+		"0.52",
+		"0.52",
+		"0.52",
 		"0.52"
 	],
 	"filament_max_volumetric_speed": [
+		"12",
+		"12",
+		"12",
+		"12",
+		"12",
 		"12"
 	],
 	"filament_retraction_length": [
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5",
 		"1.5"
 	],
 	"filament_type": [
@@ -37,15 +60,35 @@
 		"Bambu Lab"
 	],
 	"filament_wipe_distance": [
+		"5",
+		"5",
+		"5",
+		"5",
+		"5",
 		"5"
 	],
 	"filament_z_hop_types": [
+		"Normal Lift",
+		"Normal Lift",
+		"Normal Lift",
+		"Normal Lift",
+		"Normal Lift",
 		"Normal Lift"
 	],
 	"nozzle_temperature": [
+		"270",
+		"270",
+		"270",
+		"270",
+		"270",
 		"270"
 	],
 	"nozzle_temperature_initial_layer": [
+		"270",
+		"270",
+		"270",
+		"270",
+		"270",
 		"270"
 	],
 	"overhang_fan_speed": [

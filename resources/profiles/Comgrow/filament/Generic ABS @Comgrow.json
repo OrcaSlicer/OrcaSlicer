@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Comgrow",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "Comgrow Generic ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "jprGDn9oZEZu4N97",
 	"filament_id": "OFY9muEs",

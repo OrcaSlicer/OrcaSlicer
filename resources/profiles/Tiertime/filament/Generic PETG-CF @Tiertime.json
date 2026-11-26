@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG-CF @Tiertime",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "Tiertime Generic PETG-CF",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "97ZKNZS7uHaNzgLJ",
 	"filament_id": "OFoYSJKi",

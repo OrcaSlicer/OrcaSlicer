@@ -54,3 +54,6 @@ __pycache__/
 *.opc
 /.test/
 docs/superpowers/
+ctest_results.xml
+.superpowers/
+docs/sf-plan/

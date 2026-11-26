@@ -111,9 +111,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"0"
-	],
 	"filament_loading_speed": [
 		"0"
 	],
@@ -181,9 +178,6 @@
 		"; filament start gcode\n"
 	],
 	"filament_toolchange_delay": [
-		"0"
-	],
-	"filament_unload_time": [
 		"0"
 	],
 	"filament_unloading_speed": [

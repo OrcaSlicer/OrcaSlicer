@@ -5,9 +5,11 @@
 #ifndef VGCODE_TYPES_HPP
 #define VGCODE_TYPES_HPP
 
+#include <cstddef>
 #define VGCODE_ENABLE_COG_AND_TOOL_MARKERS 0
 
 #include <array>
+#include <limits>
 #include <vector>
 #include <cstdint>
 
@@ -38,6 +40,17 @@ static constexpr float MAX_WIPES_RADIUS_MM = 1.0f;
 //
 using Vec3 = std::array<float, 3>;
 
+// A rectangle of the XY plane, by its corners; the default takes in everything.
+struct XYBox
+{
+    std::array<float, 2> min{ std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest() };
+    std::array<float, 2> max{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+
+    bool contains(const Vec3& p) const { return min[0] <= p[0] && p[0] <= max[0] && min[1] <= p[1] && p[1] <= max[1]; }
+};
+// ORCA: the per vertex data uploaded as GL_RGBA32F, see extract_pos_and_or_hwa().
+using Vec4 = std::array<float, 4>;
+
 //
 // 4x4 square matrix with elements in column-major order:
 // | a[0] a[4] a[8]  a[12] |
@@ -59,6 +72,13 @@ using Color = std::array<uint8_t, 3>;
 // Color palette
 //
 using Palette = std::vector<Color>;
+
+//
+// ORCA: RGB color and opacity, 255 is opaque. Filament colors can be translucent.
+// [3] -> alpha
+//
+using ColorWithAlpha = std::array<uint8_t, 4>;
+using PaletteWithAlpha = std::vector<ColorWithAlpha>;
 
 //
 // Axis aligned box in 3 dimensions
@@ -157,6 +177,21 @@ enum class EGCodeExtrusionRole : uint8_t
 };
 
 static constexpr std::size_t GCODE_EXTRUSION_ROLES_COUNT = static_cast<std::size_t>(EGCodeExtrusionRole::COUNT);
+
+//
+// What the reduced set, drawn while the user is dragging, holds in place of the full toolpaths
+//
+enum class EReducedDetailMode : uint8_t
+{
+    // nothing: no reduced set is built
+    Off,
+    // only the bottom and top layers of the visible range, and the supports, for a caller that
+    // draws the print itself some other way
+    EndLayersOnly,
+    // every role but the infill under the skins and the gap fill: what can be seen from outside
+    ShellOnly,
+    COUNT
+};
 
 //
 // Option types

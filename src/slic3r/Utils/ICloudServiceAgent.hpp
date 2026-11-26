@@ -1,11 +1,11 @@
 #ifndef __I_CLOUD_SERVICE_AGENT_HPP__
 #define __I_CLOUD_SERVICE_AGENT_HPP__
 
+#include "ICameraSignalingChannel.hpp"
 #include "bambu_networking.hpp"
 #include "CloudProvider.hpp"
 #include "../../libslic3r/ProjectTask.hpp"
 #include <string>
-#include <string_view>
 #include <map>
 #include <vector>
 #include <functional>
@@ -200,6 +200,9 @@ public:
 
     /**
      * Force a server state recheck, clearing any cached state.
+     * The result arrives through is_server_connected() and OnServerConnectedFn. Implementations may
+     * return before the check finishes, fold the call into a check already in flight, and ignore
+     * calls while the agent is shutting down.
      */
     virtual int refresh_connection() = 0;
 
@@ -259,6 +262,8 @@ public:
 
     /**
      * Delete a remote preset.
+     * Returns 0 once the cloud holds no preset with this id for the signed-in account, whether this call
+     * deleted it or there was nothing to delete. Any other value means the delete should be tried again later.
      */
     virtual int delete_setting(std::string setting_id) = 0;
 
@@ -327,6 +332,17 @@ public:
      * Request live camera streaming URL.
      */
     virtual int get_camera_url(std::string dev_id, std::function<void(std::string)> callback) = 0;
+
+    /**
+     * Create a camera signaling channel object for P2P camera streaming over WebRTC.
+     * 
+     */
+    virtual std::unique_ptr<ICameraSignalingChannel>
+    create_camera_signaling_channel(const std::string& dev_id)
+    {
+        (void) dev_id;
+        return nullptr;
+    }
 
     /**
      * Fetch staff-picked designs from model mall.

@@ -3,7 +3,16 @@
 
 #include <functional>
 
+#include <wx/chartype.h>
+#include <wx/bitmap.h>
 #include <wx/dataview.h>
+#include <wx/setup.h>
+#include <wx/object.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/rtti.h>
+#include <wx/dvrenderers.h>
+#include <wx/variant.h>
 
 #if wxUSE_MARKUP
     #define SUPPORTS_MARKUP

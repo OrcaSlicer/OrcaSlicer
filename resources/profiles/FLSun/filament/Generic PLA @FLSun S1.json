@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @FLSun S1",
-	"inherits": "Generic PLA @FLSun",
 	"renamed_from": "FLSun S1 PLA Generic",
+	"inherits": "Generic PLA @FLSun",
 	"from": "system",
 	"setting_id": "4f9vGTYsHDbZoVjs",
 	"filament_id": "OFDSrzZ8",

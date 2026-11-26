@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG BigNozzle @RatRig",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "RatRig BigNozzle PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "pRM6IVX5T3y6Ywj4",
 	"filament_id": "OFvD0Qqt",

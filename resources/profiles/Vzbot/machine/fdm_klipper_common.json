@@ -116,8 +116,6 @@
 	"deretraction_speed": [
 		"80"
 	],
-	"z_lift_type": "NormalLift",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "PAUSE\n",

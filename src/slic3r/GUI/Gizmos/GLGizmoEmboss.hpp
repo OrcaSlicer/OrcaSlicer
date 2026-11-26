@@ -10,6 +10,8 @@
 #include "slic3r/Utils/RaycastManager.hpp"
 #include "slic3r/Utils/EmbossStyleManager.hpp"
 
+#include <cstddef>
+#include "libslic3r/ObjectID.hpp"
 #include <optional>
 #include <memory>
 #include <atomic>
@@ -20,6 +22,11 @@
 
 #include <imgui/imgui.h>
 #include <glad/gl.h>
+#include <string>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <vector>
+#include <utility>
 
 class wxFont;
 namespace Slic3r{
@@ -50,7 +57,8 @@ public:
     /// <summary>
     /// Handle pressing of shortcut
     /// </summary>
-    void on_shortcut_key();
+    /// <returns>True when it started creating a text part, whose job opens the gizmo when it ends</returns>
+    bool on_shortcut_key();
 
     /// <summary>
     /// Mirroring from object manipulation panel

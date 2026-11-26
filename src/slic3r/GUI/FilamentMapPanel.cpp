@@ -4,8 +4,30 @@
 #include "Plater.hpp"
 #include "Widgets/MultiNozzleSync.hpp" // manuallySetNozzleCount producer for extruder_nozzle_stats
 #include <algorithm>
+#include <wx/colour.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <optional>
+#include <vector>
+#include <cstddef>
+#include <string>
+#include <wx/chartype.h>
+#include "slic3r/GUI/DragDropPanel.hpp"
+#include <cassert>
+#include <wx/anybutton.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/dcbuffer.h>
+#include <wx/event.h>
+#include <wx/timer.h>
+#include <wx/object.h>
+#include <wx/string.h>
+#include <wx/sizer.h>
+#include <wx/gdicmn.h>
 #include <wx/utils.h>
+#include <wx/window.h>
 #include "wx/graphics.h"
 
 namespace Slic3r { namespace GUI {
@@ -25,75 +47,84 @@ static const wxColour TextErrorColor = wxColour("#E14747");
 
 wxDEFINE_EVENT(wxEVT_INVALID_MANUAL_MAP, wxCommandEvent);
 
+// The edited printer's extruder_max_nozzle_count, none where it lacks the option.
+static std::vector<int> max_nozzle_counts(const PresetBundle &preset_bundle)
+{
+    const auto *opt = preset_bundle.printers.get_edited_preset().config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+    return opt != nullptr ? opt->values : std::vector<int>();
+}
+
 // Orca: whether the edited printer has an extruder that can physically carry several nozzles
 // (only such extruders track a per-volume-type nozzle inventory worth validating against).
 static bool printer_has_multi_nozzle_extruder()
 {
-    auto *max_nozzle_counts_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+    return has_multi_nozzle_extruder(max_nozzle_counts(*wxGetApp().preset_bundle));
+}
+
+bool has_multi_nozzle_extruder(const std::vector<int> &max_nozzle_counts)
+{
     // Skip nil entries: a nullable-int nil is INT_MAX (> 1) and would otherwise falsely pass the gate.
-    return max_nozzle_counts_opt &&
-           std::any_of(max_nozzle_counts_opt->values.begin(), max_nozzle_counts_opt->values.end(),
+    return std::any_of(max_nozzle_counts.begin(), max_nozzle_counts.end(),
                        [](int v) { return v > 1 && v != ConfigOptionIntsNullable::nil_value(); });
+}
+
+NozzleInventory nozzle_inventory(const PresetBundle &preset_bundle)
+{
+    NozzleInventory inventory;
+    inventory.max_nozzle_counts = max_nozzle_counts(preset_bundle);
+    if (const auto *types = preset_bundle.project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type"))
+        inventory.volume_types = types->values;
+    if (const auto *stats = preset_bundle.printers.get_edited_preset().config.option<ConfigOptionStrings>("extruder_nozzle_stats"))
+        inventory.nozzle_counts = get_extruder_nozzle_stats(stats->values);
+    return inventory;
+}
+
+std::optional<NozzleShortage> manual_map_nozzle_shortage(const NozzleInventory  &inventory,
+                                                         const std::vector<int> &filaments,
+                                                         const std::vector<int> &filament_map,
+                                                         const std::vector<int> &filament_volume_map)
+{
+    // Orca: only multi-nozzle extruders carry a meaningful nozzle inventory; validating a plain
+    // dual-extruder printer against it would flag every grouping whenever the stats are stale.
+    if (!has_multi_nozzle_extruder(inventory.max_nozzle_counts))
+        return std::nullopt;
+    const auto nozzle_count = [&inventory](int eid, NozzleVolumeType volume_type) {
+        if (eid >= (int) inventory.nozzle_counts.size())
+            return 0;
+        const auto it = inventory.nozzle_counts[eid].find(volume_type);
+        return it == inventory.nozzle_counts[eid].end() ? 0 : it->second;
+    };
+    // Whether a filament the plate prints goes to extruder `eid`; with `volume_type`, with that nozzle volume type.
+    const auto prints_on = [&](int eid, std::optional<NozzleVolumeType> volume_type) {
+        return std::any_of(filaments.begin(), filaments.end(), [&](int fid) {
+            return fid >= 1 && fid - 1 < (int) filament_map.size() && (filament_map[fid - 1] - 1) == eid &&
+                   (!volume_type || (fid - 1 < (int) filament_volume_map.size() &&
+                                     filament_volume_map[fid - 1] == static_cast<int>(*volume_type)));
+        });
+    };
+    for (int eid = 0; eid < (int) inventory.volume_types.size(); ++eid) {
+        if (!prints_on(eid, std::nullopt))
+            continue;
+        const NozzleVolumeType extruder_volume_type = NozzleVolumeType(inventory.volume_types[eid]);
+        if (extruder_volume_type != nvtHybrid) {
+            if (nozzle_count(eid, extruder_volume_type) == 0)
+                return NozzleShortage{eid, extruder_volume_type};
+            continue;
+        }
+        for (const NozzleVolumeType needed : {NozzleVolumeType::nvtStandard, NozzleVolumeType::nvtHighFlow})
+            if (prints_on(eid, needed) && nozzle_count(eid, needed) == 0)
+                return NozzleShortage{eid, needed};
+    }
+    return std::nullopt;
 }
 
 void FilamentMapManualPanel::OnTimer(wxTimerEvent &)
 {
-    bool             valid          = true;
-    int              invalid_eid    = -1;
-    NozzleVolumeType invalid_nozzle = NozzleVolumeType::nvtStandard;
-    auto             preset_bundle  = wxGetApp().preset_bundle;
-    auto             proj_config    = preset_bundle->project_config;
-    auto             nozzle_volume_values = proj_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
-    std::vector<int> filament_map        = GetFilamentMaps();
-    std::vector<int> filament_volume_map = GetFilamentVolumeMaps();
-    // Orca: only multi-nozzle extruders carry a meaningful nozzle inventory; validating a plain
-    // dual-extruder printer against it would flag every grouping whenever the stats are stale.
-    if (printer_has_multi_nozzle_extruder()) {
-        for (size_t eid = 0; eid < nozzle_volume_values.size(); ++eid) {
-            NozzleVolumeType extruder_volume_type = NozzleVolumeType(nozzle_volume_values[eid]);
-            bool             extruder_used        = std::find_if(m_filament_list.begin(), m_filament_list.end(),
-                                                                 [&filament_map, eid](int fid) {
-                                                        return fid - 1 < (int) filament_map.size() && (filament_map[fid - 1] - 1) == (int) eid;
-                                                    }) != m_filament_list.end();
-
-            if (!extruder_used) {
-                continue;
-            }
-
-            if (extruder_volume_type == nvtHybrid) {
-                int standard_count = getExtruderNozzleCount(preset_bundle, eid, NozzleVolumeType::nvtStandard);
-                int highflow_count = getExtruderNozzleCount(preset_bundle, eid, NozzleVolumeType::nvtHighFlow);
-
-                auto has_material_of_type = [this, eid, &filament_map, &filament_volume_map](NozzleVolumeType volume_type) {
-                    return std::find_if(m_filament_list.begin(), m_filament_list.end(),
-                                        [eid, &filament_map, &filament_volume_map, volume_type](int fid) {
-                                            return fid - 1 < (int) filament_map.size() && (filament_map[fid - 1] - 1) == (int) eid &&
-                                                   fid - 1 < (int) filament_volume_map.size() &&
-                                                   filament_volume_map[fid - 1] == static_cast<int>(volume_type);
-                                        }) != m_filament_list.end();
-                };
-
-                bool has_standard = has_material_of_type(NozzleVolumeType::nvtStandard);
-                bool has_highflow = has_material_of_type(NozzleVolumeType::nvtHighFlow);
-
-                if ((has_standard && standard_count == 0) ||
-                    (has_highflow && highflow_count == 0)) {
-                    valid          = false;
-                    invalid_eid    = eid;
-                    invalid_nozzle = (has_standard && standard_count == 0) ? NozzleVolumeType::nvtStandard : NozzleVolumeType::nvtHighFlow;
-                    break;
-                }
-            } else {
-                int count = getExtruderNozzleCount(preset_bundle, eid, extruder_volume_type);
-                if (count == 0) {
-                    valid          = false;
-                    invalid_eid    = eid;
-                    invalid_nozzle = extruder_volume_type;
-                    break;
-                }
-            }
-        }
-    }
+    const std::optional<NozzleShortage> shortage = manual_map_nozzle_shortage(nozzle_inventory(*wxGetApp().preset_bundle), m_filament_list,
+                                                                              GetFilamentMaps(), GetFilamentVolumeMaps());
+    const bool             valid          = !shortage;
+    const int              invalid_eid    = shortage ? shortage->extruder : -1;
+    const NozzleVolumeType invalid_nozzle = shortage ? shortage->volume_type : NozzleVolumeType::nvtStandard;
 
     bool update_ui  = m_invalid_id != invalid_eid;
     bool send_event = update_ui || m_force_validation;
@@ -105,9 +136,13 @@ void FilamentMapManualPanel::OnTimer(wxTimerEvent &)
             m_errors->Hide();
             m_suggestion_panel->Hide();
         } else {
-            m_errors->SetLabel(wxString::Format(_L("Error: %s extruder has no available %s nozzle, current group result is invalid."),
-                                                invalid_eid == 0 ? _L_CONTEXT("Left", "Nozzle position") : _L_CONTEXT("Right", "Nozzle position"),
-                                                invalid_nozzle == NozzleVolumeType::nvtStandard ? _L("Standard") : _L("High Flow")));
+            // [extruder][nozzle volume type]
+            static const char* const error_msgs[2][2] = {
+                {L("Error: Left extruder has no available Standard nozzle, current group result is invalid."),
+                 L("Error: Left extruder has no available High Flow nozzle, current group result is invalid.")},
+                {L("Error: Right extruder has no available Standard nozzle, current group result is invalid."),
+                 L("Error: Right extruder has no available High Flow nozzle, current group result is invalid.")}};
+            m_errors->SetLabel(_(error_msgs[invalid_eid == 0 ? 0 : 1][invalid_nozzle == NozzleVolumeType::nvtStandard ? 0 : 1]));
             // Re-wrap: wrapping only applies to the label text present when Wrap is called,
             // and the label was empty at construction time.
             m_errors->Wrap(FromDIP(520));
@@ -185,6 +220,12 @@ std::vector<int> FilamentMapManualPanel::GetFilamentVolumeMaps() const
     auto preset_bundle        = wxGetApp().preset_bundle;
     auto proj_config          = preset_bundle->project_config;
     auto nozzle_volume_values = proj_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
+    // The high-flow panel of the right extruder also holds an E3D High Flow nozzle; keep that type
+    // instead of writing plain High Flow, which the extruder does not have.
+    const int  right_extruder_id      = 1;
+    const bool right_e3d_high_flow    = nozzle_volume_values.size() > right_extruder_id &&
+                                        nozzle_volume_values[right_extruder_id] == static_cast<int>(NozzleVolumeType::nvtE3DHighFlow);
+    const int  right_high_flow_volume = static_cast<int>(right_e3d_high_flow ? NozzleVolumeType::nvtE3DHighFlow : NozzleVolumeType::nvtHighFlow);
 
     for (int i = 0; i < (int) volume_map.size(); ++i) {
         int filament_id = i + 1;
@@ -199,7 +240,7 @@ std::vector<int> FilamentMapManualPanel::GetFilamentVolumeMaps() const
             }
         }
         else if (std::find(right_high_flow_filaments.begin(), right_high_flow_filaments.end(), filament_id) != right_high_flow_filaments.end()) {
-            volume_map[i] = static_cast<int>(NozzleVolumeType::nvtHighFlow);
+            volume_map[i] = right_high_flow_volume;
         }
         else if (std::find(right_standard_filaments.begin(), right_standard_filaments.end(), filament_id) != right_standard_filaments.end()) {
             volume_map[i] = static_cast<int>(NozzleVolumeType::nvtStandard);
@@ -429,7 +470,8 @@ void FilamentMapManualPanel::UpdateNozzleCountDisplay()
     if (m_right_panel->IsUseSeparation()) {
         int      standard_count = getExtruderNozzleCount(preset_bundle, 1, NozzleVolumeType::nvtStandard);
         int      highflow_count = getExtruderNozzleCount(preset_bundle, 1, NozzleVolumeType::nvtHighFlow);
-        wxString right_title    = _L("Right Nozzle") + wxString::Format("(Std: %d, HF: %d)", standard_count, highflow_count);
+        // TRN Nozzle counts: Std = standard flow, HF = high flow
+        wxString right_title    = _L("Right Nozzle") + wxString::Format(_L("(Std: %d, HF: %d)"), standard_count, highflow_count);
         m_right_panel->UpdateLabel(right_title);
     } else {
         int      right_count = getExtruderNozzleCountTotal(preset_bundle, 1);
@@ -499,22 +541,26 @@ GUI::FilamentMapBtnPanel::FilamentMapBtnPanel(wxWindow *parent, const wxString &
     m_btn    = new wxBitmapButton(this, wxID_ANY, icon_enabled, wxDefaultPosition, wxDefaultSize, wxNO_BORDER);
     m_btn->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
+    auto icon_sizer = new wxBoxSizer(wxVERTICAL);
+    icon_sizer->Add(m_btn  , 0, wxLEFT, horizontal_margin);
+
     m_label = new wxStaticText(this, wxID_ANY, label);
     m_label->SetFont(Label::Head_14);
     m_label->SetForegroundColour(TextNormalBlackColor);
 
-    auto label_sizer = new wxBoxSizer(wxHORIZONTAL);
-    label_sizer->AddStretchSpacer();
-    label_sizer->Add(m_btn, 0, wxEXPAND | wxLEFT, FromDIP(1));
-    label_sizer->Add(m_label, 0, wxEXPAND| wxALL, FromDIP(3));
-    label_sizer->AddStretchSpacer();
+    auto label_sizer = new wxBoxSizer(wxVERTICAL);
+    label_sizer->Add(m_label, 0, wxLEFT, horizontal_margin);
 
     m_disable_tip = new Label(this, _L("(Sync with printer)"));
+    m_disable_tip->SetFont(Label::Body_12);
+    label_sizer->AddSpacer(FromDIP(2));
+    label_sizer->Add(m_disable_tip, 0, wxLEFT, horizontal_margin);
 
-    sizer->AddSpacer(FromDIP(32));
+    sizer->AddSpacer(FromDIP(15));
+    sizer->Add(icon_sizer, 0, wxEXPAND);
+    sizer->AddSpacer(FromDIP(10));
     sizer->Add(label_sizer, 0, wxEXPAND);
-    sizer->Add(m_disable_tip, 0, wxALIGN_CENTER);
-    sizer->AddSpacer(FromDIP(3));
+    sizer->AddSpacer(FromDIP(6));
 
     auto detail_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_detail          = new Label(this, detail);

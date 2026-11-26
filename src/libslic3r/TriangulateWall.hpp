@@ -1,7 +1,11 @@
 #ifndef TRIANGULATEWALL_HPP
 #define TRIANGULATEWALL_HPP
 
+#include "Point.hpp"
 #include "libslic3r/Polygon.hpp"
+#include <cstddef>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 

@@ -1,0 +1,59 @@
+{
+	"type": "filament",
+	"name": "JAYO PETG @base",
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"filament_id": "OF63bToB",
+	"instantiation": "false",
+	"filament_vendor": [
+		"JAYO"
+	],
+	"filament_density": [
+		"1.27"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"nozzle_temperature": [
+		"245"
+	],
+	"nozzle_temperature_initial_layer": [
+		"245"
+	],
+	"nozzle_temperature_range_low": [
+		"240"
+	],
+	"nozzle_temperature_range_high": [
+		"260"
+	],
+	"hot_plate_temp": [
+		"55"
+	],
+	"hot_plate_temp_initial_layer": [
+		"55"
+	],
+	"textured_plate_temp": [
+		"55"
+	],
+	"textured_plate_temp_initial_layer": [
+		"55"
+	],
+	"fan_min_speed": [
+		"60"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"overhang_fan_threshold": [
+		"95%"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	]
+}

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA @Anycubic",
-	"inherits": "fdm_filament_pa",
 	"renamed_from": "Anycubic Generic PA",
+	"inherits": "fdm_filament_pa",
 	"from": "system",
 	"setting_id": "5MJsYpJIimshIDZm",
 	"filament_id": "OFg8ndtj",

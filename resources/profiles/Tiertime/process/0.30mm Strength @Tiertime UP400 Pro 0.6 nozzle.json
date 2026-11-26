@@ -7,8 +7,6 @@
 	"instantiation": "true",
 	"description": "It has a big layer height with optimized settings for stronger parts.",
 	"elefant_foot_compensation": "0.15",
-	"smooth_coefficient": "150",
-	"overhang_totally_speed": "50",
 	"sparse_infill_density": "25%",
 	"wall_loops": "3",
 	"compatible_printers": [

@@ -1,0 +1,95 @@
+{
+    "type": "filament",
+    "name": "Bambu Support For PLA @BBL X2D 0.8 nozzle",
+    "inherits": "Bambu Support For PLA @base",
+    "from": "system",
+    "setting_id": "GFSS02_43",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_dev_ams_drying_temperature": [
+        "60",
+        "60",
+        "50",
+        "50"
+    ],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "12",
+        "12",
+        "12"
+    ],
+    "filament_flow_ratio": [
+        "1",
+        "1",
+        "1",
+        "1"
+    ],
+    "filament_flush_temp_fast": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_max_volumetric_speed": [
+        "12",
+        "12",
+        "12",
+        "12"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_tower_interface_print_temp": [
+        "220"
+    ],
+    "first_x_layer_fan_speed": [
+        "40"
+    ],
+    "include": [
+        "fdm_filament_template_direct_bowden"
+    ],
+    "nozzle_temperature": [
+        "220",
+        "220",
+        "220",
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220",
+        "220",
+        "220",
+        "220"
+    ],
+    "retraction_distances_when_ec": [
+        "3",
+        "3",
+        "4",
+        "4"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

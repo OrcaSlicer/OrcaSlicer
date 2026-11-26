@@ -1,11 +1,29 @@
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
+#include <initializer_list>
+#include <utility>
+#include <vector>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "test_helpers.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Print.hpp"
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
@@ -25,6 +43,25 @@ TriangleMesh two_tier_mesh()
     TriangleMesh mesh = lower;
     mesh.merge(column);
     mesh.merge(upper);
+    return mesh;
+}
+
+// A slab on a column overhangs it on one side. One layer higher, two wings leave the slab's other
+// two sides, so both wings are new overhangs on the same layer, next to the slab's overhang.
+TriangleMesh slab_with_two_wings_mesh()
+{
+    TriangleMesh column = make_cube(10, 10, 5.1);
+    TriangleMesh slab   = make_cube(14, 10, 5);
+    TriangleMesh front  = make_cube(4, 6.1, 4.8);
+    TriangleMesh back   = make_cube(4, 6.1, 4.8);
+    // Each part overlaps the one it joins rather than resting on it; a coplanar join slices ambiguously.
+    slab.translate(0.f, 0.f, 5.f);
+    front.translate(10.f, -6.f, 5.2f);
+    back.translate(10.f, 9.9f, 5.2f);
+    TriangleMesh mesh = column;
+    mesh.merge(slab);
+    mesh.merge(front);
+    mesh.merge(back);
     return mesh;
 }
 
@@ -187,4 +224,164 @@ TEST_CASE("Tree support toolpaths do not depend on the MST tie order", "[TreeSup
         { "tree_support_branch_angle",    40 },
         { "support_line_width",           0.4 },
     });
+}
+
+// Branches landing on the lower plate get the bottom gap and then every bottom interface layer asked for. The contact
+// search stops at the gap and interface height below each layer, so it must still reach the plate from the highest
+// interface layer, and the layers above must not get an interface.
+TEST_CASE("Tree support resting on the model gets every bottom interface layer above the gap", "[TreeSupport]")
+{
+    const int    interface_layers = 2;
+    const double lower_top = 3., upper_bottom = 16.; // two_tier_mesh()
+    Slic3r::Print print;
+    slice_with_tree_support(two_tier_mesh(), print, "tree_slim", 30, 0, 0, {
+        { "support_interface_top_layers",    interface_layers },
+        { "support_interface_bottom_layers", interface_layers },
+        { "support_bottom_z_distance",       0.2 },
+    });
+
+    int above_plate = 0, between_plates = 0;
+    for (const SupportLayer *layer : print.objects().front()->support_layers()) {
+        bool has_interface = false;
+        for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
+            has_interface |= entity->role() == erSupportMaterialInterface;
+        if (! has_interface)
+            continue;
+        if (layer->print_z > lower_top && layer->print_z < lower_top + 1.5)
+            ++above_plate;
+        else if (layer->print_z < upper_bottom - 1.5)
+            ++between_plates;
+    }
+    CHECK(above_plate == interface_layers);
+    CHECK(between_plates == 0);
+}
+
+// Each node under an overhang adds the whole overhang to its roof list, so the top interface is a solid sheet rather
+// than the branch circles alone. Counting interface layers would not notice the sheet missing.
+TEST_CASE("Tree support top interface covers the whole overhang", "[TreeSupport]")
+{
+    const double upper_bottom = 16.; // two_tier_mesh()
+    Slic3r::Print print;
+    slice_with_tree_support(two_tier_mesh(), print, "tree_slim", 30, 0, 0, {
+        // The test print is centred on the origin, and tree support drops nodes off the bed.
+        { "printable_area",               "-100x-100,100x-100,100x100,-100x100" },
+        { "support_interface_top_layers", 2 },
+        { "support_interface_spacing",    0 },
+    });
+    const PrintObject &object = *print.objects().front();
+
+    // The underside of the upper plate, less the column and a margin for the xy distance kept around it.
+    ExPolygons underside, column;
+    for (const Layer *layer : object.layers())
+        if (layer->print_z < upper_bottom)
+            column = layer->lslices;
+        else if (underside.empty())
+            underside = layer->lslices;
+    const ExPolygons overhang = diff_ex(underside, offset_ex(column, scaled<float>(2.)));
+    REQUIRE(area(overhang) > 0);
+
+    const SupportLayer *top_interface = nullptr;
+    for (const SupportLayer *layer : object.support_layers())
+        if (layer->print_z < upper_bottom)
+            for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
+                if (entity->role() == erSupportMaterialInterface)
+                    top_interface = layer;
+    REQUIRE(top_interface != nullptr);
+
+    Polygons covered;
+    for (const ExtrusionEntity *entity : top_interface->support_fills.flatten().entities)
+        if (entity->role() == erSupportMaterialInterface)
+            entity->polygons_covered_by_width(covered, scaled<float>(0.05));
+    const double uncovered = area(diff_ex(overhang, covered)) / area(overhang);
+    INFO("uncovered fraction " << uncovered);
+    CHECK(uncovered < 0.02);
+}
+
+// Both wings join the cluster of the slab's overhang on the same layer, and each must still get its own support.
+TEST_CASE("Tree support reaches every overhang that joins a cluster on the same layer", "[TreeSupport][Regression]")
+{
+    const char *style = GENERATE("tree_hybrid", "organic");
+    CAPTURE(style);
+    Slic3r::Print print;
+    slice_with_tree_support(slab_with_two_wings_mesh(), print, style, 30, 0, 0, {
+        // The test print is centred on the origin, and tree support drops nodes off the bed.
+        { "printable_area",             "-100x-100,100x-100,100x100,-100x100" },
+        { "initial_layer_print_height", 0.2 },
+        // Overhangs join a cluster within one line width, and the default of 0 never joins them.
+        { "line_width",                 0.45 },
+    });
+    const PrintObject *object = print.objects().front();
+
+    // The slab is 10 mm deep and centred between the wings, which reach 6 mm past it on each side.
+    const BoundingBox top        = get_extents(object->layers().back()->lslices);
+    const coord_t     wing_depth = (top.size().y() - scaled<coord_t>(10.)) / 2;
+    REQUIRE(wing_depth > scaled<coord_t>(5.));
+    // Points more than 1 mm past the slab's edge are under a wing, not under the slab's own overhang.
+    const coord_t front_limit = top.min.y() + wing_depth - scaled<coord_t>(1.);
+    const coord_t back_limit  = top.max.y() - wing_depth + scaled<coord_t>(1.);
+
+    // The wings start at 5.2 mm, so their contact is in the support layers just below.
+    size_t under_front = 0;
+    size_t under_back  = 0;
+    for (const SupportLayer *layer : object->support_layers()) {
+        if (layer->print_z < 4. || layer->print_z > 5.2 + EPSILON)
+            continue;
+        Points points;
+        layer->support_fills.collect_points(points);
+        for (const Point &pt : points) {
+            if (pt.y() < front_limit)
+                ++under_front;
+            else if (pt.y() > back_limit)
+                ++under_back;
+        }
+    }
+    // The wings mirror each other, so each gets a similar amount. Branches spreading from the slab
+    // put a little under a wing even when the wing itself has no contact.
+    CAPTURE(under_front, under_back);
+    REQUIRE(under_back > 0);
+    REQUIRE(2 * under_front > under_back);
+    REQUIRE(2 * under_back > under_front);
+}
+
+// Hybrid tree support grows its first layer by raft_first_layer_expansion after the support was clipped to
+// the bed, so the grown footprint must be clipped again.
+TEST_CASE("Hybrid tree support first layer expansion stays on the bed", "[TreeSupport][Regression]")
+{
+    const double bed_max_x = 56.;
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "printable_area",             "0x0,56x0,56x100,0x100" },
+        { "enable_support",             1 },
+        { "support_type",               "tree(auto)" },
+        { "support_style",              "tree_hybrid" },
+        { "raft_layers",                0 },
+        { "raft_first_layer_expansion", 5 },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+    // A block with a ledge that overhangs to 2 mm from the bed's right edge, closer than the expansion.
+    TriangleMesh block = make_cube(20, 40, 8);
+    TriangleMesh ledge = make_cube(9.1, 40, 1.9);
+    block.translate(25.f, 30.f, 0.f);
+    // The ledge overlaps the block rather than touching it; a coplanar join slices ambiguously.
+    ledge.translate(44.9f, 30.f, 6.f);
+    block.merge(ledge);
+
+    Slic3r::Print print;
+    Slic3r::Model model;
+    Slic3r::Test::init_print(std::vector<TriangleMesh>{ std::move(block) }, print, model, config, nullptr, false);
+    print.process();
+
+    const PrintObject *object = print.objects().front();
+    REQUIRE(!object->support_layers().empty());
+    Points first_layer;
+    object->support_layers().front()->support_fills.collect_points(first_layer);
+    REQUIRE(!first_layer.empty());
+    const Point shift = object->instances().front().shift;
+    double max_x = 0.;
+    for (const Point &pt : first_layer)
+        max_x = std::max(max_x, unscale<double>(pt.x() + shift.x()));
+    // Without the expansion the support stops near the ledge's edge at 54 mm, so this shows the expansion ran.
+    REQUIRE(max_x > 55.);
+    CHECK(max_x <= bed_max_x);
 }

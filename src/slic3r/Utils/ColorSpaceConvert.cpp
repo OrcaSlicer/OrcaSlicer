@@ -2,6 +2,12 @@
 
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
+#include <tuple>
+#include <math.h>
+#include <string>
+#include <vector>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
 #include <wx/colordlg.h>
 #include <cmath>
 

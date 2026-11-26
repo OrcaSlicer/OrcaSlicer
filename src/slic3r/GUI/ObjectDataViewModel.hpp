@@ -2,9 +2,18 @@
 #define slic3r_GUI_ObjectDataViewModel_hpp_
 
 #include <boost/log/trivial.hpp>
+#include <utility>
+#include <cstddef>
+#include <string>
+#include <cassert>
+#include <tuple>
 #include <wx/dataview.h>
 #include <vector>
 #include <map>
+#include <wx/dynarray.h>
+#include <wx/string.h>
+#include <wx/variant.h>
+#include <wx/event.h>
 
 #include "ExtraRenderers.hpp"
 
@@ -359,6 +368,9 @@ public:
     ~ObjectDataViewModel();
 
     void Init();
+    // `row_object` while `model_objects` holds it, else null. A delete frees the model object before its row
+    // goes, and macOS reads the row in between; compares pointers only, so a freed one is never read.
+    static const ModelObject* live_model_object(const ModelObject* row_object, const std::vector<ModelObject*>& model_objects);
     std::map<int, std::map<int, int>> &get_ui_and_3d_volume_map() { return m_ui_and_3d_volume_maps; }
     int   get_real_volume_index_in_3d(int ui_object_value, int ui_volume_value)
     {

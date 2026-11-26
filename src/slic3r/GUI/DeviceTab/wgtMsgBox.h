@@ -1,6 +1,7 @@
 #ifndef WGTMSGBOX_H
 #define WGTMSGBOX_H
 
+#include <wx/event.h>
 #include <wx/wx.h>
 #include <wx/panel.h>
 #include <wx/stattext.h>

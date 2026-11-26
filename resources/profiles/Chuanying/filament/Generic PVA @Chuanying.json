@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PVA @Chuanying",
-	"inherits": "Generic PLA @Chuanying",
 	"renamed_from": "Chuanying Generic PVA",
+	"inherits": "Generic PLA @Chuanying",
 	"from": "system",
 	"setting_id": "UTutnObeQqlZxe0B",
 	"filament_id": "OFDvXujf",
@@ -96,9 +96,6 @@
 	"filament_is_support": [
 		"1"
 	],
-	"filament_load_time": [
-		"0"
-	],
 	"filament_loading_speed": [
 		"28"
 	],
@@ -170,9 +167,6 @@
 	],
 	"filament_type": [
 		"PVA"
-	],
-	"filament_unload_time": [
-		"0"
 	],
 	"filament_unloading_speed": [
 		"35"

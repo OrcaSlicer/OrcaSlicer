@@ -1,12 +1,24 @@
 #ifndef _WIPE_TOWER_DIALOG_H_
 #define _WIPE_TOWER_DIALOG_H_
 
+#include <string>
+#include <vector>
+#include <wx/colour.h>
+#include <cstddef>
 #include <wx/dialog.h>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/string.h>
 #include <wx/webview.h>
+#include "libslic3r/FlushVolCalc.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "Widgets/SpinInput.hpp"
 
 #include "RammingChart.hpp"
+
+// The range the Flushing volumes dialog takes for a nozzle's flush multiplier.
+inline constexpr float g_min_flush_multiplier = 0.f;
+inline constexpr float g_max_flush_multiplier = 3.f;
 
 
 class RammingPanel : public wxPanel {
@@ -40,6 +52,11 @@ private:
 
 
 bool is_flush_config_modified();
+// Writes the project's flushing volumes (nozzles x slots x slots in config order, every slot) and
+// multipliers (one per nozzle) as the Flushing volumes dialog's OK does: the flushing button's
+// warning, the selections in AppConfig and the project's modified state follow. The caller then
+// schedules the background process.
+void apply_flushing_volumes(const std::vector<double> &matrix, const std::vector<double> &multipliers);
 void open_flushing_dialog(wxEvtHandler *parent, const wxEvent &event);
 
 class WipingDialog : public wxDialog

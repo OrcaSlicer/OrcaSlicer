@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @CoPrint",
-	"inherits": "Generic PLA @CoPrint",
 	"renamed_from": "CoPrint Generic TPU",
+	"inherits": "Generic PLA @CoPrint",
 	"from": "system",
 	"setting_id": "0V6UoaCfNUIwYwah",
 	"filament_id": "OFgbpcy9",

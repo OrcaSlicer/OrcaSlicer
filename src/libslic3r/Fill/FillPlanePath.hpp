@@ -1,11 +1,17 @@
 #ifndef slic3r_FillPlanePath_hpp_
 #define slic3r_FillPlanePath_hpp_
 
+#include <cstddef>
+#include <cmath>
 #include <map>
+#include <utility>
 
 #include "../libslic3r.h"
 
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
 
 namespace Slic3r {
 
@@ -23,6 +29,7 @@ public:
     virtual bool    clips() const { return false; }
     // The output grid the generated points are snapped to.
     const Point     scaled(const Vec2d& fpt) const { return { coord_t(floor(fpt.x() * m_scale_out + 0.5)), coord_t(floor(fpt.y() * m_scale_out + 0.5)) }; }
+    double          scale_out() const { return m_scale_out; }
 
 protected:
     // Output polyline.

@@ -49,6 +49,9 @@
 	"filament_cooling_moves": [
 		"2"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_loading_speed": [
 		"10"
 	],

@@ -2,12 +2,31 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm> //For std::partition_copy and std::min_element.
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <cassert>
+#include <cmath>
+#include <math.h>
+#include <limits>
 #include <unordered_set>
 
 #include "WallToolPaths.hpp"
 
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Arachne/utils/PolygonsPointIndex.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Arachne/BeadingStrategy/BeadingStrategyFactory.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
+#include "libslic3r/Arachne/utils/SparsePointGrid.hpp"
+#include "libslic3r/Arachne/utils/SquareGrid.hpp"
 #include "SkeletalTrapezoidation.hpp"
 #include "../ClipperUtils.hpp"
+#include "libslic3r/libslic3r.h"
 #include "utils/linearAlg2D.hpp"
 #include "EdgeGrid.hpp"
 #include "utils/SparseLineGrid.hpp"
@@ -17,6 +36,8 @@
 #include "Utils.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <utility>
+#include <vector>
 
 //#define ARACHNE_STITCH_PATCH_DEBUG
 
@@ -171,8 +192,9 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
                 bool has_intersection = Line(previous_previous, previous).intersection_infinite(Line(current, next), &intersection_point);
                 if (!has_intersection
                     || Line::distance_to_infinite_squared(intersection_point, previous, current) > double(allowed_error_distance_squared)
-                    || (intersection_point - previous).cast<int64_t>().squaredNorm() > smallest_line_segment_squared  // The intersection point is way too far from the 'previous'
-                    || (intersection_point - next).cast<int64_t>().squaredNorm() > smallest_line_segment_squared)     // and 'next' points, so it shouldn't replace 'current'
+                    // Squared in double: nearly parallel lines can meet metres away, which overflows int64.
+                    || (intersection_point - previous).cast<double>().squaredNorm() > double(smallest_line_segment_squared)  // The intersection point is way too far from the 'previous'
+                    || (intersection_point - next).cast<double>().squaredNorm() > double(smallest_line_segment_squared))     // and 'next' points, so it shouldn't replace 'current'
                 {
                     // We can't find a better spot for it, but the size of the line is more than 5 micron.
                     // So the only thing we can do here is leave it in...
@@ -263,10 +285,8 @@ std::unique_ptr<LocToLineGrid>                                               cre
  */
 void fixSelfIntersections(const coord_t epsilon, Polygons &thiss)
 {
-    if (epsilon < 1) {
-        ClipperLib::SimplifyPolygons(ClipperUtils::PolygonsProvider(thiss), ClipperLib::pftEvenOdd);
+    if (epsilon < 1)
         return;
-    }
 
     const int64_t half_epsilon = (epsilon + 1) / 2;
 
@@ -304,8 +324,6 @@ void fixSelfIntersections(const coord_t epsilon, Polygons &thiss)
             }
         }
     }
-
-    ClipperLib::SimplifyPolygons(ClipperUtils::PolygonsProvider(thiss), ClipperLib::pftEvenOdd);
 }
 
 /*!
@@ -352,18 +370,11 @@ void removeDegenerateVerts(Polygons &thiss)
 
 void removeSmallAreas(Polygons &thiss, const double min_area_size, const bool remove_holes)
 {
-    auto to_path = [](const Polygon &poly) -> ClipperLib::Path {
-        ClipperLib::Path out;
-        for (const Point &pt : poly.points)
-            out.emplace_back(ClipperLib::cInt(pt.x()), ClipperLib::cInt(pt.y()));
-        return out;
-    };
-
     auto new_end = thiss.end();
     if (remove_holes) {
         for (auto it = thiss.begin(); it < new_end;) {
             // All polygons smaller than target are removed by replacing them with a polygon from the back of the vector.
-            if (fabs(ClipperLib::Area(to_path(*it))) < min_area_size) {
+            if (fabs(it->area()) < min_area_size) {
                 --new_end;
                 *it = std::move(*new_end);
                 continue; // Don't increment the iterator such that the polygon just swapped in is checked next.
@@ -374,7 +385,7 @@ void removeSmallAreas(Polygons &thiss, const double min_area_size, const bool re
         // For each polygon, computes the signed area, move small outlines at the end of the vector and keep pointer on small holes
         Polygons small_holes;
         for (auto it = thiss.begin(); it < new_end;) {
-            if (double area = ClipperLib::Area(to_path(*it)); fabs(area) < min_area_size) {
+            if (double area = it->area(); fabs(area) < min_area_size) {
                 if (area >= 0) {
                     --new_end;
                     if (it < new_end) {
@@ -773,7 +784,7 @@ void WallToolPaths::separateOutInnerContour()
     //To get a correct shape, we need to make the outside contour positive and any holes inside negative.
     //This can be done by applying the even-odd rule to the shape. This rule is not sensitive to the winding order of the polygon.
     //The even-odd rule would be incorrect if the polygon self-intersects, but that should never be generated by the skeletal trapezoidation.
-    inner_contour = union_(inner_contour, ClipperLib::PolyFillType::pftEvenOdd);
+    inner_contour = union_(inner_contour, pftEvenOdd);
 }
 
 const Polygons& WallToolPaths::getInnerContour()
@@ -802,7 +813,8 @@ bool WallToolPaths::removeEmptyToolPaths(std::vector<VariableWidthLines> &toolpa
      * Get the order constraints of the insets when printing walls per region / hole.
      * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
      *
-     * Odd walls should always go after their enclosing wall polygons.
+     * Odd walls follow the same order as even ones, so that the centre line of a narrow wall is an inner wall
+     * like any other when printing inner to outer.
      *
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
  */
@@ -876,12 +888,7 @@ WallToolPaths::ExtrusionLineSet WallToolPaths::getRegionOrder(const std::vector<
                 continue; // not directly adjacent
             if (!shorter_then(loc_here - lineloc_nearby.j.p, (lineloc_here.j.w + lineloc_nearby.j.w) / 2 * diagonal_extension))
                 continue; // points are too far away from each other
-            if (here->is_odd || nearby->is_odd) {
-                if (here->is_odd && !nearby->is_odd && nearby->inset_idx < here->inset_idx)
-                    order_requirements.emplace(std::make_pair(nearby, here));
-                if (nearby->is_odd && !here->is_odd && here->inset_idx < nearby->inset_idx)
-                    order_requirements.emplace(std::make_pair(here, nearby));
-            } else if ((nearby->inset_idx < here->inset_idx) == outer_to_inner) {
+            if ((nearby->inset_idx < here->inset_idx) == outer_to_inner) {
                 order_requirements.emplace(std::make_pair(nearby, here));
             } else {
                 assert((nearby->inset_idx > here->inset_idx) == outer_to_inner);

@@ -1,4 +1,3 @@
-#include "libslic3r/libslic3r.h"
 #include "GLShader.hpp"
 
 #include "3DScene.hpp"
@@ -6,11 +5,21 @@
 #include "libslic3r/format.hpp"
 #include "libslic3r/Color.hpp"
 
+#include <array>
+#include <algorithm>
 #include <boost/nowide/fstream.hpp>
+#include <cstring>
+#include <cstddef>
 #include <glad/gl.h>
 #include <cassert>
 
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <initializer_list>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include "libslic3r/Point.hpp"
 
 namespace Slic3r {
 
