@@ -191,8 +191,9 @@ def create_fixtures(root):
         "enable_support": "0", "reduce_infill_retraction": "1",
         "layer_height": "0.2", "initial_layer_print_height": "0.2",
         "sparse_infill_density": "15%", "sparse_infill_pattern": "rectilinear",
-        # Limit infill anchoring so this convex model yields separate infill roads.
-        "infill_anchor": "0", "infill_anchor_max": "0.1",
+        # Disable infill connections so this convex model yields separate infill roads.
+        # FillParams::dont_connect() requires anchor_length_max below 0.05 mm.
+        "infill_anchor": "0", "infill_anchor_max": "0",
         "wall_loops": "2", "top_shell_layers": "0", "bottom_shell_layers": "0",
         "gcode_comments": "1", "filename_format": "fixture.gcode",
     }
