@@ -279,6 +279,10 @@ jobs:
     if: ${{ !cancelled() && success() }}
     # Follows whichever Linux leg built the validator.
     runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04-arm' }}
+    # actions: read finds the base branch's fingerprints for the comparison below.
+    permissions:
+      actions: read
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -294,8 +298,8 @@ jobs:
         run: |
           chmod +x validator-bin/OrcaSlicer_profile_validator
           ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2 -o "${{ runner.temp }}/sliced-gcode"
-      # The fingerprints are for comparing builds, not a check: neither step
-      # below may fail the job.
+      # The fingerprints are for comparing builds, not a check: none of the
+      # steps below may fail the job.
       - name: Fingerprint the sliced G-code
         id: fingerprint
         continue-on-error: true
@@ -303,6 +307,22 @@ jobs:
         run: |
           mkdir -p "${{ runner.temp }}/gcode-fingerprints"
           python3 scripts/gcode_fingerprint.py fingerprint "${{ runner.temp }}/sliced-gcode" -o "${{ runner.temp }}/gcode-fingerprints/fingerprints.tsv"
+          python3 scripts/ci_check_gcode.py made-with -o "${{ runner.temp }}/gcode-fingerprints/made_with.txt"
+      # check_gcode_comment.yml posts report.txt on a pull request with the
+      # check-gcode label. HEAD is the merge commit, so HEAD^1 is the base.
+      - name: Compare with the base branch
+        if: ${{ github.event_name == 'pull_request' && steps.fingerprint.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          out="${{ runner.temp }}/gcode-fingerprints"
+          echo "$PR_NUMBER" > "$out/pr_number.txt"
+          git fetch --no-tags --depth=2 origin "$(git rev-parse HEAD)"
+          python3 scripts/ci_check_gcode.py report --repo "$GITHUB_REPOSITORY" --branch "$GITHUB_BASE_REF" \
+            --base-sha "$(git rev-parse HEAD^1)" --head-dir "$out" --out "$out/report.txt" --summary "$GITHUB_STEP_SUMMARY"
       - name: Upload the fingerprints
         if: ${{ steps.fingerprint.outcome == 'success' }}
         continue-on-error: true
@@ -310,7 +330,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: gcode-fingerprints
-          path: ${{ runner.temp }}/gcode-fingerprints/fingerprints.tsv
+          path: ${{ runner.temp }}/gcode-fingerprints/
           # A re-run of the job replaces the file.
           overwrite: true
           # A pull request's file is compared with its base branch's, so those are kept longer.
