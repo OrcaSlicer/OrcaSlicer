@@ -69,6 +69,11 @@
 
 namespace Slic3r {
 namespace GUI {
+
+// ORCA: the colors of the two selections, see GLGizmoMeasure.hpp
+const ColorRGBA& selected_1st_color() { return GUI_App::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_1ST_COLOR : SELECTED_1ST_COLOR; }
+const ColorRGBA& selected_2nd_color() { return GUI_App::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_2ND_COLOR : SELECTED_2ND_COLOR; }
+
 std::string GLGizmoMeasure::format_double(double value)
 {
     char buf[1024];

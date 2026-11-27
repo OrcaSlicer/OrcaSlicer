@@ -4602,6 +4602,11 @@ void GUI_App::select_machine(const std::string& agent_id)
     select_dev(dev_id);
 }
 
+bool GUI_App::use_colorblind_friendly_colors()
+{
+    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool("colorblind_friendly_colors");
+}
+
 bool GUI_App::dark_mode()
 {
 #ifdef SUPPORT_DARK_MODE

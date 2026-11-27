@@ -93,6 +93,8 @@ public:
     static ColorRGBA SLA_PAD_COLOR;
     static ColorRGBA NEUTRAL_COLOR;
     static ColorRGBA UNPRINTABLE_COLOR;
+    // ORCA: the color the overhangs are marked with, the overhang_color of the shaders
+    static ColorRGB overhang_color();
     static std::array<ColorRGBA, 5> MODEL_COLOR;
     static ColorRGBA MODEL_MIDIFIER_COL;
     static ColorRGBA MODEL_NEGTIVE_COL;

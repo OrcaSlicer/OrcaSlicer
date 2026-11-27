@@ -1481,7 +1481,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
     m_viewer.set_dim_previous_layers_brightness(0.01f * std::stoi(get_app_config()->get("preview_dim_previous_layers_brightness")));
     m_viewer.set_translucent_filaments(get_app_config()->get_bool("preview_translucent_filaments"));
-    set_colorblind_friendly_colors(get_app_config()->get_bool("colorblind_friendly_colors"));
+    set_colorblind_friendly_colors(GUI_App::use_colorblind_friendly_colors());
 
     // avoid processing if called with the same gcode_result.
     // On a belt printer the toolpath geometry fed to libvgcode also depends on the

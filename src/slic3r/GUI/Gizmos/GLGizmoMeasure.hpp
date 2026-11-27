@@ -41,10 +41,9 @@ enum class AssemblyMode : unsigned char {
 static const Slic3r::ColorRGBA SELECTED_1ST_COLOR = {0.25f, 0.75f, 0.75f, 1.0f};
 static const Slic3r::ColorRGBA SELECTED_2ND_COLOR = {0.75f, 0.25f, 0.75f, 1.0f};
 // ORCA: the two above, or their variants when "Colorblind friendly colors" is enabled in Preferences
-inline const Slic3r::ColorRGBA& selected_1st_color() { return GLGizmoBase::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_1ST_COLOR : SELECTED_1ST_COLOR; }
-inline const Slic3r::ColorRGBA& selected_2nd_color() { return GLGizmoBase::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_2ND_COLOR : SELECTED_2ND_COLOR; }
+const Slic3r::ColorRGBA& selected_1st_color();
+const Slic3r::ColorRGBA& selected_2nd_color();
 static const Slic3r::ColorRGBA NEUTRAL_COLOR      = {0.5f, 0.5f, 0.5f, 1.0f};
-static const Slic3r::ColorRGBA HOVER_COLOR        = ColorRGBA::GREEN();
 
 static const int POINT_ID        = 100;
 static const int EDGE_ID         = 200;

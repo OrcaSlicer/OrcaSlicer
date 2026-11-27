@@ -56,16 +56,21 @@ namespace cereal { class BinaryInputArchive; }
 namespace Slic3r::GUI {
 
 // ORCA: the two brush colors, and the ones used in their place when "Colorblind friendly colors" is enabled in
-// Preferences. Yellow green and brick red over a muted purple overhang marking (GLGizmoBase::overhang_color()):
+// Preferences. Yellow green and brick red over a muted purple overhang marking (GLVolume::overhang_color()):
 // the model, the overhangs, the two brushes and the two brushes over an overhang then all stay apart with
 // protanopia and deuteranopia, which the default green and red over a red overhang marking do not.
 // The red is much darker than the green as the two differ only in lightness with a red-green deficiency.
 // The overhang color is weak in blue so that the green, a yellow with these deficiencies, keeps its hue
 // where the two overlap: against a strong blue it turns into a grey like the model
-static const ColorRGBA ENFORCERS_COLOR_DEFAULT    = {0.5f, 1.f, 0.5f, 1.f};
-static const ColorRGBA BLOCKERS_COLOR_DEFAULT     = {1.f, 0.5f, 0.5f, 1.f};
-static const ColorRGBA ENFORCERS_COLOR_COLORBLIND = {133 / 255.f, 255 / 255.f, 1   / 255.f, 1.f}; // #85FF01
-static const ColorRGBA BLOCKERS_COLOR_COLORBLIND  = {156 / 255.f, 43  / 255.f, 0   / 255.f, 1.f}; // #9C2B00
+static const ColorRGBA DEFAULT_ENFORCERS_COLOR    = {0.5f, 1.f, 0.5f, 1.f};
+static const ColorRGBA DEFAULT_BLOCKERS_COLOR     = {1.f, 0.5f, 0.5f, 1.f};
+static const ColorRGBA COLORBLIND_ENFORCERS_COLOR = {133 / 255.f, 255 / 255.f, 1   / 255.f, 1.f}; // #85FF01
+static const ColorRGBA COLORBLIND_BLOCKERS_COLOR  = {156 / 255.f, 43  / 255.f, 0   / 255.f, 1.f}; // #9C2B00
+
+// ORCA: the cursor while one of its buttons is held. A sphere this translucent still shows the stroke under it and
+// stands out from the model in the light default brush colors, as the blue and red spheres it replaces did
+static constexpr float PAINT_CURSOR_OPACITY = 0.5f;
+static const ColorRGBA ERASE_CURSOR_COLOR   = {0.0f, 0.0f, 0.6f, 0.25f};
 
 std::shared_ptr<GLModel> GLGizmoPainterBase::s_sphere = nullptr;
 
@@ -142,9 +147,9 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection, const std:
 {
     // ORCA: the two brush colors follow the "Colorblind friendly colors" preference. The triangle selectors keep
     // the colors they were built with, so they are given the current ones.
-    const bool colorblind = use_colorblind_friendly_colors();
-    TriangleSelectorGUI::enforcers_color = colorblind ? ENFORCERS_COLOR_COLORBLIND : ENFORCERS_COLOR_DEFAULT;
-    TriangleSelectorGUI::blockers_color  = colorblind ? BLOCKERS_COLOR_COLORBLIND : BLOCKERS_COLOR_DEFAULT;
+    const bool colorblind = GUI_App::use_colorblind_friendly_colors();
+    TriangleSelectorGUI::enforcers_color = colorblind ? COLORBLIND_ENFORCERS_COLOR : DEFAULT_ENFORCERS_COLOR;
+    TriangleSelectorGUI::blockers_color  = colorblind ? COLORBLIND_BLOCKERS_COLOR : DEFAULT_BLOCKERS_COLOR;
     if (paints_with_brush_colors()) {
         for (const std::unique_ptr<TriangleSelectorGUI>& selector : m_triangle_selectors) {
             if (auto* patch = dynamic_cast<TriangleSelectorPatch*>(selector.get()))
@@ -204,7 +209,7 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection, const std:
         shader->set_uniform("volume_world_matrix", trafo_matrix);
         shader->set_uniform("volume_mirrored", is_left_handed);
         shader->set_uniform("slope.actived", m_parent.is_using_slope());
-        shader->set_uniform("overhang_color", overhang_color());
+        shader->set_uniform("overhang_color", GLVolume::overhang_color());
         shader->set_uniform("slope.volume_world_normal_matrix", normal_matrix);
         shader->set_uniform("slope.normal_z", normal_z);
         shader->set_uniform("slope.up_direction", up_direction);
@@ -1297,21 +1302,21 @@ TriangleSelector::ClippingPlane GLGizmoPainterBase::get_clipping_plane_in_volume
     return TriangleSelector::ClippingPlane({float(normal_transformed.x()), float(normal_transformed.y()), float(normal_transformed.z()), offset_transformed});
 }
 
-ColorRGBA TriangleSelectorGUI::enforcers_color = ENFORCERS_COLOR_DEFAULT;
-ColorRGBA TriangleSelectorGUI::blockers_color  = BLOCKERS_COLOR_DEFAULT;
+ColorRGBA TriangleSelectorGUI::enforcers_color = DEFAULT_ENFORCERS_COLOR;
+ColorRGBA TriangleSelectorGUI::blockers_color  = DEFAULT_BLOCKERS_COLOR;
 
 // ORCA: the color of the cursor while one of its buttons is held: the color the stroke leaves on the model,
-// as translucent as the cursor is. `state` is what the button paints. Dark blue stands for erasing, which Shift
+// made translucent. `state` is what the button paints. Dark blue stands for erasing, which Shift
 // does with both buttons, see gizmo_event(). `fixed_color` is for the gizmos that do not paint with the brush colors.
 static ColorRGBA cursor_color(EnforcerBlockerType state, bool brush_colors, const ColorRGBA& fixed_color)
 {
     // Shift as the mouse events report it, which is what gizmo_event() erases by, see ImGuiWrapper::update_mouse_data()
     if (state == EnforcerBlockerType::NONE || ImGui::GetIO().KeyShift)
-        return { 0.0f, 0.0f, 0.6f, 0.25f };
+        return ERASE_CURSOR_COLOR;
     if (!brush_colors)
         return fixed_color;
     ColorRGBA color = state == EnforcerBlockerType::BLOCKER ? TriangleSelectorGUI::blockers_color : TriangleSelectorGUI::enforcers_color;
-    color.a(0.25f);
+    color.a(PAINT_CURSOR_OPACITY);
     return color;
 }
 
@@ -1320,7 +1325,7 @@ ColorRGBA GLGizmoPainterBase::get_cursor_sphere_left_button_color() const
     // ORCA: a gizmo that does not paint with the brush colors hovers in the color it paints with (the selected
     // filament in color painting), so the cursor keeps that color while painting
     ColorRGBA hover_color = get_cursor_hover_color();
-    hover_color.a(0.5f);
+    hover_color.a(PAINT_CURSOR_OPACITY);
     return cursor_color(get_left_button_state_type(), paints_with_brush_colors(), hover_color);
 }
 

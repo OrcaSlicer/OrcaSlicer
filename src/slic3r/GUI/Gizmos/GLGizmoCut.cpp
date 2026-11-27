@@ -83,8 +83,8 @@ static const ColorRGBA GRABBER_COLOR = ColorRGBA::YELLOW();
 static const ColorRGBA UPPER_PART_COLOR = ColorRGBA::CYAN();
 static const ColorRGBA LOWER_PART_COLOR = ColorRGBA::MAGENTA();
 // ORCA: the two above, or their variants when "Colorblind friendly colors" is enabled in Preferences
-static const ColorRGBA& upper_part_color() { return GLGizmoBase::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_1ST_COLOR : UPPER_PART_COLOR; }
-static const ColorRGBA& lower_part_color() { return GLGizmoBase::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_2ND_COLOR : LOWER_PART_COLOR; }
+static const ColorRGBA& upper_part_color() { return GUI_App::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_1ST_COLOR : UPPER_PART_COLOR; }
+static const ColorRGBA& lower_part_color() { return GUI_App::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_2ND_COLOR : LOWER_PART_COLOR; }
 static const ColorRGBA MODIFIER_COLOR   = ColorRGBA(0.75f, 0.75f, 0.75f, 0.5f);
 
 // connector colors

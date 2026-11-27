@@ -67,13 +67,9 @@ public:
     static ColorRGBA GRABBER_UNIFORM_COL;
     static ColorRGBA GRABBER_UNIFORM_HOVER_COL;
 
-    // ORCA: whether "Colorblind friendly colors" is enabled in Preferences
-    static bool use_colorblind_friendly_colors();
-    // ORCA: the two-color pair of the measure, assembly and cut gizmos when it is
+    // ORCA: the two-color pair of the measure, assembly and cut gizmos when "Colorblind friendly colors" is enabled in Preferences
     static const ColorRGBA COLORBLIND_1ST_COLOR;
     static const ColorRGBA COLORBLIND_2ND_COLOR;
-    // ORCA: the color the overhangs are marked with, the overhang_color of the shaders
-    static ColorRGB overhang_color();
 
     static void update_render_colors();
     static void load_render_colors();
