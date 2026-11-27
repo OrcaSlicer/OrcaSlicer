@@ -8,7 +8,23 @@
 #include <vector>
 #include <wx/app.h>
 #include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 using namespace nlohmann;
+
+namespace {
+// Fans 1..3 (AIR_FUN/FanType ids) mapped to the Klipper fan names QIDI Studio's
+// PrinterTaskDispatcher sends (EVTSET_COOLLINGFAN/AUXILIARYFAN/CHAMBERFAN_SPEED).
+// Returns empty string for fans Qidi does not expose (heatbreak, board, ...).
+std::string qidi_fan_name(int fan_id)
+{
+    switch (fan_id) {
+    case 1: return "cooling_fan";
+    case 2: return "auxiliary_cooling_fan";
+    case 3: return "chamber_circulation_fan";
+    default: return std::string();
+    }
+}
+} // namespace
 
 void Slic3r::DevFan::converse_to_duct(bool is_suppt_part_fun, bool is_suppt_aux_fun, bool is_suppt_cham_fun)
 {
@@ -54,6 +70,16 @@ void Slic3r::DevFan::converse_to_duct(bool is_suppt_part_fun, bool is_suppt_aux_
 int Slic3r::DevFan::command_control_fan(int fan_type, int val)
 {
     // Orca: strip analytics telemetry
+    // Qidi: same SET_FAN_SPEED gcode QIDI Studio dispatches; val is a 0..255 here.
+    if (m_owner->printer_agent_id == Slic3r::QIDI_PRINTER_AGENT_ID) {
+        const std::string name = qidi_fan_name((int) fan_type);
+        if (name.empty())
+            return 0;
+        double frac = val / 255.0;
+        if (frac < 0.0) frac = 0.0;
+        if (frac > 1.0) frac = 1.0;
+        return m_owner->publish_gcode((boost::format("SET_FAN_SPEED FAN=%1% SPEED=%.2f\n") % name % frac).str());
+    }
     std::string gcode = (boost::format("M106 P%1% S%2% \n") % (int) fan_type % (val)).str();
     return m_owner->publish_gcode(gcode);
 }
@@ -62,6 +88,7 @@ int Slic3r::DevFan::command_control_fan(int fan_type, int val)
 int Slic3r::DevFan::command_control_fan_new(int fan_id, int val)
 {
     BOOST_LOG_TRIVIAL(info) << "New protocol of fan setting(set speed), fan_id = " << fan_id;
+    // Qidi: QidiDialect maps set_fan -> SET_FAN_SPEED with a 0.00..1.00 fraction.
     json j;
     j["print"]["command"]     = "set_fan";
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
@@ -92,6 +119,8 @@ int Slic3r::DevFan::command_handle_response(const json &response)
 int Slic3r::DevFan::command_control_air_duct(int mode_id, int submode, const CommandCallBack& cb)
 {
     BOOST_LOG_TRIVIAL(info) << "MachineObject::command_control_air_duct, set air duct, d = " << mode_id;
+    // Qidi: QidiDialect maps set_airduct -> SET_PIN PIN=polar_cooler (flat on/off pin,
+    // the same local script QIDI Studio dispatches for EVTSET_COOLER_SWITCH).
     m_callback_list[std::to_string(m_owner->m_sequence_id)] = cb;
     json j;
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);

@@ -59,6 +59,8 @@ bool DevCtrlInfo::CheckCanUpdateData(const nlohmann::json& jj)
 
     int DevCtrl::command_select_extruder(int id)
     {
+        // Qidi: QidiDialect drops select_extruder (Qidi printers are single-nozzle);
+        // the PC-side target still applies below once the publish is acknowledged.
         json j;
         j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
         j["print"]["command"] = "select_extruder";
