@@ -968,3 +968,51 @@ TEST_CASE("Resonance avoidance keeps outer walls within their volumetric speed l
         CHECK_THAT(speed, Catch::Matchers::WithinAbs(expected_speed, 0.5));
     }
 }
+
+TEST_CASE("global_disable_interference_travel forces retraction over internal infill", "[GCode]")
+{
+    auto slice_and_count_retractions = [](bool disable_interference, Print &print, Model &model, DynamicPrintConfig &config) {
+        config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            { "gcode_flavor", "marlin2" },
+            { "layer_height", "0.2" },
+            { "initial_layer_print_height", "0.2" },
+            { "wall_loops", "2" },
+            { "sparse_infill_density", "20%" },
+            { "sparse_infill_pattern", "grid" },
+            { "reduce_infill_retraction", "1" },
+            { "retraction_length", "0.8" },
+            { "retraction_minimum_travel", "1" },
+            { "retract_when_changing_layer", "0" },
+            { "wipe", "0" },
+            { "z_hop", "0" },
+            { "machine_start_gcode", "" },
+            { "machine_end_gcode", "" },
+        });
+        Test::init_print(std::vector<TriangleMesh>{ make_cube(20., 20., 2.) }, print, model, config, nullptr, false);
+        print.set_global_disable_interference_travel(disable_interference);
+        print.apply(model, config);
+
+        const std::string gcode = Test::gcode(print);
+        size_t retractions = 0;
+        GCodeReader parser;
+        parser.apply_config(config);
+        parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+            if (line.retracting(self))
+                ++retractions;
+        });
+        return retractions;
+    };
+
+    Print baseline_print, forced_print;
+    Model baseline_model, forced_model;
+    DynamicPrintConfig baseline_cfg, forced_cfg;
+
+    const size_t baseline_retractions = slice_and_count_retractions(false, baseline_print, baseline_model, baseline_cfg);
+    const size_t forced_retractions   = slice_and_count_retractions(true, forced_print, forced_model, forced_cfg);
+    CHECK(forced_retractions > baseline_retractions);
+
+    // Toggling the flag after G-code export must invalidate psGCodeExport.
+    CHECK(baseline_print.set_global_disable_interference_travel(true));
+    CHECK_FALSE(baseline_print.is_step_done(psGCodeExport));
+}

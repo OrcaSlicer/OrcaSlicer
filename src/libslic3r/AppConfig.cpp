@@ -144,6 +144,9 @@ void AppConfig::set_defaults()
         if (get("auto_slice_after_change").empty())
             set_bool("auto_slice_after_change", false);
 
+        if (get("global_disable_interference_travel").empty())
+            set_bool("global_disable_interference_travel", false);
+
         if (get("auto_slice_change_delay_seconds").empty())
             set("auto_slice_change_delay_seconds", "1");
 

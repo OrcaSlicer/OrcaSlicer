@@ -1353,6 +1353,13 @@ public:
     void reload_gcode_moves(GCodeProcessorResult* result) const;
     //BBS: add modify_count logic
     int get_modified_count() const {return m_modified_count;}
+    bool set_global_disable_interference_travel(bool disable) {
+        if (m_global_disable_interference_travel == disable)
+            return false;
+        m_global_disable_interference_travel = disable;
+        return this->invalidate_step(psGCodeExport);
+    }
+    bool global_disable_interference_travel() const { return m_global_disable_interference_travel; }
     //BBS: add status for whether support used
     bool is_support_used() const {return m_support_used;}
     std::string get_conflict_string() const
@@ -1616,6 +1623,7 @@ private:
     Vec2d   m_imex_slice_offset { Vec2d::Zero() };
     //BBS: modified_count
     int     m_modified_count {0};
+    bool    m_global_disable_interference_travel { false };
     //BBS
     ConflictResultOpt m_conflict_result;
     FakeWipeTower     m_fake_wipe_tower;
