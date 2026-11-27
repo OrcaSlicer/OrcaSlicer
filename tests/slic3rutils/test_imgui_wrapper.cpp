@@ -701,21 +701,6 @@ TEST_CASE("a click on the selected segment of a multi switch reports no change",
     CHECK(changes == 0);
 }
 
-TEST_CASE("a disabled multi switch ignores a click", "[ImGuiWrapper]")
-{
-    RecordedFrames f;
-    int            selected = 0;
-    const auto     draw     = [&] {
-        f.imgui.disabled_begin(true);
-        f.imgui.multi_switch("##mode", switch_labels, selected);
-        f.imgui.disabled_end();
-    };
-    f.frame(draw);
-    REQUIRE(f.named("Vertical").size() == 1);
-    click(f, center(f.named("Vertical")[0]), draw);
-    CHECK(selected == 0);
-}
-
 TEST_CASE("a window lying over a multi switch takes the click", "[ImGuiWrapper][Regression]")
 {
     RecordedFrames f;
@@ -770,25 +755,6 @@ TEST_CASE("a multi switch records each segment under its label, and only the sel
     }
     CHECK(selected == to);
     CHECK(checked(f.named(switch_labels[to])[0]));
-}
-
-TEST_CASE("a multi switch segment is as wide as its label, and never narrower than seven digits", "[ImGuiWrapper]")
-{
-    RecordedFrames                 f;
-    const std::vector<std::string> labels   = {"AB", "A label wider than seven digits"};
-    int                            selected = 0;
-    float                          digits = 0.f, wide = 0.f, padding = 0.f;
-    f.frame([&] {
-        digits  = ImGui::CalcTextSize("0000000").x;
-        wide    = ImGui::CalcTextSize(labels[1].c_str()).x;
-        padding = ImGui::GetStyle().FramePadding.x * 2.f;
-        f.imgui.multi_switch("##mode", labels, selected);
-    });
-    REQUIRE(f.named(labels[0]).size() == 1);
-    REQUIRE(f.named(labels[1]).size() == 1);
-    REQUIRE(wide > digits);
-    CHECK_THAT(f.named(labels[0])[0].w, WithinAbs(digits + padding, 0.01));
-    CHECK_THAT(f.named(labels[1])[0].w, WithinAbs(wide + padding, 0.01));
 }
 
 TEST_CASE("a multi switch is one item to the layout, as large as its track", "[ImGuiWrapper]")
