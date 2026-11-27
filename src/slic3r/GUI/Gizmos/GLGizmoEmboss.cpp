@@ -3100,7 +3100,9 @@ void GLGizmoEmboss::draw_advanced()
     const float spacing     = ImGui::GetStyle().ItemInnerSpacing.x;
     ImGui::SetNextItemWidth(m_gui_cfg->input_width - 2.f * (button_size + spacing));
     float shown_radius = arc_radius * shown_per_mm;
-    if (ImGui::InputFloat(("##" + tr.radius).c_str(), &shown_radius, 0.f, 0.f, use_inch ? "%.2f in" : "%.1f mm"))
+    const bool radius_changed = ImGui::InputFloat(("##" + tr.radius).c_str(), &shown_radius, 0.f, 0.f, use_inch ? "%.2f in" : "%.1f mm");
+    // The field writes what is typed even when it reports no change, as for text that reads as the value it started with.
+    if (radius_changed || ImGui::IsItemActive())
         m_arc_radius_typed = shown_radius;
     if (ImGui::IsItemHovered() && !font_prop.per_glyph)
         m_imgui->tooltip(_u8L("The radius of that circle. A negative radius bends the text the other way."), m_gui_cfg->max_tooltip_width);
