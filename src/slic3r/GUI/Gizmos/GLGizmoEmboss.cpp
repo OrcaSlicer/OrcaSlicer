@@ -3044,10 +3044,11 @@ void GLGizmoEmboss::draw_advanced()
     const ::Slic3r::Emboss::ArcRadiusLimits &arc_limits = arc_radius_limits(ff.font_file, current_prop);
     const double line_height_mm = ::Slic3r::Emboss::get_line_height(*ff.font_file, current_prop) *
                                   ::Slic3r::Emboss::get_text_shape_scale(current_prop, *ff.font_file);
-    // What the controls produce: at least a line height, so a side with nothing in the way still bends, and 1 % above
-    // the limit, which the job may see a little larger: its glyph cache is not cleared when only the height changes.
+    // What the controls produce: 1 % above the limit, which the job may see a little larger, as its glyph cache is not
+    // cleared when only the height changes; a line height on a side with nothing in the way, so that side still bends.
     auto work_min = [&](bool outward) {
-        return static_cast<float>(std::max(outward ? arc_limits.outward : arc_limits.inward, line_height_mm) * 1.01);
+        const double fit_min = outward ? arc_limits.outward : arc_limits.inward;
+        return static_cast<float>((fit_min > 0. ? fit_min : line_height_mm) * 1.01);
     };
     auto to_percent = [&](float radius) {
         if (is_approx(radius, 0.f))
@@ -3059,6 +3060,7 @@ void GLGizmoEmboss::draw_advanced()
             return 0.f;
         return (percent > 0.f ? 1.f : -1.f) * work_min(percent > 0.f) * 100.f / std::abs(percent);
     };
+    // TRN - Tooltip of the Curve and Radius rows while they are disabled. "Per glyph" is the label of the checkbox above them.
     const std::string per_glyph_tooltip = _u8L("Curve does not apply to letters placed one by one (Per glyph).");
     auto tooltip_when_disabled = [&]() {
         if (font_prop.per_glyph && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
@@ -3169,6 +3171,7 @@ void GLGizmoEmboss::draw_advanced()
             char value[32];
             snprintf(value, sizeof(value), use_inch ? "%.2f in" : "%.1f mm", work_min(radius > 0.f) * shown_per_mm);
             ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_DARK,
+                                       // TRN - %1% is a length with its unit, as "12.4 mm" or "0.49 in"
                                        GUI::format(_u8L("The text does not fit on this circle. The smallest radius is %1%."), value));
         }
     }
