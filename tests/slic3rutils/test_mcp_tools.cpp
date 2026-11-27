@@ -1409,14 +1409,14 @@ TEST_CASE("window_set's reply lists the fields the window changed, with a note o
     CHECK(reply["adjusted"] == json::array({"state"}));
     CHECK(note(reply) == "the window manager did not apply the request within 5 s");
 
-    // A Wayland compositor that refused to activate a minimized window: the note says so and how the person
-    // brings it back, not that the window manager was slow.
+    // A Wayland compositor, or GNOME Shell on X11, that refused to activate a minimized window: the note says
+    // so and how the person brings it back, not that the window manager was slow.
     WindowSettling refused;
     refused.activation = true;
     reply              = {{"size", {800, 600}}, {"state", "minimized"}};
     add_window_notes({{"state", "normal"}}, refused, reply);
     CHECK(reply["adjusted"] == json::array({"state"}));
-    CHECK(note(reply).find("the compositor did not bring the window back") != std::string::npos);
+    CHECK(note(reply).find("the window system did not bring the window back") != std::string::npos);
     CHECK(note(reply).find("taskbar") != std::string::npos);
     CHECK(note(reply).find("window manager") == std::string::npos);
 
