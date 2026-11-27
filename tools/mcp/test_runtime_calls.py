@@ -334,10 +334,12 @@ def refs_after_change(client, t):
         pick = next(f for f in FONTS if not shown.startswith(f))
         first = client.call("widget_set_value", target=ref, value=pick)
         wait(client, "idle")
-        back = client.call("widget_set_value", target=ref, value=shown)
+        # The ref is used again once the label shows the font picked, and picks that font again rather than one
+        # the machine has installed, which a long font list can hold anywhere.
+        again = client.call("widget_set_value", target=ref, value=pick)
         wait(client, "idle")
         t.check("the ref picks another font", first.get("selected") == pick, first)
-        t.check("the same ref picks the first font back", back.get("selected", "").startswith(shown), back)
+        t.check("the same ref picks the font again", again.get("selected") == pick, again)
 
     # A ref to the second layer's row, clicked once the first layer is gone and the row is "Layer 1"
     # (the third layer, the open one, has no row). Opening the gizmo makes the first layer, slot 0, which the
