@@ -64,8 +64,6 @@ public:
     }
 
     // BBS
-    static ColorRGBA enforcers_color;
-    static ColorRGBA blockers_color;
 
 #ifdef PRUSASLICER_TRIANGLE_SELECTOR_DEBUG
     void render_debug(ImGuiWrapper* imgui);
@@ -115,6 +113,9 @@ class TriangleSelectorPatch : public TriangleSelectorGUI {
 public:
     explicit TriangleSelectorPatch(const TriangleMesh& mesh, const std::vector<ColorRGBA> ebt_colors, float edge_limit = 0.6f)
         : TriangleSelectorGUI(mesh, edge_limit), m_ebt_colors(ebt_colors) {}
+    // ORCA: a selector drawn with the brush colors of the color set
+    explicit TriangleSelectorPatch(const TriangleMesh& mesh, float edge_limit = 0.6f)
+        : TriangleSelectorGUI(mesh, edge_limit) {}
     virtual ~TriangleSelectorPatch() = default;
 
     // Render current selection. Transformation matrices are supposed
@@ -127,6 +128,7 @@ public:
     void update_triangles_per_patch();
 
     void set_ebt_colors(const std::vector<ColorRGBA> ebt_colors) { m_ebt_colors = ebt_colors; }
+    ColorRGBA state_color(size_t idx) const;
     void set_filter_state(bool is_filter_state);
 
     constexpr static float GapAreaMin = 0.f;

@@ -824,21 +824,21 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                                                 : (max_value > 9999 ? "%.1f" : max_value > 999 ? "%.2f" : "%.3f");
 
         char xBuf[32];
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[X]),"X ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(xBuf, precision, pos[0]);
         ImGui::Text("%s", xBuf);
 
         char yBuf[32];
         ImGui::SameLine(axes_width + axes_spacing_x);
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()),"Y ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Y]),"Y ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(yBuf, precision, pos[1]);
         ImGui::Text("%s", yBuf);
 
         char zBuf[32];
         ImGui::SameLine(2.0f * (axes_width + axes_spacing_x));
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Z]),"Z ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(zBuf, precision, pos[2]);
         ImGui::Text("%s", zBuf);
@@ -879,21 +879,21 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         const float axes_width = ImGui::CalcTextSize("X 999.999sp").x;
 
         char xBuf[32];
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[X]),"X ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(xBuf, precision, pos.x());
         ImGui::Text("%s", xBuf);
 
         char yBuf[32]; 
         ImGui::SameLine(axes_width);
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()),"Y ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Y]),"Y ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(yBuf, precision, pos.y());
         ImGui::Text("%s", yBuf);
 
         char zBuf[32];
         ImGui::SameLine(axes_width * 2);
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Z]),"Z ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(zBuf, precision, pos.z());
         ImGui::Text("%s", zBuf);

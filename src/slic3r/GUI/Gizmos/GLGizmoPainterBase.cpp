@@ -132,16 +132,6 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection, const Mode
 
 void GLGizmoPainterBase::render_triangles(const Selection& selection, const std::vector<const ModelVolume*>& skip) const
 {
-    // ORCA: brush colors follow the color set. The selectors keep the colors they were built with, so refresh them
-    TriangleSelectorGUI::enforcers_color = ui_colors().enforcer;
-    TriangleSelectorGUI::blockers_color  = ui_colors().blocker;
-    if (paints_with_brush_colors()) {
-        for (const std::unique_ptr<TriangleSelectorGUI>& selector : m_triangle_selectors) {
-            if (auto* patch = dynamic_cast<TriangleSelectorPatch*>(selector.get()))
-                patch->set_ebt_colors({ GLVolume::NEUTRAL_COLOR, TriangleSelectorGUI::enforcers_color, TriangleSelectorGUI::blockers_color });
-        }
-    }
-
     auto* shader = wxGetApp().get_shader("mm_gouraud");
     if (!shader)
         return;
@@ -1287,9 +1277,6 @@ TriangleSelector::ClippingPlane GLGizmoPainterBase::get_clipping_plane_in_volume
     return TriangleSelector::ClippingPlane({float(normal_transformed.x()), float(normal_transformed.y()), float(normal_transformed.z()), offset_transformed});
 }
 
-ColorRGBA TriangleSelectorGUI::enforcers_color = {0.5f, 1.f, 0.5f, 1.f};
-ColorRGBA TriangleSelectorGUI::blockers_color  = {1.f, 0.5f, 0.5f, 1.f};
-
 // ORCA: cursor color while a button is held: the color `state` paints with, or the erase color when erasing.
 // `fixed_color` is for color painting, which does not use the brush colors
 static ColorRGBA cursor_color(EnforcerBlockerType state, bool brush_colors, const ColorRGBA& fixed_color)
@@ -1299,9 +1286,18 @@ static ColorRGBA cursor_color(EnforcerBlockerType state, bool brush_colors, cons
         return ui_colors().erase_cursor;
     if (!brush_colors)
         return fixed_color;
-    ColorRGBA color = state == EnforcerBlockerType::BLOCKER ? TriangleSelectorGUI::blockers_color : TriangleSelectorGUI::enforcers_color;
+    ColorRGBA color = state == EnforcerBlockerType::BLOCKER ? ui_colors().blocker : ui_colors().enforcer;
     color.a(PAINT_CURSOR_OPACITY);
     return color;
+}
+
+// ORCA: the selector's own colors (color painting) or the brush colors of the color set
+ColorRGBA TriangleSelectorPatch::state_color(size_t idx) const
+{
+    if (!m_ebt_colors.empty())
+        return m_ebt_colors[idx];
+    return idx == size_t(EnforcerBlockerType::ENFORCER) ? ui_colors().enforcer :
+           idx == size_t(EnforcerBlockerType::BLOCKER)  ? ui_colors().blocker : GLVolume::NEUTRAL_COLOR;
 }
 
 ColorRGBA GLGizmoPainterBase::get_cursor_sphere_left_button_color() const
@@ -1339,16 +1335,16 @@ void TriangleSelectorGUI::render(ImGuiWrapper* imgui, const Transform3d& matrix)
         return;
     assert(shader->get_name() == "gouraud" || shader->get_name() == "mm_gouraud");
 
-    for (auto iva : {std::make_pair(&m_iva_enforcers, enforcers_color),
-                     std::make_pair(&m_iva_blockers, blockers_color)}) {
+    for (auto iva : {std::make_pair(&m_iva_enforcers, ui_colors().enforcer),
+                     std::make_pair(&m_iva_blockers, ui_colors().blocker)}) {
         iva.first->set_color(iva.second);
         iva.first->render();
     }
 
     for (auto& iva : m_iva_seed_fills) {
         size_t           color_idx = &iva - &m_iva_seed_fills.front();
-        const ColorRGBA& color     = TriangleSelectorGUI::get_seed_fill_color(color_idx == 1 ? enforcers_color :
-            color_idx == 2 ? blockers_color :
+        const ColorRGBA& color     = TriangleSelectorGUI::get_seed_fill_color(color_idx == 1 ? ui_colors().enforcer :
+            color_idx == 2 ? ui_colors().blocker :
             GLVolume::NEUTRAL_COLOR);
         iva.set_color(color);
         iva.render();
@@ -1471,12 +1467,12 @@ void TriangleSelectorPatch::render(ImGuiWrapper* imgui, const Transform3d& matri
             ColorRGBA color;
             if (patch.is_fragment() && !patch.neighbor_types.empty()) {
                 size_t color_idx = (size_t)*patch.neighbor_types.begin();
-                color = m_ebt_colors[color_idx];
+                color = state_color(color_idx);
                 color.a(0.85);
             }
             else {
                 size_t color_idx = (size_t)patch.type;
-                color = m_ebt_colors[color_idx];
+                color = state_color(color_idx);
             }
             //to make black not too hard too see
             ColorRGBA new_color = adjust_color_for_rendering(color);

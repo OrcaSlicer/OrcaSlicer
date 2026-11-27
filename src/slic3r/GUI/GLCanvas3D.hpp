@@ -1078,9 +1078,6 @@ public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();
 
-    // ORCA: applies the "Color set" preference, at startup and when it changes
-    static void update_ui_colors();
-
     bool is_initialized() const { return m_initialized; }
 
     void set_context(wxGLContext* context) { m_context = context; }

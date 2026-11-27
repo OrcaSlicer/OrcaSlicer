@@ -1720,11 +1720,11 @@ void GLGizmoMeasure::render_dimensioning()
             !(m_measure_mode == EMeasureMode::ONLY_ASSEMBLY && m_assembly_mode == AssemblyMode::FACE_FACE)) {
             auto x_to = dap.from;
             x_to[0]   = dap.to[0];
-            point_point(dap.from, x_to, x_to[0] - dap.from[0], ColorRGBA::X(), false, false); // ORCA match axis color
+            point_point(dap.from, x_to, x_to[0] - dap.from[0], ui_colors().axes[X], false, false); // ORCA match axis color
             auto y_to = x_to;
             y_to[1]   = dap.to[1];
-            point_point(x_to, y_to, y_to[1] - x_to[1], ColorRGBA::Y(), false, false);         // ORCA match axis color
-            point_point(y_to, dap.to, dap.to[2] - y_to[2], ColorRGBA::Z(), false, false);     // ORCA match axis color
+            point_point(x_to, y_to, y_to[1] - x_to[1], ui_colors().axes[Y], false, false);         // ORCA match axis color
+            point_point(y_to, dap.to, dap.to[2] - y_to[2], ui_colors().axes[Z], false, false);     // ORCA match axis color
         }
 
         point_point(dap.from, dap.to, dap.dist, ColorRGBA::WHITE());
@@ -1978,7 +1978,7 @@ void GLGizmoMeasure::show_distance_xyz_ui()
             bool volume = m_hit_different_volumes.size() == 1;
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()), "X:"); // ORCA match axis color
+            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ui_colors().axes[X]), "X:"); // ORCA match axis color
             ImGui::TableSetColumnIndex(1);
             ImGui::PushItemWidth(m_input_size_max);
             m_imgui->disabled_begin(volume || !m_can_set_xyz_distance); // ORCA disable only input box othervise axis colors rendered dimmed
@@ -1987,7 +1987,7 @@ void GLGizmoMeasure::show_distance_xyz_ui()
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()), "Y:"); // ORCA match axis color
+            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Y]), "Y:"); // ORCA match axis color
             ImGui::TableSetColumnIndex(1);
             m_imgui->disabled_begin(volume || !m_can_set_xyz_distance); // ORCA disable only input box othervise axis colors rendered dimmed
             ImGui::BBLInputDouble("##measure_distance_y", &m_buffered_distance[1], 0.0f, 0.0f, "%.2f");
@@ -1995,7 +1995,7 @@ void GLGizmoMeasure::show_distance_xyz_ui()
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()), "Z:"); // ORCA match axis color
+            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Z]), "Z:"); // ORCA match axis color
             ImGui::TableSetColumnIndex(1);
             m_imgui->disabled_begin(volume || !(m_same_model_object && m_can_set_xyz_distance)); // ORCA disable only input box othervise axis colors rendered dimmed
             ImGui::BBLInputDouble("##measure_distance_z", &m_buffered_distance[2], 0.0f, 0.0f, "%.2f");

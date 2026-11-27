@@ -190,8 +190,8 @@ void GLGizmoMove3D::on_render()
     m_grabbers[2].center = {0,0, m_bounding_box.max.z() + space_size};
 
     for (int i = 0; i < 3; ++i) {
-        m_grabbers[i].color       = AXES_COLOR[i];
-        m_grabbers[i].hover_color = AXES_HOVER_COLOR[i];
+        m_grabbers[i].color       = axis_color(i);
+        m_grabbers[i].hover_color = axis_hover_color(i);
     }
 
 #if !SLIC3R_OPENGL_ES
@@ -207,7 +207,7 @@ void GLGizmoMove3D::on_render()
 
                 GLModel::Geometry init_data;
                 init_data.format = { GLModel::Geometry::EPrimitiveType::Lines, GLModel::Geometry::EVertexLayout::P3 };
-                init_data.color = AXES_COLOR[id];
+                init_data.color = axis_color(id);
                 init_data.reserve_vertices(2);
                 init_data.reserve_indices(2);
 

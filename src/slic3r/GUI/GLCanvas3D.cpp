@@ -209,18 +209,6 @@ void Slic3r::GUI::GLCanvas3D::load_render_colors()
     RenderColor::colors[RenderCol_3D_Background] = ImGuiWrapper::to_ImVec4(DEFAULT_BG_LIGHT_COLOR);
 }
 
-// ORCA: applies the "ui_color_set" preference and refreshes the axis colors kept by the gizmos and the bed
-void Slic3r::GUI::GLCanvas3D::update_ui_colors()
-{
-    // stored as the index of the set, nothing stored means the default set
-    const AppConfig* config = wxGetApp().app_config;
-    set_ui_color_set(config != nullptr ? std::atoi(config->get("ui_color_set").c_str()) : 0);
-    GLGizmoBase::update_axes_colors();
-    Bed3D::AXIS_X_COLOR = ColorRGBA::X();
-    Bed3D::AXIS_Y_COLOR = ColorRGBA::Y();
-    Bed3D::AXIS_Z_COLOR = ColorRGBA::Z();
-}
-
 //static constexpr const float AXES_COLOR[3][3] = { { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } };
 
 namespace Slic3r {
@@ -2354,7 +2342,8 @@ bool GLCanvas3D::init()
 
     BOOST_LOG_TRIVIAL(info) <<__FUNCTION__<< ": finish m_selection";
 
-    update_ui_colors();
+    // ORCA: the color set of the preferences
+    set_ui_color_set(wxGetApp().app_config->get("ui_color_set"));
 
 #if ENABLE_IMGUI_STYLE_EDITOR
     //BBS load render color for style editor
@@ -7682,9 +7671,9 @@ void GLCanvas3D::_render_3d_navigator()
     ImGuizmo::BeginFrame();
 
     auto& style                                = ImGuizmo::GetStyle();
-    style.Colors[ImGuizmo::COLOR::DIRECTION_X] = ImGuiWrapper::to_ImVec4(ColorRGBA::Y());
-    style.Colors[ImGuizmo::COLOR::DIRECTION_Y] = ImGuiWrapper::to_ImVec4(ColorRGBA::Z());
-    style.Colors[ImGuizmo::COLOR::DIRECTION_Z] = ImGuiWrapper::to_ImVec4(ColorRGBA::X());
+    style.Colors[ImGuizmo::COLOR::DIRECTION_X] = ImGuiWrapper::to_ImVec4(ui_colors().axes[Y]);
+    style.Colors[ImGuizmo::COLOR::DIRECTION_Y] = ImGuiWrapper::to_ImVec4(ui_colors().axes[Z]);
+    style.Colors[ImGuizmo::COLOR::DIRECTION_Z] = ImGuiWrapper::to_ImVec4(ui_colors().axes[X]);
     style.Colors[ImGuizmo::COLOR::TEXT] = m_is_dark ? ImVec4(224 / 255.f, 224 / 255.f, 224 / 255.f, 1.f) : ImVec4(.2f, .2f, .2f, 1.0f);
     style.Colors[ImGuizmo::COLOR::FACE]        = m_is_dark ? ImVec4(0.23f, 0.23f, 0.23f, 1.f) : ImVec4(0.77f, 0.77f, 0.77f, 1);
     strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_X], _u8L_CONTEXT("Y", "Axis").c_str()); // ORCA use uppercase to match text on tranform widgets
@@ -12796,7 +12785,7 @@ void GLCanvas3D::_render_camera_target()
 
             GLModel::Geometry init_data;
             init_data.format = { GLModel::Geometry::EPrimitiveType::Lines, GLModel::Geometry::EVertexLayout::P3, GLModel::Geometry::EIndexType::USHORT };
-            init_data.color = (i == X) ? ColorRGBA::X() : ((i == Y) ? ColorRGBA::Y() : ColorRGBA::Z());
+            init_data.color = ui_colors().axes[i];
             init_data.reserve_vertices(2);
             init_data.reserve_indices(2);
 

@@ -264,20 +264,20 @@ void GLGizmoScale3D::update_grabbers_data()
 
     // x axis
     m_grabbers[0].center = Vec3d(-(box_half_size.x()), 0.0, -box_half_size.z());
-    m_grabbers[0].color  = (ctrl_down && m_hover_id == 1) ? CONSTRAINED_COLOR : AXES_COLOR[0];
+    m_grabbers[0].color  = (ctrl_down && m_hover_id == 1) ? CONSTRAINED_COLOR : axis_color(X);
     m_grabbers[1].center = Vec3d(box_half_size.x(), 0.0, -box_half_size.z());
-    m_grabbers[1].color  = (ctrl_down && m_hover_id == 0) ? CONSTRAINED_COLOR : AXES_COLOR[0];
+    m_grabbers[1].color  = (ctrl_down && m_hover_id == 0) ? CONSTRAINED_COLOR : axis_color(X);
     // y axis
     m_grabbers[2].center = Vec3d(0.0, -(box_half_size.y()), -box_half_size.z());
-    m_grabbers[2].color  = (ctrl_down && m_hover_id == 3) ? CONSTRAINED_COLOR : AXES_COLOR[1];
+    m_grabbers[2].color  = (ctrl_down && m_hover_id == 3) ? CONSTRAINED_COLOR : axis_color(Y);
     m_grabbers[3].center = Vec3d(0.0, box_half_size.y(), -box_half_size.z());
-    m_grabbers[3].color  = (ctrl_down && m_hover_id == 2) ? CONSTRAINED_COLOR : AXES_COLOR[1];
+    m_grabbers[3].color  = (ctrl_down && m_hover_id == 2) ? CONSTRAINED_COLOR : axis_color(Y);
     // z axis do not show 4
     m_grabbers[4].center  = Vec3d(0.0, 0.0, -(box_half_size.z()));
     m_grabbers[4].enabled = false;
 
     m_grabbers[5].center = Vec3d(0.0, 0.0, box_half_size.z());
-    m_grabbers[5].color  = (ctrl_down && m_hover_id == 4) ? CONSTRAINED_COLOR : AXES_COLOR[2];
+    m_grabbers[5].color  = (ctrl_down && m_hover_id == 4) ? CONSTRAINED_COLOR : axis_color(Z);
     // uniform
     m_grabbers[6].center = Vec3d(-box_half_size.x(), -box_half_size.y(), -box_half_size.z());
     m_grabbers[6].color  = (ctrl_down && m_hover_id == 8) ? CONSTRAINED_COLOR : GRABBER_UNIFORM_COL;
@@ -289,7 +289,7 @@ void GLGizmoScale3D::update_grabbers_data()
     m_grabbers[9].color  = (ctrl_down && m_hover_id == 7) ? CONSTRAINED_COLOR : GRABBER_UNIFORM_COL;
     for (int i = 0; i < 6; ++i) {
         //m_grabbers[i].color       = AXES_COLOR[i / 2];
-        m_grabbers[i].hover_color = AXES_HOVER_COLOR[i / 2];
+        m_grabbers[i].hover_color = axis_hover_color(i / 2);
     }
     for (int i = 6; i < 10; ++i) {
         //m_grabbers[i].color       = GRABBER_UNIFORM_COL;

@@ -9,6 +9,7 @@
 
 #include "GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "slic3r/GUI/GUI_Colors.hpp"
 //#include "I18N.hpp"
 #include "GLGizmosManager.hpp"
 #include "GLGizmoAlignment.hpp"
@@ -882,11 +883,11 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
     ImGui::SameLine(caption_max + index * space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X");
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[X]),"X");
     ImGui::SameLine(caption_max + unit_size + (++index) * space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()),"Y");
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Y]),"Y");
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z");
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Z]),"Z");
 
     index      = 1;
     index_unit = 1;
@@ -1195,11 +1196,11 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
     ImGui::SameLine(caption_max + index * space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X");
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[X]),"X");
     ImGui::SameLine(caption_max + unit_size + (++index) * space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()),"Y");
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Y]),"Y");
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z");
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Z]),"Z");
 
     index      = 1;
     index_unit = 1;
@@ -1426,11 +1427,11 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
     ImGui::SameLine(caption_max + space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X");
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[X]),"X");
     ImGui::SameLine(caption_max + unit_size + index * space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()),"Y");
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Y]),"Y");
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size + offset_to_center);
-    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z");
+    ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Z]),"Z");
 
     index      = 2;
     index_unit = 1;

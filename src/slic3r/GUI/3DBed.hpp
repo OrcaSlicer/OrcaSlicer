@@ -58,10 +58,6 @@ public:
     static ColorRGBA DEFAULT_SOLID_GRID_COLOR;
     static ColorRGBA DEFAULT_TRANSPARENT_GRID_COLOR;
 
-    static ColorRGBA AXIS_X_COLOR;
-    static ColorRGBA AXIS_Y_COLOR;
-    static ColorRGBA AXIS_Z_COLOR;
-
     static void update_render_colors();
     static void load_render_colors();
 

@@ -1262,8 +1262,8 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
 
         // render sphere grabber
         size = m_dragging ? get_dragging_half_size(mean_size) : get_half_size(mean_size);
-        color = m_hover_id == Y ? ColorRGBA::Y() : // ORCA match axis colors
-                m_hover_id == X ? ColorRGBA::X() : // ORCA match axis colors
+        color = m_hover_id == Y ? ui_colors().axes[Y] : // ORCA match axis colors
+                m_hover_id == X ? ui_colors().axes[X] : // ORCA match axis colors
                 m_hover_id == Z ? GRABBER_COLOR                     :   ColorRGBA::GRAY();
         render_model(m_sphere.model, color, view_matrix * translation_transform(m_grabber_connection_len * Vec3d::UnitZ()) * scale_transform(size));
     }
@@ -1277,7 +1277,7 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
         size = m_dragging && m_hover_id == X ? get_dragging_half_size(mean_size) : get_half_size(mean_size);
         const Vec3d cone_scale = Vec3d(0.75 * size, 0.75 * size, 1.8 * size);
         //color = m_hover_id == X ? complementary(ColorRGBA::X()) : ColorRGBA::X();
-        color = ColorRGBA::X(); // ORCA match axis colors
+        color = ui_colors().axes[X]; // ORCA match axis colors
 
         if (m_hover_id == X) {
             render_grabber_connection(color, view_matrix);
@@ -1297,7 +1297,7 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
         size = m_dragging && m_hover_id == Y ? get_dragging_half_size(mean_size) : get_half_size(mean_size);
         const Vec3d cone_scale = Vec3d(0.75 * size, 0.75 * size, 1.8 * size);
         //color = m_hover_id == Y ? complementary(ColorRGBA::Y()) : ColorRGBA::Y();
-        color = ColorRGBA::Y(); // ORCA match axis colors
+        color = ui_colors().axes[Y]; // ORCA match axis colors
 
         if (m_hover_id == Y) {
             render_grabber_connection(color, view_matrix);
@@ -1317,7 +1317,7 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
         if (no_xy_grabber_hovered || m_hover_id == CutPlaneZRotation)
         {
             size = 0.75 * (m_dragging ? get_dragging_half_size(mean_size) : get_half_size(mean_size));
-            color = ColorRGBA::Z(); // ORCA match axis colors
+            color = ui_colors().axes[Z]; // ORCA match axis colors
             const ColorRGBA cp_color = m_hover_id == CutPlaneZRotation ? color : m_plane.model.get_color();
 
             const double grabber_shift = -1.75 * m_grabber_connection_len;
@@ -1344,7 +1344,7 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
         if (no_xy_grabber_hovered || m_hover_id == CutPlaneXMove)
         {
             size = (m_dragging ? get_dragging_half_size(mean_size) : get_half_size(mean_size));
-            color = m_hover_id == CutPlaneXMove ? ColorRGBA::X() : m_plane.model.get_color(); // ORCA match axis colors
+            color = m_hover_id == CutPlaneXMove ? ui_colors().axes[X] : m_plane.model.get_color(); // ORCA match axis colors
 
             render_grabber_connection(GRABBER_COLOR, view_matrix * rotation_transform(0.5 * PI * Vec3d::UnitY()), 0.75);
 
@@ -1362,7 +1362,7 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
         if (m_groove.angle > 0.0f && (no_xy_grabber_hovered || m_hover_id == CutPlaneYMove))
         {
             size = (m_dragging ? get_dragging_half_size(mean_size) : get_half_size(mean_size));
-            color = m_hover_id == CutPlaneYMove ? ColorRGBA::Y() : m_plane.model.get_color(); // ORCA match axis colors
+            color = m_hover_id == CutPlaneYMove ? ui_colors().axes[Y] : m_plane.model.get_color(); // ORCA match axis colors
 
             render_grabber_connection(GRABBER_COLOR, view_matrix * rotation_transform(-0.5 * PI * Vec3d::UnitX()), 0.75);
 

@@ -173,8 +173,8 @@ void GLGizmoRotate::on_render()
     const double grabber_radius = (double)m_radius * (1.0 + (double)GrabberOffset);
     m_grabbers.front().center = Vec3d(::cos(m_angle) * grabber_radius, ::sin(m_angle) * grabber_radius, 0.0);
     m_grabbers.front().angles.z() = m_angle;
-    m_grabbers.front().color = AXES_COLOR[m_axis];
-    m_grabbers.front().hover_color = AXES_HOVER_COLOR[m_axis];
+    m_grabbers.front().color = axis_color(m_axis);
+    m_grabbers.front().hover_color = axis_hover_color(m_axis);
 
     glsafe(::glEnable(GL_DEPTH_TEST));
 
@@ -584,7 +584,7 @@ bool GLGizmoRotate3D::on_init()
         if (!g.init()) return false;
 
     for (unsigned int i = 0; i < 3; ++i)
-        m_gizmos[i].set_highlight_color(AXES_COLOR[i]);
+        m_gizmos[i].set_highlight_color(axis_color(i));
 
     m_shortcut = Shortcut::GizmoRotate;
 
@@ -678,7 +678,7 @@ void GLGizmoRotate3D::on_render()
 
     // ORCA: the axis colors can change with the color set
     for (unsigned int i = 0; i < 3; ++i)
-        m_gizmos[i].set_highlight_color(AXES_COLOR[i]);
+        m_gizmos[i].set_highlight_color(axis_color(i));
 
     if (m_hover_id == -1 || m_hover_id == 0)
         m_gizmos[X].render();

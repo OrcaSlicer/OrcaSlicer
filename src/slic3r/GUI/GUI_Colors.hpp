@@ -5,6 +5,7 @@
 #include "libslic3r/Color.hpp"
 #include "libvgcode/include/Types.hpp"
 #include <array>
+#include <string>
 
 enum RenderCol_ {
     RenderCol_3D_Background = 0,
@@ -44,13 +45,13 @@ const char* GetRenderColName(RenderCol idx);
 
 namespace GUI {
 
-// ORCA: color sets of the "ui_color_set" preference, stored by index. Deutan covers deuteranopia and protanopia
+// ORCA: color sets of the "ui_color_set" preference, stored by name. Deutan covers deuteranopia and protanopia
 enum class UIColorSet : unsigned char { Default, Deutan, Count };
 
 // ORCA: colors that depend on the color set, defined by make_ui_colors() in GUI_Colors.cpp
 struct UIColors
 {
-    std::array<ColorRGB, 3>  axes;         // X, Y, Z
+    std::array<ColorRGBA, 3> axes;         // X, Y, Z
     ColorRGBA                enforcer;     // positive brush
     ColorRGBA                blocker;      // negative brush
     ColorRGBA                erase_cursor; // painting cursor while erasing
@@ -63,8 +64,8 @@ struct UIColors
 // ORCA: the color set in use and its colors
 UIColorSet      ui_color_set();
 const UIColors& ui_colors();
-// ORCA: `idx` is the value of the preference. Call GLCanvas3D::update_ui_colors(), which also refreshes kept copies
-void            set_ui_color_set(int idx);
+// ORCA: makes the set stored as `name` by the preference the one in use
+void            set_ui_color_set(const std::string& name);
 
 } // namespace GUI
 

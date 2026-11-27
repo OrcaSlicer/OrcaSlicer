@@ -6,6 +6,7 @@
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/GUI_Colors.hpp"
 #include "slic3r/GUI/GUI_Init.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -173,8 +174,8 @@ std::vector<Preference> build_table()
     t.checkbox("window_buttons_on_left", L("Use window buttons on left side")).note = L("(Requires restart)");
     table.back().restart_needed = true;
 #endif
-    // ORCA: the values are the indices of UIColorSet
-    t.choice("ui_color_set", L("Color set"), {{"0", L("Default")}, {"1", L("Colorblind friendly (red-green)")}},
+    // ORCA: the values are the names in UI_COLOR_SET_NAMES of GUI_Colors.cpp
+    t.choice("ui_color_set", L("Color set"), {{"default", L("Default")}, {"deutan", L("Colorblind friendly (red-green)")}},
         {L("The colors of the color scales of the sliced preview (speed, flow, layer time, etc.), of the axes, of the "
            "two-color pairs of the measure, assembly and cut tools and of the two brushes and the overhang highlight "
            "of the painting tools (supports, seam, fuzzy skin, etc.).\n"
@@ -828,7 +829,7 @@ void apply_preference(const std::string& key)
             home->SendCloudProvidersInfo();
     } else if (key == "ui_color_set") {
         // ORCA: apply the color set immediately
-        GLCanvas3D::update_ui_colors();
+        set_ui_color_set(config.get(key));
         if (GLCanvas3D* canvas = preview_canvas()) {
             canvas->get_gcode_viewer().update_ranges_colors();
             redraw_preview(*canvas);

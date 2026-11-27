@@ -66,10 +66,10 @@ static std::array<UIColors, size_t(UIColorSet::Count)> make_ui_colors()
     // DEFAULT: the colors as they are without the preference
     /////////////////////////////////////////////////////////
     UIColors& def = sets[size_t(UIColorSet::Default)];
-    def.axes         = {{ // what libslic3r/Color.hpp starts with
-        rgb("#FF3C5B"), // X
-        rgb("#64C818"), // Y
-        rgb("#2F88E9")  // Z
+    def.axes         = {{ // as ColorRGB::X(), Y() and Z() of libslic3r/Color.hpp
+        rgba("#FF3C5B"), // X
+        rgba("#64C818"), // Y
+        rgba("#2F88E9")  // Z
     }}; 
     def.enforcer     = rgba("#80FF80");
     def.blocker      = rgba("#FF8080");
@@ -93,9 +93,9 @@ static std::array<UIColors, size_t(UIColorSet::Count)> make_ui_colors()
     UIColors& deutan = sets[size_t(UIColorSet::Deutan)];
     deutan              = def;
     deutan.axes         = {{
-        rgb("#FF5A87"), // X
-        rgb("#B6FF00"), // Y
-        rgb("#0075FF")  // Z
+        rgba("#FF5A87"), // X
+        rgba("#B6FF00"), // Y
+        rgba("#0075FF")  // Z
     }};
     deutan.enforcer     = rgba("#85FF01");
     deutan.blocker      = rgba("#9C2B00");
@@ -129,12 +129,17 @@ static UIColorSet s_ui_color_set = UIColorSet::Default;
 UIColorSet      ui_color_set() { return s_ui_color_set; }
 const UIColors& ui_colors()    { return UI_COLORS[size_t(s_ui_color_set)]; }
 
-void set_ui_color_set(int idx)
+// ORCA: the names the preference stores the sets with, in the order of UIColorSet
+static const std::array<const char*, size_t(UIColorSet::Count)> UI_COLOR_SET_NAMES = {{ "default", "deutan" }};
+
+void set_ui_color_set(const std::string& name)
 {
-    // unknown values mean the default set
-    s_ui_color_set = 0 <= idx && idx < int(UIColorSet::Count) ? UIColorSet(idx) : UIColorSet::Default;
-    const std::array<ColorRGB, 3>& axes = ui_colors().axes;
-    ColorRGB::set_axes(axes[0], axes[1], axes[2]);
+    // unknown names, and nothing stored, mean the default set
+    s_ui_color_set = UIColorSet::Default;
+    for (size_t i = 0; i < UI_COLOR_SET_NAMES.size(); ++i) {
+        if (name == UI_COLOR_SET_NAMES[i])
+            s_ui_color_set = UIColorSet(i);
+    }
 }
 
 } // namespace GUI

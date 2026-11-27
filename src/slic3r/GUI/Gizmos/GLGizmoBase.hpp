@@ -57,8 +57,6 @@ public:
     static ColorRGBA DEFAULT_BASE_COLOR;
     static ColorRGBA DEFAULT_DRAG_COLOR;
     static ColorRGBA DEFAULT_HIGHLIGHT_COLOR;
-    static std::array<ColorRGBA, 3> AXES_COLOR;
-    static std::array<ColorRGBA, 3> AXES_HOVER_COLOR;
     static ColorRGBA CONSTRAINED_COLOR;
     static ColorRGBA FLATTEN_COLOR;
     static ColorRGBA FLATTEN_HOVER_COLOR;
@@ -67,8 +65,9 @@ public:
     static ColorRGBA GRABBER_UNIFORM_COL;
     static ColorRGBA GRABBER_UNIFORM_HOVER_COL;
 
-    // ORCA: refreshes AXES_COLOR and AXES_HOVER_COLOR after a color set change
-    static void update_axes_colors();
+    // ORCA: axis colors of the color set
+    static const ColorRGBA& axis_color(size_t axis);
+    static ColorRGBA        axis_hover_color(size_t axis);
 
     static void update_render_colors();
     static void load_render_colors();

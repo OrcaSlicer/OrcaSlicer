@@ -3953,10 +3953,6 @@ void GLGizmoTextureDisplacement::update_from_model_object(bool first_update)
     // still on: a new set of selectors has none.
     m_seed_fill_last_mesh_id = -1;
 
-    std::vector<ColorRGBA> ebt_colors;
-    ebt_colors.push_back(GLVolume::NEUTRAL_COLOR);
-    ebt_colors.push_back(TriangleSelectorGUI::enforcers_color);
-    ebt_colors.push_back(TriangleSelectorGUI::blockers_color);
     m_selectors_stale = false;
     for (const ModelVolume *mv : mo->volumes) {
         if (!mv->is_model_part())
@@ -3977,7 +3973,7 @@ void GLGizmoTextureDisplacement::update_from_model_object(bool first_update)
                 m_selectors_stale = true;
                 break;
             }
-        m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh, ebt_colors));
+        m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh));
         // The mask uses a single state (ENFORCER): a higher state in the file is reset to NONE.
         m_triangle_selectors.back()->deserialize(data, false, EnforcerBlockerType::ENFORCER);
         m_triangle_selectors.back()->request_update_render_data();

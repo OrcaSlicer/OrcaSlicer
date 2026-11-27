@@ -1,5 +1,6 @@
 #include "2DBed.hpp"
 #include "GUI_App.hpp"
+#include "GUI_Colors.hpp"
 
 #include "3DBed.hpp"
 #include "PartPlate.hpp"
@@ -210,7 +211,7 @@ void Bed_2D::repaint(const std::vector<Vec2d>& shape)
 	auto axes_len = 5 * wxGetApp().em_unit(); // scale axis
 	auto arrow_len = 6;
 	auto arrow_angle = Geometry::deg2rad(45.0);
-    dc.SetPen(wxPen(wxColour(encode_color(ColorRGB::X())), 2, wxPENSTYLE_SOLID));  // red // ORCA match axis colors
+    dc.SetPen(wxPen(wxColour(encode_color(to_rgb(ui_colors().axes[X]))), 2, wxPENSTYLE_SOLID));  // red // ORCA match axis colors
 	auto x_end = Vec2d(origin_px(0) + axes_len, origin_px(1));
 	dc.DrawLine(wxPoint(origin_px(0), origin_px(1)), wxPoint(x_end(0), x_end(1)));
 	//for (auto angle : { -arrow_angle, arrow_angle }) {  // ORCA dont draw arrows
@@ -218,7 +219,7 @@ void Bed_2D::repaint(const std::vector<Vec2d>& shape)
 	//	dc.DrawLine(wxPoint(x_end(0), x_end(1)), wxPoint(end(0), end(1)));
 	//}
 
-    dc.SetPen(wxPen(wxColour(encode_color(ColorRGB::Y())), 2, wxPENSTYLE_SOLID));  // green // ORCA match axis colors
+    dc.SetPen(wxPen(wxColour(encode_color(to_rgb(ui_colors().axes[Y]))), 2, wxPENSTYLE_SOLID));  // green // ORCA match axis colors
 	auto y_end = Vec2d(origin_px(0), origin_px(1) - axes_len);
 	dc.DrawLine(wxPoint(origin_px(0), origin_px(1)), wxPoint(y_end(0), y_end(1)));
 	//for (auto angle : { -arrow_angle, arrow_angle }) {  // ORCA dont draw arrows
@@ -227,8 +228,8 @@ void Bed_2D::repaint(const std::vector<Vec2d>& shape)
 	//}
 
 	// draw origin
-    dc.SetPen(wxPen(wxColour(encode_color(ColorRGB::Z())), 1, wxPENSTYLE_SOLID));    // ORCA match axis colors
-    dc.SetBrush(wxBrush(wxColour(encode_color(ColorRGB::Z())), wxBRUSHSTYLE_SOLID)); // ORCA match axis colors
+    dc.SetPen(wxPen(wxColour(encode_color(to_rgb(ui_colors().axes[Z]))), 1, wxPENSTYLE_SOLID));    // ORCA match axis colors
+    dc.SetBrush(wxBrush(wxColour(encode_color(to_rgb(ui_colors().axes[Z]))), wxBRUSHSTYLE_SOLID)); // ORCA match axis colors
 	dc.DrawCircle(origin_px(0), origin_px(1), 3);
 
 	static const auto origin_label = wxString("(0,0)");
