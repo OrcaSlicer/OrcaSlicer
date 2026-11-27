@@ -82,9 +82,9 @@ layout(rgba16f, binding = 1) uniform image2D aux_normal_depth_image;
 layout(rgba32f, binding = 2) uniform image2D bed_accumulation_image;
 // Average over the samples of the first surface's albedo (rgb) and class (a), for the denoiser.
 layout(rgba8, binding = 3) uniform image2D aux_albedo_image;
-// Sum over the samples of the squared luminance of the radiance: with the sum of the luminance, the
-// variance the denoiser follows.
-layout(r32f, binding = 4) uniform image2D moment_image;
+// Sums over the samples of the squared luminance of the radiance (r), with the sum of the luminance
+// the variance the denoiser follows, and of the bed term (g), for adaptive sampling.
+layout(rg32f, binding = 4) uniform image2D moment_image;
 
 uniform ivec2 image_size;
 uniform ivec2 tile_offset;
@@ -100,6 +100,11 @@ uniform float camera_orthographic_height;
 uniform bool camera_orthographic;
 uniform int sample_start;
 uniform int sample_count;
+// Adaptive sampling: a progressive sample skips the work groups whose pixels all know their average to
+// within adaptive_error steps of 8 bit sRGB (one standard deviation), from adaptive_min_samples on.
+// 0 samples every pixel.
+uniform float adaptive_error;
+uniform int adaptive_min_samples;
 uniform int max_bounces;
 // The top of the visible layers, to cull the boxes of the BVH above it; what the sliders hide is hidden
 // by the moves.
@@ -2012,14 +2017,38 @@ float fetch_history(vec3 p, vec3 n, vec4 albedo_class, bool background, out vec4
     return min(bed_acc.a, HISTORY_MAX_SAMPLES - 1.0);
 }
 
+// Error of the average of a pixel's samples of a linear value, from their sum and the sum of their
+// squares: one standard deviation, in steps of 8 bit sRGB at that average.
+float display_error(float sum, float sum_squares, float n)
+{
+    float mean = sum / n;
+    float variance = max(sum_squares / n - mean * mean, 0.0);
+    float slope = mean > 0.0031308 ? 0.4396 * pow(mean, -0.58333) : 12.92;
+    return 255.0 * slope * sqrt(variance / n);
+}
+
+// Luminance of the rasterized bed the bed term scales, taken as that of a mid grey bed.
+const float BED_LUMINANCE = 0.25;
+
+bool pixel_converged(vec4 sum, vec4 bed_sum, vec2 moment)
+{
+    float n = bed_sum.a;
+    if (n < float(max(adaptive_min_samples, 2)))
+        return false;
+    float error = display_error(luminance(sum.rgb), moment.x, n);
+    float bed_error = display_error(BED_LUMINANCE * luminance(bed_sum.rgb), BED_LUMINANCE * BED_LUMINANCE * moment.y, n);
+    float bed_share = clamp(1.0 - sum.a / n, 0.0, 1.0);
+    return max(error, bed_share * bed_error) < adaptive_error;
+}
+
+// Whether a pixel of this work group still needs samples, see adaptive_error.
+shared uint s_unconverged;
+
 void main()
 {
     ivec2 local_px = ivec2(gl_GlobalInvocationID.xy);
-    if (any(greaterThanEqual(local_px, tile_size)))
-        return;
     ivec2 pixel = local_px + tile_offset;
-    if (any(greaterThanEqual(pixel, image_size)))
-        return;
+    bool inside = all(lessThan(local_px, tile_size)) && all(lessThan(pixel, image_size));
 
     g_has_clipping = dot(clipping_plane.xyz, clipping_plane.xyz) > 0.5;
     g_has_move_filter = (move_min >= 0 || move_max >= 0);
@@ -2027,12 +2056,26 @@ void main()
     g_interactive = is_interactive_pass;
     g_pixel_seed = hash_u32(uint(pixel.x) + hash_u32(uint(pixel.y) + 0x9e3779b9u));
 
-    bool reset_accum = (sample_start <= 1);
+    bool reset_accum = (sample_start <= 1) || !inside;
     vec4 sum = reset_accum ? vec4(0.0) : imageLoad(accumulation_image, pixel);
     vec4 bed_sum = reset_accum ? vec4(0.0) : imageLoad(bed_accumulation_image, pixel);
     vec4 normal_depth = reset_accum ? vec4(0.0) : imageLoad(aux_normal_depth_image, pixel);
     vec4 albedo_class = reset_accum ? vec4(0.0) : imageLoad(aux_albedo_image, pixel);
-    float moment = reset_accum ? 0.0 : imageLoad(moment_image, pixel).r;
+    vec2 moment = reset_accum ? vec2(0.0) : imageLoad(moment_image, pixel).rg;
+
+    // The whole work group skips the sample or takes it, so that its threads leave together.
+    if (adaptive_error > 0.0 && !is_interactive_pass) {
+        if (gl_LocalInvocationIndex == 0u)
+            s_unconverged = 0u;
+        barrier();
+        if (inside && !pixel_converged(sum, bed_sum, moment))
+            atomicOr(s_unconverged, 1u);
+        barrier();
+        if (s_unconverged == 0u)
+            return;
+    }
+    if (!inside)
+        return;
     float aspect = float(image_size.x) / float(image_size.y);
 
     for (int sample_index = 0; sample_index < sample_count; ++sample_index) {
@@ -2076,12 +2119,13 @@ void main()
             sum = (history_color + (sample_color - history_color) / count) * count;
             bed_sum = vec4((history_bed + (sample_bed - history_bed) / count) * count, count);
             // The interactive pass filters without following the variance.
-            moment = 0.0;
+            moment = vec2(0.0);
         } else {
             sum += sample_color;
             bed_sum += vec4(sample_bed, 1.0);
             float l = luminance(sample_color.rgb);
-            moment += l * l;
+            float l_bed = luminance(sample_bed);
+            moment += vec2(l * l, l_bed * l_bed);
         }
         // An interactive frame keeps its own first surface, whatever its history.
         float w = g_interactive ? 1.0 : 1.0 / bed_sum.a;
@@ -2093,5 +2137,5 @@ void main()
     imageStore(bed_accumulation_image, pixel, bed_sum);
     imageStore(aux_normal_depth_image, pixel, normal_depth);
     imageStore(aux_albedo_image, pixel, albedo_class);
-    imageStore(moment_image, pixel, vec4(moment));
+    imageStore(moment_image, pixel, vec4(moment, 0.0, 0.0));
 }

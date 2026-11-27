@@ -1393,6 +1393,7 @@ PathTraceRenderer::QualitySettings PathTraceRenderer::quality_settings() const
     float tile_budget_ms = 10.0f;
     float min_orbit_scale = 0.18f;
     float max_orbit_scale = 0.65f;
+    float adaptive_error = 2.0f;
 
     if (pt_quality == "low") {
         cfg_max_samples = 64u;
@@ -1403,6 +1404,7 @@ PathTraceRenderer::QualitySettings PathTraceRenderer::quality_settings() const
         tile_budget_ms = 8.0f;
         min_orbit_scale = 0.15f;
         max_orbit_scale = 0.50f;
+        adaptive_error = 4.0f;
     } else if (pt_quality == "high") {
         cfg_max_samples = 256u;
         cfg_bounces = 2;
@@ -1412,13 +1414,14 @@ PathTraceRenderer::QualitySettings PathTraceRenderer::quality_settings() const
         tile_budget_ms = 12.0f;
         min_orbit_scale = 0.20f;
         max_orbit_scale = 0.75f;
+        adaptive_error = 1.0f;
     } else if (m_canvas.m_canvas_type == GLCanvas3D::ECanvasType::CanvasPreview) {
         // Bounce rays start inside dense toolpaths and run incoherent, at several times the cost of
         // camera rays: on Medium the second bounce took a third of a toolpath sample, for half a
         // percent of its brightness. High keeps it.
         cfg_bounces = 1;
     }
-    return { cfg_max_samples, cfg_bounces, max_trans_bounces, shadow_max_hits, quality_preset, tile_budget_ms, min_orbit_scale, max_orbit_scale };
+    return { cfg_max_samples, cfg_bounces, max_trans_bounces, shadow_max_hits, quality_preset, tile_budget_ms, min_orbit_scale, max_orbit_scale, adaptive_error };
 }
 
 // A scene this GPU cannot hold leaves an empty one at its signature: the rasterizer stands in until
@@ -1550,7 +1553,7 @@ bool PathTraceRenderer::allocate_images(uint32_t full_width, uint32_t full_heigh
     allocate_image(m_gpu_trans_accumulation_image, GL_RGBA32F, GL_FLOAT, GL_NEAREST);
     allocate_image(m_gpu_aux_normal_depth_image, GL_RGBA16F, GL_FLOAT, GL_NEAREST);
     allocate_image(m_gpu_aux_albedo_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_NEAREST);
-    allocate_image(m_gpu_moment_image, GL_R32F, GL_FLOAT, GL_NEAREST);
+    allocate_image(m_gpu_moment_image, GL_RG32F, GL_FLOAT, GL_NEAREST);
     for (unsigned int& tex : m_gpu_denoise_images)
         allocate_image(tex, GL_RGBA16F, GL_FLOAT, GL_NEAREST);
     allocate_image(m_gpu_display_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_LINEAR);
@@ -2046,7 +2049,7 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
         glsafe(::glBindImageTexture(1, m_gpu_aux_normal_depth_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F));
         glsafe(::glBindImageTexture(2, m_gpu_trans_accumulation_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
         glsafe(::glBindImageTexture(3, m_gpu_aux_albedo_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8));
-        glsafe(::glBindImageTexture(4, m_gpu_moment_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F));
+        glsafe(::glBindImageTexture(4, m_gpu_moment_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RG32F));
 
         glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_gpu_node_buffer));
         glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_gpu_triangle_buffer));
@@ -2105,6 +2108,9 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
         compute_shader->set_uniform("max_trans_bounces", quality.max_trans_bounces);
         compute_shader->set_uniform("shadow_max_hits", quality.shadow_max_hits);
         compute_shader->set_uniform("quality_preset", quality.quality_preset);
+        // A pixel's variance is too rough an estimate before an eighth of its samples.
+        compute_shader->set_uniform("adaptive_error", quality.adaptive_error);
+        compute_shader->set_uniform("adaptive_min_samples", int(quality.cfg_max_samples / 8u));
 
         if (m_gpu_timer_queries[0] == 0) {
             glsafe(::glGenQueries(GLsizei(m_gpu_timer_queries.size()), m_gpu_timer_queries.data()));
@@ -2252,7 +2258,7 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
         glsafe(::glBindImageTexture(1, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F));
         glsafe(::glBindImageTexture(2, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
         glsafe(::glBindImageTexture(3, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8));
-        glsafe(::glBindImageTexture(4, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F));
+        glsafe(::glBindImageTexture(4, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RG32F));
         // The end timestamp goes after the images are unbound: right after the dispatches the
         // driver may write it before they have run, which made a 100 ms frame read as 6 ms.
         glsafe(::glQueryCounter(m_gpu_timer_queries[2 * write_query_idx + 1], GL_TIMESTAMP));

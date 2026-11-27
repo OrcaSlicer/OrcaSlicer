@@ -72,6 +72,9 @@ private:
         float tile_budget_ms;
         float min_orbit_scale;
         float max_orbit_scale;
+        // Adaptive sampling: the error of a pixel's average, in steps of 8 bit sRGB, below which it stops
+        // taking samples, see adaptive_error in pathtrace.comp.
+        float adaptive_error;
     };
 
     GLCanvas3D& m_canvas;
