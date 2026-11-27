@@ -67,6 +67,7 @@
 #include <cstdint>
 #include <deque>
 #include <functional>
+#include <future>
 #include <initializer_list>
 #include <iterator>
 #include <memory>
@@ -543,21 +544,25 @@ TEST_CASE("a worker job that starts between a call's closures is the call's, who
 {
     // The worker doesn't record who queued a job, so a person's job that starts while a call that
     // found the worker idle is still running is claimed by that call, as one its change queued is.
-    Harness h;
-    h.add("settle", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
+    Harness            h;
+    std::promise<void> edited;
+    h.add("settle", GuardClass::Mutate, [&h, &edited](const json&, ToolContext& ctx) {
         ctx.run_ui([] { return json("edited"); });
-        for (int i = 0; i < 10; ++i) {
-            ctx.observe_ui([] { return json(); });
+        edited.set_value();
+        // Settles until the job starts, so the closure that sees it busy is the one that claims it.
+        for (int i = 0; i < 250 && !ctx.observe_ui([&h] { return json(h.worker.busy()); }).get<bool>(); ++i)
             std::this_thread::sleep_for(20ms);
-        }
         return ToolResult::ok();
     });
     h.start();
-    ToolResult      settled;
-    std::thread     caller([&h, &settled] { settled = h.call("settle"); });
-    std::this_thread::sleep_for(60ms);
-    h.ui.post([&h] { h.worker.start(h.job_length); }); // a person starts Text typing
+    ToolResult  settled;
+    std::thread caller([&h, &settled] { settled = h.call("settle"); });
+    // Only once the call's change has run, which found the worker idle; a job started before it refuses the call.
+    const bool changed = edited.get_future().wait_for(5000ms) == std::future_status::ready;
+    if (changed)
+        h.ui.post([&h] { h.worker.start(h.job_length); }); // a person starts Text typing
     caller.join();
+    REQUIRE(changed);
     REQUIRE(settled.data["status"] == "running");
     const std::string job = settled.data["job"];
     CHECK(h.refused_by(h.call("edit"), job));
