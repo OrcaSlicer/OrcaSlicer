@@ -9,6 +9,8 @@
 #include "PartPlate.hpp"
 
 #include "libslic3r/Model.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include <string>
 #include <map>
