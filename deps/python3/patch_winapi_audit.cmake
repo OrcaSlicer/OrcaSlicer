@@ -7,9 +7,9 @@
 # changes the format to "uOu", as upstream does (python/cpython#159237), until the pinned
 # CPython release carries the fix.
 #
-# Applying is idempotent: ExternalProject re-runs the patch step when PATCH_COMMAND changes or
-# the patch stamp is missing, which can happen on a source tree that already carries the patch.
-# A reverse check recognises that state instead of failing the build on an already patched file.
+# Applying is idempotent: ExternalProject re-runs the patch step when the patch stamp is missing,
+# which can happen on a source tree that already carries the patch. A reverse check recognises
+# that state instead of failing the build on an already patched file.
 # When the pinned CPython release carries the fix, drop this script, its patch and PATCH_COMMAND.
 
 set(_patch "${CMAKE_CURRENT_LIST_DIR}/0001-winapi-createprocess-audit-format.patch")
