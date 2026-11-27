@@ -5377,8 +5377,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (shared_volume) {
                 const TriangleMesh& trangle_mesh = volume->mesh();
                 Vec3d shift = trangle_mesh.get_init_shift();
+                // The shift is in mesh coordinates, so it goes through the component's rotation and scale, as on the mesh's first use.
                 if (!shift.isApprox(Vec3d::Zero()))
-                    volume->translate(shift);
+                    volume->translate(comp_transformatino.get_matrix_no_offset() * shift);
             }
 
             // recreate custom supports, seam and mmu segmentation from previously loaded attribute
