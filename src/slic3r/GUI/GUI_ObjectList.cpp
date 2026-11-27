@@ -7452,8 +7452,15 @@ void ObjectList::on_plate_selected(int plate_index)
     if (sel == item)
         return;
 
+    // Orca: refresh the sidebar as select_item() does, or Plate Settings keeps showing the previous plate.
+    // select_items() sets the flag itself and refreshes after this returns.
+    const bool already_guarded = m_prevent_list_events;
+    m_prevent_list_events = true;
     UnselectAll();
     Select(item);
+    if (!already_guarded)
+        part_selection_changed();
+    m_prevent_list_events = already_guarded;
 }
 
 //BBS: notify partplate the instance added/updated
