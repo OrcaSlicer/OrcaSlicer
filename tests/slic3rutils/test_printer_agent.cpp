@@ -4,6 +4,7 @@
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <pybind11/gil.h>
 #include <pybind11/pytypes.h>
 #include <catch2/catch_message.hpp>
 #include "python_test_support.hpp"
@@ -63,14 +64,11 @@ TEST_CASE("unit: printer-agent registry register / lookup / duplicate-reject", "
 // every printer-agent plugin subclasses. If a binding is renamed or removed,
 // plugins fail at runtime even though C++ still compiles.
 // ===========================================================================
-// ensure_python_initialized()/import_orca_module() come from python_test_support.hpp:
-// a bare scoped_interpreter with no PyConfig.home falls back to the build-time
-// stdlib path, which doesn't exist beside this test binary, so Py_Initialize()
-// fails to load the codecs needed for the filesystem encoding. The shared helper
-// points PyConfig.home at the python/ runtime staged next to the test executable.
 
 TEST_CASE("integration: orca.printer_agent binding surface", "[integration][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::module_ orca = import_orca_module();
 
     REQUIRE(py::hasattr(orca, "printer_agent"));
@@ -122,6 +120,8 @@ TEST_CASE("integration: orca.printer_agent binding surface", "[integration][Pyth
 // ===========================================================================
 TEST_CASE("integration: orca plugin-registration API surface + discovery-context guards", "[integration][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::module_ orca = import_orca_module();
 
     // Module-level surface every plugin package relies on.
