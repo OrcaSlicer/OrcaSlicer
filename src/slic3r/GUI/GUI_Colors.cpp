@@ -1,11 +1,13 @@
 #include "GUI_Colors.hpp"
 #include "imgui/imgui.h"
 #include "libvgcode/include/ColorRange.hpp"
+#include <libvgcode/include/Types.hpp>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
-
+#include <libslic3r/Color.hpp>
 
 namespace Slic3r{
 
