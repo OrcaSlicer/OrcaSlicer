@@ -22,10 +22,12 @@ import os
 import platform
 import sys
 import tempfile
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
+import zlib
 from dataclasses import dataclass, field
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -39,7 +41,7 @@ WORKFLOW = "build_all.yml"
 COMMITS_BACK = 30
 # A deflated artifact is refused when it is larger than this many times the member limit.
 ZIP_FACTOR = 4
-# fingerprints.tsv is about 60 KB for 1,336 slices.
+# fingerprints.tsv is about 144 KB for 1,336 slices.
 FINGERPRINTS_LIMIT = 4 * 1024 * 1024
 SMALL_LIMIT = 4096
 # How many slice names are listed under each vendor.
@@ -50,6 +52,9 @@ BASELINE_LINE = "Baseline: "
 # A comment holds at most 65,536 characters; the report inside it is cut well before.
 FENCE_LIMIT = 50000
 FENCE = "````"
+# Bidi controls, and format characters that only hide text. The joiners (U+200C, U+200D) are kept.
+HIDDEN_CHARACTERS = (set("\u061c\u200b\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2060\u2066\u2067\u2068\u2069\ufeff")
+                     | {chr(c) for c in range(0x206A, 0x2070)} | {chr(c) for c in range(0xE0000, 0xE0080)})
 LABEL = "check-gcode"
 MARKER = "<!-- check-gcode-comment -->"
 HEADING = "## Sliced G-code comparison"
@@ -103,9 +108,12 @@ class Api:
         except urllib.error.HTTPError as error:
             if error.code not in (301, 302, 303, 307, 308):
                 raise
-            location = error.headers["Location"]
+            location = error.headers["Location"] or ""
             error.close()
-            response = urllib.request.urlopen(location, timeout=60)
+            if not location.startswith("https://"):
+                raise ArtifactError("the download redirect is not to an https address")
+            # No further redirect is followed: storage answers directly.
+            response = opener.open(location, timeout=60)
         with response:
             data = response.read(limit + 1)
         if len(data) > limit:
@@ -160,7 +168,9 @@ def read_artifact(api, repo, art, names, limit):
                 if len(content) > limit:
                     raise ArtifactError("an artifact file is larger than its limit")
                 found[name] = content
-    except (zipfile.BadZipFile, zipfile.LargeZipFile, NotImplementedError, EOFError, OSError) as error:
+    # zlib.error: a corrupt stream; RuntimeError: an encrypted member; ValueError: a bad file name.
+    except (zipfile.BadZipFile, zipfile.LargeZipFile, NotImplementedError, EOFError, OSError,
+            zlib.error, RuntimeError, ValueError) as error:
         raise ArtifactError("the artifact is not a readable zip") from error
     return found
 
@@ -222,7 +232,10 @@ def build_report(baseline, base_rows, head_rows, base_made_with, head_made_with,
 def fence(data):
     """Text from an artifact as a Markdown code block nothing in it can close or turn into markup."""
     text = data.decode("utf-8", "replace")
-    text = "".join(c for c in text if c in "\n\t" or (c >= " " and c != "\x7f"))
+    # Control characters, line separators, bidi controls and invisible characters would change how
+    # the text reads. Other format characters, such as the joiners in emoji and some scripts, are kept.
+    text = "".join(c for c in text if c in "\n\t"
+                   or not (unicodedata.category(c) in ("Cc", "Cs", "Zl", "Zp") or c in HIDDEN_CHARACTERS))
     while FENCE in text:
         text = text.replace(FENCE, "```")
     if len(text.encode()) > FENCE_LIMIT:
@@ -270,7 +283,7 @@ def _stable(body):
     """The part of a comment that a new commit or a new baseline with the same result leaves alone:
     all but the last line, without the baseline paragraph inside the fence."""
     kept, skipping = [], False
-    for line in body.splitlines()[:-1]:
+    for line in body.rstrip().splitlines()[:-1]:
         if line.startswith(BASELINE_LINE):
             skipping = True
         elif line == FENCE:
@@ -284,7 +297,8 @@ def _bot_comments(api, repo, number):
     found, page = [], 1
     while True:
         batch = api.get(f"repos/{repo}/issues/{number}/comments", per_page=100, page=page)
-        found += [c for c in batch if c["user"]["login"] == BOT_LOGIN and c["body"].startswith(MARKER)]
+        found += [c for c in batch if (c["user"] or {}).get("login") == BOT_LOGIN
+                  and (c["body"] or "").startswith(MARKER)]
         if len(batch) < 100:
             return found
         page += 1
@@ -293,14 +307,19 @@ def _bot_comments(api, repo, number):
 def post_comment(api, repo, number, body):
     """Keeps an identical comment, edits one whose result is the same, else replaces them all."""
     old = _bot_comments(api, repo, number)
-    if len(old) == 1 and old[0]["body"] == body:
-        return
-    if len(old) == 1 and _stable(old[0]["body"]) == _stable(body):
-        api.send("PATCH", f"repos/{repo}/issues/comments/{old[0]['id']}", {"body": body})
-        return
-    for c in old:
+    # The newest one is compared, so one left behind by a failed delete cannot make every wake post.
+    newest, extra = (old[-1], old[:-1]) if old else (None, [])
+    # GitHub may hand the body back with other line ends.
+    if newest and newest["body"].replace("\r", "").rstrip() == body.rstrip():
+        pass
+    elif newest and _stable(newest["body"]) == _stable(body):
+        api.send("PATCH", f"repos/{repo}/issues/comments/{newest['id']}", {"body": body})
+    else:
+        # Posted first, so a failed post leaves the old comment rather than none.
+        api.send("POST", f"repos/{repo}/issues/{number}/comments", {"body": body})
+        extra = old
+    for c in extra:
         api.send("DELETE", f"repos/{repo}/issues/comments/{c['id']}")
-    api.send("POST", f"repos/{repo}/issues/{number}/comments", {"body": body})
 
 
 def comment_body(sha, report=None, note=None):
@@ -328,7 +347,17 @@ def find_report(api, repo, pr):
         art = find_artifact(api, repo, run["id"])
         if not art:
             continue
-        files = read_artifact(api, repo, art, ["pr_number.txt", "report.txt"], REPORT_LIMIT)
+        try:
+            files = read_artifact(api, repo, art, ["pr_number.txt", "report.txt"], REPORT_LIMIT)
+        except ArtifactError:
+            # A broken artifact: an older run may still have a good one.
+            continue
+        except urllib.error.HTTPError as error:
+            # Any other failure posts nothing, so a passing outage cannot replace the comment.
+            if error.code not in (404, 410):
+                raise
+            # The artifact expired after it was listed.
+            continue
         if files.get("pr_number.txt", b"").strip() == str(pr["number"]).encode() and "report.txt" in files:
             return files["report.txt"], None
     return None, NO_COMPARISON
@@ -389,7 +418,7 @@ def main(argv=None):
         return 0
     try:
         text = report_main(args, api)
-    except (ArtifactError, urllib.error.URLError, OSError, ValueError, KeyError, TypeError) as error:
+    except Exception as error:  # noqa: BLE001 - the step must still write a report
         # The type only: the message of an error from the baseline's files can hold their text.
         print(f"The comparison could not be made ({type(error).__name__}).")
         text = f"The comparison could not be made ({type(error).__name__}).\n"

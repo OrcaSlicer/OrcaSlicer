@@ -78,6 +78,41 @@ class ReadArtifactTest(unittest.TestCase):
         with self.assertRaises(cc.ArtifactError):
             cc.read_artifact(api, REPO, art, ["report.txt"], LIMIT)
 
+    def test_a_member_honestly_larger_than_the_limit_is_refused(self):
+        api, art = self.api_with(make_zip({"report.txt": "x" * (LIMIT + 1)}))
+        with self.assertRaises(cc.ArtifactError):
+            cc.read_artifact(api, REPO, art, ["report.txt"], LIMIT)
+
+    def test_a_member_is_never_decompressed_past_the_limit(self):
+        # A zip bomb must not be inflated whole before its size is checked.
+        sizes = []
+        real_read = zipfile.ZipExtFile.read
+
+        def read(member, n=-1):
+            sizes.append(n)
+            return real_read(member, n)
+
+        api, art = self.api_with(make_zip({"report.txt": "x" * (LIMIT * 50)}))
+        with mock.patch.object(zipfile.ZipExtFile, "read", read), self.assertRaises(cc.ArtifactError):
+            cc.read_artifact(api, REPO, art, ["report.txt"], LIMIT)
+        self.assertEqual(sizes, [LIMIT + 1])
+
+    def test_a_corrupt_or_encrypted_member_is_an_artifact_error(self):
+        data = bytearray(make_zip({"report.txt": "z" * 500}))
+        local = data.index(b"PK\x03\x04")
+        start = local + 30 + int.from_bytes(data[local + 26:local + 28], "little")
+        corrupt = bytearray(data)
+        corrupt[start:start + 4] = b"\xff\xff\xff\xff"
+        # Bit 0 of the general purpose flags, in both headers, marks a member as encrypted.
+        encrypted = bytearray(data)
+        central = encrypted.index(b"PK\x01\x02")
+        encrypted[local + 6] |= 1
+        encrypted[central + 8] |= 1
+        for bad in (bytes(corrupt), bytes(encrypted)):
+            api, art = self.api_with(bad)
+            with self.assertRaises(cc.ArtifactError):
+                cc.read_artifact(api, REPO, art, ["report.txt"], LIMIT)
+
     def test_an_artifact_over_the_size_cap_is_refused_before_it_is_downloaded(self):
         api, art = self.api_with(b"", size=cc.ZIP_FACTOR * LIMIT + 1)
         with self.assertRaises(cc.ArtifactError):
@@ -154,6 +189,11 @@ class FindBaselineTest(unittest.TestCase):
                        {31: [artifact(310)], 20: [artifact(200)]})
         self.assertEqual(cc.find_baseline(api, REPO, "main", "c3" * 20).run_id, 20)
 
+    def test_the_newest_run_of_a_commit_is_used(self):
+        api = self.api(self.COMMITS, [run(30, "c3" * 20), run(35, "c3" * 20, event="schedule")],
+                       {30: [artifact(300)], 35: [artifact(350)]})
+        self.assertEqual(cc.find_baseline(api, REPO, "main", "c3" * 20).run_id, 35)
+
     def test_a_nightly_run_is_a_baseline(self):
         api = self.api(self.COMMITS, [run(40, "c3" * 20, event="schedule")], {40: [artifact(400)]})
         self.assertEqual(cc.find_baseline(api, REPO, "main", "c3" * 20).run_id, 40)
@@ -191,8 +231,16 @@ class FenceTest(unittest.TestCase):
         self.assertFalse(any("````" in line for line in body))
 
     def test_control_characters_are_dropped_and_bad_utf8_replaced(self):
-        fenced = cc.fence(b"a\x00b\x1b[31mc\td\xff\n")
-        self.assertIn("ab[31mc\td\ufffd", fenced)
+        fenced = cc.fence(b"a\x00b\x1b[31mc\td\xff\x7fe\r\n")
+        self.assertIn("ab[31mc\td\ufffde\n", fenced)
+
+    def test_bidi_controls_c1_and_line_separators_are_dropped_but_joiners_kept(self):
+        fenced = cc.fence("a\u202eb\u0085c\u2066d\u2028e \U0001f469\u200d\U0001f52c\n".encode())
+        self.assertIn("abcde \U0001f469\u200d\U0001f52c\n", fenced)
+
+    def test_invisible_characters_are_dropped_but_joiners_kept(self):
+        fenced = cc.fence("a\u200bb\u2060c\ufeffd\u206ae\U000e0041f\u200cg\n".encode())
+        self.assertIn("abcdef\u200cg\n", fenced)
 
     def test_a_long_report_is_cut_on_a_line_boundary_inside_the_fence(self):
         fenced = cc.fence(("x" * 99 + "\n").encode() * 1000)
@@ -298,7 +346,8 @@ def comment(comment_id, body):
 
 class CommentTest(unittest.TestCase):
     def run_comment(self, api, head_repo=HEAD_REPO):
-        cc.comment(api, REPO, head_repo, "fix")
+        with contextlib.redirect_stdout(io.StringIO()):
+            cc.comment(api, REPO, head_repo, "fix")
         return api.sent
 
     def posted(self, sent):
@@ -319,8 +368,10 @@ class CommentTest(unittest.TestCase):
         self.assertEqual(self.run_comment(api), [])
 
     def test_a_pull_request_into_another_branch_is_told_why_there_is_no_report(self):
-        body = self.posted(self.run_comment(CommentFake([pull(base="feature/x")])))
+        api = CommentFake([pull(base="feature/x")], [pr_run(1)], {1: report_artifact()})
+        body = self.posted(self.run_comment(api))
         self.assertIn("no `Build all` run", body)
+        self.assertNotIn("G-code changed", body)
 
     def test_a_commit_without_a_build_is_told_why(self):
         body = self.posted(self.run_comment(CommentFake([pull()])))
@@ -344,6 +395,15 @@ class CommentTest(unittest.TestCase):
         body = self.posted(self.run_comment(api))
         self.assertNotIn("forged", body)
         self.assertIn("no `Build all` run", body)
+
+    def test_a_run_from_another_branch_of_the_same_repository_is_not_used(self):
+        api = CommentFake([pull()], [pr_run(2, branch="other")], {2: report_artifact("forged\n")})
+        self.assertNotIn("forged", self.posted(self.run_comment(api)))
+
+    def test_a_broken_artifact_falls_through_to_the_note(self):
+        api = CommentFake([pull()], [pr_run(1)], {1: report_artifact()})
+        api.blobs[f"repos/{REPO}/actions/artifacts/10/zip"] = b"not a zip"
+        self.assertIn("made no comparison", self.posted(self.run_comment(api)))
 
     def test_an_artifact_naming_another_pull_request_is_not_used(self):
         api = CommentFake([pull()], [pr_run(1)], {1: report_artifact(number="6\n")})
@@ -381,8 +441,115 @@ class CommentTest(unittest.TestCase):
         api = CommentFake([pull()], [pr_run(1)], {1: report_artifact("after\n")},
                           [comment(9, old), {"id": 8, "user": {"login": "someone"}, "body": cc.MARKER}])
         sent = self.run_comment(api)
+        # Posted before the old one goes, so a failed post leaves the old comment.
         self.assertEqual([(m, p) for m, p, _ in sent],
-                         [("DELETE", f"repos/{REPO}/issues/comments/9"), ("POST", f"repos/{REPO}/issues/5/comments")])
+                         [("POST", f"repos/{REPO}/issues/5/comments"), ("DELETE", f"repos/{REPO}/issues/comments/9")])
+
+    def test_other_bot_comments_and_comments_without_a_user_are_left_alone(self):
+        old = self.body_for("before\n")
+        others = [comment(7, "@someone the build for `build-all` starts now."), {"id": 6, "user": None, "body": "x"}]
+        api = CommentFake([pull()], [pr_run(1)], {1: report_artifact("after\n")}, others + [comment(9, old)])
+        deleted = [p for m, p, _ in self.run_comment(api) if m == "DELETE"]
+        self.assertEqual(deleted, [f"repos/{REPO}/issues/comments/9"])
+
+    def test_an_identical_comment_with_other_line_ends_is_kept(self):
+        old = self.body_for("same\n").replace("\n", "\r\n").rstrip()
+        api = CommentFake([pull()], [pr_run(1)], {1: report_artifact("same\n")}, [comment(9, old)])
+        self.assertEqual(self.run_comment(api), [])
+
+    def test_a_crlf_comment_with_the_same_result_is_edited_in_place(self):
+        old = self.body_for("same\nBaseline: compared with aaaa\n", sha="e" * 40).replace("\n", "\r\n")
+        api = CommentFake([pull()], [pr_run(1)], {1: report_artifact("same\nBaseline: compared with bbbb\n")},
+                          [comment(9, old)])
+        self.assertEqual([m for m, _, _ in self.run_comment(api)], ["PATCH"])
+
+    def test_a_comment_left_by_a_failed_delete_is_cleaned_up_without_posting_again(self):
+        current = self.body_for("same\n")
+        api = CommentFake([pull()], [pr_run(1)], {1: report_artifact("same\n")},
+                          [comment(8, self.body_for("older\n")), comment(9, current)])
+        self.assertEqual([(m, p) for m, p, _ in self.run_comment(api)], [("DELETE", f"repos/{REPO}/issues/comments/8")])
+
+    def failing_download(self, error):
+        api = CommentFake([pull()], [pr_run(2), pr_run(1)], {2: report_artifact("new\n"), 1: report_artifact("old\n")})
+        real = api.get_bytes
+
+        def get_bytes(path, limit):
+            if path.endswith("/20/zip"):
+                raise error
+            return real(path, limit)
+
+        api.get_bytes = get_bytes
+        return api
+
+    def test_an_artifact_that_is_gone_falls_through_to_an_older_run(self):
+        for code in (404, 410):
+            with self.subTest(code=code):
+                api = self.failing_download(urllib.error.HTTPError("x", code, "Gone", {}, None))
+                self.assertIn("````\nold\n````", self.posted(self.run_comment(api)))
+
+    def test_a_download_that_fails_for_another_reason_posts_nothing(self):
+        # A passing outage must not replace the comment with a note that the build made no comparison.
+        for error in (urllib.error.HTTPError("x", 503, "Unavailable", {}, None), urllib.error.URLError("dns"),
+                      TimeoutError(), ConnectionResetError()):
+            with self.subTest(error=type(error).__name__):
+                api = self.failing_download(error)
+                with self.assertRaises(type(error)):
+                    self.run_comment(api)
+                self.assertEqual(api.sent, [])
+
+    def test_the_comment_is_found_past_the_first_page(self):
+        old = self.body_for("before\n")
+        api = CommentFake([pull()], [pr_run(1)], {1: report_artifact("after\n")})
+        pages = {1: [comment(100 + i, "other") for i in range(100)], 2: [comment(9, old)]}
+        api.gets[f"repos/{REPO}/issues/5/comments"] = lambda params: pages.get(params["page"], [])
+        deleted = [p for m, p, _ in self.run_comment(api) if m == "DELETE"]
+        self.assertEqual(deleted, [f"repos/{REPO}/issues/comments/9"])
+
+
+class GetBytesTest(unittest.TestCase):
+    """Api.get_bytes with urllib faked: the storage host must never see the token."""
+
+    def fake(self, location="https://storage.example/blob", body=b"zipdata"):
+        seen = []
+
+        class Opener:
+            def open(self, request, timeout):
+                if isinstance(request, str):
+                    seen.append(("storage", request))
+                    if body is None:
+                        raise urllib.error.HTTPError(request, 302, "Found", {"Location": "http://x/"}, None)
+                    return io.BytesIO(body)
+                seen.append(("api", request.get_header("Authorization")))
+                raise urllib.error.HTTPError(request.full_url, 302, "Found", {"Location": location}, None)
+
+        self.build_opener = mock.patch.object(cc.urllib.request, "build_opener", return_value=Opener())
+        return seen, self.build_opener, \
+            mock.patch.object(cc.urllib.request, "urlopen", side_effect=AssertionError("not via urlopen"))
+
+    def test_the_redirect_is_followed_without_the_token(self):
+        seen, opener, urlopen = self.fake()
+        with opener, urlopen:
+            self.assertEqual(cc.Api("secret").get_bytes("repos/x/zip", 100), b"zipdata")
+        self.assertEqual(seen, [("api", "Bearer secret"), ("storage", "https://storage.example/blob")])
+
+    def test_a_download_larger_than_the_limit_is_refused(self):
+        _, opener, urlopen = self.fake(body=b"x" * 101)
+        with opener, urlopen, self.assertRaises(cc.ArtifactError):
+            cc.Api("secret").get_bytes("repos/x/zip", 100)
+
+    def test_storage_redirecting_again_is_not_followed(self):
+        seen, opener, urlopen = self.fake(body=None)
+        with opener as build_opener, urlopen, self.assertRaises(urllib.error.HTTPError):
+            cc.Api("secret").get_bytes("repos/x/zip", 100)
+        # Both hops go through an opener that turns a redirect into an error.
+        build_opener.assert_called_once_with(cc._NoRedirect)
+        self.assertEqual(len([s for s in seen if s[0] == "storage"]), 1)
+
+    def test_a_redirect_that_is_not_https_is_refused(self):
+        seen, opener, urlopen = self.fake(location="http://storage.example/blob")
+        with opener, urlopen, self.assertRaises(cc.ArtifactError):
+            cc.Api("secret").get_bytes("repos/x/zip", 100)
+        self.assertEqual([s for s in seen if s[0] == "storage"], [])
 
 
 class CommentCommandTest(unittest.TestCase):
@@ -414,6 +581,12 @@ class ReportCommandTest(unittest.TestCase):
         for text in (stdout, report, summary):
             self.assertNotIn("line from the artifact", text)
         self.assertIn("could not be made (ValueError)", report)
+
+    def test_any_error_still_writes_a_report(self):
+        with tempfile.TemporaryDirectory() as folder:
+            code, _, report, _ = self.run_report(folder, RuntimeError("x"))
+        self.assertEqual(code, 0)
+        self.assertIn("could not be made (RuntimeError)", report)
 
     def test_the_summary_holds_the_report_inside_a_fence(self):
         with tempfile.TemporaryDirectory() as folder:
