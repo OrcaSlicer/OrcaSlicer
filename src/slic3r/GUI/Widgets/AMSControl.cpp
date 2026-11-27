@@ -226,8 +226,13 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
 
 
     //m_sizer_option_right->Add(0, 0, 1, wxEXPAND, 0);
+    m_button_extruder_eject = new Button(m_panel_option_right, _L("Eject"));
+    m_button_extruder_eject->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
+    m_button_extruder_eject->EnableTooltipEvenDisabled();
+
     m_sizer_option_right->Add(m_button_extruder_back, 0, wxLEFT, FromDIP(0));
     m_sizer_option_right->Add(m_button_extruder_feed, 0, wxLEFT, FromDIP(20));
+    m_sizer_option_right->Add(m_button_extruder_eject, 0, wxLEFT, FromDIP(20));
 
     m_panel_option_left->Layout();
     m_panel_option_right->Layout();
@@ -263,6 +268,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
 
     m_button_extruder_feed->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(AMSControl::on_filament_load), NULL, this);
     m_button_extruder_back->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(AMSControl::on_filament_unload), NULL, this);
+    m_button_extruder_eject->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(AMSControl::on_filament_eject), NULL, this);
     m_button_auto_refill->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(AMSControl::auto_refill), NULL, this);
 
     m_button_ams_setting->Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) {
@@ -1709,6 +1715,13 @@ void AMSControl::on_filament_unload(wxCommandEvent &event)
         if (m_ams_info[i].ams_id == m_current_ams) { m_ams_info[i].current_action = AMSAction::AMS_ACTION_UNLOAD; }
     }
     post_event(SimpleEvent(EVT_AMS_UNLOAD));
+}
+
+// qidi (ref QIDI Studio AMSControl.cpp:2104): eject filament of the selected slot
+void AMSControl::on_filament_eject(wxCommandEvent &event)
+{
+    (void)event;
+    post_event(SimpleEvent(EVT_AMS_EJECT));
 }
 
 void AMSControl::auto_refill(wxCommandEvent& event)

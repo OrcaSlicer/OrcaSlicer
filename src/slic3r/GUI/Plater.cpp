@@ -6178,7 +6178,10 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         return tray_config;
     };
 
-    if (obj->ams_support_virtual_tray) {
+    // Pull agents (Qidi) publish the external spool into vt_slot directly, and the push
+    // parser clears ams_support_virtual_tray on messages without vir_slot — a filled
+    // vt_slot alone is enough to expose the external holder to the material list.
+    if (obj->ams_support_virtual_tray || !obj->vt_slot.empty()) {
         int extruder = 0x10000; // Main (first) extruder at right
         for (auto & vt_tray : obj->vt_slot) {
             filament_ams_list.emplace(extruder + stoi(vt_tray.id), build_tray_config(vt_tray, "Ext",vt_tray.id, "0"));//254 or 255

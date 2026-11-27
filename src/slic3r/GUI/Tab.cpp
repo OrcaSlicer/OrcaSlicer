@@ -5601,6 +5601,8 @@ void TabPrinter::build_fff()
                 optgroup->append_single_option_line(option, "printer_basic_information_advanced#printer-agent");
             }
         }
+        // Sync profile: Qidi Plus 5 enhanced vs Standard (plain agent) - see printer_sync_profile
+        optgroup->append_single_option_line("printer_sync_profile", "printer_basic_information_advanced#printer-agent");
 
         optgroup->append_single_option_line("use_3mf");
         optgroup->append_single_option_line("scan_first_layer" , "printer_basic_information_advanced#scan-first-layer");

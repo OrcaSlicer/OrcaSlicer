@@ -974,8 +974,10 @@ private:
     bool            config_wizard_startup();
 	void            check_updates(const bool verbose);
 
-    // select or add MachineObject
+public:
+    // select or add MachineObject (also driven by the "Add printer by IP" dialog)
     void            select_machine(const std::string& agent_id);
+private:
 
     bool                    m_init_app_config_from_older { false };
     bool                    m_datadir_redefined { false };

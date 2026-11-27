@@ -719,17 +719,26 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
         ops_no_auto, "pa_value"
     );
 
+    // Qidi: Enable Box toggle, mirroring QIDI Studio's enable_multi_box print option
+    auto option_enable_multi_box = new PrintOption(
+        m_options_other, _L("Enable Box"),
+        _L("Activate the multi-color box for multi-color printing with multiple filaments."),
+        ops_no_auto, "enable_multi_box");
+    option_enable_multi_box->Hide();
+
     m_sizer_options = new wxGridSizer(0, 2, FromDIP(5), FromDIP(10));
     m_sizer_options->Add(option_timelapse, 0, wxEXPAND);
     m_sizer_options->Add(option_auto_bed_level, 0, wxEXPAND);
     m_sizer_options->Add(option_flow_dynamics_cali, 0, wxEXPAND);
     m_sizer_options->Add(option_nozzle_offset_cali_cali, 0, wxEXPAND);
+    m_sizer_options->Add(option_enable_multi_box, 0, wxEXPAND);
 
     m_checkbox_list_order.push_back(option_timelapse);
     m_checkbox_list_order.push_back(option_auto_bed_level);
     m_checkbox_list_order.push_back(option_flow_dynamics_cali);
     m_checkbox_list_order.push_back(option_nozzle_offset_cali_cali);
     m_checkbox_list_order.push_back(option_pa_value);
+    m_checkbox_list_order.push_back(option_enable_multi_box);
 
     m_options_other->SetSizer(m_sizer_options);
     m_options_other->Layout();
@@ -740,6 +749,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_checkbox_list["flow_cali"]     = option_flow_dynamics_cali;
     m_checkbox_list["nozzle_offset_cali"] = option_nozzle_offset_cali_cali;
     m_checkbox_list["pa_value"]      = option_pa_value;
+    m_checkbox_list["enable_multi_box"] = option_enable_multi_box;
     for (auto print_opt : m_checkbox_list_order) {
         print_opt->Bind(EVT_SWITCH_PRINT_OPTION, [this, print_opt](auto &e) {
             save_option_vals();
@@ -3166,6 +3176,23 @@ void SelectMachineDialog::update_option_opts(MachineObject *obj)
     }
     m_checkbox_list["flow_cali"]->Show(obj->is_support_pa_calibration);
 
+    /*enable_multi_box (Qidi): shown only for the Qidi agent with a Box AND the
+      qidi_enhanced sync profile (the "Standard" profile hides it); external-spool
+      mapping forces it off*/
+    std::string sync_profile = "qidi_enhanced";
+    if (wxGetApp().preset_bundle)
+        sync_profile = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("printer_sync_profile");
+    const bool has_box_machine = obj->HasAms() && obj->printer_agent_id == QIDI_PRINTER_AGENT_ID && sync_profile != "classic";
+    m_checkbox_list["enable_multi_box"]->Show(has_box_machine);
+    if (has_box_machine) {
+        for (const auto& info : m_ams_mapping_result) {
+            if (info.ams_id == VIRTUAL_AMS_MAIN_ID_STR && !info.ams_id.empty()) {
+                m_checkbox_list["enable_multi_box"]->setValue("off");
+                break;
+            }
+        }
+    }
+
     update_options_layout();
 }
 
@@ -3774,6 +3801,14 @@ void SelectMachineDialog::on_send_print()
         m_checkbox_list["nozzle_offset_cali"]->getValueInt(),
         pa_manual_mode
     );
+
+    if (m_checkbox_list["enable_multi_box"]->IsShown() && _HasExt(m_ams_mapping_result))
+        m_checkbox_list["enable_multi_box"]->setValue("off");
+    // Standard profile (classic): no Qidi box/slot extras; Qidi enhanced is the default
+    const std::string sync_profile = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("printer_sync_profile");
+    m_print_job->task_qidi_enhanced = sync_profile != "classic";
+    m_print_job->task_enable_box = m_checkbox_list["enable_multi_box"]->IsShown() &&
+                                   m_checkbox_list["enable_multi_box"]->getValue() == "on";
 
     if (obj_->HasAms()) {
         bool has_ext = _HasExt(m_ams_mapping_result);
