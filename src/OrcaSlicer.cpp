@@ -4783,6 +4783,12 @@ int CLI::run(int argc, char **argv)
     };
     if (plate_data_src.size() > 0)
     {
+        // Assign objects to plates on the bed the project was saved with, because the new bed's shape on the
+        // old plate grid does not match the plates the objects were placed on.
+        const bool retarget_bed = (translate_old || shrink_to_new_bed > 0) && old_printable_area.size() >= 4;
+        if (retarget_bed)
+            partplate_list.set_shapes(make_counter_clockwise(old_printable_area), old_exclude_area, {}, {}, {}, bed_texture,
+                                      height_to_lid, height_to_rod);
         partplate_list.load_from_3mf_structure(plate_data_src);
 
         int plate_count = partplate_list.get_plate_count();
@@ -4796,6 +4802,11 @@ int CLI::run(int argc, char **argv)
         }
 
         translate_models(partplate_list, m_print_config);
+        if (retarget_bed) {
+            partplate_list.set_shapes(make_counter_clockwise(current_printable_area), current_exclude_area, current_wrapping_exclude_area,
+                                      current_extruder_areas, current_extruder_print_heights, bed_texture, height_to_lid, height_to_rod);
+            partplate_list.reload_all_objects();
+        }
     }
 
     /*for (ModelObject *model_object : m_models[0].objects)
