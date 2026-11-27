@@ -26,6 +26,7 @@
 #include "slic3r/GUI/PrinterWebView.hpp"
 #include "slic3r/GUI/MultiMachinePage.hpp"
 #include "slic3r/GUI/CalibrationPanel.hpp"
+#include "slic3r/GUI/K3DAccuracyDialog.hpp"
 #include "slic3r/GUI/ReleaseNote.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include <vector>
@@ -3931,6 +3932,14 @@ void MainFrame::init_menubar_as_editor()
         [this](wxCommandEvent&) { run_calibration(CalibKind::VFA); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
+    // K3D Accuracy Calibration
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("K3D Accuracy (XY + Equidistant)"), _L("K3D Accuracy Calibration"),
+        [this](wxCommandEvent&) {
+            K3DAccuracyDialog dlg(this, m_plater);
+            dlg.ShowModal();
+        }, "", nullptr,
+        [this]() { return m_plater->is_view3D_shown(); }, this);
+
     // help
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"), [](wxCommandEvent &)
                      { wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/calibration_guide", wxBROWSER_NEW_WINDOW); }, "", nullptr, [this]()
@@ -4036,6 +4045,13 @@ void MainFrame::init_menubar_as_editor()
     append_menu_item(calib_menu, wxID_ANY, _L("VFA"), _L("VFA"),
         [this](wxCommandEvent&) { run_calibration(CalibKind::VFA); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
+    // K3D Accuracy Calibration
+    append_menu_item(calib_menu, wxID_ANY, _L("K3D Accuracy (XY + Equidistant)"), _L("K3D Accuracy Calibration"),
+        [this](wxCommandEvent&) {
+            K3DAccuracyDialog dlg(this, m_plater);
+            dlg.ShowModal();
+        }, "", nullptr,
+        [this]() { return m_plater->is_view3D_shown(); }, this);
     // help
     append_menu_item(calib_menu, wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"),
         [](wxCommandEvent&) { wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/calibration_guide", wxBROWSER_NEW_WINDOW); }, "", nullptr,

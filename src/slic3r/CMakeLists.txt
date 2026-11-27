@@ -70,6 +70,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/calib_dlg.cpp
     GUI/calib_dlg.hpp
     GUI/Calibration.cpp
+    GUI/K3DAccuracyDialog.cpp
+    GUI/K3DAccuracyDialog.hpp
     GUI/Calibration.hpp
     GUI/CalibrationPanel.cpp
     GUI/CalibrationPanel.hpp

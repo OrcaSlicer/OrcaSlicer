@@ -2205,6 +2205,10 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     // SoftFever
     ((ConfigOptionPercents,            filament_shrink))
     ((ConfigOptionPercents,            filament_shrinkage_compensation_z))
+    // K3D accuracy calibration: per-filament X/Y size compensation and XY equidistant
+    ((ConfigOptionPercents,            filament_size_compensation_x))
+    ((ConfigOptionPercents,            filament_size_compensation_y))
+    ((ConfigOptionFloats,              filament_xy_equidistant))
     ((ConfigOptionBool,                gcode_label_objects))
     ((ConfigOptionBool,                exclude_object))
     ((ConfigOptionFloat,               exclude_object_tolerance))

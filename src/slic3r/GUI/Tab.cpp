@@ -4805,6 +4805,9 @@ void TabFilament::build()
         optgroup->append_single_option_line("filament_density", "material_basic_information#density");
         optgroup->append_single_option_line("filament_shrink", "material_basic_information#shrinkage-xy");
         optgroup->append_single_option_line("filament_shrinkage_compensation_z", "material_basic_information#shrinkage-z");
+        optgroup->append_single_option_line("filament_size_compensation_x", "material_basic_information#size-compensation-x");
+        optgroup->append_single_option_line("filament_size_compensation_y", "material_basic_information#size-compensation-y");
+        optgroup->append_single_option_line("filament_xy_equidistant", "material_basic_information#xy-equidistant");
         optgroup->append_single_option_line("filament_cost", "material_basic_information#price");
         //BBS
         optgroup->append_single_option_line("temperature_vitrification", "material_basic_information#softening-temperature");
