@@ -1,0 +1,15 @@
+{
+	"type": "process",
+	"name": "0.48mm Optimal 1.0 nozzle @Meltingplot MBL",
+	"inherits": "fdm_process_meltingplot_mbl_10_nozzle",
+	"from": "system",
+	"setting_id": "5wtjDWniGYAAtn79",
+	"instantiation": "true",
+	"layer_height": "0.48",
+	"compatible_printers": [
+		"Meltingplot MBL 133 1.0 nozzle",
+		"Meltingplot MBL 136 1.0 nozzle",
+		"Meltingplot MBL 308 1.0 nozzle",
+		"Meltingplot MBL 480 1.0 nozzle"
+	]
+}

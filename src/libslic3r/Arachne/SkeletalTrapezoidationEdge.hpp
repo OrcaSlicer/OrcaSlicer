@@ -4,10 +4,12 @@
 #ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
 #define SKELETAL_TRAPEZOIDATION_EDGE_H
 
+#include <cassert>
 #include <memory> // smart pointers
 #include <list>
 #include <vector>
 
+#include "libslic3r/libslic3r.h"
 #include "utils/ExtrusionJunction.hpp"
 
 namespace Slic3r::Arachne

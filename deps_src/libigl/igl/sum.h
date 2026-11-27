@@ -12,27 +12,28 @@
 
 namespace igl
 {
-  // Note: If your looking for dense matrix matlab like sum for eigen matrics
-  // just use:
-  //   M.colwise().sum() or M.rowwise().sum()
-  // 
-
-  // Sum the columns or rows of a sparse matrix
-  // Templates:
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Inputs:
-  //   X  m by n sparse matrix
-  //   dim  dimension along which to sum (1 or 2)
-  // Output:
-  //   S  n-long sparse vector (if dim == 1) 
-  //   or
-  //   S  m-long sparse vector (if dim == 2)
+  /// Sum the columns or rows of a sparse matrix
+  ///
+  /// @tparam  should be a eigen sparse matrix primitive type like int or double
+  /// @param[in] X  m by n sparse matrix
+  /// @param[in] dim  dimension along which to sum (1 or 2)
+  /// @param[out] S  n-long sparse vector (if dim == 1) 
+  ///   or m-long sparse vector (if dim == 2)
+  ///
+  /// \note If your looking for dense matrix matlab like sum for eigen matrics
+  /// just use:
+  ///
+  ///      M.colwise().sum() or M.rowwise().sum()
+  /// 
   template <typename T>
   IGL_INLINE void sum(
     const Eigen::SparseMatrix<T>& X, 
     const int dim,
     Eigen::SparseVector<T>& S);
-  // Sum is "conducted" in the type of DerivedB::Scalar 
+  /// \overload
+  /// \brief Sum is "conducted" in the type of DerivedB::Scalar 
+  /// @tparam AType  should be a eigen sparse matrix primitive type like int or double
+  /// @tparam DerivedB  should be a eigen dense matrix primitive type like int or double
   template <typename AType, typename DerivedB>
   IGL_INLINE void sum(
     const Eigen::SparseMatrix<AType> & A, 

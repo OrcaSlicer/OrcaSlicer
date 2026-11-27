@@ -1,3 +1,5 @@
+#pragma once
+
 // paper: https://people.eecs.berkeley.edu/~jrs/meshpapers/GarlandHeckbert2.pdf
 // sum up: https://users.csc.calpoly.edu/~zwood/teaching/csc570/final06/jseeba/
 // inspiration: https://github.com/sp4cerat/Fast-Quadric-Mesh-Simplification

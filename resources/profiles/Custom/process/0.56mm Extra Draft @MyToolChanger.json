@@ -1,15 +1,49 @@
 {
-    "type": "process",
-    "name": "0.56mm Standard @MyToolChanger",
-    "inherits": "fdm_process_mytoolchanger_common",
-    "from": "system",
-    "setting_id": "GP004",
-    "instantiation": "true",
-    "support_top_z_distance": "0.24",
-    "support_bottom_z_distance": "0.24",
-    "layer_height": "0.56",
-    "initial_layer_print_height": "0.2",
-    "compatible_printers": [
-        "MyToolChanger 0.8 nozzle"
-    ]
+	"type": "process",
+	"name": "0.56mm Standard @MyToolChanger",
+	"inherits": "fdm_process_mytoolchanger_common",
+	"from": "system",
+	"setting_id": "Pky5GvEuSlaG1Lvm",
+	"instantiation": "true",
+	"print_extruder_id": [
+		"1",
+		"1",
+		"1",
+		"2",
+		"2",
+		"2",
+		"3",
+		"3",
+		"3",
+		"4",
+		"4",
+		"4",
+		"5",
+		"5",
+		"5"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow"
+	],
+	"support_top_z_distance": "0.24",
+	"support_bottom_z_distance": "0.24",
+	"layer_height": "0.56",
+	"initial_layer_print_height": "0.2",
+	"compatible_printers": [
+		"MyToolChanger 0.8 nozzle"
+	]
 }

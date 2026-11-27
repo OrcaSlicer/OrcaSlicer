@@ -11,6 +11,10 @@
     "eng_plate_temp_initial_layer": [
         "100"
     ],
+    "filament_max_volumetric_speed": [
+        "18",
+        "29"
+    ],
     "hot_plate_temp": [
         "100"
     ],

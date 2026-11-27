@@ -1,6 +1,17 @@
 #include "DialogButtons.hpp"
 
 #include "slic3r/GUI/I18N.hpp"
+#include <vector>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/wx.h>
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/event.h>
+#include <set>
+#include <wx/object.h>
 
 namespace Slic3r { namespace GUI {
 

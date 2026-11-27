@@ -11,7 +11,7 @@
 
 template <typename DerivedC>
 IGL_INLINE void igl::copyleft::cgal::cell_adjacency(
-    const Eigen::PlainObjectBase<DerivedC>& per_patch_cells,
+    const Eigen::MatrixBase<DerivedC>& per_patch_cells,
     const size_t num_cells,
     std::vector<std::set<std::tuple<typename DerivedC::Scalar, bool, size_t> > >&
     adjacency_list) {
@@ -27,8 +27,6 @@ IGL_INLINE void igl::copyleft::cgal::cell_adjacency(
 }
 
 #ifdef IGL_STATIC_LIBRARY
-template void igl::copyleft::cgal::cell_adjacency<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, unsigned long, std::vector<std::set<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, unsigned long>, std::less<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, unsigned long> >, std::allocator<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, unsigned long> > >, std::allocator<std::set<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, unsigned long>, std::less<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, unsigned long> >, std::allocator<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, unsigned long> > > > >&);
-#ifdef WIN32
-template void igl::copyleft::cgal::cell_adjacency<class Eigen::Matrix<int, -1, -1, 0, -1, -1>>(class Eigen::PlainObjectBase<class Eigen::Matrix<int, -1, -1, 0, -1, -1>> const &, unsigned __int64, class std::vector<class std::set<class std::tuple<int, bool, unsigned __int64>, struct std::less<class std::tuple<int, bool, unsigned __int64>>, class std::allocator<class std::tuple<int, bool, unsigned __int64>>>, class std::allocator<class std::set<class std::tuple<int, bool, unsigned __int64>, struct std::less<class std::tuple<int, bool, unsigned __int64>>, class std::allocator<class std::tuple<int, bool, unsigned __int64>>>>> &);
-#endif
+// Explicit template instantiation
+template void igl::copyleft::cgal::cell_adjacency<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, size_t, std::vector<std::set<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, size_t>, std::less<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, size_t> >, std::allocator<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, size_t> > >, std::allocator<std::set<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, size_t>, std::less<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, size_t> >, std::allocator<std::tuple<Eigen::Matrix<int, -1, -1, 0, -1, -1>::Scalar, bool, size_t> > > > >&);
 #endif

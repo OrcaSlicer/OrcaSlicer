@@ -13,25 +13,22 @@
 
 namespace igl
 {
-  //  ORTH   Orthogonalization.
-  //     ORTH(A,Q) produces Q as an orthonormal basis for the range of A.
-  //     That is, Q'*Q = I, the columns of Q span the same space as 
-  //     the columns of A, and the number of columns of Q is the 
-  //     rank of A.
-  //  
-  //  
-  //   The algorithm  uses singular value decomposition, SVD, instead of orthogonal
-  //   factorization, QR.  This doubles the computation time, but
-  //   provides more reliable and consistent rank determination.
-  //   Closely follows MATLAB implementation in orth.m
-  //
-  // Inputs:
-  //   A  m by n matrix 
-  // Outputs:
-  //   Q  m by n matrix with orthonormal columns spanning same column space as
-  //     A
-  //  
-  // Known bugs: Implementation listed as "Broken"
+  /// Orthogonalization of a matrix. ORTH(A,Q) produces Q as an orthonormal
+  /// basis for the range of A. That is, Q'*Q = I, the columns of Q span the
+  /// same space as the columns of A, and the number of columns of Q is the rank
+  /// of A.
+  ///  
+  ///  
+  /// The algorithm  uses singular value decomposition, SVD, instead of
+  /// orthogonal factorization, QR.  This doubles the computation time, but
+  /// provides more reliable and consistent rank determination. Closely follows
+  /// MATLAB implementation in orth.m
+  ///
+  /// @param[in] A  m by n matrix 
+  /// @param[out] Q  m by n matrix with orthonormal columns spanning same column
+  ///   space as A
+  ///  
+  /// \warning Implementation listed as "Broken"
   IGL_INLINE void orth(const Eigen::MatrixXd &A, Eigen::MatrixXd &Q);
 }
 

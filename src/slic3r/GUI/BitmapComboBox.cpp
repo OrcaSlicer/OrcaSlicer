@@ -5,6 +5,8 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 
+#include <wx/bmpcbox.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
@@ -42,8 +44,6 @@
     #include <pango-1.0/pango/pango-layout.h>
     #include <gtk/gtk.h>
 #endif
-
-using Slic3r::GUI::format_wxstr;
 
 #define BORDER_W 10
 
@@ -91,8 +91,9 @@ BitmapComboBox::~BitmapComboBox()
 }
 
 #ifdef __APPLE__
-bool BitmapComboBox::OnAddBitmap(const wxBitmap& bitmap)
+bool BitmapComboBox::OnAddBitmap(const wxBitmapBundle& bundle)
 {
+    wxBitmap bitmap = bundle.GetBitmap(bundle.GetDefaultSize());
     if (bitmap.IsOk())
     {
         // we should use scaled! size values of bitmap
@@ -131,7 +132,8 @@ void BitmapComboBox::OnDrawItem(wxDC& dc,
     int item,
     int flags) const
 {
-    const wxBitmap& bmp = *(static_cast<wxBitmap*>(m_bitmaps[item]));
+    const wxBitmapBundle& bundle = m_bitmapbundles[item];
+    wxBitmap bmp = bundle.GetBitmap(bundle.GetDefaultSize());
     if (bmp.IsOk())
     {
         // we should use scaled! size values of bitmap

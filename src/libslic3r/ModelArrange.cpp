@@ -1,9 +1,21 @@
 #include "ModelArrange.hpp"
 
+#include <cstddef>
+#include <algorithm>
+#include <iterator>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/Geometry/ConvexHull.hpp>
 #include <libslic3r/Print.hpp>
-#include "MTUtils.hpp"
+#include "Arrange.hpp"
+#include <utility>
+#include "Config.hpp"
+#include <set>
+#include <string>
+#include "Point.hpp"
+#include "PrintConfig.hpp"
+#include "BoundingBox.hpp"
+#include "ExPolygon.hpp"
+#include "Polygon.hpp"
 
 namespace Slic3r {
 
@@ -19,6 +31,10 @@ arrangement::ArrangePolygons get_arrange_polys(const Model &model, ModelInstance
     for (ModelObject *mo : model.objects)
         for (ModelInstance *minst : mo->instances) {
             minst->get_arrange_polygon(&ap);
+            // ModelInstance::get_arrange_polygon leaves bed_idx at its UNARRANGED
+            // default; seed it to bed 0 (as get_instance_arrange_poly does) so the
+            // nester treats the item as placeable instead of returning it unplaced.
+            ap.bed_idx = 0;
             input.emplace_back(ap);
             instances.emplace_back(minst);
         }
@@ -176,8 +192,11 @@ ArrangePolygon get_instance_arrange_poly(ModelInstance* instance, const Slic3r::
         ap.has_tree_support = true;
     }
 
-    auto size = obj->instance_convex_hull_bounding_box(instance).size();
-    ap.height = size.z();
+    const BoundingBoxf3 bbox = obj->instance_convex_hull_bounding_box(instance);
+    ap.height = bbox.size().z();
+    ap.z_min = bbox.min.z();
+    ap.z_max = bbox.max.z();
+    ap.has_z_range = bbox.defined;
     ap.name = obj->name;
     return ap;
 }

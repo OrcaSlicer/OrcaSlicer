@@ -4,15 +4,38 @@
 #include "wx/dcgraph.h"
 #include "I18N.hpp"
 #include "PartPlate.hpp"
+#include <wx/colour.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <string>
+#include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
+#include <vector>
+#include <wx/utils.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/string.h>
+#include <wx/popupwin.h>
+#include <cstddef>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/event.h>
+#include <wx/timer.h>
+#include <wx/window.h>
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/SwitchButton.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/tglbtn.h>
 
 namespace Slic3r { namespace GUI {
 
 static const wxColour LabelEnableColor = wxColour("#262E30");
 static const wxColour LabelDisableColor = wxColour("#ACACAC");
 static const wxColour GreyColor = wxColour("#6B6B6B");
-static const wxColour GreenColor = wxColour("#009688");
 static const wxColour BackGroundColor = wxColour("#FFFFFF");
-
 
 static bool should_pop_up()
 {
@@ -45,6 +68,37 @@ static void set_prefered_map_mode(FilamentMapMode mode)
 
     if (mode_str.empty()) BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("Set empty prefered_filament_map_mode to app config");
     app_config->set("prefered_filament_map_mode", mode_str);
+}
+
+bool play_dual_extruder_slice_video()
+{
+    if (wxLaunchDefaultBrowser("https://e.bambulab.com/t?c=HDB24RlwSmt77YFH")) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("Video is being played using the system's default browser.");
+        return true;
+    }
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("launch system's default browser failed");
+    return false;
+}
+
+bool play_dual_extruder_print_tpu_video()
+{
+    const wxString video_url = "https://e.bambulab.com/t?c=fwWqpBg37Liel92N";
+    if (wxLaunchDefaultBrowser(video_url)){
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("Print Tpu Video is being played using the system's default browser.");
+        return true;
+    }
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("launch system's default browser failed");
+    return false;
+}
+
+bool open_filament_group_wiki()
+{
+    if (wxLaunchDefaultBrowser("https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9")) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("Wiki is being displayed using the system's default browser.");
+        return true;
+    }
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("launch system's default browser failed");
+    return false;
 }
 
 void FilamentGroupPopup::CreateBmps()
@@ -144,17 +198,30 @@ FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, w
         button_labels[idx]->Bind(wxEVT_LEAVE_WINDOW, [this](auto &) { UpdateButtonStatus(); });
     }
 
+    // Smart filament assign section
+    MakeSmartFilamentSection(top_sizer, horizontal_margin, vertical_padding);
+
     {
         wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
+        // ORCA Unified hyperlinks
 
-        const std::string wiki_path = Slic3r::resources_dir() + "/wiki/filament_group_wiki_zh.html"; // NEEDFIX this link is broken
+        auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+        wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + "https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9");
+        wiki_btn->SetStyle(ButtonStyle::Confirm, ::ButtonType::Circle);
+        wiki_btn->SetCanFocus(false);
+        wiki_btn->Bind(wxEVT_LEFT_DOWN, ([](auto& e) {open_filament_group_wiki();}));
 
-        auto* wiki_sizer = new wxBoxSizer(wxHORIZONTAL);
-        wiki_link = new HyperLink(this, _L("Wiki Guide"), wxString(wiki_path.c_str())); // ORCA
-        wiki_sizer->Add(wiki_link, 0, wxALIGN_CENTER | wxALL, FromDIP(3));
+        auto video_btn  = new Button(this, "", "toolbar_video_guide", 0, 15);
+        video_btn->SetToolTip(_L("Video Guide"));
+        video_btn->SetStyle(ButtonStyle::Confirm, ::ButtonType::Circle);
+        video_btn->SetCanFocus(false);
+        video_btn->Bind(wxEVT_LEFT_DOWN, ([](auto& e) {
+            play_dual_extruder_slice_video();
+            wxGetApp().app_config->set("play_slicing_video", "false");
+        }));
 
-        button_sizer->Add(wiki_sizer, 0, wxLEFT, horizontal_margin);
-        button_sizer->AddStretchSpacer();
+        button_sizer->Add(wiki_btn , 0, wxLEFT, horizontal_margin + FromDIP(3));
+        button_sizer->Add(video_btn, 0, wxLEFT, FromDIP(10));
 
         top_sizer->Add(button_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, horizontal_margin);
     }
@@ -223,6 +290,7 @@ void FilamentGroupPopup::Init()
         SetFilamentMapMode(m_mode);
     }
 
+    UpdateSmartFilamentSection();
     UpdateButtonStatus();
     GUI::wxGetApp().UpdateDarkUIWin(this);
 }
@@ -304,7 +372,31 @@ void FilamentGroupPopup::OnRadioBtn(int idx)
     }
 }
 
-void FilamentGroupPopup::OnTimer(wxTimerEvent &event) { Dismiss(); }
+void FilamentGroupPopup::OnTimer(wxTimerEvent &event)
+{
+#if __APPLE__
+    // On macOS, when moving cursor from slice button to this popup window,
+    // the popup window entering event is triggered first, then the slice button
+    // leaving event got triggered. So the timer is stopped first, then started
+    // again, causing the popup being dismissed immediately.
+    // To fix this, we check if cursor is still inside the popup window before
+    // dismissing, and keep checking while it is: a leave event is not guaranteed
+    // to follow, and a popup left open keeps grabbing the mouse capture.
+    wxPoint pos = this->ScreenToClient(wxGetMousePosition());
+    if (this->GetClientRect().Contains(pos)) {
+        StartTimer();
+        return;
+    }
+#endif
+
+    Dismiss();
+}
+
+FilamentGroupPopup::~FilamentGroupPopup()
+{
+    m_timer->Stop();
+    delete m_timer;
+}
 
 void FilamentGroupPopup::Dismiss() {
     m_active = false;
@@ -319,7 +411,16 @@ void FilamentGroupPopup::OnLeaveWindow(wxMouseEvent &)
     StartTimer();
 }
 
-void FilamentGroupPopup::OnEnterWindow(wxMouseEvent &) { ResetTimer(); }
+void FilamentGroupPopup::OnEnterWindow(wxMouseEvent &)
+{
+    // Ignore spurious ENTER synthesized by PopupWindow::OnMouseEvent2 on macOS.
+    wxPoint pos = this->ScreenToClient(wxGetMousePosition());
+    if (!this->GetClientRect().Contains(pos)) return;
+    // On macOS the timer keeps running instead, and OnTimer closes the popup once the cursor has left it.
+#ifndef __APPLE__
+    ResetTimer();
+#endif
+}
 
 void FilamentGroupPopup::UpdateButtonStatus(int hover_idx)
 {
@@ -352,6 +453,67 @@ void FilamentGroupPopup::UpdateButtonStatus(int hover_idx)
 
     Layout();
     Fit();
+}
+
+void FilamentGroupPopup::MakeSmartFilamentSection(wxSizer *top_sizer, int horizontal_margin, int vertical_padding)
+{
+    m_smart_filament_panel = new StaticBox(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0);
+    m_smart_filament_panel->SetCornerRadius(FromDIP(4));
+    m_smart_filament_panel->SetBorderWidth(FromDIP(1));
+    m_smart_filament_panel->SetBorderColor(wxColour("#CECECE"));
+    m_smart_filament_panel->SetBackgroundColor(StateColor(std::pair<wxColour, int>(wxColour("#F8F8F8"), StateColor::Normal)));
+
+    auto *label = new Label(m_smart_filament_panel, _L("Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"));
+    label->SetFont(Label::Body_12);
+    label->SetForegroundColour(GreyColor);
+    label->SetBackgroundColour(wxColour("#F8F8F8"));
+    label->Wrap(FromDIP(240));
+
+    m_smart_filament_switch = new SwitchButton(m_smart_filament_panel);
+    m_smart_filament_switch->Bind(wxEVT_TOGGLEBUTTON, &FilamentGroupPopup::OnSmartFilamentToggle, this);
+#ifdef __WXOSX__
+    // wxEVT_TOGGLEBUTTON event not handled well by PopupWindow on MacOS
+    // we bind a wxEVT_LEFT_DOWN event as a workaround
+    m_smart_filament_switch->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &) {
+        wxCommandEvent evt(wxEVT_TOGGLEBUTTON);
+        evt.SetInt(!m_smart_filament_switch->GetValue());
+        m_smart_filament_switch->Command(evt);
+    });
+#endif
+
+    auto *panel_sizer = new wxBoxSizer(wxHORIZONTAL);
+    panel_sizer->Add(label, 1, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(10));
+    panel_sizer->Add(m_smart_filament_switch, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
+    m_smart_filament_panel->SetSizer(panel_sizer);
+
+    top_sizer->Add(m_smart_filament_panel, 0, wxEXPAND | wxLEFT | wxRIGHT, horizontal_margin);
+    m_smart_filament_spacer = top_sizer->AddSpacer(vertical_padding);
+
+    // Hidden by default; shown in Init() when the filament track switch is ready
+    m_smart_filament_panel->Show(false);
+    m_smart_filament_spacer->Show(false);
+}
+
+void FilamentGroupPopup::OnSmartFilamentToggle(wxCommandEvent &event)
+{
+    auto &config           = wxGetApp().preset_bundle->project_config;
+    auto *dynamic_filament = dynamic_cast<ConfigOptionBool *>(config.option("enable_filament_dynamic_map"));
+    if (dynamic_filament) { dynamic_filament->value = m_smart_filament_switch->GetValue(); }
+    plater_ref->update();
+    event.Skip();
+}
+
+void FilamentGroupPopup::UpdateSmartFilamentSection()
+{
+    bool show = wxGetApp().sidebar().is_fila_switch_ready();
+    m_smart_filament_panel->Show(show);
+    m_smart_filament_spacer->Show(show);
+
+    if (show) {
+        auto &config           = wxGetApp().preset_bundle->project_config;
+        auto *dynamic_filament = dynamic_cast<ConfigOptionBool *>(config.option("enable_filament_dynamic_map"));
+        if (dynamic_filament) { m_smart_filament_switch->SetValue(dynamic_filament->value); }
+    }
 }
 
 }} // namespace Slic3r::GUI

@@ -2,12 +2,31 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm> //For std::partition_copy and std::min_element.
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <cassert>
+#include <cmath>
+#include <math.h>
+#include <limits>
 #include <unordered_set>
 
 #include "WallToolPaths.hpp"
 
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Arachne/utils/PolygonsPointIndex.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Arachne/BeadingStrategy/BeadingStrategyFactory.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
+#include "libslic3r/Arachne/utils/SparsePointGrid.hpp"
+#include "libslic3r/Arachne/utils/SquareGrid.hpp"
 #include "SkeletalTrapezoidation.hpp"
 #include "../ClipperUtils.hpp"
+#include "libslic3r/libslic3r.h"
 #include "utils/linearAlg2D.hpp"
 #include "EdgeGrid.hpp"
 #include "utils/SparseLineGrid.hpp"
@@ -17,6 +36,8 @@
 #include "Utils.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <utility>
+#include <vector>
 
 //#define ARACHNE_STITCH_PATCH_DEBUG
 
@@ -54,6 +75,12 @@ WallToolPathsParams make_paths_params(const int layer_id, const PrintObjectConfi
         input_params.wall_distribution_count = print_object_config.wall_distribution_count.value;
 
         input_params.is_top_or_bottom_layer = false; // Set to default value
+
+        if (const auto& wall_maximum_resolution_opt = print_object_config.wall_maximum_resolution)
+            input_params.wall_maximum_resolution = scaled<coord_t>(wall_maximum_resolution_opt.value);
+
+        if (const auto& wall_maximum_deviation_opt = print_object_config.wall_maximum_deviation)
+            input_params.wall_maximum_deviation = scaled<coord_t>(wall_maximum_deviation_opt.value);
     }
 
     return input_params;
@@ -125,7 +152,11 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
         accumulated_area_removed += removed_area_next;
 
         const int64_t length2 = (current - previous).cast<int64_t>().squaredNorm();
-        if (length2 < scaled<int64_t>(25.)) {
+
+        // Orca:
+        // Checking if the segment's length is smaller than 5 microns (0.005mm).
+        // The value of `length2` is scaled and squared, so we need to compare it with the squared value of 5 microns
+        if (length2 < Slic3r::sqr(scaled<coord_t>(0.005))) {
             // We're allowed to always delete segments of less than 5 micron.
             continue;
         }
@@ -143,8 +174,9 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
         //h^2 = (L / b)^2     [square it]
         //h^2 = L^2 / b^2     [factor the divisor]
         const int64_t height_2 = double(area_removed_so_far) * double(area_removed_so_far) / double(base_length_2);
-        if ((height_2 <= Slic3r::sqr(scaled<coord_t>(0.005)) //Almost exactly colinear (barring rounding errors).
-             && Line::distance_to_infinite(current, previous, next) <= scaled<double>(0.005))) // make sure that height_2 is not small because of cancellation of positive and negative areas
+        // Orca: The value of `height_2` is squared, so we need to compare it with the squared value
+        if ((height_2 <= Slic3r::sqr(colinear_vertex_tolerance()) //Almost exactly colinear (barring rounding errors).
+             && Line::distance_to_infinite(current, previous, next) <= double(colinear_vertex_tolerance()))) // make sure that height_2 is not small because of cancellation of positive and negative areas
             continue;
 
         if (length2 < smallest_line_segment_squared
@@ -160,8 +192,9 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
                 bool has_intersection = Line(previous_previous, previous).intersection_infinite(Line(current, next), &intersection_point);
                 if (!has_intersection
                     || Line::distance_to_infinite_squared(intersection_point, previous, current) > double(allowed_error_distance_squared)
-                    || (intersection_point - previous).cast<int64_t>().squaredNorm() > smallest_line_segment_squared  // The intersection point is way too far from the 'previous'
-                    || (intersection_point - next).cast<int64_t>().squaredNorm() > smallest_line_segment_squared)     // and 'next' points, so it shouldn't replace 'current'
+                    // Squared in double: nearly parallel lines can meet metres away, which overflows int64.
+                    || (intersection_point - previous).cast<double>().squaredNorm() > double(smallest_line_segment_squared)  // The intersection point is way too far from the 'previous'
+                    || (intersection_point - next).cast<double>().squaredNorm() > double(smallest_line_segment_squared))     // and 'next' points, so it shouldn't replace 'current'
                 {
                     // We can't find a better spot for it, but the size of the line is more than 5 micron.
                     // So the only thing we can do here is leave it in...
@@ -252,10 +285,8 @@ std::unique_ptr<LocToLineGrid>                                               cre
  */
 void fixSelfIntersections(const coord_t epsilon, Polygons &thiss)
 {
-    if (epsilon < 1) {
-        ClipperLib::SimplifyPolygons(ClipperUtils::PolygonsProvider(thiss), ClipperLib::pftEvenOdd);
+    if (epsilon < 1)
         return;
-    }
 
     const int64_t half_epsilon = (epsilon + 1) / 2;
 
@@ -293,8 +324,6 @@ void fixSelfIntersections(const coord_t epsilon, Polygons &thiss)
             }
         }
     }
-
-    ClipperLib::SimplifyPolygons(ClipperUtils::PolygonsProvider(thiss), ClipperLib::pftEvenOdd);
 }
 
 /*!
@@ -341,18 +370,11 @@ void removeDegenerateVerts(Polygons &thiss)
 
 void removeSmallAreas(Polygons &thiss, const double min_area_size, const bool remove_holes)
 {
-    auto to_path = [](const Polygon &poly) -> ClipperLib::Path {
-        ClipperLib::Path out;
-        for (const Point &pt : poly.points)
-            out.emplace_back(ClipperLib::cInt(pt.x()), ClipperLib::cInt(pt.y()));
-        return out;
-    };
-
     auto new_end = thiss.end();
     if (remove_holes) {
         for (auto it = thiss.begin(); it < new_end;) {
             // All polygons smaller than target are removed by replacing them with a polygon from the back of the vector.
-            if (fabs(ClipperLib::Area(to_path(*it))) < min_area_size) {
+            if (fabs(it->area()) < min_area_size) {
                 --new_end;
                 *it = std::move(*new_end);
                 continue; // Don't increment the iterator such that the polygon just swapped in is checked next.
@@ -363,7 +385,7 @@ void removeSmallAreas(Polygons &thiss, const double min_area_size, const bool re
         // For each polygon, computes the signed area, move small outlines at the end of the vector and keep pointer on small holes
         Polygons small_holes;
         for (auto it = thiss.begin(); it < new_end;) {
-            if (double area = ClipperLib::Area(to_path(*it)); fabs(area) < min_area_size) {
+            if (double area = it->area(); fabs(area) < min_area_size) {
                 if (area >= 0) {
                     --new_end;
                     if (it < new_end) {
@@ -473,8 +495,8 @@ const std::vector<VariableWidthLines> &WallToolPaths::generate()
     if (this->inset_count < 1)
         return toolpaths;
 
-    const coord_t smallest_segment = Slic3r::Arachne::meshfix_maximum_resolution();
-    const coord_t allowed_distance = Slic3r::Arachne::meshfix_maximum_deviation();
+    const coord_t smallest_segment = m_params.wall_maximum_resolution;
+    const coord_t allowed_distance = m_params.wall_maximum_deviation;
     const coord_t epsilon_offset = (allowed_distance / 2) - 1;
     const double  transitioning_angle = Geometry::deg2rad(m_params.wall_transition_angle);
     const coord_t discretization_step_size = scaled<coord_t>(0.8);
@@ -547,7 +569,7 @@ const std::vector<VariableWidthLines> &WallToolPaths::generate()
 
     separateOutInnerContour();
 
-    simplifyToolPaths(toolpaths);
+    simplifyToolPaths(toolpaths, m_params);
 
     removeEmptyToolPaths(toolpaths);
     assert(std::is_sorted(toolpaths.cbegin(), toolpaths.cend(),
@@ -688,16 +710,21 @@ void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines> &toolpaths)
     }
 }
 
-void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines> &toolpaths)
+void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const WallToolPathsParams& params)
 {
-    for (size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
+    const int64_t maximum_resolution = params.wall_maximum_resolution;
+    const int64_t maximum_deviation  = params.wall_maximum_deviation;
+
+    const int64_t smallest_line_segment_squared  = maximum_resolution * maximum_resolution;
+    const int64_t allowed_error_distance_squared = maximum_deviation * maximum_deviation;
+
+    const int64_t maximum_extrusion_area_deviation = Slic3r::Arachne::meshfix_maximum_extrusion_area_deviation(); // unit: μm²
+
+    for (VariableWidthLines& lines : toolpaths)
     {
-        const int64_t maximum_resolution = Slic3r::Arachne::meshfix_maximum_resolution();
-        const int64_t maximum_deviation = Slic3r::Arachne::meshfix_maximum_deviation();
-        const int64_t maximum_extrusion_area_deviation = Slic3r::Arachne::meshfix_maximum_extrusion_area_deviation(); // unit: μm²
-        for (auto& line : toolpaths[toolpaths_idx])
+        for (ExtrusionLine& line : lines)
         {
-            line.simplify(maximum_resolution * maximum_resolution, maximum_deviation * maximum_deviation, maximum_extrusion_area_deviation);
+            line.simplify(smallest_line_segment_squared, allowed_error_distance_squared, maximum_extrusion_area_deviation);
         }
     }
 }
@@ -757,7 +784,7 @@ void WallToolPaths::separateOutInnerContour()
     //To get a correct shape, we need to make the outside contour positive and any holes inside negative.
     //This can be done by applying the even-odd rule to the shape. This rule is not sensitive to the winding order of the polygon.
     //The even-odd rule would be incorrect if the polygon self-intersects, but that should never be generated by the skeletal trapezoidation.
-    inner_contour = union_(inner_contour, ClipperLib::PolyFillType::pftEvenOdd);
+    inner_contour = union_(inner_contour, pftEvenOdd);
 }
 
 const Polygons& WallToolPaths::getInnerContour()
@@ -786,7 +813,8 @@ bool WallToolPaths::removeEmptyToolPaths(std::vector<VariableWidthLines> &toolpa
      * Get the order constraints of the insets when printing walls per region / hole.
      * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
      *
-     * Odd walls should always go after their enclosing wall polygons.
+     * Odd walls follow the same order as even ones, so that the centre line of a narrow wall is an inner wall
+     * like any other when printing inner to outer.
      *
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
  */
@@ -860,12 +888,7 @@ WallToolPaths::ExtrusionLineSet WallToolPaths::getRegionOrder(const std::vector<
                 continue; // not directly adjacent
             if (!shorter_then(loc_here - lineloc_nearby.j.p, (lineloc_here.j.w + lineloc_nearby.j.w) / 2 * diagonal_extension))
                 continue; // points are too far away from each other
-            if (here->is_odd || nearby->is_odd) {
-                if (here->is_odd && !nearby->is_odd && nearby->inset_idx < here->inset_idx)
-                    order_requirements.emplace(std::make_pair(nearby, here));
-                if (nearby->is_odd && !here->is_odd && here->inset_idx < nearby->inset_idx)
-                    order_requirements.emplace(std::make_pair(here, nearby));
-            } else if ((nearby->inset_idx < here->inset_idx) == outer_to_inner) {
+            if ((nearby->inset_idx < here->inset_idx) == outer_to_inner) {
                 order_requirements.emplace(std::make_pair(nearby, here));
             } else {
                 assert((nearby->inset_idx > here->inset_idx) == outer_to_inner);

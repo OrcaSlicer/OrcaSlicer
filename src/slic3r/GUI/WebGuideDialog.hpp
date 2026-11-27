@@ -6,6 +6,14 @@
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
 #include "wx/webview.h"
+#include <wx/setup.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/toplevel.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <string>
+#include <wx/gdicmn.h>
+#include <boost/filesystem/path.hpp>
 
 #if wxUSE_WEBVIEW_IE
 #include "wx/msw/webview_ie.h"
@@ -26,17 +34,33 @@
 #include <wx/tbarbase.h>
 #include "wx/textctrl.h"
 
-#include "GUI_App.hpp"
-#include "libslic3r/PresetBundle.hpp"
-#include "slic3r/Utils/PresetUpdater.hpp"
+
+#include <atomic>
+#include <memory>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
+
+#include <boost/thread.hpp>
+#include "libslic3r/AppConfig.hpp"
+
+class wxCommandEvent;
+class wxIdleEvent;
+class wxWebView;
+class wxWebViewEvent;
+namespace Slic3r { class PresetBundle; }
+namespace Slic3r { class PresetUpdater; }
+namespace Slic3r::GUI { class GUI_App; }
+namespace boost { class thread; }
 
 namespace Slic3r { namespace GUI {
 
 class GuideFrame : public DPIDialog
 {
 public:
+    using json = nlohmann::json;
+
     GuideFrame(GUI_App *pGUI, long style = wxCAPTION | wxCLOSE_BOX | wxSYSTEM_MENU);
     virtual ~GuideFrame();
 
@@ -76,11 +100,17 @@ public:
     int LoadProfileData();
     int SaveProfileData();
     int LoadProfileFamily(std::string strVendor, std::string strFilePath);
+    void init_guide_paths();
+    void on_profile_loaded();
+    void notify_profile_loaded();
+    bool BuildProfileDataFromPresetBundle();
+    bool BuildProfileDataFromVendors();
+    void reset_profile_json();
     int SaveProfile();
     int GetFilamentInfo( std::string VendorDirectory,json & pFilaList, std::string filepath, std::string &sVendor, std::string &sType);
 
 
-    bool apply_config(AppConfig *app_config, PresetBundle *preset_bundle, const PresetUpdater *updater, bool& apply_keeped_changes);
+    bool apply_config();
     bool run();
 
     void        StrReplace(std::string &strBase, std::string strSrc, std::string strDes);
@@ -96,11 +126,13 @@ public:
     void on_dpi_changed(const wxRect &suggested_rect) {}
 
 private:
+    int GetFilamentInfo(const std::string& VendorDirectory, json& pFilaList, const std::string& filepath,
+                        std::string& sVendor, std::string& sType, std::unordered_set<std::string>& visiting);
+
     GUI_App *m_MainPtr;
     AppConfig m_appconfig_new;
 
     wxWebView *m_browser;
-    wxButton * m_TestBtn;
 
     wxString m_SectionName;
 
@@ -110,8 +142,15 @@ private:
 
     //First Load
     bool bFirstComplete{false};
-    bool m_destroy{false};
-    boost::thread* m_load_task{ nullptr };
+    // The loading page gets userguide_profile_load_finish once both are true;
+    // every instance of it reports in, so the flag is never reset.
+    bool m_profile_ready{false};
+    bool m_page_ready{false};
+    // Set once in the destructor. Read through `this` by the loading thread
+    // (joined before `this` dies) and captured as the shared_ptr by CallAfter
+    // lambdas so they don't touch `this` after the object is freed.
+    std::shared_ptr<std::atomic<bool>> m_cancel_token{std::make_shared<std::atomic<bool>>(false)};
+    std::unique_ptr<boost::thread> m_load_task;
 
     // User Config
     bool PrivacyUse;
@@ -121,6 +160,7 @@ private:
     bool InstallNetplugin;
     bool network_plugin_ready {false};
 
+    json m_ProfileJson;
     json m_OrcaFilaList;
     std::string m_OrcaFilaLibPath;
 
@@ -135,6 +175,14 @@ private:
 
     wxString m_bbl_user_agent;
     std::string m_editing_filament_id;
+
+    struct CachedFilamentInfo
+    {
+        int         status{-1};
+        std::string vendor;
+        std::string type;
+    };
+    std::unordered_map<std::string, CachedFilamentInfo> filament_info_cache;
 };
 
 }} // namespace Slic3r::GUI

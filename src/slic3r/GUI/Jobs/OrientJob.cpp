@@ -6,6 +6,29 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include <cstddef>
+#include <optional>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/PartPlate.hpp"
+#include <cassert>
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include "libslic3r/Orient.hpp"
+#include <chrono>
+#include <string>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include <exception>
+#include "libslic3r/LifecycleEvents.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 
 namespace Slic3r { namespace GUI {
@@ -87,9 +110,15 @@ void OrientJob::prepare_selected() {
 
     std::vector<bool> obj_sel(model.objects.size(), false);
 
-    for (auto &s : m_plater->get_selection().get_content())
-        if (s.first < int(obj_sel.size()))
-            obj_sel[size_t(s.first)] = !s.second.empty();
+    if (m_objects) {
+        for (int object : *m_objects)
+            if (object >= 0 && size_t(object) < obj_sel.size())
+                obj_sel[size_t(object)] = true;
+    } else {
+        for (auto &s : m_plater->get_selection().get_content())
+            if (s.first < int(obj_sel.size()))
+                obj_sel[size_t(s.first)] = !s.second.empty();
+    }
 
    //BBS: add only one plate mode
     prepare_selection(obj_sel, false);
@@ -149,6 +178,46 @@ void OrientJob::prepare()
     }
 }
 
+/// parameters to minimize support area
+static void setMinimalSupportAreaPrams(Slic3r::orientation::OrientParams &out)
+{
+    out.TAR_A               = 0.015f;
+    out.TAR_B               = 0.177f;
+    out.RELATIVE_F          = 20;
+    out.CONTOUR_F           = 0.5f;
+    out.BOTTOM_F            = 2.5f;
+    out.BOTTOM_HULL_F       = 0.1f;
+    out.TAR_C               = 0.1f;
+    out.TAR_D               = 1;
+    out.TAR_E               = 0.0115f;
+    out.FIRST_LAY_H         = 0.2f;      // 0.0475;
+    out.VECTOR_TOL          = -0.00083f;
+    out.NEGL_FACE_SIZE      = 0.01f;
+    out.ASCENT              = -0.5f;
+    out.PLAFOND_ADV         = 0.0599f;
+    out.CONTOUR_AMOUNT      = 0.0182427f;
+    out.OV_H                = 2.574f;
+    out.height_offset       = 2.3728f;
+    out.height_log          = 0.041375f;
+    out.height_log_k        = 1.9325457f;
+    out.LAF_MAX             = 0.999f;    // cos(1.4\degree) for low angle face 0.9997f
+    out.LAF_MIN             = 0.97f;     // cos(14\degree) 0.9703f
+    out.TAR_LAF             = 0.001f;    // 0.01f
+    out.TAR_PROJ_AREA       = 0.1f;
+    out.BOTTOM_MIN          = 0.1f;      // min bottom area. If lower than it the object may be unstable
+    out.BOTTOM_MAX          = 2000;      // max bottom area. If get to it the object is stable enough (further increase bottom area won't do more help)
+    out.height_to_bottom_hull_ratio_MIN = 1,
+    out.BOTTOM_HULL_MAX     = 2000;      // max bottom hull area
+    out.APPERANCE_FACE_SUPP = 3;         // penalty of generating supports on appearance face
+    out.overhang_angle      = 60.f;
+    out.use_low_angle_face  = true;
+    out.min_volume          = false;
+    out.fun_dir             = {};
+    out.parallel            = true;
+    out.progressind         = {};
+    out.stopcondition       = {};
+}
+
 void OrientJob::process(Ctl &ctl)
 {
     static const auto arrangestr = _u8L("Orienting...");
@@ -161,9 +230,8 @@ void OrientJob::process(Ctl &ctl)
     const GLCanvas3D::OrientSettings& settings = m_plater->canvas3D()->get_orient_settings();
 
     orientation::OrientParams params;
-    orientation::OrientParamsArea params_area;
     if (settings.min_area) {
-        memcpy(&params, &params_area, sizeof(params));
+        setMinimalSupportAreaPrams(params);
         params.min_volume = false;
     }
     else {
@@ -175,7 +243,8 @@ void OrientJob::process(Ctl &ctl)
 
     params.progressind = [this, count, &ctl](unsigned st, std::string orientstr) {
         st += m_unprintable.size();
-        if (st > 0) ctl.update_status(int(st / float(count) * 100), _u8L("Orienting") + " " + orientstr);
+        // TRN Progress status. %1% is the name of the object being oriented.
+        if (st > 0) ctl.update_status(int(st / float(count) * 100), GUI::format(_u8L("Orienting %1%"), orientstr));
     };
 
     orientation::orient(m_selected, m_unselected, params);
@@ -194,7 +263,7 @@ void OrientJob::process(Ctl &ctl)
     wxGetApp().plater()->show_status_message(ctl.was_canceled() ? "Orienting canceled." : ss.str());
 }
 
-OrientJob::OrientJob() : m_plater{wxGetApp().plater()} {}
+OrientJob::OrientJob(std::optional<std::vector<int>> objects) : m_plater{wxGetApp().plater()}, m_objects{std::move(objects)} {}
 
 void OrientJob::finalize(bool canceled, std::exception_ptr &eptr)
 {
@@ -215,6 +284,12 @@ void OrientJob::finalize(bool canceled, std::exception_ptr &eptr)
         mesh.apply();
     }
 
+    if (!m_selected.empty()) {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        ctx.msg = "auto_oriented";
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
+    }
 
     m_plater->update();
 
@@ -229,15 +304,32 @@ orientation::OrientMesh OrientJob::get_orient_mesh(ModelInstance* instance)
     auto obj = instance->get_object();
     om.name = obj->name;
     om.mesh = obj->mesh(); // don't know the difference to obj->raw_mesh(). Both seem OK
+    const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
     if (obj->config.has("support_threshold_angle"))
         om.overhang_angle = obj->config.opt_int("support_threshold_angle");
     else {
-        const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
         om.overhang_angle = config.opt_int("support_threshold_angle");
+    }
+
+    if (config.has("fan_direction") && config.has("auxiliary_fan")) {
+        FanDirection config_dir = config.option<ConfigOptionEnum<FanDirection>>("fan_direction")->value;
+        if (config_dir == FanDirection::fdUndefine || !config.opt_bool("auxiliary_fan")) {
+            // no part cooling airflow to face, keep the orientation around the z axis unchanged
+            om.cooling_direction = {0, 0, 0};
+        } else if (config_dir == FanDirection::fdRight) {
+            // the part cooling airflow comes from the right side
+            om.cooling_direction = {1, 0, 0};
+            om.has_cooling_fan = true;
+        } else {
+            // the part cooling airflow comes from the left side, or from both sides
+            om.cooling_direction = {-1, 0, 0};
+            om.has_cooling_fan = true;
+        }
     }
 
     om.setter = [instance](const OrientMesh& p) {
         instance->rotate(p.rotation_matrix);
+        instance->rotate(p.rotation_matrix_vertical);
         instance->get_object()->invalidate_bounding_box();
         instance->get_object()->ensure_on_bed();
     };

@@ -1,7 +1,8 @@
 #pragma once
-#include "libslic3r/CommonDefs.hpp"
 
-#include "slic3r/Utils/json_diff.hpp"
+#include <nlohmann/json.hpp>
+#include <string>
+#include <ctime>
 #include <wx/string.h>
 
 namespace Slic3r
@@ -14,7 +15,7 @@ class DevCtrlInfo
 {
 public:
     DevCtrlInfo() {};
-    DevCtrlInfo(MachineObject* obj, int sequence_id, const json& req_json, int interval_max = 3, int interval_min = 0);
+    DevCtrlInfo(MachineObject* obj, int sequence_id, const nlohmann::json& req_json, int interval_max = 3, int interval_min = 0);
 
 public:
     bool CheckCanUpdateData(const nlohmann::json& jj);
@@ -31,7 +32,7 @@ private:
 
     time_t m_request_time = 0;
     int    m_request_seq = 0;
-    json   m_request_json = json();
+    nlohmann::json   m_request_json = nlohmann::json();
 
     // check
     int m_request_interval_max = 3;

@@ -1,7 +1,13 @@
 #include <unistd.h>
 #include <sys/sysctl.h>
+#import <Cocoa/Cocoa.h>
 #import <wx/osx/cocoa/dataview.h>
 #import "GUI_Utils.hpp"
+#include "libslic3r/Color.hpp"
+#include <dispatch/dispatch.h>
+#include <functional>
+#include <optional>
+#include <utility>
 
 namespace Slic3r {
 namespace GUI {
@@ -19,6 +25,43 @@ void staticbox_remove_margin(wxStaticBox* sb) {
     NSBox* nativeBox = (NSBox*)sb->GetHandle();
     [nativeBox setBoxType:NSBoxCustom];
     [nativeBox setBorderWidth:0];
+}
+
+// wxOSX SetShape only clears the window background; it cannot clip to a region. Clipping the
+// window's view layer to a rounded rect is what actually rounds the opaque webview inside.
+void set_window_corner_radius(wxWindow* win, int radius) {
+    if (!win)
+        return;
+    NSView* view = (NSView*)win->GetHandle();
+    if (!view)
+        return;
+    NSWindow* window = [view window];
+    [window setOpaque:NO];
+    [window setBackgroundColor:[NSColor clearColor]];
+    [view setWantsLayer:YES];
+    [[view layer] setCornerRadius:radius];
+    [[view layer] setMasksToBounds:YES];
+}
+
+void sample_screen_color(std::function<void(std::optional<ColorRGBA>)> done)
+{
+    // Owned until handler runs; handler is always called, with nil on cancel.
+    __block NSColorSampler* sampler = [[NSColorSampler alloc] init];
+    __block auto callback = std::move(done);
+    [sampler showSamplerWithSelectionHandler:^(NSColor* picked) {
+        NSColor* srgb = picked ? [picked colorUsingColorSpace:[NSColorSpace sRGBColorSpace]] : nil;
+        std::optional<ColorRGBA> color;
+        if (srgb)
+            color = ColorRGBA(static_cast<float>([srgb redComponent]), static_cast<float>([srgb greenComponent]),
+                              static_cast<float>([srgb blueComponent]), 1.f);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [sampler release];
+            sampler = nil;
+            auto finished = std::move(callback);
+            callback = nullptr;
+            finished(color);
+        });
+    }];
 }
 
 bool is_debugger_present()

@@ -1,0 +1,253 @@
+#version 110
+
+const vec3 ZERO = vec3(0.0, 0.0, 0.0);
+const vec3 LightRed = vec3(0.78, 0.0, 0.0);
+const vec3 LightBlue = vec3(0.73, 1.0, 1.0);
+const float EPSILON = 0.0001;
+
+#define INTENSITY_CORRECTION 0.6
+#define PHONG_BRIGHTNESS     1.0
+
+// normalized values for (-0.6/1.31, 0.6/1.31, 1./1.31)
+const vec3 LIGHT_TOP_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);
+#define LIGHT_TOP_DIFFUSE    (0.85 * INTENSITY_CORRECTION)
+#define LIGHT_TOP_SPECULAR   (0.35 * INTENSITY_CORRECTION)
+#define LIGHT_TOP_SHININESS  32.0
+
+// normalized values for (1./1.43, 0.2/1.43, 1./1.43)
+const vec3 LIGHT_FRONT_DIR = vec3(0.6985074, 0.1397015, 0.6985074);
+#define LIGHT_FRONT_DIFFUSE  (0.35 * INTENSITY_CORRECTION)
+#define LIGHT_FRONT_SPECULAR (0.12 * INTENSITY_CORRECTION)
+#define LIGHT_FRONT_SHININESS 16.0
+
+#define INTENSITY_AMBIENT    0.25
+#define WINDOW_REFLECTION_INTENSITY 0.30
+
+struct PrintVolumeDetection
+{
+    // 0 = rectangle, 1 = circle, 2 = custom, 3 = invalid
+    int type;
+    // type = 0 (rectangle):
+    // x = min.x, y = min.y, z = max.x, w = max.y
+    // type = 1 (circle):
+    // x = center.x, y = center.y, z = radius
+    vec4 xy_data;
+    // x = min z, y = max z
+    vec2 z_data;
+};
+
+struct SlopeDetection
+{
+    bool actived;
+    float normal_z;
+    mat3 volume_world_normal_matrix;
+    vec3 up_direction;
+};
+
+uniform vec4 uniform_color;
+uniform bool use_color_clip_plane;
+uniform vec4 uniform_color_clip_plane_1;
+uniform vec4 uniform_color_clip_plane_2;
+uniform SlopeDetection slope;
+
+
+#ifdef ENABLE_ENVIRONMENT_MAP
+    uniform sampler2D environment_tex;
+    uniform bool use_environment_tex;
+#endif // ENABLE_ENVIRONMENT_MAP
+
+uniform PrintVolumeDetection print_volume;
+
+uniform bool enable_ssao;
+// 1 = the Design tab's studio lighting (studio_shade below); 0 = the two-light model above, which
+// every other canvas keeps. world_up_eye is world +Z in eye space, for the hemisphere ambient.
+uniform int lighting_model;
+uniform vec3 world_up_eye;
+
+// Depth-based shadow map (object-on-object and self shadows). shadow_intensity == 0 disables it.
+uniform sampler2D shadow_map;
+uniform mat4 shadow_light_vp;
+uniform float shadow_intensity;
+uniform float shadow_map_texel;
+// ORCA: realistic view - static shadows also light the scene from their fixed light.
+uniform bool use_static_light;
+uniform vec3 static_light_dir;
+vec3 top_light_dir() { return use_static_light ? static_light_dir : LIGHT_TOP_DIR; }
+
+varying vec3 clipping_planes_dots;
+varying float color_clip_plane_dot;
+
+varying vec4 world_pos;
+varying float world_normal_z;
+varying vec3 eye_normal;
+varying vec3 eye_position;
+
+float compute_ssao_factor(vec3 normal, vec3 view_dir, vec3 eye_pos)
+{
+    vec3 normal_dx = dFdx(normal);
+    vec3 normal_dy = dFdy(normal);
+    float normal_variation = clamp(length(normal_dx) + length(normal_dy), 0.0, 1.0);
+
+    float depth_gradient = clamp(length(vec2(dFdx(eye_pos.z), dFdy(eye_pos.z))) * 0.8, 0.0, 1.0);
+
+    float cavity = clamp(normal_variation * 0.70 + depth_gradient * 0.60, 0.0, 1.0);
+    float cavity_mask = smoothstep(0.25, 0.75, cavity);
+    float ao_strength = pow(cavity, 1.15) * cavity_mask;
+    return clamp(1.0 - ao_strength * 0.90, 0.25, 1.0);
+}
+
+float soft_circle(vec2 p, vec2 center, float radius, float blur)
+{
+    float dist = distance(p, center);
+    return 1.0 - smoothstep(radius - blur, radius, dist);
+}
+
+vec3 compute_window_reflection(vec3 normal, vec3 view_dir)
+{
+    const vec3 LIGHT_TOP_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);
+    
+    vec3 light_dir = normalize(LIGHT_TOP_DIR);
+    vec3 reflect_light = normalize(reflect(-light_dir, normal));
+    
+    // UV coordinates for the reflection
+    vec2 uv = (reflect_light.xy / (1.0 + max(reflect_light.z, 0.3))) * 2.2;
+    
+    vec2 grad = fwidth(uv) * 0.8;
+    float blur = 0.12 + grad.x * 1.5;
+    
+    // === CIRCULAR WINDOW (porthole style) ===
+    // Single round window, no bars
+    vec2 window_center = vec2(0.0, 0.0);
+    float window_radius = 0.5;  // Radius of the circular window
+    
+    float window_light = soft_circle(uv, window_center, window_radius, blur);
+    
+    // No bars - just pure circular glass
+    float bars = 1.0;
+    
+    // Fresnel effect for edge glow
+    float fresnel = pow(1.0 - max(dot(normal, view_dir), 0.0), 1.2);
+    float facing = smoothstep(-0.4, 0.6, reflect_light.z);
+    
+    float intensity = window_light * bars * (0.15 + 0.15 * fresnel) * facing;
+    intensity = clamp(intensity, 0.0, 0.25);
+
+    return vec3(intensity);
+}
+
+// Returns a lighting multiplier in [1 - shadow_intensity, 1]: < 1 where the fragment is
+// occluded from the light in the shadow map. 3x3 PCF softens the edges.
+float shadow_shade()
+{
+    if (shadow_intensity <= 0.0)
+        return 1.0;
+
+    vec4 lp = shadow_light_vp * world_pos;
+    vec3 proj = lp.xyz / lp.w;
+    proj = proj * 0.5 + 0.5;
+    if (proj.z > 1.0)
+        return 1.0;
+
+    // Slope-scaled depth bias: larger where the surface grazes / faces away from the light. This
+    // suppresses self-shadow acne without discarding real shadows cast by other objects onto
+    // back-facing surfaces (e.g. the shaded back/tip of a cone sitting inside a larger shadow).
+    float NdotL = dot(normalize(eye_normal), top_light_dir());
+    float bias = mix(0.0004, 0.004, clamp(1.0 - NdotL, 0.0, 1.0));
+    // 5x5 PCF: softens shadow edges into a smooth penumbra and blurs residual facet acne.
+    float sum = 0.0;
+    for (int x = -2; x <= 2; ++x) {
+        for (int y = -2; y <= 2; ++y) {
+            float closest = texture2D(shadow_map, proj.xy + vec2(float(x), float(y)) * shadow_map_texel).r;
+            sum += (proj.z - bias > closest) ? 1.0 : 0.0;
+        }
+    }
+    return 1.0 - shadow_intensity * (sum / 25.0);
+}
+
+// Studio lighting for the Design tab. The default model lights every face from near the camera,
+// so the sides of a part come out in nearly the same tone and its form is hard to read. This one
+// separates faces by their orientation in the WORLD (a sky/ground hemisphere: up-facing faces
+// cool and bright, down-facing ones warm and dark), keeps a strong key light from the upper left
+// and a weak fill from the right, gives a plastic-like highlight, and darkens the base colour
+// toward the silhouette while adding a faint sheen there, so curved faces read as round.
+vec3 studio_shade(vec3 base, vec3 n, vec3 v)
+{
+    vec3 key  = normalize(vec3(-0.45, 0.60, 0.66));
+    vec3 fill = normalize(vec3(0.70, -0.15, 0.70));
+    float hemi = 0.5 + 0.5 * dot(n, normalize(world_up_eye));
+    vec3 ambient = mix(vec3(0.16, 0.15, 0.14), vec3(0.40, 0.42, 0.46), hemi);
+    float kd = max(dot(n, key), 0.0);
+    float fd = max(dot(n, fill), 0.0);
+    vec3 diffuse = ambient + vec3(0.60) * kd + vec3(0.20) * fd;
+    float spec = 0.28 * pow(max(dot(n, normalize(key + v)), 0.0), 48.0)
+               + 0.06 * pow(max(dot(n, normalize(fill + v)), 0.0), 24.0);
+    float rim = pow(1.0 - clamp(dot(n, v), 0.0, 1.0), 3.0);
+    return base * diffuse * (1.0 - 0.30 * rim) + vec3(spec + 0.08 * rim);
+}
+
+void main()
+{
+    if (any(lessThan(clipping_planes_dots, ZERO)))
+        discard;
+
+    vec4 color;
+    if (use_color_clip_plane) {
+        color.rgb = (color_clip_plane_dot < 0.0) ? uniform_color_clip_plane_1.rgb : uniform_color_clip_plane_2.rgb;
+        color.a = uniform_color.a;
+    }
+    else
+        color = uniform_color;
+
+    if (slope.actived) {
+         if(world_pos.z<0.1 && world_pos.z>-0.1)
+         {
+                color.rgb = LightBlue;
+                color.a = 0.8;
+         }
+         else if( world_normal_z < slope.normal_z - EPSILON)
+         {
+                color.rgb = color.rgb * 0.5 + LightRed * 0.5;
+                color.a = 0.8;
+         }
+    }
+
+    vec3 pv_check_min = ZERO;
+    vec3 pv_check_max = ZERO;
+    if (print_volume.type == 0) {
+        pv_check_min = world_pos.xyz - vec3(print_volume.xy_data.x, print_volume.xy_data.y, print_volume.z_data.x);
+        pv_check_max = world_pos.xyz - vec3(print_volume.xy_data.z, print_volume.xy_data.w, print_volume.z_data.y);
+    }
+    else if (print_volume.type == 1) {
+        float delta_radius = print_volume.xy_data.z - distance(world_pos.xy, print_volume.xy_data.xy);
+        pv_check_min = vec3(delta_radius, 0.0, world_pos.z - print_volume.z_data.x);
+        pv_check_max = vec3(0.0, 0.0, world_pos.z - print_volume.z_data.y);
+    }
+    color.rgb = (any(lessThan(pv_check_min, ZERO)) || any(greaterThan(pv_check_max, ZERO))) ? mix(color.rgb, ZERO, 0.3333) : color.rgb;
+
+    vec3 normal = normalize(eye_normal);
+    vec3 view_dir = normalize(-eye_position);
+
+    float NdotL_top = max(dot(normal, top_light_dir()), 0.0);
+    float diffuse = INTENSITY_AMBIENT + NdotL_top * LIGHT_TOP_DIFFUSE;
+    vec3 half_top = normalize(top_light_dir() + view_dir);
+    float specular = LIGHT_TOP_SPECULAR * pow(max(dot(normal, half_top), 0.0), LIGHT_TOP_SHININESS);
+
+    float NdotL_front = max(dot(normal, LIGHT_FRONT_DIR), 0.0);
+    diffuse += NdotL_front * LIGHT_FRONT_DIFFUSE;
+    vec3 half_front = normalize(LIGHT_FRONT_DIR + view_dir);
+    specular += LIGHT_FRONT_SPECULAR * pow(max(dot(normal, half_front), 0.0), LIGHT_FRONT_SHININESS);
+    vec3 window_reflection = compute_window_reflection(normal, view_dir);
+
+    // SSAO is applied in post-process pass. Keep base lighting unchanged here.
+
+    float shade = shadow_shade();
+    vec3 lit = (lighting_model == 1) ? studio_shade(color.rgb, normal, view_dir)
+                                     : (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS;
+
+#ifdef ENABLE_ENVIRONMENT_MAP
+    if (use_environment_tex)
+        gl_FragColor = vec4(clamp((0.45 * texture2D(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a);
+    else
+#endif
+        gl_FragColor = vec4(clamp(lit * shade, vec3(0.0), vec3(1.0)), color.a);
+}

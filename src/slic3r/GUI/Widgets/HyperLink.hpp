@@ -1,6 +1,8 @@
 #ifndef slic3r_GUI_HyperLink_hpp_
 #define slic3r_GUI_HyperLink_hpp_
 
+#include <wx/string.h>
+#include <wx/colour.h>
 #include <wx/wx.h>
 #include <wx/window.h>
 

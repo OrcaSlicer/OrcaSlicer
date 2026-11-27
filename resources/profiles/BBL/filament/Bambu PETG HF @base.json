@@ -3,7 +3,7 @@
     "name": "Bambu PETG HF @base",
     "inherits": "fdm_filament_pet",
     "from": "system",
-    "filament_id": "GFG02",
+    "filament_id": "OFovEIbw",
     "instantiation": "false",
     "cool_plate_temp": [
         "0"
@@ -26,8 +26,11 @@
     "fan_min_speed": [
         "10"
     ],
+    "filament_change_length": [
+        "12"
+    ],
     "filament_cost": [
-        "24.99"
+        "15.99"
     ],
     "filament_density": [
         "1.28"
@@ -38,14 +41,11 @@
     "filament_max_volumetric_speed": [
         "21"
     ],
-    "filament_vendor": [
-        "Bambu Lab"
-    ],
-    "filament_change_length": [
-        "12"
-    ],
     "filament_prime_volume": [
         "30"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
     ],
     "hot_plate_temp": [
         "70"

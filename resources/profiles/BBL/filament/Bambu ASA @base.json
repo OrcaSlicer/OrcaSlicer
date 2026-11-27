@@ -3,7 +3,7 @@
     "name": "Bambu ASA @base",
     "inherits": "fdm_filament_asa",
     "from": "system",
-    "filament_id": "GFB01",
+    "filament_id": "OFfBpSRI",
     "instantiation": "false",
     "description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
     "eng_plate_temp": [
@@ -16,7 +16,7 @@
         "35"
     ],
     "filament_cost": [
-        "31.99"
+        "26.99"
     ],
     "filament_density": [
         "1.05"
@@ -35,9 +35,6 @@
     ],
     "hot_plate_temp_initial_layer": [
         "100"
-    ],
-    "impact_strength_z": [
-        "4.9"
     ],
     "nozzle_temperature": [
         "270"

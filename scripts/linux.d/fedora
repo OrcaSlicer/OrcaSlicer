@@ -13,6 +13,7 @@ REQUIRED_DEV_PACKAGES=(
     gettext
     git
     gstreamer1-devel
+    gstreamer1-plugins-good-gtk
     gstreamermm-devel
     gtk3-devel
     libmspack-devel
@@ -21,15 +22,20 @@ REQUIRED_DEV_PACKAGES=(
     libspnav-devel
     libtool
     m4
-    mesa-libGLU-devel
+    mesa-libGL-devel
     ninja-build
     openssl-devel
     perl-FindBin
+    perl-IPC-Cmd
+    perl-Time-Piece
     texinfo
     wayland-protocols-devel
-    webkit2gtk4.0-devel
+    webkit2gtk4.1-devel
     wget
     libcurl-devel
+    pkgconf
+    yasm
+    nasm
 )
 
 if [[ -n "$UPDATE_LIB" ]]

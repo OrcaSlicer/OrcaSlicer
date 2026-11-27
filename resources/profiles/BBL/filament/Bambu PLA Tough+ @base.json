@@ -3,13 +3,16 @@
     "name": "Bambu PLA Tough+ @base",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "filament_id": "GFA10",
+    "filament_id": "OF342jVN",
     "instantiation": "false",
     "additional_cooling_fan_speed": [
         "80"
     ],
+    "filament_change_length": [
+        "5"
+    ],
     "filament_cost": [
-        "24.99"
+        "20.99"
     ],
     "filament_density": [
         "1.21"
@@ -20,17 +23,14 @@
     "filament_max_volumetric_speed": [
         "21"
     ],
-    "filament_vendor": [
-        "Bambu Lab"
+    "filament_prime_volume": [
+        "30"
     ],
     "filament_scarf_gap": [
         "0%"
     ],
-    "filament_change_length": [
-        "5"
-    ],
-    "filament_prime_volume": [
-        "30"
+    "filament_vendor": [
+        "Bambu Lab"
     ],
     "impact_strength_z": [
         "13.8"
@@ -41,11 +41,11 @@
     "nozzle_temperature_initial_layer": [
         "245"
     ],
-    "nozzle_temperature_range_low": [
-        "220"
-    ],
     "nozzle_temperature_range_high": [
         "250"
+    ],
+    "nozzle_temperature_range_low": [
+        "220"
     ],
     "slow_down_layer_time": [
         "8"

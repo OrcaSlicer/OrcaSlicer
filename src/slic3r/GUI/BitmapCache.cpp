@@ -5,15 +5,31 @@
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
 
+#include <algorithm>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/filesystem.hpp>
+#include <utility>
+#include <string>
+#include <wx/image.h>
+#include <cstddef>
+#include <wx/dcmemory.h>
+#include <wx/gdicmn.h>
+#include <map>
+#include <cstdio>
+#include <cstdlib>
+#include "libslic3r/LocalesUtils.hpp"
+#include <cstring>
+#include <vector>
+#include <cstdint>
+#include <imgui.h>
 
 #ifdef __WXGTK2__
     // Broken alpha workaround
     #include <wx/mstream.h>
     #include <wx/rawbmp.h>
 #endif /* __WXGTK2__ */
-#include <GL/glew.h>
+#include <glad/gl.h>
 #define NANOSVG_IMPLEMENTATION
 #include "nanosvg/nanosvg.h"
 #define NANOSVGRAST_IMPLEMENTATION

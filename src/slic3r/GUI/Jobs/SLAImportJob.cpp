@@ -10,7 +10,18 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <exception>
+#include "libslic3r/PrintConfig.hpp"
+#include <utility>
 #include <wx/filename.h>
+#include "libslic3r/SLAPrint.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -65,8 +76,7 @@ void SLAImportJob::process(Ctl &ctl)
             break;
         }
     } catch (MissingProfileError &) {
-        p->err = _L("The SLA archive doesn't contain any presets. "
-                    "Please activate some SLA printer preset first before importing that SLA archive.").ToStdString();
+        p->err = _u8L("The SLA archive doesn\'t contain any presets. Please activate some SLA printer presets first before importing that SLA archive.");
     } catch (std::exception &ex) {
         p->err = ex.what();
     }
@@ -114,8 +124,8 @@ void SLAImportJob::finalize(bool canceled, std::exception_ptr &eptr)
         p->plater->get_notification_manager()->push_notification(
         NotificationType::CustomNotification,
         NotificationManager::NotificationLevel::WarningNotificationLevel,
-            _L("The imported SLA archive did not contain any presets. "
-               "The current SLA presets were used as fallback.").ToStdString());
+            _u8L("The imported SLA archive did not contain any presets. "
+                 "The current SLA presets were used as fallback."));
     }
 
     if (p->sel != Sel::modelOnly) {
@@ -127,7 +137,7 @@ void SLAImportJob::finalize(bool canceled, std::exception_ptr &eptr)
             if (object->volumes.size() > 1)
             {
                 Slic3r::GUI::show_info(nullptr,
-                                       _(L("You cannot load SLA project with a multi-part object on the bed")) + "\n\n" +
+                                       _(L("You cannot load an SLA project with a multi-part object on the bed")) + "\n\n" +
                                        _(L("Please check your object list before preset changing.")),
                                        _(L("Attention!")) );
                 return;

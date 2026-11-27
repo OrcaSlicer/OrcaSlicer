@@ -1,26 +1,45 @@
 {
-    "type": "machine",
-    "name": "MyKlipper 0.2 nozzle",
-    "inherits": "fdm_klipper_common",
-    "from": "system",
-    "setting_id": "GM002",
-    "instantiation": "true",
-    "printer_model": "Generic Klipper Printer",
-    "nozzle_diameter": [
-        "0.2"
-    ],
-    "max_layer_height": [
-        "0.16"
-    ],
-    "min_layer_height": [
-        "0.04"
-    ],
-    "printer_variant": "0.2",
-    "printable_area": [
-        "0x0",
-        "250x0",
-        "250x250",
-        "0x250"
-    ],
-    "printable_height": "250"
+	"type": "machine",
+	"name": "MyKlipper 0.2 nozzle",
+	"inherits": "fdm_klipper_common",
+	"from": "system",
+	"setting_id": "FONwo6mjzIUC1Jfw",
+	"instantiation": "true",
+	"default_nozzle_volume_type": [
+		"Standard"
+	],
+	"extruder_type": [
+		"Direct Drive"
+	],
+	"extruder_variant_list": [
+		"Direct Drive Standard,Direct Drive High Flow,Direct Drive Extra High Flow"
+	],
+	"printer_extruder_id": [
+		"1",
+		"1",
+		"1"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow"
+	],
+	"printer_model": "Generic Klipper Printer",
+	"nozzle_diameter": [
+		"0.2"
+	],
+	"max_layer_height": [
+		"0.16"
+	],
+	"min_layer_height": [
+		"0.04"
+	],
+	"printer_variant": "0.2",
+	"printable_area": [
+		"0x0",
+		"250x0",
+		"250x250",
+		"0x250"
+	],
+	"printable_height": "250"
 }

@@ -1,4 +1,6 @@
 #version 110
+// Orca: texture2DLod() in a fragment shader.
+#extension GL_ARB_shader_texture_lod : enable
 
 #define M_PI 3.1415926535897932384626433832795
 
@@ -9,11 +11,14 @@ uniform float z_to_texture_row;
 uniform float z_texture_row_to_normalized;
 uniform float z_cursor;
 uniform float z_cursor_band_width;
+// Orca: 0 leaves the colour as it is, 1 turns it into a flat grey.
+uniform float dimming;
 
 // x = tainted, y = specular;
 varying vec2 intensity;
 
 varying float object_z;
+varying float horizontal;
 
 void main()
 {
@@ -31,11 +36,24 @@ void main()
     float dx_vtc = dFdx(z_in_cells);
     float dy_vtc = dFdy(z_in_cells);
     float lod = clamp(0.5 * log2(max(dx_vtc * dx_vtc, dy_vtc * dy_vtc)), 0., 1.);
+#ifdef GL_ARB_shader_texture_lod
+    // Orca: a horizontal face gets the colour of the layer height alone, without the stripes.
+    lod = max(lod, horizontal);
+#endif
     // Sample the Z texture. Texture coordinates are normalized to <0, 1>.
     vec4 color = vec4(0.25, 0.25, 0.25, 1.0);
-    if (z_texture_row >= 0.0)
-        color = mix(texture2D(z_texture, vec2(z_texture_col, z_texture_row_to_normalized * (z_texture_row + 0.5    )), -10000.),
-                    texture2D(z_texture, vec2(z_texture_col, z_texture_row_to_normalized * (z_texture_row * 2. + 1.)),  10000.), lod);            
+    if (z_texture_row >= 0.0) {
+        vec2 level1 = vec2(z_texture_col, z_texture_row_to_normalized * (z_texture_row * 2. + 1.));
+#ifdef GL_ARB_shader_texture_lod
+        // Orca: the 2nd level is read at its own level of detail, not with a bias. On a horizontal face the texture
+        // coordinates do not change, so the GPU picks the 1st level however large the bias, read at the coordinates of the 2nd.
+        vec4 color1 = texture2DLod(z_texture, level1, 1.);
+#else
+        vec4 color1 = texture2D(z_texture, level1, 10000.);
+#endif
+        color = mix(texture2D(z_texture, vec2(z_texture_col, z_texture_row_to_normalized * (z_texture_row + 0.5    )), -10000.), color1, lod);
+    }
     // Mix the final color.
     gl_FragColor = vec4(vec3(intensity.y), 1.0) +  intensity.x * mix(color, vec4(1.0, 1.0, 0.0, 1.0), z_blend);
+    gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.3), dimming);
 }

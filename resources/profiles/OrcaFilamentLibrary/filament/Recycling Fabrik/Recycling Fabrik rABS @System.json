@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Recycling Fabrik rABS @System",
+	"inherits": "Recycling Fabrik rABS @base",
+	"from": "system",
+	"setting_id": "0CPPeURwg6elqhUk",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -11,9 +11,9 @@
 #include <Eigen/Sparse>
 #include <vector>
 
-#include <igl/cotmatrix_entries.h>
-#include <igl/cotmatrix.h>
-#include <igl/vertex_triangle_adjacency.h>
+#include "cotmatrix_entries.h"
+#include "cotmatrix.h"
+#include "vertex_triangle_adjacency.h"
 
 namespace igl
 {

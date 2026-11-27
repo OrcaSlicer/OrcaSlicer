@@ -11,15 +11,13 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // CENTROID Computes the centroid of a closed mesh using a surface integral.
-  // 
-  // Inputs:
-  //   V  #V by dim list of rest domain positions
-  //   F  #F by 3 list of triangle indices into V
-  // Outputs:
-  //    c  dim vector of centroid coordinates
-  //    vol  total volume of solid.
-  //
+  /// Computes the centroid and enclosed volume of a closed mesh using a surface integral.
+  /// 
+  /// @param[in] V  #V by dim list of rest domain positions
+  /// @param[in] F  #F by 3 list of triangle indices into V
+  /// @param[out]   c  dim vector of centroid coordinates
+  /// @param[out]   vol  total volume of solid.
+  ///
   template <
     typename DerivedV, 
     typename DerivedF, 
@@ -30,6 +28,7 @@ namespace igl
     const Eigen::MatrixBase<DerivedF>& F,
     Eigen::PlainObjectBase<Derivedc>& c,
     Derivedvol & vol);
+  /// \overload
   template <
     typename DerivedV, 
     typename DerivedF, 

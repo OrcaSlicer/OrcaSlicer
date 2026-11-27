@@ -1,0 +1,77 @@
+{
+    "type": "filament",
+    "name": "Generic ASA @BBL X2D 0.2 nozzle",
+    "inherits": "Generic ASA @base",
+    "from": "system",
+    "setting_id": "GFSB98_13",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "0.95",
+        "0.95",
+        "0.95",
+        "0.95"
+    ],
+    "filament_flush_volumetric_speed": [
+        "3",
+        "3",
+        "3",
+        "3"
+    ],
+    "filament_max_volumetric_speed": [
+        "2",
+        "2",
+        "2",
+        "2"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_tower_interface_print_temp": [
+        "260"
+    ],
+    "include": [
+        "fdm_filament_template_direct_bowden"
+    ],
+    "nozzle_temperature": [
+        "260",
+        "260",
+        "260",
+        "260"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260",
+        "260",
+        "260",
+        "260"
+    ],
+    "retraction_distances_when_ec": [
+        "3",
+        "3",
+        "4",
+        "4"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

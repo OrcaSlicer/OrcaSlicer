@@ -4,6 +4,9 @@
 #ifndef UTILS_POLYGONS_POINT_INDEX_H
 #define UTILS_POLYGONS_POINT_INDEX_H
 
+#include <utility>
+#include <functional>
+#include <cstddef>
 #include <vector>
 
 #include "../../Point.hpp"

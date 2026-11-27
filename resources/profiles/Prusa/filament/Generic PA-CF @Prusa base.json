@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Generic PA-CF @Prusa base",
+	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"filament_id": "OFQLcbps",
+	"instantiation": "false",
+	"filament_type": [
+		"PA-CF"
+	]
+}

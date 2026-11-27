@@ -3,27 +3,54 @@
 
 #include "GUI.hpp"
 #include "I18N.hpp"
+#include "format.hpp"
 #include "3DScene.hpp"
 
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Platform.hpp"
 
-#include <GL/glew.h>
+#include <boost/algorithm/string/predicate.hpp>
+#include <algorithm>
+#include <boost/algorithm/string/constants.hpp>
+#include <cstdlib>
+#include <glad/gl.h>
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <string>
+#include <ostream>
+#include "libslic3r/Utils.hpp"
+#include <vector>
+#include <sstream>
+#include <utility>
+#include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
+#include <wx/log.h>
 #include <wx/msgdlg.h>
+#include <wx/string.h>
+#include <wx/version.h>
 
 #include "GUI_Init.hpp"
+#include "slic3r/GUI/GLShadersManager.hpp"
 
 #ifdef __APPLE__
-// Part of hack to remove crash when closing the application on OSX 10.9.5 when building against newer wxWidgets
-#include <wx/platinfo.h>
-
 #include "../Utils/MacDarkMode.hpp"
 #endif // __APPLE__
+
+#ifdef _WIN32
+#include <cwchar>
+#include <system_error>
+#include <windows.h>
+#endif // _WIN32
+
+#ifdef __WXGTK__
+#include "LinuxDisplayBackend.hpp"
+#ifdef wxHAS_EGL
+#include <EGL/egl.h>
+#endif
+#endif
 
 namespace Slic3r {
 namespace GUI {
@@ -112,12 +139,12 @@ void OpenGLManager::GLInfo::detect() const
     if (Slic3r::total_physical_memory() / (1024 * 1024 * 1024) < 6)
         *max_tex_size /= 2;
 
-    if (GLEW_EXT_texture_filter_anisotropic) {
+    if (GLAD_GL_EXT_texture_filter_anisotropic) {
         float* max_anisotropy = const_cast<float*>(&m_max_anisotropy);
         glsafe(::glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy));
     }
 
-    if (!GLEW_ARB_compatibility)
+    if (!GLAD_GL_ARB_compatibility)
         *const_cast<bool*>(&m_core_profile) = true;
 
     *const_cast<bool*>(&m_detected) = true;
@@ -225,49 +252,52 @@ bool OpenGLManager::s_force_power_of_two_textures = false;
 OpenGLManager::EMultisampleState OpenGLManager::s_multisample = OpenGLManager::EMultisampleState::Unknown;
 OpenGLManager::EFramebufferType OpenGLManager::s_framebuffers_type = OpenGLManager::EFramebufferType::Unknown;
 
-#ifdef __APPLE__
-// Part of hack to remove crash when closing the application on OSX 10.9.5 when building against newer wxWidgets
-OpenGLManager::OSInfo OpenGLManager::s_os_info;
-#endif // __APPLE__
-
 OpenGLManager::~OpenGLManager()
 {
     m_shaders_manager.shutdown();
 
-#ifdef __APPLE__
-    // This is an ugly hack needed to solve the crash happening when closing the application on OSX 10.9.5 with newer wxWidgets
-    // The crash is triggered inside wxGLContext destructor
-    if (s_os_info.major != 10 || s_os_info.minor != 9 || s_os_info.micro != 5)
-    {
-#endif //__APPLE__
-        if (m_context != nullptr)
-            delete m_context;
-#ifdef __APPLE__
-    }
-#endif //__APPLE__
+    if (m_context != nullptr)
+        delete m_context;
 }
 
 bool OpenGLManager::init_gl(bool popup_error)
 {
     if (!m_gl_initialized) {
-        glewExperimental = true;
-        GLenum result = glewInit();
-        if (result != GLEW_OK) {
-            BOOST_LOG_TRIVIAL(error) << "Unable to init glew library";
+        int version = 0;
+#if defined(__WXGTK__) && defined(wxHAS_EGL)
+        if (is_running_on_wayland()) {
+            // On EGL/Wayland, gladLoaderLoadGL() dlopen's libGL.so then
+            // immediately dlclose's it. Since nothing else holds libGL.so
+            // open (unlike GLX where the context keeps it loaded), the
+            // library gets unmapped and all function pointers become invalid.
+            // Use eglGetProcAddress directly to avoid this.
+            version = gladLoadGL((GLADloadfunc)eglGetProcAddress);
+        } else
+#endif
+        {
+            version = gladLoaderLoadGL();
+        }
+        if (version == 0) {
+            BOOST_LOG_TRIVIAL(error) << "Unable to init GLAD OpenGL loader";
             return false;
         }
-	//BOOST_LOG_TRIVIAL(info) << "glewInit Success."<< std::endl;
+        BOOST_LOG_TRIVIAL(info) << "GLAD loaded OpenGL " << GLAD_VERSION_MAJOR(version) << "." << GLAD_VERSION_MINOR(version);
         m_gl_initialized = true;
-        if (GLEW_EXT_texture_compression_s3tc)
+        if (GLAD_GL_EXT_texture_compression_s3tc)
             s_compressed_textures_supported = true;
         else
             s_compressed_textures_supported = false;
 
-        if (GLEW_ARB_framebuffer_object) {
+        if (s_gl_info.is_version_greater_or_equal_to(3, 0)) {
+            // ARB framebuffer became a mandatory part of core OpenGL 3.0
+            s_framebuffers_type = EFramebufferType::Arb;
+            BOOST_LOG_TRIVIAL(info) << "Opengl version >= 30, FrameBuffer Type ARB." << std::endl;
+        }
+        else if (GLAD_GL_ARB_framebuffer_object) {
             s_framebuffers_type = EFramebufferType::Arb;
             BOOST_LOG_TRIVIAL(info) << "Found Framebuffer Type ARB."<< std::endl;
         }
-        else if (GLEW_EXT_framebuffer_object) {
+        else if (GLAD_GL_EXT_framebuffer_object) {
             BOOST_LOG_TRIVIAL(info) << "Found Framebuffer Type Ext."<< std::endl;
             s_framebuffers_type = EFramebufferType::Ext;
         }
@@ -278,7 +308,7 @@ bool OpenGLManager::init_gl(bool popup_error)
 
         bool valid_version = s_gl_info.is_version_greater_or_equal_to(2, 0);
         if (!valid_version) {
-            BOOST_LOG_TRIVIAL(error) << "Found opengl version <= 3.2"<< std::endl;
+            BOOST_LOG_TRIVIAL(error) << "Found opengl version < 2.0"<< std::endl;
             // Complain about the OpenGL version.
             if (popup_error) {
                 wxString message = from_u8((boost::format(
@@ -400,18 +430,111 @@ wxGLContext* OpenGLManager::init_glcontext(wxGLCanvas& canvas, const std::pair<i
             m_context = new wxGLContext(&canvas, nullptr, &attrs);
         }
 
-#ifdef __APPLE__
-        // Part of hack to remove crash when closing the application on OSX 10.9.5 when building against newer wxWidgets
-        s_os_info.major = wxPlatformInfo::Get().GetOSMajorVersion();
-        s_os_info.minor = wxPlatformInfo::Get().GetOSMinorVersion();
-        s_os_info.micro = wxPlatformInfo::Get().GetOSMicroVersion();
-#endif //__APPLE__
     }
     return m_context;
 }
 
+#ifdef _WIN32
+struct CanvasDisplay
+{
+    wxString device;  // such as \\.\DISPLAY1
+    wxString adapter; // the display adapter driving it, as Windows names it
+};
+
+// The display the canvas is on; fields stay empty if Windows can't tell.
+static CanvasDisplay canvas_display(const wxGLCanvas& canvas)
+{
+    CanvasDisplay  display;
+    MONITORINFOEXW monitor{};
+    monitor.cbSize = sizeof(monitor);
+    if (!::GetMonitorInfoW(::MonitorFromWindow(::WindowFromDC(canvas.GetHDC()), MONITOR_DEFAULTTONEAREST), &monitor))
+        return display;
+    display.device = wxString(monitor.szDevice);
+    DISPLAY_DEVICEW device{};
+    device.cb = sizeof(device);
+    for (DWORD i = 0; ::EnumDisplayDevicesW(nullptr, i, &device, 0); ++i)
+        if (std::wcscmp(device.DeviceName, monitor.szDevice) == 0) {
+            display.adapter = wxString(device.DeviceString);
+            break;
+        }
+    return display;
+}
+
+// wx logs a failed wglMakeCurrent only at debug level, which release builds drop, so repeat the
+// call to read the error, and add what the driver was given: the pixel format and the display adapter.
+static std::string describe_make_current_failure(const wxGLCanvas& canvas, const wxGLContext* context, const CanvasDisplay& display, bool& retry_succeeded)
+{
+    const HDC hdc = canvas.GetHDC();
+    std::ostringstream out;
+    retry_succeeded = false;
+    if (context == nullptr || context->GetGLRC() == nullptr)
+        out << "no OpenGL context was created";
+    else if (::wglMakeCurrent(hdc, context->GetGLRC()) != FALSE) {
+        retry_succeeded = true;
+        out << "wglMakeCurrent succeeded on retry";
+    } else {
+        const DWORD error = ::GetLastError();
+        out << "wglMakeCurrent failed with error " << error << " (" << std::system_category().message(static_cast<int>(error)) << ")";
+    }
+
+    PIXELFORMATDESCRIPTOR pfd{};
+    if (const int pixel_format = ::GetPixelFormat(hdc); pixel_format > 0 && ::DescribePixelFormat(hdc, pixel_format, sizeof(pfd), &pfd) > 0)
+        out << ", pixel format " << pixel_format << " (flags 0x" << std::hex << pfd.dwFlags << std::dec << ", color "
+            << static_cast<int>(pfd.cColorBits) << ", depth " << static_cast<int>(pfd.cDepthBits) << ", stencil "
+            << static_cast<int>(pfd.cStencilBits) << ")";
+    else
+        out << ", no pixel format on the canvas";
+
+    if (!display.device.empty())
+        out << ", " << into_u8(display.device) << " on " << (display.adapter.empty() ? "an unknown adapter" : into_u8(display.adapter));
+    return out.str();
+}
+#endif // _WIN32
+
+void OpenGLManager::report_make_current_failure([[maybe_unused]] const wxGLCanvas& canvas, [[maybe_unused]] const wxGLContext* context)
+{
+    if (m_make_current_failure_reported)
+        return;
+    m_make_current_failure_reported = true;
+#ifdef _WIN32
+    const CanvasDisplay display         = canvas_display(canvas);
+    bool                retry_succeeded = false;
+    BOOST_LOG_TRIVIAL(error) << "Cannot make the OpenGL context current on a shown canvas: "
+                             << describe_make_current_failure(canvas, context, display, retry_succeeded);
+    // A failure after OpenGL came up, or one a retry clears, does not leave the 3D view empty.
+    if (m_gl_initialized || retry_succeeded)
+        return;
+    // The cause varies (no OpenGL driver behind the display, a disabled or broken driver, an overlay),
+    // so name the adapter Windows reports for the window's display instead of guessing one.
+    // TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+    wxString message = _L("OpenGL could not be activated for the 3D view, so it cannot be shown.");
+    if (!display.adapter.empty()) {
+        message += "\n\n";
+        // TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+        message += format_wxstr(_L("The window is on a display driven by \"%1%\"."), display.adapter);
+    }
+    message += "\n\n";
+    message += _L("Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date.");
+    message += "\n";
+    message += _L("If the computer has more than one graphics card, connecting the monitor to another one may help.");
+    message += "\n";
+    message += _L("If the problem remains, close any overlay or screen capture software and try again.");
+    // show_error() defers the dialog, so it does not open inside the paint handler drawing the canvas.
+    show_error(nullptr, message);
+#endif // _WIN32
+}
+
+static const char* const SCENE_CANVAS_NAME = "OrcaSceneCanvas";
+
 wxGLCanvas* OpenGLManager::create_wxglcanvas(wxWindow& parent)
 {
+    int antialiasing_samples = 4;
+    if (const AppConfig* app_config = get_app_config(); app_config != nullptr) {
+        const std::string value = app_config->get(SETTING_OPENGL_AA_SAMPLES);
+        if (value == "0" || value == "2" || value == "4" || value == "8" || value == "16")
+            antialiasing_samples = ::atoi(value.c_str());
+    }
+
     int attribList[] = {
         WX_GL_RGBA,
         WX_GL_DOUBLEBUFFER,
@@ -425,27 +548,73 @@ wxGLCanvas* OpenGLManager::create_wxglcanvas(wxWindow& parent)
         WX_GL_DEPTH_SIZE, 		24,
         //BBS: turn on stencil buffer for outline
         WX_GL_STENCIL_SIZE,     8,
-        WX_GL_SAMPLE_BUFFERS, 	GL_TRUE,
-        WX_GL_SAMPLES, 			4,
+        WX_GL_SAMPLE_BUFFERS, 	antialiasing_samples > 0 ? GL_TRUE : GL_FALSE,
+	    WX_GL_SAMPLES, 			antialiasing_samples,
         0
     };
 
-    if (s_multisample == EMultisampleState::Unknown) {
+    constexpr int sample_buffers_value_idx = 15;
+    constexpr int samples_value_idx        = 17;
+
+    if (antialiasing_samples <= 0)
+        s_multisample = EMultisampleState::Disabled;
+    else if (s_multisample == EMultisampleState::Unknown) {
         detect_multisample(attribList);
 //        // debug output
 //        std::cout << "Multisample " << (can_multisample() ? "enabled" : "disabled") << std::endl;
     }
 
-    if (! can_multisample())
-        attribList[12] = 0;
+    if (! can_multisample()) {
+        attribList[sample_buffers_value_idx] = GL_FALSE;
+        attribList[samples_value_idx] = 0;
+    }
 
-    return new wxGLCanvas(&parent, wxID_ANY, attribList, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS);
+    wxGLCanvas* canvas = new wxGLCanvas(&parent, wxID_ANY, attribList, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS, SCENE_CANVAS_NAME);
+    // The GL canvas paints its entire surface, so background erasing is unnecessary.
+    canvas->SetBackgroundStyle(wxBG_STYLE_PAINT);
+    return canvas;
+}
+
+bool OpenGLManager::is_scene_canvas(const wxWindow* window)
+{
+    return window != nullptr && window->GetName() == SCENE_CANVAS_NAME;
+}
+
+int OpenGLManager::stencil_bits()
+{
+    GLint bits = 0;
+    ::glGetError(); // drop anything pending, so the check below sees only this query
+    ::glGetIntegerv(GL_STENCIL_BITS, &bits); // compatibility profiles
+    if (::glGetError() != GL_NO_ERROR) {
+        bits = 0;
+        GLint fbo = 0;
+        ::glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &fbo);
+        // The default framebuffer names its stencil buffer, a framebuffer object its stencil attachment.
+        ::glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, fbo == 0 ? GL_STENCIL : GL_STENCIL_ATTACHMENT,
+                                                GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE, &bits);
+        ::glGetError();
+    }
+    return std::max(0, int(bits));
 }
 
 void OpenGLManager::detect_multisample(int* attribList)
 {
     int wxVersion = wxMAJOR_VERSION * 10000 + wxMINOR_VERSION * 100 + wxRELEASE_NUMBER;
     bool enable_multisample = wxVersion >= 30003;
+
+#if defined(__WXGTK__)
+    // On Wayland, wxGLCanvas::IsDisplaySupported() requires the EGL backend.
+    // If wxWidgets was built without EGL, the GLX backend will crash trying
+    // to access a non-existent X11 display. Disable multisample in that case.
+    if (is_running_on_wayland()) {
+#if !defined(wxHAS_EGL) || !wxHAS_EGL
+        BOOST_LOG_TRIVIAL(warning) << "Wayland without EGL: disabling multisample detection";
+        s_multisample = EMultisampleState::Disabled;
+        return;
+#endif
+    }
+#endif
+
     s_multisample =
         enable_multisample &&
         // Disable multi-sampling on ChromeOS, as the OpenGL virtualization swaps Red/Blue channels with multi-sampling enabled,

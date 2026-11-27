@@ -1,0 +1,33 @@
+{
+    "type": "filament",
+    "name": "School House Spools Silk PLA @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OFFUPLH1",
+    "instantiation": "false",
+    "description": "Fresh, sealed spools print fine as they are. Dry the filament again only after it has sat out in your environment for a while. For the highest gloss, set the outer wall speed to 40 to 60 mm/s when slicing.",
+    "filament_cost": [
+        "20"
+    ],
+    "filament_density": [
+        "1.32"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_scarf_gap": [
+        "0%"
+    ],
+    "filament_scarf_height": [
+        "5%"
+    ],
+    "filament_vendor": [
+        "School House Spools"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ]
+}

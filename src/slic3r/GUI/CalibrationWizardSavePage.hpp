@@ -3,6 +3,24 @@
 
 #include "CalibrationWizardPage.hpp"
 #include "Widgets/TextInput.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <string>
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <vector>
+#include <utility>
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/DeviceCore/DevCalib.h"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <map>
+#include <memory>
+#include "slic3r/GUI/Jobs/ProgressIndicator.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -107,7 +125,10 @@ protected:
     wxPanel* m_part_failed_panel;
     wxPanel*    m_grid_panel{ nullptr };
     wxPanel*    m_multi_extruder_grid_panel{ nullptr };
-    std::map<int, PACalibResult> m_calib_results;// map<tray_id, PACalibResult>
+    // keyed by (tray_id, extruder_id): the same tray_id can appear under two
+    // extruders (rack / dual-address configs), so a tray_id-only map would
+    // silently overwrite one extruder's K/N.
+    std::vector<PACalibResult> m_calib_results;
     std::vector<PACalibResult> m_history_results;
     bool m_is_all_failed{ true };
     MachineObject* m_obj{ nullptr };
@@ -190,7 +211,7 @@ public:
 
     void show_panels(CalibrationMethod method, const PrinterSeries printer_ser);
 
-    void on_device_connected(MachineObject* obj);
+    void on_device_connected(MachineObject* obj) override;
 
     void update(MachineObject* obj) override;
 

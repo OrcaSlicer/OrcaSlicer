@@ -53,6 +53,11 @@ float RetinaHelper::get_scale_factor()
             [nc addObserver:self selector:@selector(windowDidChangeBackingProperties:)
                 name:NSWindowDidChangeBackingPropertiesNotification object:nil];
         }
+
+        NSWindow* window = [aView window];
+        if (window) {
+            [window setColorSpace:[NSColorSpace sRGBColorSpace]];
+        }
     }
     return self;
 }

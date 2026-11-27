@@ -1,7 +1,23 @@
 #include "Http.hpp"
+#include "libslic3r_version.h"
 
+#include <algorithm>
+#include <atomic>
+#include <boost/filesystem/operations.hpp>
+#include <cassert>
 #include <cstdlib>
+#include <curl/curlver.h>
+#include <fstream>
 #include <functional>
+#include <memory>
+#include <string>
+#include <stdlib.h>
+#include <map>
+#include <mutex>
+#include <ios>
+#include "libslic3r/Exception.hpp"
+#include <iterator>
+#include <ostream>
 #include <thread>
 #include <deque>
 #include <sstream>
@@ -13,6 +29,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <curl/curl.h>
+#include <utility>
 
 #ifdef OPENSSL_CERT_OVERRIDE
 #include <openssl/x509.h>
@@ -44,7 +61,6 @@ struct CurlGlobalInit
             "/etc/ssl/ca-bundle.pem"              // OpenSUSE Tumbleweed
         };
 
-        namespace fs = boost::filesystem;
         // Env var name for the OpenSSL CA bundle (SSL_CERT_FILE nomally)
         const char *const SSL_CA_FILE = X509_get_default_cert_file_env();
         const char * ssl_cafile = ::getenv(SSL_CA_FILE);
@@ -53,10 +69,14 @@ struct CurlGlobalInit
             ssl_cafile = X509_get_default_cert_file();
 
         int replace = true;
-        if (!ssl_cafile || !fs::exists(fs::path(ssl_cafile))) {
+        // ORCA: non-throwing overload; fs_ec is deliberately unread. An existing but unreadable
+        //       path (a static build's baked-in OPENSSLDIR run as another user, say) must fall
+        //       through to CA_BUNDLES, not throw out of this constructor.
+        boost::system::error_code fs_ec;
+        if (!ssl_cafile || !fs::exists(fs::path(ssl_cafile), fs_ec)) {
             const char * bundle = nullptr;
             for (const char * b : CA_BUNDLES) {
-                if (fs::exists(fs::path(b))) {
+                if (fs::exists(fs::path(b), fs_ec)) {
                     ::setenv(SSL_CA_FILE, bundle = b, replace);
                     break;
                 }
@@ -110,6 +130,9 @@ struct Http::priv
 	::curl_httppost *form_end;
 	::curl_mime* mime;
 	::curl_slist *headerlist;
+	// For debug printing
+	std::string url;
+	std::string method;
 	// Used for reading the body
 	std::string buffer;
 	// Used for storing file streams added as multipart form parts
@@ -119,7 +142,7 @@ struct Http::priv
 	std::string error_buffer;    // Used for CURLOPT_ERRORBUFFER
     std::string headers;
 	size_t limit;
-	bool cancel;
+	std::atomic_bool cancel;
     std::unique_ptr<form_file> putFile;
 
 	std::thread io_thread;
@@ -170,6 +193,8 @@ Http::priv::priv(const std::string &url)
 	, form_end(nullptr)
 	, mime(nullptr)
 	, headerlist(nullptr)
+	, url(url)
+	, method("GET")
 	, error_buffer(CURL_ERROR_SIZE + 1, '\0')
 	, limit(0)
 	, cancel(false)
@@ -213,7 +238,7 @@ bool Http::priv::ca_file_supported(::CURL *curl)
 
 	if (curl == nullptr) { return res; }
 
-#if LIBCURL_VERSION_MAJOR >= 7 && LIBCURL_VERSION_MINOR >= 48
+#if LIBCURL_VERSION_NUM >= 0x073000 // 7.48.0: CURLINFO_TLS_SSL_PTR
 	::curl_tlssessioninfo *tls;
 	if (::curl_easy_getinfo(curl, CURLINFO_TLS_SSL_PTR, &tls) == CURLE_OK) {
 		if (tls->backend == CURLSSLBACKEND_SCHANNEL || tls->backend == CURLSSLBACKEND_DARWINSSL) {
@@ -249,17 +274,15 @@ int Http::priv::xfercb(void *userp, curl_off_t dltotal, curl_off_t dlnow, curl_o
 	bool cb_cancel = false;
 
 	if (self->progressfn) {
-		double speed;
+		double speed = 0.;
         curl_easy_getinfo(self->curl, CURLINFO_SPEED_UPLOAD, &speed);
-		if (speed > 0.01)
-			speed = speed;
 		Progress progress(dltotal, dlnow, ultotal, ulnow, self->buffer, speed);
 		self->progressfn(progress, cb_cancel);
 	}
 
-	if (cb_cancel) { self->cancel = true; }
+	if (cb_cancel) { self->cancel.store(true); }
 
-	return self->cancel;
+	return self->cancel.load();
 }
 
 int Http::priv::xfercb_legacy(void *userp, double dltotal, double dlnow, double ultotal, double ulnow)
@@ -318,8 +341,10 @@ void Http::priv::form_add_file(const char *name, const fs::path &path, const cha
 	// We can't use CURLFORM_FILECONTENT, because curl doesn't support Unicode filenames on Windows
 	// and so we use CURLFORM_STREAM with boost ifstream to read the file.
 
+	std::string filename_str;
 	if (filename == nullptr) {
-		filename = path.string().c_str();
+		filename_str = path.string();
+		filename = filename_str.c_str();
 	}
 
 	form_files.emplace_back(path, offset, length);
@@ -432,14 +457,14 @@ void Http::priv::http_perform()
 	::curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headers_cb);
 
 	::curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-#if LIBCURL_VERSION_MAJOR >= 7 && LIBCURL_VERSION_MINOR >= 32
+#if LIBCURL_VERSION_NUM >= 0x072000 // 7.32.0: CURLOPT_XFERINFOFUNCTION
 	::curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xfercb);
 	::curl_easy_setopt(curl, CURLOPT_XFERINFODATA, static_cast<void*>(this));
 #ifndef _WIN32
 	(void)xfercb_legacy;   // prevent unused function warning
 #endif
 #else
-	::curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, xfercb);
+	::curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, xfercb_legacy);
 	::curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, static_cast<void*>(this));
 #endif
 
@@ -460,6 +485,14 @@ void Http::priv::http_perform()
 	if (!postfields.empty()) {
 		::curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfields.c_str());
 		::curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, postfields.size());
+	} else if (method == "POST" && form == nullptr && mime == nullptr) {
+		// A POST with no body. Without CURLOPT_POSTFIELDS, curl takes the request body from
+		// the read callback, but form_file_read_cb only has a usable user pointer for a PUT
+		// (set_put_body) or a streamed multipart part (form_add_file); for an empty POST it
+		// dereferences libcurl's default READDATA as a form_file and crashes. Point curl at a
+		// zero-length body so the read callback is never used.
+		::curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfields.c_str());
+		::curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, static_cast<curl_off_t>(0));
 	}
 
 	CURLcode res = ::curl_easy_perform(curl);
@@ -468,7 +501,7 @@ void Http::priv::http_perform()
 
 	if (res != CURLE_OK) {
 		if (res == CURLE_ABORTED_BY_CALLBACK) {
-			if (cancel) {
+			if (cancel.load()) {
 				// The abort comes from the request being cancelled programatically
 				Progress dummyprogress(0, 0, 0, 0, std::string());
 				bool cancel = true;
@@ -488,7 +521,8 @@ void Http::priv::http_perform()
 		::curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_status);
 
 		//BBS check success http status code
-		if (http_status >= 200 && http_status < 300) {
+		// A 304 answers a conditional request (If-None-Match): the caller's copy is still current.
+		if ((http_status >= 200 && http_status < 300) || http_status == 304) {
 			if (completefn) { completefn(std::move(buffer), http_status); }
 			if (ipresolvefn) {
 				char* ct;
@@ -565,6 +599,21 @@ Http& Http::header(std::string name, const std::string &value)
 	return *this;
 }
 
+Http& Http::headers_reset()
+{
+	if (!p) { return *this; }
+
+	::curl_slist_free_all(p->headerlist);
+	p->headerlist = nullptr;
+	p->headerlist = curl_slist_append(p->headerlist, "Expect:");
+
+	std::lock_guard<std::mutex> l(g_mutex);
+	for (auto it = extra_headers.begin(); it != extra_headers.end(); ++it)
+		this->header(it->first, it->second);
+
+	return *this;
+}
+
 Http& Http::remove_header(std::string name)
 {
 	if (p) {
@@ -600,6 +649,16 @@ Http& Http::ca_file(const std::string &name)
 		::curl_easy_setopt(p->curl, CURLOPT_CAINFO, name.c_str());
 	}
 
+	return *this;
+}
+
+Http& Http::tls_verify(bool enable)
+{
+	if (p) {
+		::curl_easy_setopt(p->curl, CURLOPT_SSL_VERIFYPEER, enable ? 1L : 0L);
+		::curl_easy_setopt(p->curl, CURLOPT_SSL_VERIFYHOST, enable ? 2L : 0L);
+		::curl_easy_setopt(p->curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
+	}
 	return *this;
 }
 
@@ -754,7 +813,75 @@ void Http::perform_sync()
 
 void Http::cancel()
 {
-	if (p) { p->cancel = true; }
+	if (p) { p->cancel.store(true); }
+}
+
+void Http::print() const
+{
+	if (!p) {
+		BOOST_LOG_TRIVIAL(info) << "Http::print() - no request data";
+		return;
+	}
+
+	std::ostringstream cmd;
+	cmd << "curl";
+
+	// Method
+	if (p->method != "GET") {
+		cmd << " -X " << p->method;
+	}
+
+	// URL
+	cmd << " '" << p->url << "'";
+
+	// Headers (iterate through curl_slist)
+	::curl_slist *header = p->headerlist;
+	while (header) {
+		// Skip empty "Expect:" header we add by default
+		if (header->data && std::string(header->data) != "Expect:") {
+			cmd << " \\\n  -H '" << header->data << "'";
+		}
+		header = header->next;
+	}
+
+	// Form fields (multipart) - iterate through curl_httppost
+	::curl_httppost *formpost = p->form;
+	while (formpost) {
+		if (formpost->showfilename) {
+			// File upload (showfilename is set when CURLFORM_FILENAME is used)
+			cmd << " \\\n  -F '" << formpost->name << "=@" << formpost->showfilename << "'";
+		} else if (formpost->contents) {
+			// Regular form field with contents
+			cmd << " \\\n  -F '" << formpost->name << "=" << formpost->contents << "'";
+		} else {
+			// Stream or other type without direct contents
+			cmd << " \\\n  -F '" << formpost->name << "=<data>'";
+		}
+		formpost = formpost->next;
+	}
+
+	// Post body
+	if (!p->postfields.empty()) {
+		// Escape single quotes in the body for shell safety
+		std::string escaped_body = p->postfields;
+		size_t pos = 0;
+		while ((pos = escaped_body.find('\'', pos)) != std::string::npos) {
+			escaped_body.replace(pos, 1, "'\\''");
+			pos += 4;
+		}
+		// Truncate if too long for display
+		if (escaped_body.length() > 1000) {
+			escaped_body = escaped_body.substr(0, 1000) + "...<truncated>";
+		}
+		cmd << " \\\n  -d '" << escaped_body << "'";
+	}
+
+	// Put file
+	if (p->putFile) {
+		cmd << " \\\n  --upload-file <file-stream>";
+	}
+
+	BOOST_LOG_TRIVIAL(info) << "Http request:\n" << cmd.str();
 }
 
 Http Http::get(std::string url)
@@ -765,6 +892,7 @@ Http Http::get(std::string url)
 Http Http::post(std::string url)
 {
 	Http http{std::move(url)};
+	http.p->method = "POST";
 	curl_easy_setopt(http.p->curl, CURLOPT_POST, 1L);
 	return http;
 }
@@ -772,6 +900,7 @@ Http Http::post(std::string url)
 Http Http::put(std::string url)
 {
 	Http http{std::move(url)};
+	http.p->method = "PUT";
 	curl_easy_setopt(http.p->curl, CURLOPT_UPLOAD, 1L);
 	return http;
 }
@@ -779,6 +908,7 @@ Http Http::put(std::string url)
 Http Http::put2(std::string url)
 {
 	Http http{ std::move(url) };
+	http.p->method = "PUT";
 	curl_easy_setopt(http.p->curl, CURLOPT_CUSTOMREQUEST, "PUT");
 	return http;
 }
@@ -786,6 +916,7 @@ Http Http::put2(std::string url)
 Http Http::patch(std::string url)
 {
 	Http http{ std::move(url) };
+	http.p->method = "PATCH";
 	curl_easy_setopt(http.p->curl, CURLOPT_CUSTOMREQUEST, "PATCH");
 	return http;
 }
@@ -793,6 +924,7 @@ Http Http::patch(std::string url)
 Http Http::del(std::string url)
 {
 	Http http{ std::move(url) };
+	http.p->method = "DELETE";
 	curl_easy_setopt(http.p->curl, CURLOPT_CUSTOMREQUEST, "DELETE");
 	return http;
 }
@@ -827,13 +959,12 @@ std::string Http::tls_global_init()
 
 std::string Http::tls_system_cert_store()
 {
-    std::string ret;
-
 #ifdef OPENSSL_CERT_OVERRIDE
-    ret = ::getenv(X509_get_default_cert_file_env());
+    if (const char *cert_file = ::getenv(X509_get_default_cert_file_env()))
+        return cert_file;
 #endif
 
-    return ret;
+    return {};
 }
 
 std::string Http::url_encode(const std::string &str)
@@ -873,6 +1004,51 @@ std::string Http::get_filename_from_url(const std::string &url)
 	int start_pos = path_url.find_last_of("/");
 	if (start_pos < 0) return "";
 	return path_url.substr(start_pos + 1, path_url.length() - start_pos - 1);
+}
+
+std::string Http::get_host_from_url(const std::string &url_in, std::string *port)
+{
+    std::string url = url_in;
+    if (url.find("//") == std::string::npos)
+        url = "http://" + url;
+
+    if (port)
+        port->clear();
+    std::string out = url_in;
+    CURLU *hurl = curl_url();
+    if (hurl) {
+        CURLUcode rc = curl_url_set(hurl, CURLUPART_URL, url.c_str(), 0);
+        if (rc == CURLUE_OK) {
+            char *host;
+            rc = curl_url_get(hurl, CURLUPART_HOST, &host, 0);
+            if (rc == CURLUE_OK) {
+                out = host;
+                curl_free(host);
+                if (port) {
+                    char *pstr;
+                    rc = curl_url_get(hurl, CURLUPART_PORT, &pstr, 0);
+                    if (rc == CURLUE_OK && pstr) {
+                        *port = pstr;
+                        curl_free(pstr);
+                    }
+                }
+            } else
+                BOOST_LOG_TRIVIAL(error) << "Http::get_host_from_url: failed to get host from URL " << url;
+        } else
+            BOOST_LOG_TRIVIAL(error) << "Http::get_host_from_url: failed to parse URL " << url;
+        curl_url_cleanup(hurl);
+    } else
+        BOOST_LOG_TRIVIAL(error) << "Http::get_host_from_url: failed to allocate curl_url";
+    return out;
+}
+
+std::string Http::get_host_header_value(const std::string &url)
+{
+    std::string port;
+    std::string host = get_host_from_url(url, &port);
+    if (!port.empty())
+        host += ":" + port;
+    return host;
 }
 
 std::ostream& operator<<(std::ostream &os, const Http::Progress &progress)

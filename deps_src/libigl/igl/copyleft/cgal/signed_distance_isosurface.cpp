@@ -23,8 +23,8 @@
 #include <CGAL/IO/output_surface_facets_to_polyhedron.h>
 // Axis-aligned bounding box tree for tet tri intersection
 #include <CGAL/AABB_tree.h>
-#include <CGAL/AABB_traits.h>
-#include <CGAL/AABB_triangle_primitive.h>
+#include <CGAL/AABB_traits_3.h>
+#include <CGAL/AABB_triangle_primitive_3.h>
 #include <vector>
 
 IGL_INLINE bool igl::copyleft::cgal::signed_distance_isosurface(
@@ -58,7 +58,7 @@ IGL_INLINE bool igl::copyleft::cgal::signed_distance_isosurface(
   Eigen::MatrixXd FN,VN,EN;
   Eigen::MatrixXi E;
   Eigen::VectorXi EMAP;
-  WindingNumberAABB< Eigen::Vector3d, Eigen::MatrixXd, Eigen::MatrixXi > hier;
+  WindingNumberAABB<double,int> hier;
   switch(sign_type)
   {
     default:

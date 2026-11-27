@@ -3,10 +3,10 @@
     "name": "Bambu PLA Wood @base",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "filament_id": "GFA16",
+    "filament_id": "OFMjtqTC",
     "instantiation": "false",
     "filament_cost": [
-        "24.99"
+        "21.99"
     ],
     "filament_density": [
         "1.21"
@@ -22,9 +22,6 @@
     ],
     "filament_retraction_distances_when_cut": [
         "18"
-    ],
-    "filament_scarf_seam_type": [
-        "none"
     ],
     "filament_vendor": [
         "Bambu Lab"

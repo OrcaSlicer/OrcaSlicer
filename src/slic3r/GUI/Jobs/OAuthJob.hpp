@@ -3,9 +3,16 @@
 
 #include "Job.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
+#include <boost/asio/ip/basic_endpoint.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <memory>
+#include <exception>
+#include <wx/event.h>
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {

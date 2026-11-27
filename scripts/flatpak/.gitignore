@@ -1,2 +1,4 @@
 builddir
 .flatpak-builder
+*.docker.yml
+deps.tar*

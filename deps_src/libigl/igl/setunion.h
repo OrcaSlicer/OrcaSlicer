@@ -11,16 +11,14 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Union of elements of matrices (like matlab's `union`)
-  //
-  // Inputs:
-  //   A  m-long vector of indices
-  //   B  n-long vector of indices
-  // Outputs:
-  //   C  (k>=m)-long vector of unique elements appearing in A and/or B
-  //   IA  (<k>=m)-long list of indices into A so that C = sort([A(IA);B(IB)])
-  //   IB  (<k>=m)-long list of indices into B so that C = sort([A(IA);B(IB)])
-  //
+  /// Union of elements of matrices (like matlab's `union`)
+  ///
+  /// @param[in] A  m-long vector of indices
+  /// @param[in] B  n-long vector of indices
+  /// @param[out] C  (k>=m)-long vector of unique elements appearing in A and/or B
+  /// @param[out] IA  (<k>=m)-long list of indices into A so that C = sort([A(IA);B(IB)])
+  /// @param[out] IB  (<k>=m)-long list of indices into B so that C = sort([A(IA);B(IB)])
+  ///
   template <
     typename DerivedA,
     typename DerivedB,

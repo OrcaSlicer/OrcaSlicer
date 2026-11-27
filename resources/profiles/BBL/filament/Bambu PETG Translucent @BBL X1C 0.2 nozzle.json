@@ -21,77 +21,12 @@
         "0.3",
         "0.3"
     ],
-    "filament_flow_ratio": [
-        "0.95",
-        "0.95"
-    ],
-    "filament_deretraction_speed": [
-        "nil",
-        "nil"
-    ],
-    "filament_flush_temp": [
-        "0",
-        "0"
-    ],
-    "filament_flush_volumetric_speed": [
-        "0",
-        "0"
-    ],
-    "filament_ramming_volumetric_speed": [
-        "-1",
-        "-1"
-    ],
-    "filament_retract_before_wipe": [
-        "nil",
-        "nil"
-    ],
-    "filament_retract_restart_extra": [
-        "nil",
-        "nil"
-    ],
-    "filament_retract_when_changing_layer": [
-        "nil",
-        "nil"
-    ],
-    "filament_retraction_minimum_travel": [
-        "nil",
-        "nil"
-    ],
-    "filament_retraction_speed": [
-        "nil",
-        "nil"
-    ],
-    "filament_wipe": [
-        "nil",
-        "nil"
-    ],
-    "filament_wipe_distance": [
-        "nil",
-        "nil"
-    ],
-    "filament_z_hop": [
-        "nil",
-        "nil"
-    ],
-    "filament_z_hop_types": [
-        "nil",
-        "nil"
-    ],
-    "filament_extruder_variant": [
-        "Direct Drive Standard",
-        "Direct Drive High Flow"
-    ],
-    "filament_pre_cooling_temperature": [
-        "0",
-        "0"
-    ],
     "filament_ramming_travel_time": [
         "0",
         "0"
     ],
-    "filament_adaptive_volumetric_speed": [
-        "0",
-        "0"
+    "include": [
+        "fdm_filament_template_direct_dual"
     ],
     "long_retractions_when_ec": [
         "0",
@@ -111,10 +46,6 @@
     ],
     "slow_down_layer_time": [
         "8"
-    ],
-    "volumetric_speed_coefficients": [
-        "0 0 0 0 0 0",
-        "0 0 0 0 0 0"
     ],
     "compatible_printers": [
         "Bambu Lab X1 0.2 nozzle",

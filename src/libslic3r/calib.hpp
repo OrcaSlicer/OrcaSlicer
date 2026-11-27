@@ -1,5 +1,12 @@
 #pragma once
+#include "Point.hpp"
+#include <math.h>
+#include <cmath>
+#include <cstddef>
 #include <string>
+#include <vector>
+#include <utility>
+#include <memory>
 #define calib_pressure_advance_dd
 
 #include "GCodeWriter.hpp"
@@ -12,6 +19,7 @@ namespace Slic3r {
 class GCode;
 class Model;
 class ModelObject;
+class PresetCollection;
 
 enum class CalibMode : int {
     Calib_None = 0,
@@ -34,17 +42,89 @@ enum class CalibState { Start = 0, Preset, Calibration, CoarseSave, FineCalibrat
 struct Calib_Params
 {
     Calib_Params() : mode(CalibMode::Calib_None){};
+    // 0-based filament the test prints with, and the extruder printing it.
+    int filament_id = 0;
     int extruder_id = 0;
-    double    start, end, step;
-    bool      print_numbers;
-    double freqStartX, freqEndX, freqStartY, freqEndY;
-    int test_model;
+    double    start = 0.0, end = 1.0, step = 0.1;
+    bool      print_numbers = false;
+    double freqStartX = 0.0, freqEndX = 1.0, freqStartY = 0.0, freqEndY = 1.0;
+    int test_model = 0;
     std::string shaper_type;
     std::vector<double> accelerations;
     std::vector<double> speeds;
+    // Resolved layer height for the VFA tower (0 = auto: nozzle_diameter / 2). Each speed block is a
+    // fixed number of layers tall, so this also determines the physical block height / tower height.
+    double vfa_layer_height = 0.0;
+    // Scale the calibration model to the nozzle diameter and set the layer height accordingly (temp tower / VFA).
+    // When false the 0.4 mm / 0.2 mm reference model is printed as-is.
+    bool nozzle_based_resize = true;
 
     CalibMode mode;
 };
+
+// Number of printed layers per speed block in the VFA tower. The base model has 5 mm blocks designed
+// for a 0.2 mm layer height (0.4 mm nozzle), i.e. 25 layers per block.
+static constexpr int vfa_layers_per_block = 25;
+static constexpr double vfa_base_block_height = 5.0;
+static constexpr double vfa_base_nozzle_diameter = 0.4;
+
+// ---- Rules of the Calibration menu's dialogs, shared with automation ----------------------------
+
+// Whether the printer corners by junction deviation (Marlin 2 with machine_max_junction_deviation set)
+// rather than by classic jerk.
+bool has_junction_deviation(const DynamicPrintConfig& printer);
+
+// The values a calibration dialog opens with for `mode`: start, end and step, and for input shaping the
+// frequencies and damping. The pressure advance ones are the Bowden extruder's when `bowden`; cornering's
+// are junction deviation or jerk values, as the printer corners.
+Calib_Params calib_default_params(CalibMode mode, const DynamicPrintConfig& printer, bool bowden = false);
+
+// A temperature tower's start and end, as its dialog takes them when a field loses focus: brought into
+// the range a tower is made for, then rounded down to the tower's blocks.
+inline constexpr double kCalibTempMin = 155., kCalibTempMax = 500., kCalibTempBlock = 5.;
+double clamp_calib_temp(double temperature);
+double round_calib_temp(double temperature);
+
+// The first rule of its dialog that `params` breaks for its mode on `printer`, in the order the dialog
+// checks them. Each dialog shows its own message for the error.
+enum class CalibParamsError { None, Range, Damping, AccelBelowSpeed, BeltMethod };
+CalibParamsError check_calib_params(const Calib_Params& params, const DynamicPrintConfig& printer);
+
+// The cornering test's largest accepted end value, and the one above which its dialog warns of layer
+// shifts: junction deviation in mm, or jerk in mm/s.
+std::pair<double, double> cornering_end_limits(const DynamicPrintConfig& printer);
+
+// The belt printer temperature tower of the "Overhang" model (test_model 1) for the range of `params`:
+// only the ranges it was embossed for have one, so the file may not exist.
+std::string belt_temp_tower_asset(const Calib_Params& params);
+
+// How a VFA tower's end speed fits the filament's maximum volumetric speed. The slicer caps the outer
+// wall speed there, so the blocks above the cap would all print at one speed.
+struct VfaSpeedFit
+{
+    enum Kind {
+        Fits,
+        ReducedLayerHeight, // a smaller layer height reaches the end speed: print at layer_height
+        LoweredEnd,         // even the smallest one does not: print at layer_height up to end
+        Clamped,            // not adjusted: the upper blocks print at speed_limit
+    };
+    Kind   kind          = Fits;
+    double max_vol_speed = 0.; // the filament's limit, mm³/s
+    double default_lh    = 0.; // the layer height the tower prints at unadjusted
+    double speed_limit   = 0.; // the outer wall speed the limit allows at default_lh
+    double layer_height  = 0.;
+    double end           = 0.;
+};
+
+// The layer heights of the process presets compatible with the printer, within its layer height limits,
+// smallest first: what VFA's auto-adjust may lower the layer height to.
+std::vector<double> vfa_candidate_layer_heights(const PresetCollection& prints, const DynamicPrintConfig& printer, int extruder_id);
+
+// The VFA dialog's auto-adjust: with `auto_adjust` and the model scaled to the nozzle, the largest
+// candidate layer height at or below the default that reaches the end speed, else the smallest one with
+// the end speed lowered to a step multiple it reaches; otherwise, or without candidates, Clamped.
+VfaSpeedFit fit_vfa_speed(const Calib_Params& params, const DynamicPrintConfig& printer, const DynamicPrintConfig& print,
+                          const DynamicPrintConfig& filament, bool auto_adjust, const std::vector<double>& candidate_layer_heights);
 
 enum FlowRatioCalibrationType {
     COMPLETE_CALIBRATION = 0,
@@ -79,25 +159,15 @@ class CaliPresetInfo
 {
 public:
     int         tray_id;
-    int         extruder_id;
-    NozzleVolumeType nozzle_volume_type;
-    BedType     bed_type;
+    int         extruder_id = 0;
+    NozzleVolumeType nozzle_volume_type{nvtStandard};
+    BedType     bed_type{btDefault};
     float       nozzle_diameter;
+    int         nozzle_pos_id{-1};
+    std::string nozzle_sn;
     std::string filament_id;
     std::string setting_id;
     std::string name;
-
-    CaliPresetInfo &operator=(const CaliPresetInfo &other)
-    {
-        this->tray_id         = other.tray_id;
-        this->extruder_id     = other.extruder_id;
-        this->nozzle_volume_type = other.nozzle_volume_type;
-        this->nozzle_diameter = other.nozzle_diameter;
-        this->filament_id     = other.filament_id;
-        this->setting_id      = other.setting_id;
-        this->name            = other.name;
-        return *this;
-    }
 };
 
 struct PrinterCaliInfo
@@ -123,7 +193,9 @@ public:
     int         ams_id = 0;
     int         slot_id = 0;
     int         cali_idx = -1;
+    int         nozzle_pos_id = -1; //-1 means no nozzle pos
     float       nozzle_diameter;
+    std::string nozzle_sn;
     std::string filament_id;
     std::string setting_id;
     std::string name;
@@ -140,7 +212,9 @@ struct PACalibIndexInfo
     int         ams_id = 0;
     int         slot_id = 0;
     int         cali_idx = -1; // -1 means default
+    int         nozzle_pos_id = -1; //-1 means no nozzle pos
     float       nozzle_diameter;
+    std::string nozzle_sn;
     std::string filament_id;
 };
 
@@ -148,7 +222,9 @@ struct PACalibExtruderInfo
 {
     int              extruder_id = 0;
     NozzleVolumeType nozzle_volume_type;
+    int              nozzle_pos_id = -1; //-1 means no nozzle pos
     float            nozzle_diameter;
+    std::string      nozzle_sn;
     std::string      filament_id = "";
     bool             use_extruder_id{true};
     bool             use_nozzle_volume_type{true};
@@ -183,6 +259,7 @@ struct DrawBoxOptArgs
     double height;
     double line_width;
     double speed;
+    double e_per_mm{0.}; // 0: extrude with the test filament's settings
 };
 class CalibPressureAdvance
 {
@@ -221,8 +298,13 @@ protected:
                             double                              speed,
                             GCodeWriter                        &writer);
 
-    std::string draw_line(
-        GCodeWriter &writer, Vec2d to_pt, double line_width, double layer_height, double speed, const std::string &comment = std::string());
+    std::string draw_line(GCodeWriter       &writer,
+                          Vec2d              to_pt,
+                          double             line_width,
+                          double             layer_height,
+                          double             speed,
+                          const std::string &comment  = std::string(),
+                          double             e_per_mm = 0.);
     std::string draw_box(GCodeWriter &writer, double min_x, double min_y, double size_x, double size_y, DrawBoxOptArgs opt_args);
 
     double to_radians(double degrees) const { return degrees * M_PI / 180; };
@@ -230,6 +312,9 @@ protected:
 
     Vec3d m_last_pos;
     DynamicPrintConfig m_config;
+    // Filament the test prints with and its extruder, 0 based.
+    int m_filament_idx{0};
+    int m_extruder_idx{0};
 
     const double m_encroachment{1. / 3.};
     DrawDigitMode                m_draw_digit_mode{DrawDigitMode::Left_To_Right};
@@ -244,6 +329,8 @@ class CalibPressureAdvanceLine : public CalibPressureAdvance
 public:
     CalibPressureAdvanceLine(GCode* gcodegen);
     ~CalibPressureAdvanceLine(){};
+    // Return the X‑bounds of the pattern on the given bed.
+    BoundingBoxf print_extents(const BoundingBoxf &bed_ext) const;
 
     std::string generate_test(double start_pa = 0, double step_pa = 0.002, int count = 50);
 
@@ -280,9 +367,7 @@ private:
 
 struct SuggestedConfigCalibPAPattern
 {
-    const std::vector<std::pair<std::string, double>> float_pairs{{"initial_layer_print_height", 0.25},
-                                                                  {"layer_height", 0.2},
-                                                                  {"initial_layer_speed", 30}};
+    const std::vector<std::pair<std::string, std::vector<double>>> floats_pairs{{"initial_layer_speed", {30}}};
 
     const std::vector<std::pair<std::string, double>> nozzle_ratio_pairs{{"line_width", 112.5}, {"initial_layer_line_width", 140}};
 
@@ -314,15 +399,10 @@ public:
 
 protected:
     // todo multi_extruders:
-    double speed_first_layer() const { return m_config.option<ConfigOptionFloat>("initial_layer_speed")->value; };
-    double speed_perimeter() const { return m_config.option<ConfigOptionFloat>("outer_wall_speed")->value; };
-    double accel_perimeter() const { return m_config.option<ConfigOptionFloat>("outer_wall_acceleration")->value; }
-    double line_width_first_layer() const
-    {
-        // TODO: FIXME: find out current filament/extruder?
-        const double nozzle_diameter = m_config.opt_float("nozzle_diameter", 0);
-        return m_config.get_abs_value("initial_layer_line_width", nozzle_diameter);
-    };
+    double speed_first_layer() const { return m_config.get_abs_value_at("initial_layer_speed", m_params.extruder_id); };
+    double speed_perimeter() const { return m_config.get_abs_value_at("outer_wall_speed", m_params.extruder_id); };
+    double accel_perimeter() const { return m_config.get_abs_value_at("outer_wall_acceleration", m_params.extruder_id); }
+    double line_width_first_layer() const;
     double line_width() const;
     int    wall_count() const { return m_config.option<ConfigOptionInt>("wall_loops")->value; };
 
@@ -358,9 +438,14 @@ private:
 
     double pattern_shift() const;
 
-    const Calib_Params &m_params;
+    // A copy: the pattern outlives the call that made it and is read again whenever the plate is
+    // sliced, while callers pass params that may be temporaries.
+    const Calib_Params m_params;
 
-    GCodeWriter        m_writer;
+    // Belt printers get belt kinematics installed on it (_refresh_writer);
+    // shared_ptr keeps the class copyable — the writer is rebuilt by
+    // refresh_setup() before every use anyway.
+    std::shared_ptr<GCodeWriter> m_writer{std::make_shared<GCodeWriter>()};
     Vec3d              m_starting_point;
     bool               m_is_start_point_fixed = false;
 

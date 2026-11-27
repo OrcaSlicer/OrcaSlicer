@@ -1,0 +1,50 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Pure @BBL A2L 0.6 nozzle",
+    "inherits": "Bambu PLA Pure @base",
+    "from": "system",
+    "setting_id": "GFSA19_41",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "fan_cooling_layer_time": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "60"
+    ],
+    "filament_flush_temp_fast": [
+        "220"
+    ],
+    "filament_retract_before_wipe": [
+        "0"
+    ],
+    "filament_retraction_length": [
+        "0.4"
+    ],
+    "filament_wipe": [
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "1"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A2L 0.6 nozzle"
+    ],
+    "filament_start_gcode": [
+        ""
+    ]
+}

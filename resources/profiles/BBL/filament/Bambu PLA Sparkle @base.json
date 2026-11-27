@@ -3,10 +3,10 @@
     "name": "Bambu PLA Sparkle @base",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "filament_id": "GFA08",
+    "filament_id": "OFDxfPgH",
     "instantiation": "false",
     "filament_cost": [
-        "29.99"
+        "21.99"
     ],
     "filament_density": [
         "1.26"

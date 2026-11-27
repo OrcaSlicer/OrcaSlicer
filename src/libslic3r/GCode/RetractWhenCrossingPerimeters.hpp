@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "../AABBTreeIndirect.hpp"
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r {
 

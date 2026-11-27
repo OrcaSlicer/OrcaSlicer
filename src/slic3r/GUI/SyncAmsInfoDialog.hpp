@@ -2,11 +2,37 @@
 #define _SyncAmsInfo_DIALOG_H_
 
 #include <future>
+#include <string>
+#include "slic3r/GUI/PrePrintChecker.hpp"
+#include <memory>
+#include <map>
+#include "libslic3r/ProjectTask.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/AmsMappingPopup.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "libslic3r/CommonDefs.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <thread>
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 
+#include <vector>
 #include <wx/animate.h>
+#include <wx/string.h>
+#include <wx/colour.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/scrolwin.h>
+#include <wx/timer.h>
+#include <wx/arrstr.h>
+#include <wx/simplebook.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include "SelectMachine.hpp"
 #include "DeviceManager.hpp"
 #include "BaseTransparentDPIFrame.hpp"
@@ -21,15 +47,11 @@ class SyncAmsInfoDialog : public DPIDialog
     bool              m_only_exist_ext_spool_flag{false};
     int               m_current_filament_id{0};
     int               m_print_plate_idx{0};
-    int               m_print_plate_total{0};
     int               m_timeout_count{0};
     int               m_print_error_code{0};
     bool              m_is_in_sending_mode{false};
     bool              m_ams_mapping_res{false};
     bool              m_ams_mapping_valid{false};
-    bool              m_export_3mf_cancel{false};
-    bool              m_is_canceled{false};
-    bool              m_is_rename_mode{false};
     bool              m_check_flag{false};
     PrintPageMode     m_print_page_mode{PrintPageMode::PrintPageModePrepare};
     std::string       m_print_error_msg;
@@ -203,17 +225,17 @@ public:
     void     update_timelapse_enable_status();
     bool     is_same_printer_model();
     bool     is_blocking_printing(MachineObject *obj_);
-    bool     is_same_nozzle_diameters(NozzleType &tag_nozzle_type, float &nozzle_diameter);
     bool     is_same_nozzle_type(std::string &filament_type, NozzleType &tag_nozzle_type);
     bool     is_timeout();
     int  update_print_required_data(Slic3r::DynamicPrintConfig config, Slic3r::Model model, Slic3r::PlateDataPtrs plate_data_list, std::string file_name, std::string file_path);
     void set_print_type(PrintFromType type) { m_print_type = type; };
     bool do_ams_mapping(MachineObject *obj_);
+    // Orca: true when a Filament Track Switch is installed and ready (drives the combined dynamic mapping view).
+    static bool has_selector(MachineObject *obj_);
     void deal_only_exist_ext_spool(MachineObject *obj_);
     void show_thumbnail_page();
     bool get_ams_mapping_result(std::string &mapping_array_str, std::string &mapping_array_str2, std::string &ams_mapping_info);
     bool build_nozzles_info(std::string &nozzles_info);
-    bool can_hybrid_mapping(DevExtderSystem data);
     void auto_supply_with_ext(std::vector<DevAmsTray> slots);
     bool is_nozzle_type_match(DevExtderSystem data, wxString &error_message) const;
     int  convert_filament_map_nozzle_id_to_task_nozzle_id(int nozzle_id);
@@ -307,8 +329,6 @@ private:
    // wxBoxSizer *    m_plate_combox_sizer          = nullptr;
     wxBoxSizer *    m_mode_combox_sizer           = nullptr;
     //wxStaticText *  m_printer_title                = nullptr;
-    wxStaticText *  m_printer_device_name          = nullptr;
-    wxStaticText *  m_printer_is_map_title         = nullptr;
 
     CapsuleButton *  m_colormap_btn = nullptr;
     CapsuleButton *  m_override_btn = nullptr;
@@ -326,7 +346,6 @@ private:
 
     bool m_check_dirty_fialment  = true;
     bool m_expand_more_settings  = true;
-    bool m_image_is_top          = false;
 
     const int LEFT_THUMBNAIL_SIZE_WIDTH = 100;
     const int RIGHT_THUMBNAIL_SIZE_WIDTH = 300;
@@ -371,12 +390,24 @@ public:
     };
     FinishSyncAmsDialog(InputInfo &input_info);
     ~FinishSyncAmsDialog() override;
-    void deal_ok();
+    void deal_ok() override;
     void update_info(InputInfo& info);
     bool Layout() override;
 
 private:
     InputInfo m_input_info;
 };
+// The project's filaments as the sync dialog maps them to the printer's slots: each physical filament it lists, in its
+// order, with its type, vendor, filament id and colour. UI thread.
+std::vector<FilamentInfo> ams_sync_filaments();
+// Maps `filaments` to the slots of `printer`'s AMS and external spools as the sync dialog first does, into `result`:
+// DevMappingUtil::ams_filament_mapping()'s result code. UI thread.
+int map_filaments_to_ams(MachineObject *printer, const std::vector<FilamentInfo> &filaments, std::vector<FilamentInfo> &result);
+// The slot each filament of `result` maps to, by its index, as the dialog's Synchronize now takes them in Mapping.
+std::map<int, AMSMapInfo> ams_sync_maps(const std::vector<FilamentInfo> &result);
+// Whether the dialog lays out the filaments of two nozzles: a printer of two nozzles whose current plate maps each
+// filament to one of them.
+bool ams_sync_double_extruder();
+
 }}     // namespace Slic3r::GUI
 #endif  // _STEP_MESH_DIALOG_H_

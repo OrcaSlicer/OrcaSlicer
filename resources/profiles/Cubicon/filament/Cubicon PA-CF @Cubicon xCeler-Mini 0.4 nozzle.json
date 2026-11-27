@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "Cubicon PA-CF @Cubicon xCeler-Mini 0.4 nozzle",
+	"inherits": "Cubicon PA-CF @base",
+	"from": "system",
+	"setting_id": "NPjuy4deP6Ly7u9s",
+	"filament_id": "OFiEz2XI",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-Mini 0.4 nozzle"
+	]
+}

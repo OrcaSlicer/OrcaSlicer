@@ -2,6 +2,14 @@
 #define slic3r_GUI_CalibrationWizardStartPage_hpp_
 
 #include "CalibrationWizardPage.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "libslic3r/calib.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/string.h>
+#include <string>
+#include "slic3r/GUI/DeviceManager.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -48,8 +56,8 @@ public:
 
     void create_page(wxWindow* parent);
 
-    void on_reset_page();
-    void on_device_connected(MachineObject* obj);
+    void on_reset_page() override;
+    void on_device_connected(MachineObject* obj) override;
     void msw_rescale() override;
 };
 
@@ -63,8 +71,8 @@ public:
         long style = wxTAB_TRAVERSAL);
 
     void create_page(wxWindow* parent);
-    void on_reset_page();
-    void on_device_connected(MachineObject* obj);
+    void on_reset_page() override;
+    void on_device_connected(MachineObject* obj) override;
     void msw_rescale() override;
 };
 

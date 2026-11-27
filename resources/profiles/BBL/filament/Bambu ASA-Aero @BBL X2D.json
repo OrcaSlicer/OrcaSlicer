@@ -1,0 +1,115 @@
+{
+    "type": "filament",
+    "name": "Bambu ASA-Aero @BBL X2D",
+    "inherits": "Bambu ASA-Aero @base",
+    "from": "system",
+    "setting_id": "GFSB02_07",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_extruder_compatibility": [
+        "24"
+    ],
+    "filament_flow_ratio": [
+        "0.52",
+        "0.52",
+        "0.52",
+        "0.52",
+        "0.52",
+        "0.52"
+    ],
+    "filament_max_volumetric_speed": [
+        "3",
+        "12",
+        "3",
+        "12",
+        "12",
+        "12"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_retraction_length": [
+        "1.5",
+        "1.5",
+        "1.5",
+        "1.5",
+        "1.5",
+        "1.5"
+    ],
+    "filament_tower_interface_print_temp": [
+        "270"
+    ],
+    "filament_wipe_distance": [
+        "5",
+        "5",
+        "5",
+        "5",
+        "5",
+        "5"
+    ],
+    "filament_z_hop_types": [
+        "Normal Lift",
+        "Normal Lift",
+        "Normal Lift",
+        "Normal Lift",
+        "Normal Lift",
+        "Normal Lift"
+    ],
+    "include": [
+        "fdm_filament_template_direct_bowden_e3d"
+    ],
+    "nozzle_temperature": [
+        "270",
+        "270",
+        "270",
+        "270",
+        "270",
+        "270"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270",
+        "270",
+        "270",
+        "270",
+        "270",
+        "270"
+    ],
+    "retraction_distances_when_ec": [
+        "6",
+        "3",
+        "6",
+        "4",
+        "4",
+        "4"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20",
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.6 nozzle",
+        "Bambu Lab X2D 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

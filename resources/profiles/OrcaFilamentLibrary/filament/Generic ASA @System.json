@@ -1,11 +1,27 @@
 {
-    "type": "filament",
-    "name": "Generic ASA @System",
-    "renamed_from": "My Generic ASA",
-    "inherits": "fdm_filament_asa",
-    "from": "system",
-    "setting_id": "OGFSA04",
-    "filament_id": "OGFB98",
-    "instantiation": "true",
-    "compatible_printers": []
+	"type": "filament",
+	"name": "Generic ASA @System",
+	"renamed_from": "My Generic ASA",
+	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"setting_id": "bcsNcj4DzLb4K5zN",
+	"filament_id": "OFLPAxz3",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
+	"filament_max_volumetric_speed": [
+		"12",
+		"20",
+		"25",
+		"12",
+		"20",
+		"20"
+	]
 }

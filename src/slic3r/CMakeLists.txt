@@ -14,20 +14,23 @@ set(SLIC3R_GUI_SOURCES
     GUI/2DBed.hpp
     GUI/3DBed.cpp
     GUI/3DBed.hpp
-    GUI/Widgets/StaticGroup.cpp
-    GUI/Widgets/StaticGroup.hpp
     GUI/3DScene.cpp
     GUI/3DScene.hpp
     GUI/Widgets/FilamentLoad.cpp
     GUI/Widgets/FilamentLoad.hpp
     GUI/AboutDialog.cpp
     GUI/AboutDialog.hpp
+    GUI/AnimatedTexture.cpp
+    GUI/AnimatedTexture.hpp
     GUI/AmsMappingPopup.cpp
+    GUI/AmsMappingPopupUpdate.cpp
     GUI/AmsMappingPopup.hpp
     GUI/AMSMaterialsSetting.cpp
     GUI/AMSMaterialsSetting.hpp
     GUI/AMSSetting.cpp
     GUI/AMSSetting.hpp
+    GUI/AMSDryControl.cpp
+    GUI/AMSDryControl.hpp
     GUI/AmsWidgets.cpp
     GUI/AmsWidgets.hpp
     GUI/Auxiliary.cpp
@@ -35,9 +38,13 @@ set(SLIC3R_GUI_SOURCES
     GUI/AuxiliaryDataViewModel.hpp
     GUI/AuxiliaryDialog.cpp
     GUI/AuxiliaryDialog.hpp
+    GUI/AVVideoDecoder.cpp
+    GUI/AVVideoDecoder.hpp
     GUI/Auxiliary.hpp
     GUI/BackgroundSlicingProcess.cpp
     GUI/BackgroundSlicingProcess.hpp
+    GUI/PostProcessor.cpp
+    GUI/PostProcessor.hpp
     GUI/BBLStatusBarBind.cpp
     GUI/BBLStatusBarBind.hpp
     GUI/BBLStatusBar.cpp
@@ -56,6 +63,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/BitmapComboBox.hpp
     GUI/BonjourDialog.cpp
     GUI/BonjourDialog.hpp
+    GUI/BuildCommit.cpp
+    GUI/BuildCommit.hpp
+    GUI/CrealityDiscoveryDialog.cpp
+    GUI/CrealityDiscoveryDialog.hpp
     GUI/calib_dlg.cpp
     GUI/calib_dlg.hpp
     GUI/Calibration.cpp
@@ -86,8 +97,11 @@ set(SLIC3R_GUI_SOURCES
     GUI/CloneDialog.hpp
     GUI/ConfigManipulation.cpp
     GUI/ConfigManipulation.hpp
+    GUI/ConfigValueFormatter.cpp
+    GUI/ConfigValueFormatter.hpp
     GUI/ConfigWizard.cpp
     GUI/ConfigWizard.hpp
+    GUI/ConfigWizardTypes.hpp
     GUI/ConfigWizard_private.hpp
     GUI/ConnectPrinter.cpp
     GUI/ConnectPrinter.hpp
@@ -105,6 +119,142 @@ set(SLIC3R_GUI_SOURCES
     GUI/Downloader.hpp
     GUI/DownloadProgressDialog.cpp
     GUI/DownloadProgressDialog.hpp
+    GUI/PluginSource.hpp
+    GUI/PluginSort.hpp
+    GUI/PluginStatus.hpp
+    GUI/PluginPickerDialog.cpp
+    GUI/PluginPickerDialog.hpp
+    GUI/PluginPermissionValidation.cpp
+    GUI/PluginPermissionValidation.hpp
+    GUI/PluginsDialog.cpp
+    GUI/PluginsDialog.hpp
+    GUI/Shortcuts.cpp
+    GUI/Shortcuts.hpp
+    GUI/RecordingDialog.cpp
+    GUI/RecordingDialog.hpp
+    GUI/RecordingIndicator.cpp
+    GUI/RecordingIndicator.hpp
+    GUI/RunScriptPanel.cpp
+    GUI/RunScriptPanel.hpp
+    GUI/CodeEditorWindow.hpp
+    GUI/SpeedDialDialog.cpp
+    GUI/SpeedDialDialog.hpp
+    GUI/ColorPickerDialog.cpp
+    GUI/ColorPickerDialog.hpp
+    GUI/ActionRegistry.cpp
+    GUI/ActionRegistry.hpp
+    GUI/ActionReplayDialog.cpp
+    GUI/ActionReplayDialog.hpp
+    GUI/AgentActivityPanel.cpp
+    GUI/AgentActivityPanel.hpp
+    GUI/NativeCommandMenuItems.hpp
+    GUI/NativeCommands.cpp
+    GUI/NativeCommands.hpp
+    GUI/Operations/ExportOps.cpp
+    GUI/Operations/ExportOps.hpp
+    GUI/Operations/GizmoOps.cpp
+    GUI/Operations/GizmoOps.hpp
+    GUI/Operations/InstallOps.cpp
+    GUI/Operations/InstallOps.hpp
+    GUI/Operations/ObjectOps.cpp
+    GUI/Operations/ObjectOps.hpp
+    GUI/Operations/Outcome.cpp
+    GUI/Operations/Outcome.hpp
+    GUI/Operations/PlateOps.cpp
+    GUI/Operations/PlateOps.hpp
+    GUI/Operations/PluginOps.cpp
+    GUI/Operations/PluginOps.hpp
+    GUI/Operations/PreferenceOps.cpp
+    GUI/Operations/PreferenceOps.hpp
+    GUI/Operations/PresetOps.cpp
+    GUI/Operations/PresetOps.hpp
+    GUI/Operations/PrinterOps.cpp
+    GUI/Operations/PrinterOps.hpp
+    GUI/Operations/ProjectOps.cpp
+    GUI/Operations/ProjectOps.hpp
+    GUI/Operations/RunStatus.cpp
+    GUI/Operations/RunStatus.hpp
+    GUI/SyntheticInput.cpp
+    GUI/SyntheticInput.hpp
+    GUI/Mcp/ActivityLog.cpp
+    GUI/Mcp/ActivityLog.hpp
+    GUI/Mcp/AutomationRuntime.cpp
+    GUI/Mcp/AutomationRuntime.hpp
+    GUI/Mcp/AutomationRuntimePtr.hpp
+    GUI/Mcp/CanvasTarget.cpp
+    GUI/Mcp/CanvasTarget.hpp
+    GUI/Mcp/LaunchRun.cpp
+    GUI/Mcp/LaunchRun.hpp
+    GUI/Mcp/McpEndpoint.cpp
+    GUI/Mcp/McpEndpoint.hpp
+    GUI/Mcp/McpPersonContext.cpp
+    GUI/Mcp/McpPersonContext.hpp
+    GUI/Mcp/McpPersonRun.cpp
+    GUI/Mcp/McpPersonRun.hpp
+    GUI/Mcp/McpRecorder.cpp
+    GUI/Mcp/McpRecorder.hpp
+    GUI/Mcp/McpTargets.cpp
+    GUI/Mcp/McpTargets.hpp
+    GUI/Mcp/McpTools.hpp
+    GUI/Mcp/McpPluginCaller.cpp
+    GUI/Mcp/McpPluginCaller.hpp
+    GUI/Mcp/Tools/AppTools.cpp
+    GUI/Mcp/Tools/CatalogTools.cpp
+    GUI/Mcp/Tools/FilamentTools.cpp
+    GUI/Mcp/Tools/GuiTools.cpp
+    GUI/Mcp/Tools/ObjectTools.cpp
+    GUI/Mcp/Tools/PlateTools.cpp
+    GUI/Mcp/Tools/PluginTools.cpp
+    GUI/Mcp/Tools/PresetTools.cpp
+    GUI/Mcp/Tools/PrinterTools.cpp
+    GUI/Mcp/Tools/ProjectTools.cpp
+    GUI/Mcp/Tools/RecordingTools.cpp
+    GUI/Mcp/Tools/ToolsCommon.cpp
+    GUI/Mcp/Tools/ViewTools.cpp
+    GUI/Mcp/ScreenCapture.cpp
+    GUI/Mcp/ScreenCapture.hpp
+    GUI/Mcp/PythonScriptsDialog.cpp
+    GUI/Mcp/PythonScriptsDialog.hpp
+    GUI/Mcp/MkvWriter.cpp
+    GUI/Mcp/MkvWriter.hpp
+    GUI/Mcp/ModalTracker.cpp
+    GUI/Mcp/ModalTracker.hpp
+    GUI/Mcp/RecordingSettings.cpp
+    GUI/Mcp/RecordingSettings.hpp
+    GUI/Mcp/RecordingSink.cpp
+    GUI/Mcp/RecordingSink.hpp
+    GUI/Mcp/UiInspector.cpp
+    GUI/Mcp/UiInspector.hpp
+    GUI/Mcp/UiRefs.cpp
+    GUI/Mcp/UiRefs.hpp
+    GUI/Mcp/VideoEncode.cpp
+    GUI/Mcp/VideoEncode.hpp
+    GUI/Mcp/VideoOverlay.cpp
+    GUI/Mcp/VideoOverlay.hpp
+    GUI/Mcp/WebPages.cpp
+    GUI/Mcp/WebPages.hpp
+    GUI/Mcp/WindowControl.cpp
+    GUI/Mcp/WindowControl.hpp
+    GUI/PluginsConfigDialog.cpp
+    GUI/PluginsConfigDialog.hpp
+    GUI/ProcessRunner.cpp
+    GUI/ProcessRunner.hpp
+    GUI/TerminalDialog.cpp
+    GUI/TerminalDialog.hpp
+    GUI/PluginProgressDialog.cpp
+    GUI/PluginProgressDialog.hpp
+    GUI/WebDialog.cpp
+    GUI/WebDialog.hpp
+    GUI/DockPanel.cpp
+    GUI/DockPanel.hpp
+    GUI/WebPanel.cpp
+    GUI/WebPanel.hpp
+    GUI/Widgets/WebHosting.cpp
+    GUI/Widgets/WebHosting.hpp
+    GUI/AuiMgr.cpp
+    GUI/AuiMgr.hpp
+    GUI/AuiPaneLayout.cpp
+    GUI/AuiPaneLayout.hpp
     GUI/DragCanvas.cpp
     GUI/DragCanvas.hpp
     GUI/EditGCodeDialog.cpp
@@ -128,22 +278,20 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoAssembly.hpp
     GUI/Gizmos/GLGizmoBase.cpp
     GUI/Gizmos/GLGizmoBase.hpp
+    GUI/Gizmos/GLGizmoAlignment.cpp
+    GUI/Gizmos/GLGizmoAlignment.hpp
     GUI/Gizmos/GLGizmoBrimEars.cpp
     GUI/Gizmos/GLGizmoBrimEars.hpp
     GUI/Gizmos/GLGizmoCut.cpp
     GUI/Gizmos/GLGizmoCut.hpp
     GUI/Gizmos/GLGizmoEmboss.cpp
     GUI/Gizmos/GLGizmoEmboss.hpp
-    #GUI/Gizmos/GLGizmoFaceDetector.cpp
-    #GUI/Gizmos/GLGizmoFaceDetector.hpp
     GUI/Gizmos/GLGizmoFdmSupports.cpp
     GUI/Gizmos/GLGizmoFdmSupports.hpp
     GUI/Gizmos/GLGizmoFlatten.cpp
     GUI/Gizmos/GLGizmoFlatten.hpp
     GUI/Gizmos/GLGizmoFuzzySkin.cpp
     GUI/Gizmos/GLGizmoFuzzySkin.hpp
-    #GUI/Gizmos/GLGizmoHollow.cpp
-    #GUI/Gizmos/GLGizmoHollow.hpp
     GUI/Gizmos/GLGizmoMeasure.cpp
     GUI/Gizmos/GLGizmoMeasure.hpp
     GUI/Gizmos/GLGizmoMeshBoolean.cpp
@@ -152,6 +300,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoMmuSegmentation.hpp
     GUI/Gizmos/GLGizmoMove.cpp
     GUI/Gizmos/GLGizmoMove.hpp
+    GUI/Gizmos/GLGizmoPaintedModifier.cpp
+    GUI/Gizmos/GLGizmoPaintedModifier.hpp
     GUI/Gizmos/GLGizmoPainterBase.cpp
     GUI/Gizmos/GLGizmoPainterBase.hpp
     GUI/Gizmos/GLGizmoRotate.cpp
@@ -164,16 +314,17 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoSeam.hpp
     GUI/Gizmos/GLGizmoSimplify.cpp
     GUI/Gizmos/GLGizmoSimplify.hpp
-    #GUI/Gizmos/GLGizmoSlaSupports.cpp
-    #GUI/Gizmos/GLGizmoSlaSupports.hpp
     GUI/Gizmos/GLGizmosManager.cpp
     GUI/Gizmos/GLGizmosManager.hpp
     GUI/Gizmos/GLGizmoSVG.cpp
     GUI/Gizmos/GLGizmoSVG.hpp
-    #GUI/Gizmos/GLGizmoText.cpp
-    #GUI/Gizmos/GLGizmoText.hpp
+    GUI/Gizmos/GLGizmoTextureDisplacement.cpp
+    GUI/Gizmos/GLGizmoTextureDisplacement.hpp
+    GUI/Gizmos/GLGizmoUtils.cpp
+    GUI/Gizmos/GLGizmoUtils.hpp
     GUI/GLCanvas3D.cpp
     GUI/GLCanvas3D.hpp
+    GUI/SequentialPrintClearance.hpp
     GUI/GLModel.cpp
     GUI/GLModel.hpp
     GUI/GLSelectionRectangle.cpp
@@ -190,6 +341,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/GLToolbar.hpp
     GUI/ImageDPIFrame.cpp
     GUI/ImageDPIFrame.hpp
+    GUI/IMediaController.hpp
     GUI/GUI_App.cpp
     GUI/GUI_App.hpp
     GUI/GUI_AuxiliaryList.cpp
@@ -240,6 +392,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/FilamentMapDialog.hpp
     GUI/IconManager.cpp
     GUI/IconManager.hpp
+    GUI/IMEXFilamentPickerPopover.cpp
+    GUI/IMEXFilamentPickerPopover.hpp
+    GUI/IMEXModesCtrl.cpp
+    GUI/IMEXModesCtrl.hpp
+    GUI/IdleScheduler.cpp
+    GUI/IdleScheduler.hpp
     GUI/ImageGrid.cpp
     GUI/ImageGrid.h
     GUI/ImGuiWrapper.cpp
@@ -293,14 +451,30 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/SLAImportDialog.hpp
     GUI/Jobs/SLAImportJob.cpp
     GUI/Jobs/SLAImportJob.hpp
+    GUI/Jobs/TextureDisplacementBakeJob.cpp
+    GUI/Jobs/TextureDisplacementBakeJob.hpp
+    GUI/Jobs/TextureDisplacementPrepareJob.cpp
+    GUI/Jobs/TextureDisplacementPrepareJob.hpp
+    GUI/Jobs/TextureDisplacementDebugJob.cpp
+    GUI/Jobs/TextureDisplacementDebugJob.hpp
+    GUI/Jobs/TextureDisplacementPreviewJob.cpp
+    GUI/Jobs/TextureDisplacementPreviewJob.hpp
     GUI/Jobs/ThreadSafeQueue.hpp
     GUI/Jobs/UpgradeNetworkJob.cpp
     GUI/Jobs/UpgradeNetworkJob.hpp
     GUI/Jobs/Worker.hpp
     GUI/KBShortcutsDialog.cpp
     GUI/KBShortcutsDialog.hpp
+    GUI/KeyChord.cpp
+    GUI/KeyChord.hpp
+    GUI/Lazy.cpp
+    GUI/Lazy.hpp
+    GUI/LazyPage.cpp
+    GUI/LazyPage.hpp
     GUI/LibVGCode/LibVGCodeWrapper.hpp
     GUI/LibVGCode/LibVGCodeWrapper.cpp
+    GUI/LinuxDisplayBackend.cpp
+    GUI/LinuxDisplayBackend.hpp
     GUI/MainFrame.cpp
     GUI/MainFrame.hpp
     GUI/MarkdownTip.cpp
@@ -309,6 +483,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/MediaFilePanel.h
     GUI/MediaPlayCtrl.cpp
     GUI/MediaPlayCtrl.h
+    GUI/WebRtcMediaController.cpp
+    GUI/WebRtcMediaController.hpp
     GUI/MeshUtils.cpp
     GUI/MeshUtils.hpp
     GUI/ModelMall.cpp
@@ -321,10 +497,22 @@ set(SLIC3R_GUI_SOURCES
     GUI/Monitor.hpp
     GUI/MonitorPage.cpp
     GUI/MonitorPage.hpp
+    GUI/MixedFilamentDialog.cpp
+    GUI/MixedFilamentDialog.hpp
+    GUI/GradientCurveEditor.cpp
+    GUI/GradientCurveEditor.hpp
+    GUI/ColorDecomposeDialog.cpp
+    GUI/ColorDecomposeDialog.hpp
+    GUI/ColorDecomposeSupport.cpp
+    GUI/ColorDecomposeSupport.hpp
+    GUI/TextureImportDialog.cpp
+    GUI/TextureImportDialog.hpp
     GUI/Mouse3DController.cpp
     GUI/Mouse3DController.hpp
     GUI/MsgDialog.cpp
     GUI/MsgDialog.hpp
+    GUI/MultiChoiceDialog.hpp
+    GUI/MultiChoiceDialog.cpp
     GUI/MultiMachine.cpp
     GUI/MultiMachine.hpp
     GUI/MultiMachineManagerPage.cpp
@@ -337,8 +525,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/MultiSendMachineModel.hpp
     GUI/MultiTaskManagerPage.cpp
     GUI/MultiTaskManagerPage.hpp
-    GUI/MultiTaskModel.cpp
-    GUI/MultiTaskModel.hpp
     GUI/NetworkTestDialog.cpp
     GUI/NetworkTestDialog.hpp
     GUI/Notebook.cpp
@@ -347,8 +533,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/NotificationManager.hpp
     GUI/OAuthDialog.cpp
     GUI/OAuthDialog.hpp
-    GUI/ObjColorDialog.cpp
-    GUI/ObjColorDialog.hpp
     GUI/ObjectDataViewModel.cpp
     GUI/ObjectDataViewModel.hpp
     GUI/OG_CustomCtrl.cpp
@@ -357,12 +541,16 @@ set(SLIC3R_GUI_SOURCES
     GUI/OpenGLManager.hpp
     GUI/OptionsGroup.cpp
     GUI/OptionsGroup.hpp
+    GUI/OptionStateRegistry.hpp
+    GUI/OptionStateRegistry.cpp
     GUI/ParamsDialog.cpp
     GUI/ParamsDialog.hpp
     GUI/ParamsPanel.cpp
     GUI/ParamsPanel.hpp
     GUI/PartPlate.cpp
     GUI/PartPlate.hpp
+    GUI/BeltPurgeTower.cpp
+    GUI/BeltPurgeTower.hpp
     GUI/FilamentGroupPopup.hpp
     GUI/FilamentGroupPopup.cpp
     GUI/PhysicalPrinterDialog.cpp
@@ -371,17 +559,26 @@ set(SLIC3R_GUI_SOURCES
     GUI/Plater.hpp
     GUI/PlateSettingsDialog.cpp
     GUI/PlateSettingsDialog.hpp
+    GUI/PrebuildQueue.hpp
     GUI/Preferences.cpp
     GUI/Preferences.hpp
+    GUI/PresetBundleDialog.cpp
+    GUI/PresetBundleDialog.hpp
+    GUI/ExportPresetBundleDialog.cpp
+    GUI/ExportPresetBundleDialog.hpp
     GUI/PresetComboBoxes.cpp
     GUI/PresetComboBoxes.hpp
     GUI/PresetHints.cpp
     GUI/PresetHints.hpp
+    GUI/PrimitiveSizeDialog.cpp
+    GUI/PrimitiveSizeDialog.hpp
     GUI/PrinterCloudAuthDialog.cpp
     GUI/PrinterCloudAuthDialog.hpp
     GUI/Printer/PrinterFileSystem.cpp
     GUI/Printer/PrinterFileSystem.h
     GUI/PrinterWebView.cpp
+    GUI/PrinterWebViewHandler.cpp
+    GUI/PrinterWebViewHandler.hpp
     GUI/PrinterWebView.hpp
     GUI/PrintHostDialogs.cpp
     GUI/PrintHostDialogs.hpp
@@ -395,8 +592,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/ProjectDirtyStateManager.cpp
     GUI/ProjectDirtyStateManager.hpp
     GUI/Project.hpp
-    GUI/PublishDialog.cpp
-    GUI/PublishDialog.hpp
+    GUI/PublishSettingsDialog.cpp
+    GUI/PublishSettingsDialog.hpp
+    GUI/PurgeModeDialog.cpp
+    GUI/PurgeModeDialog.hpp
     GUI/RammingChart.cpp
     GUI/RammingChart.hpp
     GUI/RecenterDialog.cpp
@@ -409,6 +608,14 @@ set(SLIC3R_GUI_SOURCES
     GUI/SavePresetDialog.hpp
     GUI/SceneRaycaster.cpp
     GUI/SceneRaycaster.hpp
+    GUI/SceneCache.cpp
+    GUI/SceneCache.hpp
+    GUI/SelectionOutline.cpp
+    GUI/SelectionOutline.hpp
+    GUI/FrameProfiler.cpp
+    GUI/FrameProfiler.hpp
+    GUI/SceneBenchmark.cpp
+    GUI/SceneBenchmark.hpp
     GUI/PartSkipCommon.hpp
     GUI/PartSkipDialog.cpp
     GUI/PartSkipDialog.hpp
@@ -416,6 +623,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SkipPartCanvas.hpp
     GUI/Search.cpp
     GUI/Search.hpp
+    GUI/SettingsIndex.cpp
+    GUI/SettingsIndex.hpp
     GUI/Selection.cpp
     GUI/Selection.hpp
     GUI/SelectMachine.cpp
@@ -436,10 +645,13 @@ set(SLIC3R_GUI_SOURCES
     GUI/SliceInfoPanel.hpp
     GUI/SlicingProgressNotification.cpp
     GUI/SlicingProgressNotification.hpp
+    GUI/StagedBuild.hpp
     GUI/StatusPanel.cpp
     GUI/StatusPanel.hpp
     GUI/StepMeshDialog.cpp
     GUI/StepMeshDialog.hpp
+    GUI/GeometryImportDialog.cpp
+    GUI/GeometryImportDialog.hpp
     GUI/SurfaceDrag.cpp
     GUI/SurfaceDrag.hpp
     GUI/Tabbook.cpp
@@ -452,8 +664,14 @@ set(SLIC3R_GUI_SOURCES
     GUI/TaskManager.hpp
     GUI/TextLines.cpp
     GUI/TextLines.hpp
+    GUI/TextureLibrary.cpp
+    GUI/TextureLibrary.hpp
+    GUI/TextureProjectorFrame.cpp
+    GUI/TextureProjectorFrame.hpp
     GUI/TickCode.cpp
     GUI/TickCode.hpp
+    GUI/TroubleshootDialog.cpp
+    GUI/TroubleshootDialog.hpp
     GUI/UnsavedChangesDialog.cpp
     GUI/UnsavedChangesDialog.hpp
     GUI/UpdateDialogs.cpp
@@ -466,18 +684,22 @@ set(SLIC3R_GUI_SOURCES
     GUI/UserManager.hpp
     GUI/UserNotification.cpp
     GUI/UserNotification.hpp
-    GUI/WebDownPluginDlg.cpp
-    GUI/WebDownPluginDlg.hpp
+    GUI/UVEditorCanvas.cpp
+    GUI/UVEditorCanvas.hpp
     GUI/WebGuideDialog.cpp
     GUI/WebGuideDialog.hpp
     GUI/WebUserLoginDialog.cpp
     GUI/WebUserLoginDialog.hpp
     GUI/WebViewDialog.cpp
     GUI/WebViewDialog.hpp
+    GUI/WebMediaController.hpp
+    GUI/WebMediaController.cpp
     GUI/Widgets/AMSControl.cpp
     GUI/Widgets/AMSControl.hpp
     GUI/Widgets/AMSItem.cpp
     GUI/Widgets/AMSItem.hpp
+    GUI/Widgets/MultiNozzleSync.cpp
+    GUI/Widgets/MultiNozzleSync.hpp
     GUI/Widgets/AxisCtrlButton.cpp
     GUI/Widgets/AxisCtrlButton.hpp
     GUI/SafetyOptionsDialog.hpp
@@ -486,6 +708,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/Button.hpp
     GUI/Widgets/CheckBox.cpp
     GUI/Widgets/CheckBox.hpp
+    GUI/Widgets/CheckList.cpp
+    GUI/Widgets/CheckList.hpp
     GUI/Widgets/ComboBox.cpp
     GUI/Widgets/ComboBox.hpp
     GUI/Widgets/DialogButtons.cpp
@@ -501,9 +725,11 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/ImageSwitchButton.cpp
     GUI/Widgets/ImageSwitchButton.hpp
     GUI/Widgets/Label.cpp
+    GUI/Widgets/Label.hpp
     GUI/Widgets/LabeledStaticBox.cpp
     GUI/Widgets/LabeledStaticBox.hpp
-    GUI/Widgets/Label.hpp
+    GUI/Widgets/LabeledCheckBox.cpp
+    GUI/Widgets/LabeledCheckBox.hpp
     GUI/Widgets/PopupWindow.cpp
     GUI/Widgets/PopupWindow.hpp
     GUI/Widgets/ProgressBar.cpp
@@ -546,26 +772,109 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/TempInput.hpp
     GUI/Widgets/TextInput.cpp
     GUI/Widgets/TextInput.hpp
+    GUI/Widgets/WebViewHostDialog.cpp
+    GUI/Widgets/WebViewHostDialog.hpp
     GUI/Widgets/WebView.cpp
     GUI/Widgets/WebView.hpp
     GUI/WipeTowerDialog.cpp
     GUI/wxExtensions.cpp
     GUI/wxExtensions.hpp
+    GUI/wxMediaCtrl3.cpp
+    GUI/wxMediaCtrl3.h
+    plugin/PythonInterpreter.cpp
+    plugin/PythonInterpreter.hpp
+    plugin/PythonPluginBridge.cpp
+    plugin/PythonPluginBridge.hpp
+    plugin/PythonPluginInterface.hpp
+    plugin/PluginOperations.cpp
+    plugin/PluginOperations.hpp
+    plugin/PythonRunScope.cpp
+    plugin/PythonRunScope.hpp
+    plugin/PythonScriptRunner.cpp
+    plugin/PythonScriptRunner.hpp
+    plugin/PythonSession.cpp
+    plugin/PythonSession.hpp
+    plugin/PyPluginPackage.hpp
+    plugin/PluginBindingUtils.hpp
+    plugin/host/PluginHost.cpp
+    plugin/host/PluginHost.hpp
+    plugin/host/PluginHostBindings.hpp
+    plugin/host/PluginHostApp.cpp
+    plugin/host/PluginHostGeometry.cpp
+    plugin/host/PluginHostMesh.cpp
+    plugin/host/PluginHostMesh.hpp
+    plugin/host/PluginHostModel.cpp
+    plugin/host/PluginHostPresets.cpp
+    plugin/host/PluginHostSlicing.cpp
+    plugin/host/PluginHostTools.cpp
+    plugin/host/PluginHostTools.hpp
+    plugin/host/PluginHostUi.cpp
+    plugin/host/PluginHostUi.hpp
+    plugin/host/PluginPages.cpp
+    plugin/host/PluginPages.hpp
+    plugin/host/PluginResourceTextures.cpp
+    plugin/host/PluginResourceTextures.hpp
+    plugin/CloudPluginService.cpp
+    plugin/CloudPluginService.hpp
+    plugin/PluginFsUtils.cpp
+    plugin/PluginFsUtils.hpp
+    plugin/PluginJsonPy.hpp
+    plugin/PluginConfig.cpp
+    plugin/PluginConfig.hpp
+    plugin/PluginLoader.cpp
+    plugin/PluginLoader.hpp
+    plugin/PluginDescriptor.hpp
+    plugin/PluginHooks.cpp
+    plugin/PluginHooks.hpp
+    plugin/PluginManager.cpp
+    plugin/PluginManager.hpp
+    plugin/PluginAuditManager.cpp
+    plugin/PluginAuditManager.hpp
+    plugin/PluginResolver.cpp
+    plugin/PluginResolver.hpp
+    plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp
+    plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.cpp
+    plugin/pluginTypes/printerAgent/PrinterAgentPluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/pages/PagesPluginCapability.hpp
+    plugin/pluginTypes/pages/PagesPluginCapability.cpp
+    plugin/pluginTypes/pages/PagesPluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp
+    plugin/pluginTypes/resourceTexture/ResourceTexturePluginCapability.cpp
+    plugin/pluginTypes/resourceTexture/ResourceTexturePluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/script/ScriptPluginCapability.hpp
+    plugin/pluginTypes/script/ScriptPluginCapability.cpp
+    plugin/pluginTypes/script/ScriptPluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp
+    plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.cpp
+    plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapabilityTrampoline.hpp
     pchheader.cpp
     pchheader.hpp
     Utils/ASCIIFolding.cpp
     Utils/ASCIIFolding.hpp
+    Utils/AsioUtils.hpp
     Utils/AstroBox.cpp
     Utils/AstroBox.hpp
     Utils/bambu_networking.hpp
     Utils/Bonjour.cpp
     Utils/Bonjour.hpp
+    Utils/MeshInspect.cpp
+    Utils/MeshInspect.hpp
+    Utils/PaintCLI.cpp
+    Utils/PaintCLI.hpp
     Utils/CalibUtils.cpp
     Utils/CalibUtils.hpp
+    Utils/CloudDeleteQueue.cpp
+    Utils/CloudDeleteQueue.hpp
     Utils/ColorSpaceConvert.cpp
     Utils/ColorSpaceConvert.hpp
+    Utils/CrealityCfs.cpp
+    Utils/CrealityCfs.hpp
     Utils/CrealityPrint.cpp
     Utils/CrealityPrint.hpp
+    Utils/CrealityPrintAgent.cpp
+    Utils/CrealityPrintAgent.hpp
+    Utils/CrealityHostDiscovery.cpp
+    Utils/CrealityHostDiscovery.hpp
     Utils/Duet.cpp
     Utils/Duet.hpp
     Utils/ElegooLink.cpp
@@ -576,8 +885,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/ESP3D.hpp
     Utils/FileHelp.cpp
     Utils/FileHelp.hpp
-    Utils/FixModelByWin10.cpp
-    Utils/FixModelByWin10.hpp
+    Utils/FixModelByCgal.cpp
+    Utils/FixModelByCgal.hpp
     Utils/FlashAir.cpp
     Utils/FlashAir.hpp
     Utils/Flashforge.cpp
@@ -598,6 +907,29 @@ set(SLIC3R_GUI_SOURCES
     Utils/MKS.hpp
     Utils/NetworkAgent.cpp
     Utils/NetworkAgent.hpp
+    Utils/NetworkAgentFactory.hpp
+    Utils/NetworkAgentFactory.cpp
+    Utils/ICloudServiceAgent.hpp
+    Utils/IPrinterAgent.hpp
+    Utils/ICameraSignalingChannel.hpp
+    Utils/OrcaCloudServiceAgent.cpp
+    Utils/OrcaCloudServiceAgent.hpp
+    Utils/OrcaPrinterAgent.cpp
+    Utils/OrcaPrinterAgent.hpp
+    Utils/QidiPrinterAgent.cpp
+    Utils/QidiPrinterAgent.hpp
+    Utils/SnapmakerPrinterAgent.cpp
+    Utils/SnapmakerPrinterAgent.hpp
+    Utils/MoonrakerPrinterAgent.cpp
+    Utils/MoonrakerPrinterAgent.hpp
+    Utils/Moonraker.cpp
+    Utils/Moonraker.hpp
+    Utils/BBLCloudServiceAgent.cpp
+    Utils/BBLCloudServiceAgent.hpp
+    Utils/BBLPrinterAgent.cpp
+    Utils/BBLPrinterAgent.hpp
+    Utils/BBLNetworkPlugin.cpp
+    Utils/BBLNetworkPlugin.hpp
     Utils/Obico.cpp
     Utils/Obico.hpp
     Utils/OctoPrint.cpp
@@ -608,8 +940,6 @@ set(SLIC3R_GUI_SOURCES
     Utils/PrintHost.hpp
     Utils/Process.cpp
     Utils/Process.hpp
-    Utils/ProfileDescription.hpp
-    Utils/Profile.hpp
     Utils/RaycastManager.cpp
     Utils/RaycastManager.hpp
     Utils/Repetier.cpp
@@ -622,14 +952,54 @@ set(SLIC3R_GUI_SOURCES
     Utils/SimplyPrint.hpp
     Utils/TCPConsole.cpp
     Utils/TCPConsole.hpp
+    Utils/UltiMaker.cpp
+    Utils/UltiMaker.hpp
     Utils/UndoRedo.cpp
     Utils/UndoRedo.hpp
     Utils/WebSocketClient.hpp
+    Utils/3DPrinterOS.hpp
+    Utils/3DPrinterOS.cpp
     Utils/WxFontUtils.cpp
     Utils/WxFontUtils.hpp
     Utils/FileTransferUtils.cpp
     Utils/FileTransferUtils.hpp
+    Utils/wxInspectorPlugins/DPIAwarePlugin.hpp
+    Utils/wxInspectorPlugins/DPIAwarePlugin.cpp
+    Utils/wxInspectorPlugins/CustomWidgetsPlugin.hpp
+    Utils/wxInspectorPlugins/CustomWidgetsPlugin.cpp
+    Utils/wxInspectorPlugins/Registration.hpp
 )
+
+# Design/CAD tab: parametric sketch UI, its gizmos, and the MCP server's Design commands.
+# All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
+if (SLIC3R_CAD)
+    list(APPEND SLIC3R_GUI_SOURCES
+        GUI/CAD/DesignPanel.cpp
+        GUI/CAD/DesignPanel.hpp
+        GUI/CAD/DesignRowList.cpp
+        GUI/CAD/DesignRowList.hpp
+        GUI/CAD/DesignTextDialog.cpp
+        GUI/CAD/DesignTextDialog.hpp
+        GUI/CAD/DesignCanvas.cpp
+        GUI/CAD/DesignCanvas.hpp
+        GUI/CAD/DesignSketchTool.cpp
+        GUI/CAD/DesignSketchTool.hpp
+        GUI/CAD/DesignOffer.hpp
+        GUI/CAD/DesignInteraction.hpp
+        GUI/CAD/SketchInlineEditor.cpp
+        GUI/CAD/SketchInlineEditor.hpp
+        GUI/Mcp/McpToolsDesign.hpp
+        GUI/Mcp/Tools/DesignCommon.hpp
+        GUI/Mcp/Tools/DesignBodyTools.cpp
+        GUI/Mcp/Tools/DesignConstructTools.cpp
+        GUI/Mcp/Tools/DesignHistoryTools.cpp
+        GUI/Mcp/Tools/DesignInspectTools.cpp
+        GUI/Mcp/Tools/DesignSketchTools.cpp
+        GUI/Mcp/Tools/DesignSolidTools.cpp
+        GUI/Mcp/Tools/DesignSurfaceTools.cpp
+        GUI/Mcp/Tools/DesignTools.cpp
+    )
+endif ()
 
 add_subdirectory(GUI/DeviceCore)
 add_subdirectory(GUI/DeviceTab)
@@ -641,6 +1011,7 @@ if (WIN32)
             GUI/dark_mode/UAHMenuBar.hpp
             GUI/dark_mode.hpp
             GUI/dark_mode.cpp
+            GUI/Mcp/ScreenCapture_win.cpp
         )
 endif ()
 
@@ -653,22 +1024,16 @@ if (APPLE)
             GUI/Mouse3DHandlerMac.mm
             GUI/InstanceCheckMac.mm
             GUI/InstanceCheckMac.h
+            GUI/DeepLinkHandlerMac.mm
+            GUI/DeepLinkHandlerMac.h
             GUI/GUI_UtilsMac.mm
-            GUI/wxMediaCtrl2.mm
-            GUI/wxMediaCtrl2.h
+            GUI/MacIME.mm
+            GUI/MacIME.hpp
+            GUI/Mcp/ScreenCapture_mac.mm
+            GUI/Accessibility/AccessibilityMac.mm
+            GUI/Accessibility/AccessibilityMac.h
         )
     FIND_LIBRARY(DISKARBITRATION_LIBRARY DiskArbitration)
-else ()
-    list(APPEND SLIC3R_GUI_SOURCES
-            GUI/wxMediaCtrl2.cpp
-            GUI/wxMediaCtrl2.h
-        )
-endif ()
-
-if (UNIX AND NOT APPLE)
-    list(APPEND SLIC3R_GUI_SOURCES
-        GUI/Printer/gstbambusrc.c
-    )
 endif ()
 
 set(ORCA_UPDATER_SIG_KEY_B64 "${ORCA_UPDATER_SIG_KEY}")
@@ -702,13 +1067,26 @@ target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DI
 
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)
-    target_link_libraries(libslic3r_gui Advapi32)
+    # d3d11, dwmapi and runtimeobject: MCP window captures through Windows Graphics Capture.
+    target_link_libraries(libslic3r_gui Advapi32 d3d11 dwmapi runtimeobject)
 endif()
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_SOURCES})
 
 encoding_check(libslic3r_gui)
 
+# Only BuildCommit.cpp includes the generated header, plus BaseException.cpp on
+# Windows. Both build into libslic3r_gui, so the header only has to exist before
+# that target builds.
+set(_git_commit_hash_header "${CMAKE_CURRENT_BINARY_DIR}/git_commit_hash.h")
+add_custom_target(git_commit_hash_header
+    BYPRODUCTS "${_git_commit_hash_header}"
+    COMMAND ${CMAKE_COMMAND}
+        "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        "-DOUT_FILE=${_git_commit_hash_header}"
+        -P "${CMAKE_CURRENT_LIST_DIR}/GitCommitHash.cmake"
+    COMMENT "Resolving the git commit hash")
+add_dependencies(libslic3r_gui git_commit_hash_header)
 
 if(APPLE AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
     set(_opengl_link_lib "")
@@ -716,8 +1094,21 @@ else()
     set(_opengl_link_lib OpenGL::GL)
 endif()
 
-target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode GLEW::GLEW OpenGL::GL hidapi ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
+target_link_libraries(libslic3r_gui libslic3r libslic3r_automation cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto LibDataChannel::LibDataChannel noise::noise pybind11::embed)
 
+# MCP recordings encode their frames with libjpeg directly. libslic3r links it privately, and imported
+# targets are scoped to the directory that found them.
+find_package(JPEG REQUIRED)
+target_link_libraries(libslic3r_gui JPEG::JPEG)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # Linux finds wxWidgets in module mode, whose include dirs and definitions
+    # only apply at src/ directory scope; export them from the target so wx
+    # headers reach GUI-header consumers outside src/ (tests). The CONFIG-mode
+    # wx::* imported targets used on Windows/macOS already propagate these.
+    target_include_directories(libslic3r_gui SYSTEM PUBLIC ${wxWidgets_INCLUDE_DIRS})
+    target_compile_definitions(libslic3r_gui PUBLIC ${wxWidgets_DEFINITIONS} $<$<CONFIG:Debug>:${wxWidgets_DEFINITIONS_DEBUG}>)
+endif ()
 
 if (MSVC)
     target_link_libraries(libslic3r_gui Setupapi.lib)
@@ -740,6 +1131,8 @@ elseif (APPLE)
     else()
         target_link_libraries(libslic3r_gui ${DISKARBITRATION_LIBRARY} "-framework Security")
     endif()
+    # MCP window captures (ScreenCapture_mac.mm); weak, since macOS before 12.3 has no ScreenCaptureKit.
+    target_link_libraries(libslic3r_gui "-weak_framework ScreenCaptureKit")
 endif()
 
 if (SLIC3R_STATIC)
@@ -758,7 +1151,45 @@ endif ()
 
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r_gui pchheader.hpp FORCEINCLUDE)
+elseif (MSVC)
+    # Puts the Windows headers first when the PCH is off.
+    target_compile_options(libslic3r_gui PRIVATE "/FIslic3r/win_platform.hpp")
 endif ()
+
+if (APPLE)
+    # Static FFmpeg from the deps install: nothing to bundle into the .app,
+    # no rpath/install_name handling. Order matters: avformat -> avcodec -> swscale -> avutil.
+    find_library(LIBAVFORMAT_LIBRARY NAMES libavformat.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBAVCODEC_LIBRARY NAMES libavcodec.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBSWSCALE_LIBRARY NAMES libswscale.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBAVUTIL_LIBRARY NAMES libavutil.a PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    if (NOT LIBAVFORMAT_LIBRARY OR NOT LIBAVCODEC_LIBRARY OR NOT LIBSWSCALE_LIBRARY OR NOT LIBAVUTIL_LIBRARY)
+        message(FATAL_ERROR "Static FFmpeg (libavformat.a/libavcodec.a/libswscale.a/libavutil.a) not found under ${CMAKE_PREFIX_PATH}/lib. Rebuild the deps — FFMPEG builds static-only on macOS.")
+    endif ()
+    target_link_libraries(libslic3r_gui ${LIBAVFORMAT_LIBRARY} ${LIBAVCODEC_LIBRARY} ${LIBSWSCALE_LIBRARY} ${LIBAVUTIL_LIBRARY})
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_PREFIX_PATH}/include)
+elseif (WIN32)
+    # Prebuilt shared FFmpeg from the deps install. Windows has no pkg-config,
+    # so resolve the import libraries out of the deps prefix directly; the DLLs
+    # are copied next to the executable by the top level CMakeLists.
+    find_library(LIBAVFORMAT_LIBRARY NAMES avformat PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBAVCODEC_LIBRARY NAMES avcodec PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBSWSCALE_LIBRARY NAMES swscale PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    find_library(LIBAVUTIL_LIBRARY NAMES avutil PATHS ${CMAKE_PREFIX_PATH}/lib NO_DEFAULT_PATH)
+    if (NOT LIBAVFORMAT_LIBRARY OR NOT LIBAVCODEC_LIBRARY OR NOT LIBSWSCALE_LIBRARY OR NOT LIBAVUTIL_LIBRARY)
+        message(FATAL_ERROR "FFmpeg (avformat/avcodec/swscale/avutil) not found under ${CMAKE_PREFIX_PATH}/lib. Rebuild the deps.")
+    endif ()
+    target_link_libraries(libslic3r_gui ${LIBAVFORMAT_LIBRARY} ${LIBAVCODEC_LIBRARY} ${LIBSWSCALE_LIBRARY} ${LIBAVUTIL_LIBRARY})
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_PREFIX_PATH}/include)
+else ()
+    pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET
+        libavformat
+        libavcodec
+        libswscale
+        libavutil
+    )
+    target_link_libraries(libslic3r_gui PkgConfig::LIBAV)
+endif()
 
 # We need to implement some hacks for wxWidgets and touch the underlying GTK
 # layer and sub-libraries. This forces us to use the include locations and
@@ -767,24 +1198,47 @@ if (UNIX AND NOT APPLE)
     find_package(PkgConfig REQUIRED)
     find_package(GTK${SLIC3R_GTK} REQUIRED)
     pkg_check_modules(LIBSECRET REQUIRED libsecret-1)
-    if (FLATPAK)
-        # I don't know why this is needed, but for whatever reason slic3r isn't
-        # linking to X11 and webkit2gtk. force it.
-        find_package(X11 REQUIRED)
-        find_package(PkgConfig REQUIRED)
-        pkg_check_modules(webkit2gtk REQUIRED webkit2gtk-4.1)
-        target_link_libraries (libslic3r_gui ${X11_LIBRARIES} ${webkit2gtk_LIBRARIES})
-    endif()
-    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GTK${SLIC3R_GTK}_INCLUDE_DIRS} ${LIBSECRET_INCLUDE_DIRS})
-    target_link_libraries(libslic3r_gui ${GTK${SLIC3R_GTK}_LIBRARIES} fontconfig ${LIBSECRET_LIBRARIES})
+    pkg_check_modules(webkit2gtk REQUIRED webkit2gtk-4.1)
+    find_package(X11 REQUIRED)
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GTK${SLIC3R_GTK}_INCLUDE_DIRS} ${LIBSECRET_INCLUDE_DIRS} ${webkit2gtk_INCLUDE_DIRS})
+    target_link_libraries(libslic3r_gui ${GTK${SLIC3R_GTK}_LIBRARIES} fontconfig ${LIBSECRET_LIBRARIES} ${webkit2gtk_LIBRARIES} ${X11_LIBRARIES})
 
+    # Propagate GDK backend detection results as compile definitions so that
+    # LinuxDisplayBackend.cpp can include the right GDK headers.
+    if (wxHAVE_GDK_X11)
+        target_compile_definitions(libslic3r_gui PRIVATE wxHAVE_GDK_X11)
+    endif ()
+    if (wxHAVE_GDK_WAYLAND)
+        target_compile_definitions(libslic3r_gui PRIVATE wxHAVE_GDK_WAYLAND)
+    endif ()
 
-    # We add GStreamer for bambu:/// support.
-    pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
-    pkg_check_modules(GST_BASE REQUIRED gstreamer-base-1.0)
-    target_link_libraries(libslic3r_gui ${GSTREAMER_LIBRARIES} ${GST_BASE_LIBRARIES})
-    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GSTREAMER_INCLUDE_DIRS} ${GST_BASE_INCLUDE_DIRS})
 endif ()
 
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
+
+if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
+    add_library(orca_stubgen MODULE
+        plugin/PythonPluginBridge.cpp
+    )
+
+    target_compile_definitions(orca_stubgen PRIVATE
+        ORCA_PYTHON_STUBGEN_MODULE
+    )
+
+    target_include_directories(orca_stubgen PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}
+        Utils
+    )
+
+    target_link_libraries(orca_stubgen PRIVATE
+        libslic3r_gui
+        pybind11::embed
+    )
+
+    set_target_properties(orca_stubgen PROPERTIES
+        OUTPUT_NAME orca
+        PREFIX ""
+    )
+endif()

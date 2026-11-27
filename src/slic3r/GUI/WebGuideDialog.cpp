@@ -1,22 +1,65 @@
 #include "WebGuideDialog.hpp"
+#include "CloudProvider.hpp"
 #include "ConfigWizard.hpp"
 
+#include <algorithm>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/bind/bind.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/iostreams/detail/select.hpp>
+#include <boost/log/trivial.hpp>
+#include <map>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <memory>
+#include <exception>
+#include "slic3r/GUI/Event.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include <set>
+#include <ostream>
+#include <iterator>
+#include "slic3r/GUI/ParamsDialog.hpp"
+#include <ios>
+#include <stdexcept>
+#include <sstream>
 #include <string.h>
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Operations/InstallOps.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "slic3r/GUI/Operations/PresetOps.hpp"
+#include <nlohmann/json.hpp>
 #include "libslic3r_version.h"
 
+#include <string>
+#include <vector>
+#include <utility>
+#include <wx/gdicmn.h>
+#include <wx/log.h>
+#include <wx/settings.h>
+#include <wx/event.h>
+#include <wx/setup.h>
+#include <unordered_set>
+#include <system_error>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/strconv.h>
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
 
+#include <wx/webview.h>
+#include <wx/utils.h>
 #include <wx/wx.h>
+#include <wx/weakref.h>
 #include <wx/display.h>
 #include <wx/fileconf.h>
 #include <wx/file.h>
@@ -25,20 +68,91 @@
 #include <boost/cast.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
+#include <unordered_map>
 
 #include "MainFrame.hpp"
+#include "Plater.hpp"
 #include <boost/dll.hpp>
 #include <slic3r/GUI/Widgets/WebView.hpp>
-#include <slic3r/Utils/Http.hpp>
-#include <libslic3r/miniz_extension.hpp>
+#include <slic3r/GUI/Widgets/WebViewHostDialog.hpp>
 #include <libslic3r/Utils.hpp>
 #include "CreatePresetsDialog.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/PresetUpdater.hpp"
+
+class wxWindow;
 
 using namespace nlohmann;
 
 namespace Slic3r { namespace GUI {
 
-json m_ProfileJson;
+// The strings of every setup wizard page (resources/web/guide), keyed by their data-i18n and T() ids.
+// The pages share one web view, so they share one table.
+static json guide_strings()
+{
+    return {
+        {"loading", _u8L("Loading…")},
+        // TRN Sidebar entry of the printer selection page for the group of custom (user-defined) printers.
+        {"custom_vendor", _u8L_CONTEXT("Custom", "Printer vendor")},
+        {"welcome", _u8L("Welcome to Orca Slicer")},
+        {"setup_intro", _u8L("Orca Slicer will be set up in several steps. Let's start!")},
+        {"get_started", _u8L("Get Started")},
+        {"login_region", _u8L("Please select your login region")},
+        {"asia_pacific", _u8L("Asia-Pacific")},
+        {"china", _u8L("China")},
+        {"europe", _u8L("Europe")},
+        {"north_america", _u8L("North America")},
+        {"others", _u8L_CONTEXT("Others", "Region")},
+        {"back", _u8L_CONTEXT("Back", "Navigation")},
+        {"next", _u8L("Next")},
+        {"finish", _u8L("Finish")},
+        {"confirm", _u8L("Confirm")},
+        {"cancel", _u8L("Cancel")},
+        {"ok", _u8L("OK")},
+        {"yes", _u8L("Yes")},
+        {"no", _u8L("No")},
+        {"error", _u8L("Error")},
+        {"information", _u8L("Information")},
+        {"printer_selection", _u8L("Printer Selection")},
+        {"vendors", _u8L("Vendors")},
+        {"search", _u8L("Search")},
+        {"custom_printer", _u8L("Custom Printer")},
+        {"nozzle", _u8L("Nozzle")},
+        {"create", _u8L("Create")},
+        {"check_new_printers", _u8L("Check for new printers")},
+        {"printer_required", _u8L("At least one printer must be selected.")},
+        {"new_printers_found", _u8L("New printers found")},
+        {"new_vendors_installed", _u8L("New printer vendors installed: %s")},
+        {"vendors_declined", _u8L("New printer vendors were found, but installation was cancelled.")},
+        {"no_new_printers", _u8L("No new printers found.")},
+        {"filament_selection", _u8L("Filament Selection")},
+        {"system_filaments", _u8L("System Filaments")},
+        {"custom_filaments", _u8L("Custom Filaments")},
+        {"create_new", _u8L("Create New")},
+        {"printer", _u8L("Printer")},
+        {"filament_type", _u8L("Filament type")},
+        {"vendor", _u8L("Vendor")},
+        {"all", _u8L("All")},
+        {"no_items", _u8L("No items")},
+        {"filter_items", _u8L("Filter items")},
+        {"checked", _u8L("Checked")},
+        {"unchecked", _u8L("Unchecked")},
+        {"select_filtered", _u8L("Select filtered")},
+        {"select_visible", _u8L("Select visible")},
+        {"clear_all", _u8L("Clear all")},
+        {"filament_required", _u8L("At least one filament must be selected.")},
+        {"use_default_filament", _u8L("Do you want to use the default filament?")},
+        {"stealth_mode", _u8L("Stealth Mode")},
+        {"stealth_mode_desc", _u8L("This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.")},
+        {"stealth_mode_note", _u8L("Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud.")},
+        {"enable_stealth_mode", _u8L("Enable Stealth Mode.")},
+        {"proprietary_plugins", _u8L("Proprietary Plugins")},
+        {"proprietary_plugins_desc", _u8L("Some printer vendors require proprietary plugins for communication with their printers. Please select the corresponding plugin if you use such printers.")},
+        {"proprietary_plugins_risk", _u8L("Please be aware that these plugins are not developed or maintained by OrcaSlicer. They should be used at your own discretion and risk.")},
+        {"install_bambu_plugin", _u8L("Install Bambu Network plug-in")},
+    };
+}
 
 static wxString update_custom_filaments()
 {
@@ -83,7 +197,7 @@ static wxString update_custom_filaments()
         if (not_need_show) continue;
         if (!filament_name.empty()) {
             if (filament_with_base_id) {
-                need_sort.push_back(std::make_pair("[Action Required] " + filament_name, filament_id));
+                need_sort.push_back(std::make_pair(into_u8(_L("[Action Required] ")) + filament_name, filament_id));
             } else {
 
                 need_sort.push_back(std::make_pair(filament_name, filament_id));
@@ -92,7 +206,7 @@ static wxString update_custom_filaments()
     }
     std::sort(need_sort.begin(), need_sort.end(), [](const std::pair<std::string, std::string> &a, const std::pair<std::string, std::string> &b) { return a.first < b.first; });
     if (need_delete_some_filament) {
-        need_sort.push_back(std::make_pair("[Action Required]", "null"));
+        need_sort.push_back(std::make_pair(into_u8(_L("[Action Required]")), "null"));
     }
     json temp_j;
     for (std::pair<std::string, std::string> &filament_name_to_id : need_sort) {
@@ -112,6 +226,7 @@ GuideFrame::GuideFrame(GUI_App *pGUI, long style)
     SetBackgroundColour(*wxWHITE);
     // INI
     m_SectionName = "firstguide";
+    m_page        = BBL_WELCOME;
     PrivacyUse    = false;
     StealthMode   = false;
     InstallNetplugin = false;
@@ -121,15 +236,14 @@ GuideFrame::GuideFrame(GUI_App *pGUI, long style)
     // set the frame icon
     wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
 
-    wxString TargetUrl = SetStartPage(BBL_WELCOME, false);
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(",  set start page to welcome ");
-
-    // Create the webview
-    m_browser = WebView::CreateWebView(this, TargetUrl);
+    // Created empty and loaded by SetStartPage(BBL_REGION) below, after the strings are added, so the
+    // first load already has them.
+    m_browser = WebView::CreateWebView(this, wxEmptyString);
     if (m_browser == nullptr) {
         wxLogError("Could not init m_browser");
         return;
     }
+    m_browser->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(guide_strings())));
     m_browser->Hide();
     m_browser->SetSize(0, 0);
 
@@ -187,12 +301,10 @@ GuideFrame::GuideFrame(GUI_App *pGUI, long style)
 
 GuideFrame::~GuideFrame()
 {
-    m_destroy = true;
-    if (m_load_task && m_load_task->joinable()) {
+    *m_cancel_token = true; // stop the loading thread and any queued CallAfter lambdas before join
+    if (m_load_task && m_load_task->joinable())
         m_load_task->join();
-        delete m_load_task;
-        m_load_task = nullptr;
-    }
+    m_load_task.reset();
     if (m_browser) {
         delete m_browser;
         m_browser = nullptr;
@@ -214,37 +326,38 @@ wxString GuideFrame::SetStartPage(GuidePage startpage, bool load)
     m_page = startpage;
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(" enter, load=%1%, start_page=%2%")%load%int(startpage);
     //wxLogMessage("GUIDE: webpage_1  %s", (boost::filesystem::path(resources_dir()) / "web\\guide\\1\\index.html").make_preferred().string().c_str() );
-    wxString TargetUrl = from_u8( (boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=1").make_preferred().string() );
+    const wxString guide_url = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/guide/0/index.html");
+    wxString TargetUrl = guide_url + "?target=1";
     //wxLogMessage("GUIDE: webpage_2  %s", TargetUrl.mb_str());
 
     if (startpage == BBL_WELCOME){
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=1").make_preferred().string());
+        TargetUrl = guide_url + "?target=1";
     } else if (startpage == BBL_REGION) {
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=11").make_preferred().string());
+        TargetUrl = guide_url + "?target=11";
     } else if (startpage == BBL_MODELS) {
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=21").make_preferred().string());
+        TargetUrl = guide_url + "?target=21";
     } else if (startpage == BBL_FILAMENTS) {
         SetTitle(_L("Setup Wizard"));
 
         int nSize = m_ProfileJson["model"].size();
 
         if (nSize>0)
-            TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=22").make_preferred().string());
+            TargetUrl = guide_url + "?target=22";
         else
-            TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=21").make_preferred().string());
+            TargetUrl = guide_url + "?target=21";
     } else if (startpage == BBL_FILAMENT_ONLY) {
         SetTitle("");
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=23").make_preferred().string());
+        TargetUrl = guide_url + "?target=23";
     } else if (startpage == BBL_MODELS_ONLY) {
         SetTitle("");
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=24").make_preferred().string());
+        TargetUrl = guide_url + "?target=24";
     }
     else {
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=21").make_preferred().string());
+        TargetUrl = guide_url + "?target=21";
     }
 
     wxString strlang = wxGetApp().current_language_code_safe();
@@ -252,7 +365,6 @@ wxString GuideFrame::SetStartPage(GuidePage startpage, bool load)
     if (strlang != "")
         TargetUrl = wxString::Format("%s&lang=%s", w2s(TargetUrl), strlang);
 
-    TargetUrl = "file://" + TargetUrl;
     if (load)
         load_url(TargetUrl);
 
@@ -298,15 +410,81 @@ void GuideFrame::OnNavigationRequest(wxWebViewEvent &evt)
 /**
  * Callback invoked when a navigation request was accepted
  */
+// The empty shape every profile-loading path starts from or falls back to.
+void GuideFrame::reset_profile_json()
+{
+    m_ProfileJson["model"]    = json::array();
+    m_ProfileJson["machine"]  = json::object();
+    m_ProfileJson["filament"] = json::object();
+    m_ProfileJson["process"]  = json::array();
+}
+
+void GuideFrame::init_guide_paths()
+{
+    m_ProfileJson = json::parse("{}");
+    reset_profile_json();
+
+    vendor_dir      = (boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).make_preferred();
+    rsrc_vendor_dir = (boost::filesystem::path(resources_dir()) / "profiles").make_preferred();
+    orca_bundle_rsrc = true;
+
+    if (boost::filesystem::exists(vendor_dir)) {
+        for (const auto& entry : boost::filesystem::directory_iterator(vendor_dir)) {
+            if (!boost::filesystem::is_directory(entry) &&
+                boost::iequals(entry.path().extension().string(), ".json") &&
+                !boost::iequals(entry.path().stem().string(), PresetBundle::ORCA_FILAMENT_LIBRARY)) {
+                orca_bundle_rsrc = false;
+                break;
+            }
+        }
+    }
+
+    auto lib_json = boost::filesystem::path(PresetBundle::ORCA_FILAMENT_LIBRARY).replace_extension(".json");
+    m_OrcaFilaLibPath = boost::filesystem::exists(vendor_dir / lib_json)
+        ? (vendor_dir      / PresetBundle::ORCA_FILAMENT_LIBRARY).string()
+        : (rsrc_vendor_dir / PresetBundle::ORCA_FILAMENT_LIBRARY).string();
+}
+
+void GuideFrame::on_profile_loaded()
+{
+    // Must be called on the main thread.
+    SaveProfileData();
+    const std::string strAll = m_ProfileJson.dump(-1, ' ', false, json::error_handler_t::ignore);
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished, json contents:\n" << strAll;
+    m_profile_ready = true;
+    notify_profile_loaded();
+}
+
+// The data is often ready before the loading page has run its scripts, and a
+// call into a page without HandleStudio is lost, so the message waits for both.
+void GuideFrame::notify_profile_loaded()
+{
+    if (!m_profile_ready || !m_page_ready)
+        return;
+    json res;
+    res["command"]     = "userguide_profile_load_finish";
+    res["sequence_id"] = "10001";
+    RunScript(wxString::Format("HandleStudio(%s)", res.dump(-1, ' ', true)));
+}
+
 void GuideFrame::OnNavigationComplete(wxWebViewEvent &evt)
 {
     //wxLogMessage("%s", "Navigation complete; url='" + evt.GetURL() + "'");
     if (!bFirstComplete) {
-        m_load_task = new boost::thread(boost::bind(&GuideFrame::LoadProfileData, this));
-       // boost::thread LoadProfileThread(boost::bind(&GuideFrame::LoadProfileData, this));
-        //LoadProfileThread.detach();
-
         bFirstComplete = true;
+        try {
+            init_guide_paths();
+            if (BuildProfileDataFromPresetBundle()) {
+                if (!*m_cancel_token)
+                    on_profile_loaded();
+            } else {
+                // Presets not yet in memory — delegate to background thread.
+                m_load_task = std::make_unique<boost::thread>(boost::bind(&GuideFrame::LoadProfileData, this));
+            }
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ", init error: " << e.what();
+            m_load_task = std::make_unique<boost::thread>(boost::bind(&GuideFrame::LoadProfileData, this));
+        }
     }
 
     m_browser->Show();
@@ -378,7 +556,11 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
         wxString strCmd = j["command"];
         BOOST_LOG_TRIVIAL(trace) << "GuideFrame::OnScriptMessage;Command:" << strCmd;
 
-        if (strCmd == "close_page") {
+        if (strCmd == "userguide_loading_page_ready") {
+            m_page_ready = true;
+            notify_profile_loaded();
+        }
+        else if (strCmd == "close_page") {
             this->EndModal(wxID_CANCEL);
         }
         if (strCmd == "user_clause") {
@@ -438,6 +620,50 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                     wxString s2 = OneSelect["model"];
                     if (s1.compare(s2) == 0) {
                         m_ProfileJson["model"][m]["nozzle_selected"] = m_ProfileJson["model"][m]["nozzle_diameter"];
+
+                        // Automatically select default materials for this printer model
+                        // This mirrors the behavior of the old ConfigWizard::select_default_materials_for_printer_model()
+                        if (TmpModel.contains("materials") && !TmpModel["materials"].is_null()) {
+                            std::string materials_str;
+
+                            // Handle both string and JSON array formats for materials
+                            if (TmpModel["materials"].is_string()) {
+                                materials_str = TmpModel["materials"].get<std::string>();
+                            } else if (TmpModel["materials"].is_array()) {
+                                // Convert JSON array to semicolon-separated string for unescape_strings_cstyle
+                                for (const auto& material : TmpModel["materials"]) {
+                                    if (!materials_str.empty()) materials_str += ";";
+                                    materials_str += material.get<std::string>();
+                                }
+                            } else {
+                                materials_str = "";
+                            }
+
+                            boost::trim(materials_str);
+                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Processing default_materials for printer: " << s1.ToStdString() << " - materials: " << materials_str;
+
+                            // Use the same parsing logic as ConfigWizard::select_default_materials_for_printer_model()
+                            // This calls unescape_strings_cstyle() just like Preset.cpp:298 does
+                            std::vector<std::string> materials;
+                            if (Slic3r::unescape_strings_cstyle(materials_str, materials)) {
+                                for (const std::string& material : materials) {
+                                    if (!material.empty()) {
+                                        // Mark this filament as selected if it exists in our filament list
+                                        // This mirrors appconfig_new.set(section, material, "true") from ConfigWizard.cpp:2150
+                                        if (m_ProfileJson["filament"].contains(material)) {
+                                            m_ProfileJson["filament"][material]["selected"] = 1;
+                                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Automatically selected default filament: " << material;
+                                        } else {
+                                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " Default filament '" << material << "' not found in available filaments for printer: " << s1.ToStdString();
+                                        }
+                                    }
+                                }
+                            } else {
+                                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Malformed default_materials field: " << materials_str << " for printer: " << s1.ToStdString();
+                            }
+                        } else {
+                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " No default_materials defined for printer: " << s1.ToStdString();
+                        }
                         break;
                     }
                 }
@@ -459,11 +685,82 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                 m_ProfileJson["filament"][fName]["selected"] = 1;
             }
         }
+        else if (strCmd == "check_for_new_printers") {
+            json response = json::object();
+            response["command"] = "check_new_printers_result";
+            // Guide pages currently send sequence_id as a number, while older
+            // pages may send it as a string. Preserve the value without
+            // forcing either representation.
+            if (j.contains("sequence_id"))
+                response["sequence_id"] = j["sequence_id"];
+            else
+                response["sequence_id"] = "";
+
+            if (!m_MainPtr->preset_updater) {
+                response["error"] = _u8L("Printer update service is unavailable.");
+                wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
+                wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
+            } else {
+                // Orca: enumerate vendors directly from disk rather than from m_ProfileJson["model"]
+                // — a vendor with no machine models (e.g. a filament-only bundle, or a test fixture
+                // like "test123" with an empty machine_model_list) never gets a "vendor" entry
+                // pushed into "model" by LoadProfileFamily(), so it would be invisible to the
+                // request body and get endlessly re-offered by the server. Scan both the system dir
+                // (already-installed vendors) and the bundled resources dir (shipped-but-not-yet-
+                // installed vendors), same as LoadProfileData() does when building loaded_vendors.
+                std::set<std::string> system_vendors;
+                for (const auto& dir : {vendor_dir, rsrc_vendor_dir}) {
+                    if (!boost::filesystem::exists(dir))
+                        continue;
+                    for (const auto& entry : boost::filesystem::directory_iterator(dir)) {
+                        if (!boost::filesystem::is_directory(entry) && boost::iequals(entry.path().extension().string(), ".json"))
+                            system_vendors.insert(entry.path().stem().string());
+                    }
+                }
+                // Orca: check_new_vendors() is async (network + confirmation dialog + download
+                // all happen off the calling thread apart from the dialog itself); guard against
+                // this dialog being closed before the callback fires.
+                wxWeakRef<GuideFrame> weak_this(this);
+                try {
+                    m_MainPtr->preset_updater->check_new_vendors(
+                        system_vendors, [weak_this, response](std::vector<std::string> installed_vendors, bool declined) mutable {
+                            if (!weak_this)
+                                return;
+
+                            // Orca: append the newly installed vendor(s) into the in-memory
+                            // profile data (instead of a full LoadProfileData() rescan of every
+                            // vendor) and push the refreshed list to the webview, the same way
+                            // request_userguide_profile does, so the printer list picks them up
+                            // without needing to reopen the guide.
+                            for (const auto& vendor_id : installed_vendors) {
+                                weak_this->LoadProfileFamily(vendor_id, (weak_this->vendor_dir / (vendor_id + ".json")).string());
+                            }
+                            if (!installed_vendors.empty()) {
+                                json profile_response            = json::object();
+                                profile_response["command"]      = "response_userguide_profile";
+                                profile_response["sequence_id"]  = "10001";
+                                profile_response["response"]     = weak_this->m_ProfileJson;
+                                wxString profileJS = wxString::Format("HandleStudio(%s)", profile_response.dump(-1, ' ', true));
+                                weak_this->RunScript(profileJS);
+                            }
+
+                            response["vendors"]  = installed_vendors;
+                            response["declined"] = declined;
+                            wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
+                            weak_this->RunScript(strJS);
+                        });
+                } catch (const std::exception &e) {
+                    BOOST_LOG_TRIVIAL(warning) << "Failed to check for new printers: " << e.what();
+                    response["error"] = _u8L("Failed to check for new printers.");
+                    wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
+                    wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
+                }
+            }
+        }
         else if (strCmd == "user_guide_finish") {
             SaveProfile();
 
             std::string oldregion = m_ProfileJson["region"];
-            bool        bLogin    = false;
             if (m_Region != oldregion) {
                 AppConfig* config = GUI::wxGetApp().app_config;
                 std::string country_code = config->get_country_code();
@@ -471,8 +768,9 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                 if (agent) {
                     agent->set_country_code(country_code);
                     if (wxGetApp().is_user_login()) {
-                        bLogin = true;
-                        agent->user_logout();
+                        BOOST_LOG_TRIVIAL(info) << "logout: user_logout on user_guide_finish";
+                        // agent->user_logout();
+                        wxGetApp().request_user_logout(ORCA_CLOUD_PROVIDER, /*user_initiated=*/true);
                     }
                 }
             }
@@ -480,10 +778,12 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
             this->EndModal(wxID_OK);
 
             if (InstallNetplugin)
-                GUI::wxGetApp().CallAfter([this] { GUI::wxGetApp().ShowDownNetPluginDlg(); });
-
-            if (bLogin)
-                GUI::wxGetApp().CallAfter([this] { login(); });
+                GUI::wxGetApp().CallAfter([] { GUI::wxGetApp().ShowDownNetPluginDlg(); });
+        }
+        else if (strCmd == "user_guide_create_printer") {
+            this->EndModal(wxID_CANCEL);
+            this->Close();
+            GUI::wxGetApp().CallAfter([] {GUI::wxGetApp().sidebar().create_printer_preset();});
         }
         else if (strCmd == "user_guide_cancel") {
             this->EndModal(wxID_CANCEL);
@@ -620,7 +920,7 @@ int GuideFrame::SaveProfile()
     m_MainPtr->app_config->set_bool("stealth_mode", StealthMode);
 
     //finish
-    m_MainPtr->app_config->set(std::string(m_SectionName.mb_str()), "finish", "1");
+    m_MainPtr->app_config->set(std::string(m_SectionName.mb_str()), "finish", true);
 
     m_MainPtr->app_config->save();
 
@@ -674,182 +974,15 @@ int GuideFrame::SaveProfile()
     return 0;
 }
 
-static std::set<std::string> get_new_added_presets(const std::map<std::string, std::string>& old_data, const std::map<std::string, std::string>& new_data)
+// Applies the whole set the pages collected (SaveProfile()) as a Confirm does: Ops::apply_install_set() asks about
+// the presets' unsaved changes, installs the vendor bundles, reloads the presets and selects a newly added printer.
+bool GuideFrame::apply_config()
 {
-    auto get_aliases = [](const std::map<std::string, std::string>& data) {
-        std::set<std::string> old_aliases;
-        for (auto item : data) {
-            const std::string& name = item.first;
-            size_t pos = name.find("@");
-            old_aliases.emplace(pos == std::string::npos ? name : name.substr(0, pos-1));
-        }
-        return old_aliases;
-    };
-
-    std::set<std::string> old_aliases = get_aliases(old_data);
-    std::set<std::string> new_aliases = get_aliases(new_data);
-    std::set<std::string> diff;
-    std::set_difference(new_aliases.begin(), new_aliases.end(), old_aliases.begin(), old_aliases.end(), std::inserter(diff, diff.begin()));
-
-    return diff;
-}
-
-static std::string get_first_added_preset(const std::map<std::string, std::string>& old_data, const std::map<std::string, std::string>& new_data)
-{
-    std::set<std::string> diff = get_new_added_presets(old_data, new_data);
-    if (diff.empty())
-        return std::string();
-    return *diff.begin();
-}
-
-bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle, const PresetUpdater *updater, bool& apply_keeped_changes)
-{
-    const auto enabled_vendors = m_appconfig_new.vendors();
-    const auto old_enabled_vendors = app_config->vendors();
-
-    const auto enabled_filaments = m_appconfig_new.has_section(AppConfig::SECTION_FILAMENTS) ? m_appconfig_new.get_section(AppConfig::SECTION_FILAMENTS) : std::map<std::string, std::string>();
-    const auto old_enabled_filaments = app_config->has_section(AppConfig::SECTION_FILAMENTS) ? app_config->get_section(AppConfig::SECTION_FILAMENTS) : std::map<std::string, std::string>();
-
-    bool check_unsaved_preset_changes = false;
-    std::vector<std::string> install_bundles;
-    std::vector<std::string> remove_bundles;
-    const auto vendor_dir = (boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).make_preferred();
-    for (const auto &it : enabled_vendors) {
-        if (it.second.size() > 0) {
-            auto vendor_file = vendor_dir/(it.first + ".json");
-            if (!fs::exists(vendor_file)) {
-                install_bundles.emplace_back(it.first);
-            }
-        }
-    }
-
-    //add the removed vendor bundles
-    for (const auto &it : old_enabled_vendors) {
-        if (it.second.size() > 0) {
-            if (enabled_vendors.find(it.first) != enabled_vendors.end())
-                continue;
-            auto vendor_file = vendor_dir/(it.first + ".json");
-            if (fs::exists(vendor_file)) {
-                remove_bundles.emplace_back(it.first);
-            }
-        }
-    }
-
-    check_unsaved_preset_changes = (enabled_vendors != old_enabled_vendors) || (enabled_filaments != old_enabled_filaments);
-    wxString header = _L("The configuration package is changed in previous Config Guide");
-    wxString caption = _L("Configuration package changed");
-    int act_btns = ActionButtons::KEEP|ActionButtons::SAVE;
-
-    if (check_unsaved_preset_changes &&
-        !wxGetApp().check_and_keep_current_preset_changes(caption, header, act_btns, &apply_keeped_changes))
-        return false;
-
-    if (install_bundles.size() > 0) {
-        // Install bundles from resources.
-        // Don't create snapshot - we've already done that above if applicable.
-        if (! updater->install_bundles_rsrc(std::move(install_bundles), false))
-            return false;
-    } else {
-        BOOST_LOG_TRIVIAL(info) << "No bundles need to be installed from resource directory";
-    }
-
-    // Not remove, because these bundles may be updated
-    //if (remove_bundles.size() > 0) {
-    //    //remove unused bundles
-    //    for (const auto &it : remove_bundles) {
-    //        auto vendor_file = vendor_dir/(it + ".json");
-    //        auto sub_dir = vendor_dir/(it);
-    //        if (fs::exists(vendor_file))
-    //            fs::remove(vendor_file);
-    //        if (fs::exists(sub_dir))
-    //            fs::remove_all(sub_dir);
-    //    }
-    //} else {
-    //    BOOST_LOG_TRIVIAL(info) << "No bundles need to be removed";
-    //}
-
-    std::string preferred_model;
-    std::string preferred_variant;
-    PrinterTechnology preferred_pt = ptFFF;
-    auto get_preferred_printer_model = [preset_bundle, enabled_vendors, old_enabled_vendors, preferred_pt](const std::string& bundle_name, std::string& variant) {
-        const auto config = enabled_vendors.find(bundle_name);
-        if (config == enabled_vendors.end())
-            return std::string();
-
-        const VendorProfile & printer_profile = preset_bundle->vendors[bundle_name];
-        const std::map<std::string, std::set<std::string>>& model_maps = config->second;
-        //for (const auto& vendor_profile : preset_bundle->vendors) {
-        for (const auto& model_it: model_maps) {
-            if (model_it.second.size() > 0) {
-                variant = *model_it.second.begin();
-                if (model_it.second.size() > 1) {
-                    if (printer_profile.models.size() > 0) {
-                        const VendorProfile::PrinterModel& printer_model = *std::find_if(printer_profile.models.begin(), printer_profile.models.end(),
-                            [id = model_it.first](auto& m) { return m.id == id; });
-                        for (auto& vt : printer_model.variants) {
-                            if (std::find(model_it.second.begin(), model_it.second.end(), vt.name) != model_it.second.end()) { variant = vt.name; break; }
-                        }
-                    }
-                    else if (variant != PresetBundle::ORCA_DEFAULT_PRINTER_VARIANT){
-                        if (std::find(model_it.second.begin(), model_it.second.end(), PresetBundle::ORCA_DEFAULT_PRINTER_VARIANT) != model_it.second.end())
-                            variant = PresetBundle::ORCA_DEFAULT_PRINTER_VARIANT;
-                    }
-                }
-
-                const auto config_old = old_enabled_vendors.find(bundle_name);
-                if (config_old == old_enabled_vendors.end())
-                    return model_it.first;
-                const auto model_it_old = config_old->second.find(model_it.first);
-                if (model_it_old == config_old->second.end())
-                    return model_it.first;
-                else if (model_it_old->second != model_it.second) {
-                    for (const auto& var : model_it.second)
-                        if (model_it_old->second.find(var) == model_it_old->second.end()) {
-                            variant = var;
-                            return model_it.first;
-                        }
-                }
-            }
-        }
-        //}
-        if (!variant.empty())
-            variant.clear();
-        return std::string();
-    };
-    // Orca "custom" printers are considered first, then 3rd party.
-    if (preferred_model = get_preferred_printer_model(PresetBundle::ORCA_DEFAULT_BUNDLE, preferred_variant);
-        preferred_model.empty()) {
-        for (const auto& bundle : enabled_vendors) {
-            if (bundle.first == PresetBundle::ORCA_DEFAULT_BUNDLE) { continue; }
-            if (preferred_model = get_preferred_printer_model(bundle.first, preferred_variant);
-                !preferred_model.empty())
-                    break;
-        }
-    }
-
-    std::string first_added_filament;
-    auto get_first_added_material_preset = [this, app_config](const std::string& section_name, std::string& first_added_preset) {
-        if (m_appconfig_new.has_section(section_name)) {
-            // get first of new added preset names
-            const std::map<std::string, std::string>& old_presets = app_config->has_section(section_name) ? app_config->get_section(section_name) : std::map<std::string, std::string>();
-            first_added_preset = get_first_added_preset(old_presets, m_appconfig_new.get_section(section_name));
-        }
-    };
-    // Not switch filament
-    //get_first_added_material_preset(AppConfig::SECTION_FILAMENTS, first_added_filament);
-
-    //update the app_config
-    app_config->set_section(AppConfig::SECTION_FILAMENTS, enabled_filaments);
-    app_config->set_vendors(m_appconfig_new);
-
-    if (check_unsaved_preset_changes)
-        preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::Enable,
-                                    {preferred_model, preferred_variant, first_added_filament, std::string()});
-
-    // Update the selections from the compatibilty.
-    preset_bundle->export_selections(*app_config);
-
-    return true;
+    Ops::InstallSet set;
+    set.printers = m_appconfig_new.vendors();
+    if (m_appconfig_new.has_section(AppConfig::SECTION_FILAMENTS))
+        set.filaments = m_appconfig_new.get_section(AppConfig::SECTION_FILAMENTS);
+    return bool(Ops::apply_install_set(set, Ops::PresetChanges::Ask));
 }
 
 bool GuideFrame::run()
@@ -876,18 +1009,9 @@ bool GuideFrame::run()
 
     int result = this->ShowModal();
     if (result == wxID_OK) {
-        bool apply_keeped_changes = false;
         BOOST_LOG_TRIVIAL(info) << "GuideFrame returned ok";
-        if (! this->apply_config(app.app_config, app.preset_bundle, app.preset_updater, apply_keeped_changes))
+        if (! this->apply_config())
             return false;
-
-        if (apply_keeped_changes)
-            app.apply_keeped_preset_modifications();
-
-        app.app_config->set_legacy_datadir(false);
-        app.update_mode();
-        // BBS
-        //app.obj_manipul()->update_ui_from_settings();
         BOOST_LOG_TRIVIAL(info) << "GuideFrame applied";
         this->Close();
         return true;
@@ -921,177 +1045,210 @@ bool GuideFrame::run()
 
 int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, std::string filepath, std::string &sVendor, std::string &sType)
 {
+    std::unordered_set<std::string> visiting;
+    return GetFilamentInfo(VendorDirectory, pFilaList, filepath, sVendor, sType, visiting);
+}
+
+int GuideFrame::GetFilamentInfo(const std::string& VendorDirectory, json& pFilaList,
+                                const std::string& filepath, std::string& sVendor,
+                                std::string& sType, std::unordered_set<std::string>& visiting)
+{
     //GetStardardFilePath(filepath);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " GetFilamentInfo:VendorDirectory - " << VendorDirectory << ", Filepath - "<<filepath;
 
-    try {
-        std::string contents;
-        LoadFile(filepath, contents);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Json Contents: " << contents;
-        json jLocal = json::parse(contents);
+    // Path-scoped guard: without it an `inherits` cycle would recurse forever.
+    // The repeated file was not inserted, so the cycle hit has nothing to erase.
+    if (!visiting.insert(filepath).second) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits cycle at " << filepath;
+        return -1;
+    }
 
-        if (sVendor == "") {
+    // Resolve this file's own vendor/type into LOCAL variables, independent of
+    // whatever the caller already accumulated. The cache entry for `filepath`
+    // must reflect only this file's own inherits chain — passing the caller's
+    // in/out sVendor/sType down would poison a shared base file's cache with the
+    // type of whichever descendant happened to traverse it first (e.g. an ABS
+    // preset reaching fdm_filament_common before a PLA one, making every PLA that
+    // later reuses the cached base resolve to "ABS"). Merge into the caller's
+    // out-params only at the end, filling empties.
+    std::string vendor;
+    std::string type;
+    int         status = 0;
+
+    const auto cache_it = filament_info_cache.find(filepath);
+    if (cache_it != filament_info_cache.end()) {
+        vendor = cache_it->second.vendor;
+        type   = cache_it->second.type;
+        status = cache_it->second.status;
+    } else {
+        try {
+            std::string contents;
+            LoadFile(filepath, contents);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Json Contents: " << contents;
+            json jLocal = json::parse(contents);
+
             if (jLocal.contains("filament_vendor"))
-                sVendor = jLocal["filament_vendor"][0];
-            else {
+                vendor = jLocal["filament_vendor"][0];
+            else
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains filament_vendor";
-            }
-        }
 
-        if (sType == "") {
             if (jLocal.contains("filament_type"))
-                sType = jLocal["filament_type"][0];
-            else {
+                type = jLocal["filament_type"][0];
+            else
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains filament_type";
-            }
-        }
 
-        if (sVendor == "" || sType == "")
-        {
             if (jLocal.contains("inherits")) {
                 std::string FName = jLocal["inherits"];
 
                 if (!pFilaList.contains(FName)) {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "pFilaList - Not Contains inherits filaments: " << FName;
-                    return -1;
-                }
+                    status = -1;
+                } else {
+                    std::string FPath = pFilaList[FName]["sub_path"];
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Before Format Inherits Path: VendorDirectory - " << VendorDirectory << ", sub_path - " << FPath;
+                    wxString strNewFile = wxString::Format("%s%c%s", wxString(VendorDirectory.c_str(), wxConvUTF8), boost::filesystem::path::preferred_separator, FPath);
+                    boost::filesystem::path inherits_path(w2s(strNewFile));
+                    if (!boost::filesystem::exists(inherits_path))
+                        inherits_path = (boost::filesystem::path(m_OrcaFilaLibPath) / boost::filesystem::path(FPath)).make_preferred();
 
-                std::string FPath = pFilaList[FName]["sub_path"];
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Before Format Inherits Path: VendorDirectory - " << VendorDirectory << ", sub_path - " << FPath;
-                wxString strNewFile = wxString::Format("%s%c%s", wxString(VendorDirectory.c_str(), wxConvUTF8), boost::filesystem::path::preferred_separator, FPath);
-                boost::filesystem::path inherits_path(w2s(strNewFile));
-                if (!boost::filesystem::exists(inherits_path))
-                    inherits_path = (boost::filesystem::path(m_OrcaFilaLibPath) / boost::filesystem::path(FPath)).make_preferred();
-
-                //boost::filesystem::path nf(strNewFile.c_str());
-                if (boost::filesystem::exists(inherits_path))
-                    return GetFilamentInfo(VendorDirectory,pFilaList, inherits_path.string(), sVendor, sType);
-                else {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits File Not Exist: " << inherits_path;
-                    return -1;
+                    if (boost::filesystem::exists(inherits_path)) {
+                        // Traverse the full chain for errors; inherited values only fill local gaps.
+                        status = GetFilamentInfo(VendorDirectory, pFilaList, inherits_path.string(), vendor, type, visiting);
+                    } else {
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits File Not Exist: " << inherits_path;
+                        status = -1;
+                    }
                 }
             } else {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains inherits";
-                if (sType == "") {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "sType is Empty";
-                    return -1;
-                }
-                else
-                    sVendor = "Generic";
-                    return 0;
+                status = 0;
             }
         }
-        else
-            return 0;
-    }
-    catch(nlohmann::detail::parse_error &err) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<filepath <<" got a nlohmann::detail::parse_error, reason = " << err.what();
-        return -1;
-    }
-    catch (std::exception &e)
-    {
-        // wxLogMessage("GUIDE: load_profile_error  %s ", e.what());
-        // wxMessageBox(e.what(), "", MB_OK);
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse " << filepath <<" got exception: "<<e.what();
-        return -1;
+        catch (nlohmann::detail::parse_error &err) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << filepath << " got a nlohmann::detail::parse_error, reason = " << err.what();
+            status = -1;
+        }
+        catch (std::exception &e) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << filepath << " got exception: " << e.what();
+            status = -1;
+        }
+
+        filament_info_cache[filepath] = CachedFilamentInfo{status, vendor, type};
     }
 
-    return 0;
+    // Merge this file's resolved values into the caller's out-params (fill empties only).
+    if (sVendor.empty()) sVendor = vendor;
+    if (sType.empty())   sType   = type;
+    visiting.erase(filepath);
+    return status;
+}
+
+bool GuideFrame::BuildProfileDataFromPresetBundle()
+{
+    PresetBundle* pb = wxGetApp().preset_bundle;
+    if (!pb || pb->vendors.empty())
+        return false;
+    // If rsrc_vendor_dir has vendors (profile JSONs, or the preset caches a
+    // packaged build ships instead) not covered by the app's bundle, the
+    // bundle is incomplete (e.g. dev env where data_dir/system only has
+    // OrcaFilamentLibrary+Custom). Fall back so the slow path reads both dirs.
+    try {
+        for (const std::string& name : vendor_names_in(rsrc_vendor_dir)) {
+            if (pb->vendors.find(name) == pb->vendors.end()) {
+                BOOST_LOG_TRIVIAL(info) << "GuideFrame: vendor '" << name
+                    << "' in resources but not in preset_bundle — falling back to JSON loading";
+                return false;
+            }
+        }
+    } catch (const std::exception&) {}
+    try {
+        json data = Ops::profile_data_from(*pb);
+        if (data["machine"].empty())
+            return false;
+        for (const char* key : { "model", "machine", "filament", "process" })
+            m_ProfileJson[key] = std::move(data[key]);
+        return true;
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(warning) << "GuideFrame::BuildProfileDataFromPresetBundle failed: " << e.what()
+                                   << " — falling back to JSON loading";
+        reset_profile_json();
+        return false;
+    }
+}
+
+bool GuideFrame::BuildProfileDataFromVendors()
+{
+    // A refusal sends this open to the scan of the vendors' JSON files, which lists what it can read of every vendor.
+    Ops::Outcome<json> data = Ops::printer_profile_data(m_cancel_token.get());
+    if (!data) {
+        BOOST_LOG_TRIVIAL(info) << "GuideFrame: " << data.refusal().english();
+        return false;
+    }
+    for (const char* key : { "model", "machine", "filament", "process" })
+        m_ProfileJson[key] = data.value().at(key);
+    return true;
 }
 
 int GuideFrame::LoadProfileData()
 {
+    // Background thread: the fast path in OnNavigationComplete failed (presets not yet loaded).
+    // Loading order (fastest to slowest):
+    //   1. Load every vendor, from its preset cache wherever one covers it
+    //   2. Read all vendor JSONs by hand
     try {
-        m_ProfileJson             = json::parse("{}");
-        m_ProfileJson["model"]    = json::array();
-        m_ProfileJson["machine"]  = json::object();
-        m_ProfileJson["filament"] = json::object();
-        m_ProfileJson["process"]  = json::array();
+        if (!BuildProfileDataFromVendors()) {
+            // Last resort — read all vendor JSONs
+            std::set<std::string> loaded_vendors;
+            auto filament_library_name = boost::filesystem::path(PresetBundle::ORCA_FILAMENT_LIBRARY).replace_extension(".json");
+            if (boost::filesystem::exists(vendor_dir / filament_library_name))
+                LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (vendor_dir / filament_library_name).string());
+            else
+                LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (rsrc_vendor_dir / filament_library_name).string());
+            loaded_vendors.insert(PresetBundle::ORCA_FILAMENT_LIBRARY);
 
-        vendor_dir      = (boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).make_preferred();
-        rsrc_vendor_dir = (boost::filesystem::path(resources_dir()) / "profiles").make_preferred();
+            boost::filesystem::directory_iterator endIter;
+            for (boost::filesystem::directory_iterator iter(vendor_dir); iter != endIter; iter++) {
+                if (!boost::filesystem::is_directory(*iter)) {
+                    wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
+                    strVendor          = strVendor.AfterLast('\\');
+                    strVendor          = strVendor.AfterLast('/');
+                    wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
+                    if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
+                        continue;
+                    LoadProfileFamily(w2s(strVendor), iter->path().string());
+                    loaded_vendors.insert(w2s(strVendor));
+                }
+                if (*m_cancel_token) return 0;
+            }
 
-        // Orca: add custom as default
-        // Orca: add json logic for vendor bundle
-        orca_bundle_rsrc = true;
-
-        // search if there exists a .json file in vendor_dir folder, if exists, set orca_bundle_rsrc to false
-        for (const auto& entry : boost::filesystem::directory_iterator(vendor_dir)) {
-            if (!boost::filesystem::is_directory(entry) && boost::iequals(entry.path().extension().string(), ".json") && !boost::iequals(entry.path().stem().string(), PresetBundle::ORCA_FILAMENT_LIBRARY)) {
-                orca_bundle_rsrc = false;
-                break;
+            boost::filesystem::directory_iterator others_endIter;
+            for (boost::filesystem::directory_iterator iter(rsrc_vendor_dir); iter != others_endIter; iter++) {
+                if (!boost::filesystem::is_directory(*iter)) {
+                    wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
+                    strVendor          = strVendor.AfterLast('\\');
+                    strVendor          = strVendor.AfterLast('/');
+                    wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
+                    if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
+                        continue;
+                    LoadProfileFamily(w2s(strVendor), iter->path().string());
+                    loaded_vendors.insert(w2s(strVendor));
+                }
+                if (*m_cancel_token) return 0;
             }
         }
 
-        // load the default filament library first
-        std::set<std::string> loaded_vendors;
-        auto filament_library_name = boost::filesystem::path(PresetBundle::ORCA_FILAMENT_LIBRARY).replace_extension(".json");
-        if (boost::filesystem::exists(vendor_dir / filament_library_name)) {
-            m_OrcaFilaLibPath = (vendor_dir / PresetBundle::ORCA_FILAMENT_LIBRARY).string();
-            LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (vendor_dir / filament_library_name).string());
-        } else {
-            m_OrcaFilaLibPath = (rsrc_vendor_dir / PresetBundle::ORCA_FILAMENT_LIBRARY).string();
-            LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (rsrc_vendor_dir / filament_library_name).string());
-        }
-        loaded_vendors.insert(PresetBundle::ORCA_FILAMENT_LIBRARY);
-
-        //load custom bundle from user data path
-        boost::filesystem::directory_iterator endIter;
-        for (boost::filesystem::directory_iterator iter(vendor_dir); iter != endIter; iter++) {
-            if (!boost::filesystem::is_directory(*iter)) {
-                wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
-                strVendor          = strVendor.AfterLast('\\');
-                strVendor          = strVendor.AfterLast('/');
-
-                wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
-                if(strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
-                    continue;
-
-                LoadProfileFamily(w2s(strVendor), iter->path().string());
-                loaded_vendors.insert(w2s(strVendor));
-            }
-            if (m_destroy)
-                return 0;
-        }
-
-        boost::filesystem::directory_iterator others_endIter;
-        for (boost::filesystem::directory_iterator iter(rsrc_vendor_dir); iter != others_endIter; iter++) {
-            if (!boost::filesystem::is_directory(*iter)) {
-                wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
-                strVendor          = strVendor.AfterLast('\\');
-                strVendor          = strVendor.AfterLast('/');
-                wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
-                if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
-                    continue;
-
-                LoadProfileFamily(w2s(strVendor), iter->path().string());
-                loaded_vendors.insert(w2s(strVendor));
-            }
-            if (m_destroy)
-                return 0;
-        }
-
-        //sync to web
-        std::string strAll = m_ProfileJson.dump(-1, ' ', false, json::error_handler_t::ignore);
-
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished, json contents: " << std::endl << strAll;
-        json m_Res           = json::object();
-        m_Res["command"]     = "userguide_profile_load_finish";
-        m_Res["sequence_id"] = "10001";
-        wxString strJS       = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', true));
-        if (!m_destroy)
-            wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
-
-        //sync to appconfig
-        if (!m_destroy)
-            wxGetApp().CallAfter([this] { SaveProfileData(); });
-
-    } catch (std::exception& e) {
-        // wxLogMessage("GUIDE: load_profile_error  %s ", e.what());
-        //  wxMessageBox(e.what(), "", MB_OK);
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ", error: " << e.what() << std::endl;
+        // Capture the cancel token by value (shared_ptr) so the lambda doesn't
+        // touch `this` if GuideFrame is destroyed before the event fires.
+        auto tok = m_cancel_token;
+        wxGetApp().CallAfter([this, tok] {
+            if (!*tok)
+                on_profile_loaded();
+        });
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ", error: " << e.what();
     }
 
+    filament_info_cache.clear();
     return 0;
 }
 
@@ -1173,13 +1330,13 @@ int GuideFrame::SaveProfileData()
     return 0;
 }
 
-void StringReplace(string &strBase, string strSrc, string strDes)
+void StringReplace(std::string &strBase, std::string strSrc, std::string strDes)
 {
-    string::size_type pos    = 0;
-    string::size_type srcLen = strSrc.size();
-    string::size_type desLen = strDes.size();
+    std::string::size_type pos    = 0;
+    std::string::size_type srcLen = strSrc.size();
+    std::string::size_type desLen = strDes.size();
     pos                      = strBase.find(strSrc, pos);
-    while ((pos != string::npos)) {
+    while ((pos != std::string::npos)) {
         strBase.replace(pos, srcLen, strDes);
         pos = strBase.find(strSrc, (pos + desLen));
     }
@@ -1235,15 +1392,17 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
             OneModel["materials"]       = pm["default_materials"];
 
             // wxString strCoverPath = wxString::Format("%s\\%s\\%s_cover.png", strFolder, strVendor, std::string(s1.mb_str()));
-            std::string             cover_file = s1 + "_cover.png";
-            boost::filesystem::path cover_path = boost::filesystem::absolute(boost::filesystem::path(resources_dir()) / "/profiles/" / strVendor / cover_file).make_preferred();
+            std::string cover_file = s1 + "_cover.png";
+            boost::filesystem::path cover_path = boost::filesystem::absolute(vendor_dir / cover_file).make_preferred();
+            BOOST_LOG_TRIVIAL(info) << "[WebGuideDialog] " << cover_path;
             if (!boost::filesystem::exists(cover_path)) {
-                cover_path =
-                    (boost::filesystem::absolute(boost::filesystem::path(resources_dir()) / "/web/image/printer/") /
-                     cover_file)
-                        .make_preferred();
+                cover_path = boost::filesystem::absolute(boost::filesystem::path(resources_dir()) / "/profiles/" / strVendor / cover_file)
+                                 .make_preferred();
+                if (!boost::filesystem::exists(cover_path))
+                    cover_path = (boost::filesystem::absolute(boost::filesystem::path(resources_dir()) / "/web/image/printer/") / cover_file)
+                                     .make_preferred();
             }
-            OneModel["cover"]                  = cover_path.string();
+            OneModel["cover"]                  = into_u8(file_url_from_path(cover_path));
 
             OneModel["nozzle_selected"] = "";
 
@@ -1319,8 +1478,8 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
                     std::string sT;
 
                     int nRet = GetFilamentInfo(vendor_dir.string(),tFilaList, sub_file, sV, sT);
-                    if (nRet != 0) {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "Load Filament:" << s1 << ",GetFilamentInfo Failed, Vendor:" << sV << ",Type:"<< sT;
+                    if (nRet != 0 || sV.empty() || sT.empty()) {
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "Load Filament:" << s1 << ",unresolved vendor/type, Vendor:" << sV << ",Type:"<< sT;
                         continue;
                     }
 
@@ -1389,6 +1548,7 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
 
     return 0;
 }
+
 
 
 void GuideFrame::StrReplace(std::string &strBase, std::string strSrc, std::string strDes)

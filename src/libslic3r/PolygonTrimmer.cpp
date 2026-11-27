@@ -1,6 +1,11 @@
 #include "PolygonTrimmer.hpp"
 #include "EdgeGrid.hpp"
 #include "Geometry.hpp"
+#include "Polygon.hpp"
+#include <cassert>
+#include "Point.hpp"
+#include "libslic3r.h"
+#include <vector>
 
 namespace Slic3r {
 

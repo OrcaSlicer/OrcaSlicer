@@ -1,6 +1,7 @@
 #ifndef RASTERTOPOLYGONS_HPP
 #define RASTERTOPOLYGONS_HPP
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/ExPolygon.hpp"
 
 namespace Slic3r {

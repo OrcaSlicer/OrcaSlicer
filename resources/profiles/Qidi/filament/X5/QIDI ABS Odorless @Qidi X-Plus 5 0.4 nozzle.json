@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI ABS Odorless @Qidi X-Plus 5 0.4 nozzle",
+	"inherits": "QIDI ABS Odorless@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "YviPsfkGYv6Q3r3T",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

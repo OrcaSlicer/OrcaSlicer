@@ -16,21 +16,21 @@ namespace igl
   {
     namespace cgal
     {
-      // Convert a mesh (V,F) to a CGAL Polyhedron
-      //
-      // Templates:
-      //   Polyhedron  CGAL Polyhedron type (e.g. Polyhedron_3)
-      // Inputs:
-      //   V  #V by 3 list of vertex positions
-      //   F  #F by 3 list of triangle indices
-      // Outputs:
-      //   poly  cgal polyhedron
-      // Returns true only if (V,F) can be converted to a valid polyhedron (i.e. if
-      // (V,F) is vertex and edge manifold).
-      template <typename Polyhedron>
+      /// Convert a mesh (V,F) to a CGAL Polyhedron
+      ///
+      /// @tparam Polyhedron  CGAL Polyhedron type (e.g. Polyhedron_3)
+      /// @param[in] V  #V by 3 list of vertex positions
+      /// @param[in] F  #F by 3 list of triangle indices
+      /// @param[out] poly  cgal polyhedron
+      /// @return true only if (V,F) can be converted to a valid polyhedron
+      /// (i.e. if (V,F) is vertex and edge manifold).
+      template <
+        typename DerivedV,
+        typename DerivedF,
+        typename Polyhedron>
       IGL_INLINE bool mesh_to_polyhedron(
-        const Eigen::MatrixXd & V,
-        const Eigen::MatrixXi & F,
+        const Eigen::MatrixBase<DerivedV> & V,
+        const Eigen::MatrixBase<DerivedF> & F,
         Polyhedron & poly);
     }
   }

@@ -1,12 +1,19 @@
 #ifndef slic3r_ImGuiWrapper_hpp_
 #define slic3r_ImGuiWrapper_hpp_
 
+#include "libslic3r/Technologies.hpp"
+#include <optional>
 #include <string>
 #include <map>
+#include <string_view>
+#include <tuple>
+#include <vector>
 #include <cstdlib>
+#include <chrono>
 
 #include <imgui/imgui.h>
 
+#include <wx/colour.h>
 #include <wx/string.h>
 
 #include "libslic3r/Point.hpp"
@@ -29,6 +36,7 @@ struct ImRect;
 namespace Slic3r {
 namespace GUI {
 
+struct KeyChord;
 
 bool get_data_from_svg(const std::string &filename, unsigned int max_size_px, ThumbnailData &thumbnail_data);
 
@@ -49,6 +57,35 @@ bool menu_item_with_icon(const char *label, const char *shortcut, ImVec2 icon_si
 
 class ImGuiWrapper
 {
+public:
+    // Automation lists and clicks ImGui items, which have no window handles. While recording is on,
+    // every item a frame adds is recorded with its id, label, window and rectangle (in ImGui
+    // coordinates), along with the values fields show and the text the frame draws, per canvas: the
+    // canvas calls set_frame_owner() before new_frame(), and end_frame() publishes the frame's items as
+    // that owner's latest. Off unless the GUI instruments are on (`enable_gui_instruments()`); ImGui
+    // then skips the hooks with one branch per item.
+    struct RecordedItem
+    {
+        unsigned    id = 0;
+        std::string label;  // as passed to ImGui, "##" suffix included
+        std::string name;   // given by record_named_item(), for a control whose label names nothing
+        std::string window; // name of the ImGui window the item belongs to
+        std::string kind;   // slider, drag, input, multiline, combo, or a named control's kind; empty for buttons and checkboxes
+        std::string value;  // what a field or a combo shows
+        float       x = 0.f, y = 0.f, w = 0.f, h = 0.f;
+        int         flags   = 0;     // ImGuiItemStatusFlags
+        bool        clipped = false; // outside the visible part of its window when drawn
+        bool        focused = false; // the text field typed keys went to when the frame ended
+    };
+    // Text a frame draws with ImGui::Text() and the like; never an item.
+    struct RecordedText
+    {
+        std::string window;
+        std::string text;
+        float       x = 0.f, y = 0.f, w = 0.f, h = 0.f;
+    };
+
+private:
     const ImWchar* m_glyph_ranges{ nullptr };
     const ImWchar* m_glyph_basic_ranges { nullptr };
     // Chinese, Japanese, Korean
@@ -61,11 +98,30 @@ class ImGuiWrapper
     unsigned m_mouse_buttons{ 0 };
     bool m_disabled{ false };
     bool m_new_frame_open{ false };
+    // ORCA Start of the previous frame, see new_frame().
+    std::chrono::steady_clock::time_point m_last_frame_time{};
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     bool m_requires_extra_frame{ false };
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     std::map<wchar_t, int> m_custom_glyph_rects_ids;
     std::string m_clipboard_text;
+    // Keys held down, each with whether ImGui claimed its press.
+    std::map<int, bool> m_key_claims;
+    // Item recording for automation, see set_item_recording(). UI thread only.
+    struct RecordedFrame
+    {
+        std::vector<RecordedItem> items;
+        std::vector<RecordedText> texts;
+    };
+    bool                                                m_item_recording{ false };
+    const void*                                         m_frame_owner{ nullptr };
+    RecordedFrame                                       m_frame;
+    std::map<const void*, RecordedFrame>                m_recorded;
+    // The last string ImGui hashed into an id, the label of the item it is about to add.
+    unsigned                                            m_last_string_id{ 0 };
+    std::string                                         m_last_string;
+    // Whether ImGui claimed the last key-down, for the char event that follows it.
+    std::optional<bool> m_char_claim;
 
 public:
     struct LastSliderStatus {
@@ -96,7 +152,36 @@ public:
     const ImWchar *get_glyph_ranges() const { return m_glyph_ranges; } // language specific
 
     void new_frame();
-    void render();
+    // Ends the frame and returns its draw data without drawing it.
+    ImDrawData* end_frame();
+
+    void                      set_item_recording(bool on);
+    bool                      item_recording() const { return m_item_recording; }
+    void                      set_frame_owner(const void* owner) { m_frame_owner = owner; }
+    std::vector<RecordedItem> recorded_items(const void* owner) const;
+    std::vector<RecordedText> recorded_texts(const void* owner) const;
+    // Names the control just drawn for automation when its ImGui label names nothing: an empty or
+    // "##"-only label, or no item at all (Dummy, Image, a hand-made click test). A real item (an
+    // image button, an empty-label combo) is named in its own record; anything else gets a record of
+    // its own at the last item's rectangle, or at [min, max], with the id `name` hashes to in the
+    // current ID scope (and its place among same-named ones there). Changes nothing ImGui does, and
+    // costs one branch while recording is off.
+    // `checked` (0 or 1) makes it a toggle that reports its state; -1 leaves it a plain control.
+    void record_named_item(const std::string& name, const char* kind = "button", int checked = -1);
+    void record_named_item(const std::string& name, const char* kind, const ImVec2& min, const ImVec2& max, int checked = -1);
+    // Names the item `id` drawn earlier this frame, for a control that is no longer the current
+    // window's last item (a combo, whose popup is the current window while it is open). Returns
+    // whether this frame recorded that item.
+    bool record_item_name(unsigned id, const std::string& name, const char* kind, int checked = -1);
+    // Called by the ImGui test-engine hooks; not for other use.
+    void record_item_add(unsigned id, float x0, float y0, float x1, float y1, const char* window, bool clipped);
+    void record_item_info(unsigned id, const char* label, int flags);
+    void record_item_value(unsigned id, const char* kind, const char* value, int flags);
+    void record_text(const char* window, float x0, float y0, float x1, float y1, const char* text, const char* text_end);
+    void record_string_id(unsigned id, const char* str, const char* str_end);
+    void render(ImDrawData* draw_data);
+    // Hash of every draw list's vertices, indices and commands.
+    static ImGuiID draw_data_signature(const ImDrawData* draw_data);
 
     float scaled(float x) const { return x * m_font_size; }
     ImVec2 scaled(float x, float y) const { return ImVec2(x * m_font_size, y * m_font_size); }
@@ -133,6 +218,8 @@ public:
     bool bbl_button(const wxString &label, const wxString& tooltip = {});
     bool button(const wxString& label, float width, float height);
     bool button(const wxString& label, const ImVec2 &size, bool enable); // default size = ImVec2(0.f, 0.f)
+    // `name` names the button for automation (see record_named_item()).
+    bool glyph_button(wchar_t icon_char, ImVec2 icon_size, const std::string& name = {}); // ORCA
     bool radio_button(const wxString &label, bool active);
     static ImVec4          to_ImVec4(const ColorRGB &color);
     bool input_double(const std::string &label, const double &value, const std::string &format = "%.3f");
@@ -176,7 +263,8 @@ public:
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
 
     bool image_button(ImTextureID user_texture_id, const ImVec2& size, const ImVec2& uv0 = ImVec2(0.0, 0.0), const ImVec2& uv1 = ImVec2(1.0, 1.0), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0.0, 0.0, 0.0, 0.0), const ImVec4& tint_col = ImVec4(1.0, 1.0, 1.0, 1.0), ImGuiButtonFlags flags = 0);
-    bool image_button(const wchar_t icon, const wxString& tooltip = L"");
+    // `name` names the button for automation (see record_named_item()).
+    bool image_button(const wchar_t icon, const wxString& tooltip = L"", const std::string& name = {});
 
     // Use selection = -1 to not mark any option as selected
     bool combo(const std::string& label, const std::vector<std::string>& options, int& selection, ImGuiComboFlags flags = 0, float label_width = 0.0f, float item_width = 0.0f);
@@ -208,6 +296,25 @@ public:
     bool want_keyboard() const;
     bool want_text_input() const;
     bool want_any_input() const;
+    // True while an ImGui InputText is active, without the one-frame lag of want_text_input().
+    bool text_input_active() const;
+    // True while an ImGui modal popup is on screen.
+    bool modal_popup_open() const;
+    // True while any ImGui popup is on screen, modal or not.
+    bool popup_open() const;
+    // Closes the topmost popup on screen unless it is a modal, which handles Esc itself.
+    void close_top_popup();
+    // True for every key while a modal is open, and for text-editing keys while an InputText is active.
+    bool owns_key(const KeyChord& chord) const;
+    // True while the left mouse button holds an ImGui item, such as a slider being dragged.
+    bool item_held() const;
+    // True while a popup is open, an item is held or an InputText is active.
+    bool owns_keyboard() const;
+    // Returns owns_keyboard() as of the key's key-down, so its repeats, char event and release get the
+    // same answer. Call it once per event.
+    bool claim_key_event(const wxKeyEvent& evt);
+    // Drops the record of held keys, whose key-ups are sent to the window that takes the focus.
+    void forget_key_claims();
 
     // Optional inputs are used for set up value inside of an optional, with default value
     // 
@@ -299,6 +406,20 @@ public:
                                 float         thickness    = 4.f);
 
     /// <summary>
+    /// Fill a rect with a filament gradient ramp, one band per pixel row, ramp.front() along
+    /// the bottom edge. Bands rather than one interpolated rect, because the ramp follows the
+    /// slot's gradient curve and ImGui's corner interpolation could only draw a straight fade.
+    /// </summary>
+    /// <param name="draw_list">Define where to draw it</param>
+    /// <param name="top_left">Upper left corner of the rect</param>
+    /// <param name="bottom_right">Lower right corner of the rect</param>
+    /// <param name="ramp">Colours printed, bottom of the model first</param>
+    static void draw_gradient_ramp(ImDrawList *          draw_list,
+                                   const ImVec2 &        top_left,
+                                   const ImVec2 &        bottom_right,
+                                   const std::vector<wxColour> &ramp);
+
+    /// <summary>
     /// Check that font ranges contain all chars in string
     /// (rendered Unicodes are stored in GlyphRanges)
     /// </summary>
@@ -312,6 +433,13 @@ public:
     bool requires_extra_frame() const { return m_requires_extra_frame; }
     void set_requires_extra_frame() { m_requires_extra_frame = true; }
     void reset_requires_extra_frame() { m_requires_extra_frame = false; }
+    // ORCA Call right after a widget with +/- buttons. ImGui repeats a held button only on new frames and the
+    // canvas renders on events only, so keep frames coming while the widget is held.
+    void request_frames_while_held()
+    {
+        if (ImGui::IsItemActive() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+            set_requires_extra_frame();
+    }
 
     void disable_background_fadeout_animation();
 
@@ -347,7 +475,11 @@ public:
     static const ImVec4 COL_SEPARATOR;
     static const ImVec4 COL_SEPARATOR_DARK;
     static const ImVec4 COL_ORCA;
+    static const ImVec4 COL_ORCA_DARK;
+    static const ImVec4 COL_ORCA_HOVER;
+    static const ImVec4 COL_ORCA_HOVER_DARK;
     static const ImVec4 COL_MODIFIED;
+    static const ImVec4 COL_WARNING;
 
     //BBS
     static void on_change_color_mode(bool is_dark);
@@ -371,12 +503,13 @@ public:
     //BBS
     static int TOOLBAR_WINDOW_FLAGS;
 
+    bool display_initialized() const;
+
 private:
     void init_font(bool compress);
     void init_input();
     void init_style();
     void render_draw_data(ImDrawData *draw_data);
-    bool display_initialized() const;
     void destroy_font();
     std::vector<unsigned char> load_svg(const std::string& bitmap_name, unsigned target_width, unsigned target_height, unsigned *outwidth, unsigned *outheight);
 

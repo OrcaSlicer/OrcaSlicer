@@ -7,7 +7,9 @@
 
 #include "Types.hpp"
 
+#include <array>
 #include <cfloat>
+#include <cstdint>
 
 namespace libvgcode {
 
@@ -86,6 +88,21 @@ struct PathVertex
     // Layer duration in seconds
     //
     float layer_duration{ 0.0f };
+    //
+    // ORCA: Add Pressure Advance visualization support
+    // Pressure advance value
+    //
+    float pressure_advance{ 0.0f };
+    //
+    // ORCA: Add Acceleration visualization support
+    // Acceleration value
+    //
+    float acceleration{ 0.0f };
+    //
+    // ORCA: Add Jerk visualization support
+    // Jerk value
+    //
+    float jerk{ 0.0f };
 
     //
     // Return true if the segment is an extrusion move

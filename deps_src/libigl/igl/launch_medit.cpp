@@ -18,9 +18,9 @@
 
 template <typename DerivedV, typename DerivedT, typename DerivedF>
 IGL_INLINE int igl::launch_medit(
-  const Eigen::PlainObjectBase<DerivedV> & V, 
-  const Eigen::PlainObjectBase<DerivedT> & T,
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedV> & V, 
+  const Eigen::MatrixBase<DerivedT> & T,
+  const Eigen::MatrixBase<DerivedF> & F,
   const bool wait)
 {
   using namespace std;
@@ -56,6 +56,7 @@ IGL_INLINE int igl::launch_medit(
     return system(command.str().c_str());
   }catch(int e)
   {
+    (void)e;
     cerr<<"^"<<__FUNCTION__<<": Calling to medit crashed..."<<endl;
     return -1;
   }
@@ -64,6 +65,6 @@ IGL_INLINE int igl::launch_medit(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template int igl::launch_medit<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, bool);
+template int igl::launch_medit<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, bool);
 #endif
 

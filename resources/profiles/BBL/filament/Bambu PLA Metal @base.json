@@ -3,11 +3,11 @@
     "name": "Bambu PLA Metal @base",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "filament_id": "GFA02",
+    "filament_id": "OFrKLeE3",
     "instantiation": "false",
     "description": "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing.",
     "filament_cost": [
-        "29.99"
+        "21.99"
     ],
     "filament_density": [
         "1.25"
@@ -17,9 +17,6 @@
     ],
     "filament_vendor": [
         "Bambu Lab"
-    ],
-    "filament_scarf_seam_type": [
-        "none"
     ],
     "impact_strength_z": [
         "16.8"

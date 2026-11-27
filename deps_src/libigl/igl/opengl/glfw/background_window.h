@@ -11,17 +11,16 @@ namespace igl
   {
     namespace glfw
     {
-      // Create a background window with a valid core profile opengl context
-      // set to current.
-      //
-      // After you're finished with this window you may call
-      // `glfwDestroyWindow(window)`
-      //
-      // After you're finished with glfw you should call `glfwTerminate()`
-      //
-      // Outputs:
-      //    window  pointer to glfw window
-      // Returns true iff success
+      /// Create a background window with a valid core profile opengl context
+      /// set to current.
+      ///
+      /// After you're finished with this window you may call
+      /// `glfwDestroyWindow(window)`
+      ///
+      /// After you're finished with glfw you should call `glfwTerminate()`
+      ///
+      /// @param[out] window  pointer to glfw window
+      /// @return true iff success
       IGL_INLINE bool background_window(GLFWwindow* & window);
     }
   }

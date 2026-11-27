@@ -1,0 +1,100 @@
+{
+    "type": "process",
+    "name": "0.24mm Balanced Quality @BBL X2D 0.8 nozzle",
+    "inherits": "fdm_process_dual_0.24_nozzle_0.8",
+    "from": "system",
+    "setting_id": "GP226",
+    "instantiation": "true",
+    "description": "High quality profile for 0.8mm nozzle, prioritizing print quality.",
+    "bridge_speed": [
+        "30",
+        "50",
+        "30",
+        "30"
+    ],
+    "default_acceleration": [
+        "10000",
+        "8000",
+        "4000",
+        "4000"
+    ],
+    "enable_tower_interface_features": "1",
+    "gap_infill_speed": [
+        "50",
+        "250",
+        "50",
+        "50"
+    ],
+    "initial_layer_infill_speed": [
+        "55",
+        "105",
+        "55",
+        "55"
+    ],
+    "initial_layer_speed": [
+        "35",
+        "50",
+        "20",
+        "20"
+    ],
+    "inner_wall_speed": [
+        "300",
+        "300",
+        "150",
+        "150"
+    ],
+    "internal_solid_infill_speed": [
+        "250",
+        "300",
+        "150",
+        "150"
+    ],
+    "outer_wall_speed": [
+        "200",
+        "200",
+        "50",
+        "50"
+    ],
+    "overhang_3_4_speed": [
+        "15",
+        "30",
+        "25",
+        "25"
+    ],
+    "overhang_4_4_speed": [
+        "10",
+        "10",
+        "5",
+        "5"
+    ],
+    "prime_tower_brim_width": "-1",
+    "prime_tower_width": "60",
+    "print_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow",
+        "Bowden Standard",
+        "Bowden High Flow"
+    ],
+    "sparse_infill_speed": [
+        "270",
+        "600",
+        "100",
+        "100"
+    ],
+    "top_surface_pattern": "monotonicline",
+    "top_surface_speed": [
+        "150",
+        "200",
+        "150",
+        "150"
+    ],
+    "travel_speed": [
+        "1000",
+        "1000",
+        "1000",
+        "1000"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.8 nozzle"
+    ]
+}

@@ -12,8 +12,11 @@ docker run \
   --net=host \
   `# Some X installs will not have permissions to talk to sockets for shared memory` \
   --ipc host \
-  `# Run as your workstations username to keep permissions the same` \
-  -u "$USER" \
+  `# Run as your workstations UID and GID to keep permissions the same.` \
+  `# Numeric IDs work even when the image has no user with your name` \
+  -u "$(id -u):$(id -g)" \
+  -e HOME="/home/$USER" \
+  -w "/home/$USER" \
   `# Bind mount your home directory into the container for loading/saving files` \
   -v "$HOME:/home/$USER" \
   `# Pass the X display number to the container` \

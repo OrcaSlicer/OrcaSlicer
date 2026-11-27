@@ -1,10 +1,42 @@
 #include "GUI_Utils.hpp"
 #include "GUI_App.hpp"
+#include "libslic3r_version.h"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include <vector>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/AnimaController.hpp"
+#include <cstddef>
+#include <boost/filesystem/path.hpp>
+#include "libslic3r/Utils.hpp"
+#include <filesystem>
+#include <boost/filesystem/operations.hpp>
+#include <wx/msgdlg.h>
+#include <boost/log/trivial.hpp>
+#include <string>
+#include <boost/smart_ptr/make_shared_object.hpp>
+#include <boost/smart_ptr/weak_ptr.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include "slic3r/GUI/PartSkipCommon.hpp"
+#include <iterator>
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
+#include <wx/simplebook.h>
+#include <wx/scrolwin.h>
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
+#include <wx/toplevel.h>
+#include <wx/string.h>
+#include <wx/tglbtn.h>
 #include <wx/webrequest.h>
 #include <wx/control.h>
 #include <wx/dcclient.h>
@@ -22,13 +54,13 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Label.hpp"
 
-#include "MsgDialog.hpp"
 #include "Printer/PrinterFileSystem.h"
 #include "PartSkipDialog.hpp"
 #include "SkipPartCanvas.hpp"
-#include "MediaPlayCtrl.h"
 
 #include "DeviceCore/DevManager.h"
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 
@@ -50,27 +82,13 @@ static StateColor zoom_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), Stat
 static StateColor zoom_bd(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
 static StateColor zoom_text(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
 
-static StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-                               std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-                               std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
-static StateColor btn_bg_gray(std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Pressed),
-                              std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Hovered),
-                              std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Normal));
-
-static StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-                               std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                               std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-
 PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _L("Skip Objects"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
 {
     std::time_t       t = std::time(0);
     std::stringstream buf;
-    buf << put_time(std::localtime(&t), "%a_%b_%d_%H_%M_%S/");
+    buf << std::put_time(std::localtime(&t), "%a_%b_%d_%H_%M_%S/");
     m_timestamp = buf.str();
 
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % Slic3r::resources_dir()).str();
-    SetIcon(wxIcon(Slic3r::encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
     SetBackgroundColour(*wxWHITE);
 
     m_sizer = new wxBoxSizer(wxVERTICAL);
@@ -161,7 +179,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_line->SetBackgroundColour(wxColor(238, 238, 238));
 
     m_list_view = new wxScrolledWindow(m_book_third_panel, wxID_ANY, wxDefaultPosition, wxSize(267, -1), wxHSCROLL | wxVSCROLL);
-    m_list_view->SetScrollRate(5, 5);
+    m_list_view->SetScrollRate(5, FromDIP(30));
     m_list_view->SetMinSize(wxSize(FromDIP(267), FromDIP(378)));
     m_list_view->SetMaxSize(wxSize(FromDIP(267), FromDIP(378)));
     m_list_view->SetBackgroundColour(*wxWHITE);
@@ -187,13 +205,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_tot_label->SetMinSize(wxSize(FromDIP(200), FromDIP(20)));
 
     m_apply_btn = new Button(m_book_third_panel, _L("Skip"));
-    m_apply_btn->SetBackgroundColor(btn_bg_gray);
-    m_apply_btn->SetTextColor(wxColour("#FFFFFE"));
-    // m_apply_btn->SetBorderColor(wxColour(38, 46, 48));
-    m_apply_btn->SetFont(Label::Body_14);
-    m_apply_btn->SetSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_btn->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_btn->SetCornerRadius(FromDIP(16));
+    m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_apply_btn->SetToolTip(wxEmptyString);
 
     m_canvas_sizer->Add(m_canvas, 0, wxLEFT | wxTOP | wxEXPAND, FromDIP(17));
@@ -217,9 +229,9 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
 #else
     m_dlg_btn_sizer->Add(m_tot_label, 0, wxALIGN_CENTER_VERTICAL, 0);
 #endif
-    m_dlg_btn_sizer->Add(0, 0, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(0));
+    m_dlg_btn_sizer->Add(0, 0, 1, wxEXPAND, FromDIP(0));
     m_dlg_btn_sizer->Add(m_apply_btn, 0, wxALIGN_CENTER_VERTICAL, FromDIP(0));
-    m_dlg_btn_sizer->Add(0, 0, 0, wxLEFT | wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(24));
+    m_dlg_btn_sizer->Add(0, 0, 0, wxLEFT | wxEXPAND, FromDIP(24));
 
     m_dlg_placeholder = new wxPanel(m_book_third_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
     m_dlg_placeholder->SetMinSize(wxSize(-1, FromDIP(15)));
@@ -251,13 +263,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_book_second_sizer->Add(0, 0, 1, wxEXPAND, 0);
 
     m_second_retry_btn = new Button(m_book_second_panel, _L("Retry"));
-    m_second_retry_btn->SetBackgroundColor(btn_bg_green);
-    // m_second_retry_btn->SetBorderColor(wxColour(38, 46, 48));
-    m_second_retry_btn->SetTextColor(*wxWHITE);
-    m_second_retry_btn->SetFont(Label::Body_14);
-    m_second_retry_btn->SetSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_second_retry_btn->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_second_retry_btn->SetCornerRadius(FromDIP(16));
+    m_second_retry_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_second_retry_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnRetryButton, this);
     m_book_second_btn_sizer->Add(m_second_retry_btn, 0, wxALL, FromDIP(24));
 
@@ -296,7 +302,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_simplebook->AddPage(m_book_third_panel, _("dialog page"), false);
     m_sizer->Add(m_simplebook, 1, wxEXPAND | wxALL, 5);
 
-    SetSizer(m_sizer);
+    SetSizerAndFit(m_sizer);
     m_zoom_in_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnZoomIn, this);
     m_zoom_out_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnZoomOut, this);
     m_switch_drag_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnSwitchDrag, this);
@@ -307,7 +313,6 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_all_checkbox->Bind(wxEVT_TOGGLEBUTTON, &PartSkipDialog::OnAllCheckbox, this);
 
     Layout();
-    Fit();
     CentreOnParent();
 }
 
@@ -343,17 +348,12 @@ void PartSkipDialog::on_dpi_changed(const wxRect &suggested_rect)
     m_line->SetMinSize(wxSize(FromDIP(267), 1));
     m_line->SetMaxSize(wxSize(FromDIP(267), 1));
 
-    m_apply_btn->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_btn->SetCornerRadius(FromDIP(16));
-    m_apply_btn->Rescale();
+    m_apply_btn->Rescale(); // ORCA no need to set size again with SetStyle
 
     m_dlg_placeholder->SetMinSize(wxSize(-1, FromDIP(15)));
     m_dlg_placeholder->SetMaxSize(wxSize(-1, FromDIP(15)));
 
-    // m_second_retry_btn->SetSize(wxSize(-1, FromDIP(32)));
-    m_second_retry_btn->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_second_retry_btn->SetCornerRadius(FromDIP(16));
-    m_second_retry_btn->Rescale();
+    m_second_retry_btn->Rescale(); // ORCA no need to set size again with SetStyle
 
     m_all_checkbox->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
     m_all_checkbox->Rescale();
@@ -398,11 +398,11 @@ std::string PartSkipDialog::create_tmp_path()
     }
     std::string tmp_path = (parent_path / buf.str()).string();
 
-    if (!std::filesystem::exists(tmp_path + "Metadata/") && !fs::create_directories(tmp_path + "Metadata/")) { wxMessageBox("create file failed."); }
+    if (!std::filesystem::exists(tmp_path + "Metadata/") && !fs::create_directories(tmp_path + "Metadata/")) { wxMessageBox(_L("Failed to create the temporary folder.")); }
     return tmp_path;
 }
 
-bool PartSkipDialog::is_local_file_existed(const std::vector<string> &local_paths)
+bool PartSkipDialog::is_local_file_existed(const std::vector<std::string> &local_paths)
 {
     for (auto path : local_paths) {
         if (!std::filesystem::exists(path)) { return false; }
@@ -511,7 +511,7 @@ void PartSkipDialog::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
                         fs->SetUrl("3");
                     }
                 });
-            });
+            }, wxGetApp().get_printer_cloud_provider());
             break;
         }
         default: break;
@@ -676,6 +676,7 @@ void PartSkipDialog::UpdateCountLabel()
     }
     m_cnt_label->SetLabel(wxString::Format("%d", check_cnt));
     m_cnt_label->Fit();
+    // TRN Shown right after the number of selected objects, which is a separate label: "3/10 Selected". %d is the total number of objects.
     m_tot_label->SetLabel(wxString::Format(_L("/%d Selected"), tot_cnt));
     m_tot_label->Fit();
     m_dlg_btn_sizer->Layout();
@@ -703,8 +704,8 @@ void PartSkipDialog::InitDialogUI()
     m_parts_state.clear();
     m_parts_name.clear();
 
-    string pick_img   = m_local_paths[0];
-    string slice_info = m_local_paths[2];
+    std::string pick_img   = m_local_paths[0];
+    std::string slice_info = m_local_paths[2];
 
     m_switch_drag_btn->SetIcon("canvas_drag");
     m_switch_drag_btn->SetBackgroundColor(*wxWHITE);
@@ -855,7 +856,7 @@ bool PartSkipDialog::IsAllChecked()
     return true;
 }
 
-bool PartSkipDialog::IsAllCancled()
+bool PartSkipDialog::IsAllCanceled()
 {
     for (auto &[part_id, part_state] : m_parts_state) {
         if (part_state == PartState::psChecked) return false;
@@ -882,20 +883,20 @@ void PartSkipDialog::OnAllCheckbox(wxCommandEvent &event)
 
 void PartSkipDialog::UpdateApplyButtonStatus()
 {
-    if (IsAllCancled()) {
-        m_apply_btn->SetBackgroundColor(btn_bg_gray);
+    if (IsAllCanceled()) {
+        m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         m_apply_btn->SetToolTip(_L("Nothing selected"));
         m_enable_apply_btn = false;
     } else if (m_parts_state.size() > 64) {
-        m_apply_btn->SetBackgroundColor(btn_bg_gray);
+        m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         m_apply_btn->SetToolTip(_L("Over 64 objects in single plate"));
         m_enable_apply_btn = false;
     } else if (!is_model_support_partskip) {
-        m_apply_btn->SetBackgroundColor(btn_bg_gray);
+        m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         m_apply_btn->SetToolTip(_L("The current print job cannot be skipped"));
         m_enable_apply_btn = false;
     } else {
-        m_apply_btn->SetBackgroundColor(btn_bg_green);
+        m_apply_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
         m_apply_btn->SetToolTip(wxEmptyString);
         m_enable_apply_btn = true;
     }
@@ -922,7 +923,8 @@ void PartSkipDialog::OnApplyDialog(wxCommandEvent &event)
         confirm_dialog.SetMsgLabel(_L("Skipping all objects."));
         confirm_dialog.SetTipLabel(_L("The printing job will be stopped. Continue?"));
     } else {
-        confirm_dialog.SetMsgLabel(wxString::Format(_L("Skipping %d objects."), m_partskip_ids.size()));
+        const int skip_cnt = int(m_partskip_ids.size());
+        confirm_dialog.SetMsgLabel(wxString::Format(_L_PLURAL("Skipping %d object.", "Skipping %d objects.", skip_cnt), skip_cnt));
         confirm_dialog.SetTipLabel(_L("This action cannot be undone. Continue?"));
     }
 
@@ -955,8 +957,6 @@ int PartSkipDialog::GetAllSkippedPartsNum()
 
 PartSkipConfirmDialog::PartSkipConfirmDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _L("Skip Objects"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
 {
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % Slic3r::resources_dir()).str();
-    SetIcon(wxIcon(Slic3r::encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
     SetBackgroundColour(*wxWHITE);
     SetMinSize(wxSize(FromDIP(480), FromDIP(215)));
     SetSizeHints(wxDefaultSize, wxDefaultSize);
@@ -989,20 +989,8 @@ PartSkipConfirmDialog::PartSkipConfirmDialog(wxWindow *parent) : DPIDialog(paren
     m_button_sizer->SetMinSize(wxSize(FromDIP(480), FromDIP(54)));
     m_button_sizer->Add(0, 0, 1, wxEXPAND, 0);
 
-    StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed), std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-                            std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(27, 136, 68), StateColor::Pressed), std::pair<wxColour, int>(wxColour(61, 203, 115), StateColor::Hovered),
-                            std::pair<wxColour, int>(wxColour(0, 177, 66), StateColor::Normal));
-
     m_apply_button = new Button(this, _L("Continue"));
-    m_apply_button->SetBackgroundColor(btn_bg_green);
-    m_apply_button->SetTextColor(*wxWHITE);
-    // m_apply_button->SetBorderColor(wxColour(38, 46, 48));
-    m_apply_button->SetFont(Label::Body_14);
-    m_apply_button->SetSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_button->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_button->SetCornerRadius(FromDIP(16));
+    m_apply_button->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_apply_button->Bind(wxEVT_BUTTON, [this](auto &e) {
         EndModal(wxID_OK);
         e.Skip();
@@ -1033,9 +1021,7 @@ bool PartSkipConfirmDialog::Show(bool show)
 
 void PartSkipConfirmDialog::on_dpi_changed(const wxRect &suggested_rect)
 {
-    m_apply_button->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_button->SetCornerRadius(FromDIP(16));
-    m_apply_button->Rescale();
+    m_apply_button->Rescale(); // ORCA no need to set size again with SetStyle
     Layout();
     Fit();
 }

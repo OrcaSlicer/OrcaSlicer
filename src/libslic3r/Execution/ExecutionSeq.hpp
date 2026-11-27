@@ -1,6 +1,9 @@
 #ifndef EXECUTIONSEQ_HPP
 #define EXECUTIONSEQ_HPP
 
+#include <type_traits>
+#include "libslic3r/libslic3r.h"
+#include <cstddef>
 #ifdef PRUSASLICER_USE_EXECUTION_STD // Conflicts with our version of TBB
 #include <execution>
 #endif

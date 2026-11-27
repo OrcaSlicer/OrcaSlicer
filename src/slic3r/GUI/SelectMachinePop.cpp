@@ -10,25 +10,53 @@
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
 #include "ConnectPrinter.hpp"
 
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/popupwin.h>
+#include <boost/log/trivial.hpp>
+#include <memory>
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <wx/chartype.h>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Auxiliary.hpp"
+#include "libslic3r/Preset.hpp"
+#include <cstddef>
+#include <cstring>
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
 #include <wx/mstream.h>
 #include <miniz.h>
 #include <algorithm>
+#include <wx/wx.h>
+#include <wx/timer.h>
+#include <wx/utils.h>
+#include <wx/toplevel.h>
+#include <wx/string.h>
 #include "Plater.hpp"
 #include "Notebook.hpp"
-#include "BitmapCache.hpp"
 #include "BindDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include <wx/textctrl.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -96,7 +124,7 @@ MachineObjectPanel::~MachineObjectPanel() {}
 
 void MachineObjectPanel::show_bind_dialog()
 {
-    if (wxGetApp().is_user_login()) {
+    if (wxGetApp().is_user_login(wxGetApp().get_printer_cloud_provider())) {
         BindMachineDialog dlg;
         dlg.update_machine_info(m_info);
         dlg.ShowModal();
@@ -327,7 +355,7 @@ SelectMachinePopup::SelectMachinePopup(wxWindow *parent)
     m_scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, SELECT_MACHINE_LIST_SIZE, wxHSCROLL | wxVSCROLL);
     m_scrolledWindow->SetBackgroundColour(*wxWHITE);
     m_scrolledWindow->SetMinSize(SELECT_MACHINE_LIST_SIZE);
-    m_scrolledWindow->SetScrollRate(0, 5);
+    m_scrolledWindow->SetScrollRate(0, SELECT_MACHINE_ITEM_SIZE.y);
     auto m_sizxer_scrolledWindow = new wxBoxSizer(wxVERTICAL);
     m_scrolledWindow->SetSizer(m_sizxer_scrolledWindow);
     m_scrolledWindow->Layout();
@@ -335,12 +363,12 @@ SelectMachinePopup::SelectMachinePopup(wxWindow *parent)
 
 #if defined(__WINDOWS__)
 	m_sizer_search_bar = new wxBoxSizer(wxVERTICAL);
-	m_search_bar = new wxSearchCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	m_search_bar = new wxSearchCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxNO_BORDER );
 	m_search_bar->SetDescriptiveText(_L("Search"));
 	m_search_bar->ShowSearchButton( true );
 	m_search_bar->ShowCancelButton( false );
 	m_sizer_search_bar->Add( m_search_bar, 1, wxALL| wxEXPAND, 1 );
-	m_sizer_main->Add(m_sizer_search_bar, 0, wxALL | wxEXPAND, FromDIP(2));
+	m_sizer_main->Add(m_sizer_search_bar, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(1));
 	m_search_bar->Bind( wxEVT_COMMAND_TEXT_UPDATED, &SelectMachinePopup::update_machine_list, this );
 #endif
     auto own_title        = create_title_panel(_L("My Device"));
@@ -387,13 +415,14 @@ void SelectMachinePopup::Popup(wxWindow *WXUNUSED(focus))
         m_refresh_timer->Start(MACHINE_LIST_REFRESH_INTERVAL);
     }
 
-    if (wxGetApp().is_user_login()) {
+    const std::string provider = wxGetApp().get_printer_cloud_provider();
+    if (wxGetApp().is_user_login(provider)) {
         if (!get_print_info_thread) {
-            get_print_info_thread = new boost::thread(Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token)] {
+            get_print_info_thread = new boost::thread(Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token), provider] {
                 NetworkAgent* agent = wxGetApp().getAgent();
                 unsigned int http_code;
                 std::string body;
-                int result = agent->get_user_print_info(&http_code, &body);
+                int result = agent->get_user_print_info(&http_code, &body, provider);
                 CallAfter([token, this, result, body]() {
                     if (token.expired()) {return;}
                     if (result == 0) {
@@ -500,6 +529,7 @@ void SelectMachinePopup::update_other_devices()
     DeviceManager* dev = wxGetApp().getDeviceManager();
     if (!dev) return;
     m_free_machine_list = dev->get_local_machinelist();
+    const std::string current_agent_id = dev->get_current_printer_agent_id();
 
     BOOST_LOG_TRIVIAL(trace) << "SelectMachinePopup update_other_devices start";
     this->Freeze();
@@ -511,7 +541,11 @@ void SelectMachinePopup::update_other_devices()
         /* do not show printer bind state is empty */
         if (!mobj->is_avaliable()) continue;
 
-        if (!wxGetApp().is_user_login() && !mobj->is_lan_mode_printer())
+        /* do not show devices discovered/bound by a different printer agent */
+        if (mobj->printer_agent_id != current_agent_id)
+            continue;
+
+        if (!wxGetApp().is_user_login(wxGetApp().get_printer_cloud_provider()) && !mobj->is_lan_mode_printer())
             continue;
 
         /* do not show printer in my list */
@@ -561,7 +595,7 @@ void SelectMachinePopup::update_other_devices()
             }
         }
 
-        op->Bind(EVT_CONNECT_LAN_PRINT, [this, mobj](wxCommandEvent &e) {
+        op->Bind(EVT_CONNECT_LAN_PRINT, [mobj](wxCommandEvent &e) {
             if (mobj) {
                 if (mobj->is_lan_mode_printer()) {
                     ConnectPrinterDialog dlg(wxGetApp().mainframe, wxID_ANY, _L("Input access code"));
@@ -573,7 +607,7 @@ void SelectMachinePopup::update_other_devices()
             }
         });
 
-        op->Bind(EVT_BIND_MACHINE, [this, mobj](wxCommandEvent &e) {
+        op->Bind(EVT_BIND_MACHINE, [mobj](wxCommandEvent &e) {
             BindMachineDialog dlg;
             dlg.update_machine_info(mobj);
             int dlg_result = wxID_CANCEL;
@@ -597,7 +631,7 @@ void SelectMachinePopup::update_other_devices()
     wxBoxSizer* placeholder_sizer = new wxBoxSizer(wxVERTICAL);
 
     // ORCA standardized HyperLink
-    m_hyperlink = new HyperLink(m_placeholder_panel, _L("Can't find my devices?"), wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-connect-printer"));
+    m_hyperlink = new HyperLink(m_placeholder_panel, _L("Can\'t find devices\?"), wxT("https://www.orcaslicer.com/wiki/")); // Orca: neutral wiki link (vendor URL removed)
     m_hyperlink->SetFont(::Label::Body_12);
     placeholder_sizer->Add(m_hyperlink, 0, wxALIGN_CENTER | wxALL, 5);
 
@@ -633,7 +667,7 @@ void SelectMachinePopup::update_user_devices()
     }
 
     m_bind_machine_list.clear();
-    m_bind_machine_list = dev->get_my_machine_list();
+    m_bind_machine_list = dev->get_my_machine_list(dev->get_current_printer_agent_id());
 
     //sort list
     std::vector<std::pair<std::string, MachineObject*>> user_machine_list;
@@ -694,16 +728,16 @@ void SelectMachinePopup::update_user_devices()
                     op->set_printer_state(PrinterState::LOCK);
                 }
             }
-            op->Bind(EVT_UNBIND_MACHINE, [this, dev, mobj](wxCommandEvent& e) {
+            op->Bind(EVT_UNBIND_MACHINE, [dev, mobj](wxCommandEvent& e) {
                 dev->set_selected_machine("");
                 if (mobj) {
                     AppConfig* config = wxGetApp().app_config;
                     if (config) {
+                        config->clear_local_machine_access_code(mobj->get_dev_id(), mobj->printer_agent_id);
                         config->erase_local_machine(mobj->get_dev_id());
                     }
 
-                    mobj->set_access_code("");
-                    mobj->erase_user_access_code();
+                    mobj->revoke_access();
                 }
 
                 if (GUI::wxGetApp().plater())
@@ -715,7 +749,7 @@ void SelectMachinePopup::update_user_devices()
         }
         else {
             op->show_printer_bind(true, PrinterBindState::ALLOW_UNBIND);
-            op->Bind(EVT_UNBIND_MACHINE, [this, mobj, dev](wxCommandEvent& e) {
+            op->Bind(EVT_UNBIND_MACHINE, [mobj, dev](wxCommandEvent& e) {
                 // show_unbind_dialog
                 UnBindMachineDialog dlg;
                 dlg.update_machine_info(mobj);
@@ -742,7 +776,7 @@ void SelectMachinePopup::update_user_devices()
             }
         }
 
-        op->Bind(EVT_CONNECT_LAN_PRINT, [this, mobj](wxCommandEvent &e) {
+        op->Bind(EVT_CONNECT_LAN_PRINT, [mobj](wxCommandEvent &e) {
             if (mobj) {
                 if (mobj->is_lan_mode_printer()) {
                     ConnectPrinterDialog dlg(wxGetApp().mainframe, wxID_ANY, _L("Input access code"));
@@ -754,7 +788,7 @@ void SelectMachinePopup::update_user_devices()
             }
         });
 
-         op->Bind(EVT_EDIT_PRINT_NAME, [this, mobj](wxCommandEvent &e) {
+         op->Bind(EVT_EDIT_PRINT_NAME, [mobj](wxCommandEvent &e) {
             EditDevNameDialog dlg;
             dlg.set_machine_obj(mobj);
             dlg.ShowModal();
@@ -865,7 +899,7 @@ void SelectMachinePopup::OnLeftUp(wxMouseEvent &event)
         //hyper link
         auto h_rect = m_hyperlink->ClientToScreen(wxPoint(0, 0));
         if (mouse_pos.x > h_rect.x && mouse_pos.y > h_rect.y && mouse_pos.x < (h_rect.x + m_hyperlink->GetSize().x) && mouse_pos.y < (h_rect.y + m_hyperlink->GetSize().y)) {
-          wxLaunchDefaultBrowser(wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-connect-printer"));
+          wxLaunchDefaultBrowser(wxT("https://www.orcaslicer.com/wiki/")); // Orca: neutral wiki link (vendor URL removed)
         }
     }
 }
@@ -950,17 +984,17 @@ void EditDevNameDialog::on_edit_name(wxCommandEvent &e)
     }
 
     if (m_valid_type == Valid && new_dev_name.empty()) {
-        info_line    = _L("The name is not allowed to be empty.");
+        info_line    = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_dev_name.find_first_of(' ') == 0) {
-        info_line    = _L("The name is not allowed to start with space character.");
+        info_line    = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_dev_name.find_last_of(' ') == new_dev_name.length() - 1) {
-        info_line    = _L("The name is not allowed to end with space character.");
+        info_line    = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 
@@ -983,7 +1017,7 @@ void EditDevNameDialog::on_edit_name(wxCommandEvent &e)
             auto           utf8_str = new_dev_name.ToUTF8();
             auto           name     = std::string(utf8_str.data(), utf8_str.length());
             if (m_info)
-                dev->modify_device_name(m_info->get_dev_id(), name);
+                dev->modify_device_name(m_info->get_dev_id(), name, wxGetApp().get_printer_cloud_provider());
         }
         DPIDialog::EndModal(wxID_CLOSE);
     }

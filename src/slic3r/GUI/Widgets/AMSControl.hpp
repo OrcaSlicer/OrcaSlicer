@@ -9,12 +9,28 @@
 #include "../DeviceManager.hpp"
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/AmsMappingPopup.hpp"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <string>
+#include <map>
+#include <vector>
+#include <utility>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/colour.h>
+#include <wx/event.h>
 #include <wx/simplebook.h>
 #include <wx/hyperlink.h>
 #include <wx/animate.h>
 #include <wx/dynarray.h>
+#include <tuple>
+#include <wx/sizer.h>
+#include <wx/string.h>
 
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include "slic3r/GUI/AMSDryControl.hpp"
 
 
 namespace Slic3r { namespace GUI {
@@ -47,11 +63,19 @@ protected:
 
     std::string                      m_dev_id;
     std::vector<std::vector<std::string>> m_item_ids{ {}, {} };
-    std::vector<std::pair<string, string>> pair_id;
+    std::vector<std::pair<std::string, std::string>> pair_id;
 
     int         m_total_ext_count = 1;
     AMSextruder *m_extruder{nullptr};
+    SwitcherImage *m_switcher{nullptr};       // Orca: filament-switch routing glyph (hidden unless a switch is installed)
     AMSRoadDownPart* m_down_road{ nullptr };
+
+    // Orca: "AMS not initialized" warning banner, materialized lazily only when a switch needs it (see show_switcher_status)
+    wxBoxSizer*     m_sizer_body{nullptr};
+    wxPanel*        tipPanel{nullptr};
+    wxBoxSizer*     tipSizer{nullptr};
+    wxStaticBitmap* icon{nullptr};
+    wxStaticText*   tipText{nullptr};
 
     /*items*/
     wxBoxSizer* m_sizer_ams_items{nullptr};
@@ -118,6 +142,7 @@ protected:
 
     AmsHumidityTipPopup m_Humidity_tip_popup;
     uiAmsPercentHumidityDryPopup* m_percent_humidity_dry_popup;
+    AMSDryCtrWin* m_ams_dry_ctr_win;
 
     std::string m_last_ams_id = "";
     std::string m_last_tray_id = "";
@@ -151,19 +176,27 @@ public:
     void StopRridLoading(wxString amsid, wxString canid);
     void ShowFilamentTip(bool hasams = true);
 
-    void UpdatePassRoad(string ams_id, AMSPassRoadType type, AMSPassRoadSTEP step);
+    // Orca: Filament Track Switch awareness. isFilaSwitchReady() resolves the selected machine and
+    // returns {installed, ready}; show_switcher_status() toggles the "AMS not initialized" banner.
+    std::tuple<bool, bool> isFilaSwitchReady();
+    void show_switcher_status(bool show);
+
+    void UpdatePassRoad(std::string ams_id, AMSPassRoadType type, AMSPassRoadSTEP step);
     void CreateAms();
     void CreateAmsDoubleNozzle(const std::string &series_name, const std::string& printer_type);
     void CreateAmsSingleNozzle(const std::string &series_name, const std::string &printer_type);
     void ClearAms();
+    void UpdateAmsDryControl(MachineObject* obj);
     void UpdateAms(const std::string   &series_name,
                    const std::string   &printer_type,
                    std::vector<AMSinfo> ams_info,
                    std::vector<AMSinfo> ext_info,
                    DevExtderSystem           data,
                    std::string          dev_id,
+                   MachineObject*       obj      = nullptr,
                    bool                 is_reset = true,
                    bool                 test     = false);
+    // Orca: simulation-data generator for local AMS-layout testing (no device required)
     std::vector<AMSinfo> GenerateSimulateData();
 
     void AddAms(AMSinfo info, AMSPanelPos pos = AMSPanelPos::LEFT_PANEL);

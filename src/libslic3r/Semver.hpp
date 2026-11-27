@@ -1,12 +1,16 @@
 #ifndef slic3r_Semver_hpp_
 #define slic3r_Semver_hpp_
 
+#include <boost/optional/optional.hpp>
+#include <boost/none.hpp>
+#include <limits>
+#include <cstdlib>
 #include <string>
 #include <cstring>
 #include <ostream>
 #include <stdexcept>
 #include <boost/optional.hpp>
-#include <boost/format.hpp>
+#include <utility>
 
 #include "semver/semver.h"
 
@@ -155,7 +159,7 @@ public:
 		std::string res;
 		int patch_1 = ver.patch/100;
 		int patch_2 = ver.patch%100;
-		res = (boost::format("%1%.%2%.%3%.%4%") % ver.major % ver.minor % patch_1 % patch_2).str();
+		res = std::to_string(ver.major) + "." + std::to_string(ver.minor) + "." + std::to_string(patch_1) + "." + std::to_string(patch_2);
 
 		if (ver.prerelease != nullptr) { res += '-'; res += ver.prerelease; }
 		if (ver.metadata != nullptr)   { res += '+'; res += ver.metadata; }
@@ -164,7 +168,7 @@ public:
 	std::string to_string_sf() const {
 		//BBS: version format
 		std::string res;
-		res = (boost::format("%1%.%2%.%3%") % ver.major % ver.minor % ver.patch).str();
+		res = std::to_string(ver.major) + "." + std::to_string(ver.minor) + "." + std::to_string(ver.patch);
 
 		if (ver.prerelease != nullptr) { res += '-'; res += ver.prerelease; }
 		if (ver.metadata != nullptr) { res += '+'; res += ver.metadata; }
@@ -190,6 +194,19 @@ public:
 		os << self.to_string();
 		return os;
 	}
+
+	// cereal: round-trip through the standard 3-part string (major.minor.patch).
+	// to_string() uses a BBS 4-part format that semver_parse() cannot read back.
+	template<class Archive>
+	std::string save_minimal(const Archive&) const { return to_string_sf(); }
+	template<class Archive>
+	void load_minimal(const Archive&, const std::string& s) {
+		auto v = Semver::parse(s);
+		if (! v)
+			throw std::runtime_error("Semver: cannot parse serialized version: " + s);
+		*this = std::move(*v);
+	}
+
 private:
 	semver_t ver;
 

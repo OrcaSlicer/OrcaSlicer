@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @Qidi X-Plus 5 0.4 nozzle",
+	"inherits": "Generic PETG@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "ckqzES7LsTgYKKhb",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.056"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

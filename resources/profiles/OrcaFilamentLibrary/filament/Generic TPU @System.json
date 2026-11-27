@@ -1,11 +1,19 @@
 {
-    "type": "filament",
-    "name": "Generic TPU @System",
-    "renamed_from": "My Generic TPU",
-    "inherits": "fdm_filament_tpu",
-    "from": "system",
-    "setting_id": "OGFSA04",
-    "filament_id": "OGFU99",
-    "instantiation": "true",
-    "compatible_printers": []
+	"type": "filament",
+	"name": "Generic TPU @System",
+	"renamed_from": "My Generic TPU",
+	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"setting_id": "D6O8IcmSe8WGqOvb",
+	"filament_id": "OFgbpcy9",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	]
 }

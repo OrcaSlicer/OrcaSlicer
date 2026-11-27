@@ -1,7 +1,12 @@
 #include "ExtrusionEntityCollection.hpp"
+#include "ExtrusionEntity.hpp"
+#include "Point.hpp"
+#include "Polygon.hpp"
 #include "ShortestPath.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <limits>
 #include <map>
 
 namespace Slic3r {

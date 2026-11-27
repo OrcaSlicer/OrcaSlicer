@@ -3,8 +3,25 @@
 
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include <string>
+#include <wx/event.h>
+#include <vector>
+#include <map>
+#include "slic3r/GUI/3DScene.hpp"
+#include <memory>
+#include <optional>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <wx/string.h>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <cereal/archives/binary.hpp>
+#include "libslic3r/Geometry.hpp"
 
 
 namespace Slic3r {
@@ -14,6 +31,11 @@ class ConfigOption;
 namespace GUI {
 
 enum class SLAGizmoEventType : unsigned char;
+
+// The radius an ear can have, in mm: the panel's slider and field keep to it, and so does a command that sets ears
+// (Ops::set_brim_ears()).
+inline constexpr float BRIM_EAR_RADIUS_MIN = 0.1f;
+inline constexpr float BRIM_EAR_RADIUS_MAX = 100.f;
 
 class GLGizmoBrimEars : public GLGizmoBase
 {
@@ -80,14 +102,22 @@ public:
     bool on_mouse(const wxMouseEvent& mouse_event) override;
     bool gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_position, bool shift_down, bool alt_down, bool control_down);
     void delete_selected_points();
+    bool has_selected_points() const;
     void update_model_object();
+    // For a caller that wrote the object's ears while the gizmo was closed (Ops::set_brim_ears()): the gizmo reloads its
+    // ears only when it opens on another object than the one it last opened on, so without this its next opening on the
+    // same object would show, and write back, the ears it held when it last closed. Also clears the ear selection, so
+    // that the reloaded ears, all unselected, and the selection a click reads agree.
+    void reload_on_next_opening();
+    // The radius a new ear takes: eight first-layer line widths of the edited process, within the radius limits.
+    float get_brim_default_radius() const;
     //ClippingPlane get_sla_clipping_plane() const;
 
-    bool is_selection_rectangle_dragging() const { return m_selection_rectangle.is_dragging(); }
+    bool is_selection_rectangle_dragging() const override { return m_selection_rectangle.is_dragging(); }
 
     bool wants_enter_leave_snapshots() const override { return true; }
-    std::string get_gizmo_entering_text() const override { return "Entering Brim Ears"; }
-    std::string get_gizmo_leaving_text() const override { return "Leaving Brim Ears"; }
+    std::string get_gizmo_entering_text() const override { return _u8L("Entering Brim Ears"); }
+    std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Brim Ears"); }
 
 private:
     bool on_init() override;
@@ -96,12 +126,12 @@ private:
 
     void render_points(const Selection& selection);
 
-    float m_new_point_head_diameter;        // Size of a new point.
+    float m_new_point_head_radius;          // Radius of a new point.
     float m_max_angle = 125.f;
     float m_detection_radius = 1.f;
     double m_detection_radius_max = .0f;
     CacheEntry m_point_before_drag;         // undo/redo - so we know what state was edited
-    float m_old_point_head_diameter = 0.;   // the same
+    float m_old_point_head_radius = 0.;     // the same
     mutable std::vector<CacheEntry> m_editing_cache; // a support point and whether it is currently selectedchanges or undo/redo
     std::map<int, CacheEntry> m_single_brim;
     ObjectID m_old_mo_id;
@@ -117,6 +147,9 @@ private:
     // This map holds all translated description texts, so they can be easily referenced during layout calculations
     // etc. When language changes, GUI is recreated and this class constructed again, so the change takes effect.
     std::map<std::string, wxString> m_desc;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts;
+
 
     GLSelectionRectangle m_selection_rectangle;
 
@@ -138,7 +171,7 @@ private:
     void select_point(int i);
     void unselect_point(int i);
     void reload_cache();
-    Points generate_points(Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer);
+    Points generate_points(const Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer);
     void auto_generate();
     void first_layer_slicer();
     void get_detection_radius_max();
@@ -159,10 +192,11 @@ protected:
     void on_start_dragging() override;
     void on_stop_dragging() override;
     void on_render_input_window(float x, float y, float bottom_limit) override;
-    void show_tooltip_information(float x, float y);
 
     std::string on_get_name() const override;
     bool on_is_activable() const override;
+    // The preview ear is drawn only while the cursor is on the model.
+    bool render_follows_cursor() const override { return render_hover_point.has_value(); }
     //bool on_is_selectable() const override;
     virtual CommonGizmosDataID on_get_requirements() const override;
     void on_load(cereal::BinaryInputArchive& ar) override;
@@ -173,7 +207,6 @@ protected:
     //void update_single_mesh_pick(GLVolume* v);
     void reset_all_pick();
     bool add_point_to_cache(Vec3f pos, float head_radius, bool selected, Vec3f normal);
-    float get_brim_default_radius() const;
     ExPolygon make_polygon(BrimPoint point, const Geometry::Transformation &trsf);
     void find_single();
 };
