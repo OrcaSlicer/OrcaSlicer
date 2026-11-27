@@ -1818,6 +1818,10 @@ class PresetsTest:
                 (self.own(0, "layer_height"), self.own(0, "outer_wall_line_width")), ("0.32", "0.7"))
         t.equal(f"{s} 4: the tower prints with slot 1", self.object_filaments(), [("SpeedTestStructure.drc", 1)])
 
+        self.run("project_new", **DISCARD)
+        t.equal(f"{s} 5: spiral mode discarded", self.value("process", "spiral_mode"), "0")
+        self.named_selection_is(f"{s} 5: after discard", named("ToolChanger | TC Std | " + ", ".join(["TC PLA"] * 5)))
+
         # The slots are independent of the tools, so this non-SEMM toolchanger adds and deletes them, and a slot
         # before a later one asks before the later slots' tool numbers shift.
         reply = self.run("filament_add")
