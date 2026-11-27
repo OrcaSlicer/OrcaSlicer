@@ -2408,6 +2408,7 @@ void GUI_App::init_networking_callbacks()
                 MachineObject* obj = m_device_manager->get_my_machine(tunnel ? dev_id.substr(7) : dev_id);
                 if (obj) {
                     obj->is_tunnel_mqtt = tunnel;
+                    obj->reset_liveness_window();
                     obj->command_request_push_all(true);
                     obj->command_get_version();
                     obj->command_get_access_code();
@@ -2468,6 +2469,8 @@ void GUI_App::init_networking_callbacks()
                                 event.SetString(obj->get_dev_id());
 
                                 obj->set_online_state(true);
+                                obj->set_lan_session_open(true);
+                                obj->reset_liveness_window();
                             } else if (state == ConnectStatus::ConnectStatusFailed) {
                                 // Orca: only update status if same device id
                                 if (m_device_manager->selected_machine != dev_id) return;
@@ -2491,12 +2494,14 @@ void GUI_App::init_networking_callbacks()
                                 event.SetInt(-1);
 
                                 obj->set_online_state(false);
+                                obj->set_lan_session_open(false);
                             } else if (state == ConnectStatus::ConnectStatusLost) {
                                 m_device_manager->set_selected_machine("");
                                 event.SetInt(-1);
                                 BOOST_LOG_TRIVIAL(info) << "set_on_local_connect_fn: state = lost";
 
                                 obj->set_online_state(false);
+                                obj->set_lan_session_open(false);
                             } else {
                                 event.SetInt(-1);
                                 BOOST_LOG_TRIVIAL(info) << "set_on_local_connect_fn: state = " << state;

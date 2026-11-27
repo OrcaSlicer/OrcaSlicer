@@ -124,6 +124,10 @@ public:
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     CameraStreamMode get_camera_stream_mode() const override;
     std::string get_camera_url() const override;
+    // True while the selected printer's status websocket is connected and subscribed.
+    // Used by the device view's liveness gate so a closed Moonraker link stops probing
+    // even though this agent does not emit a loss callback.
+    bool is_status_transport_connected() const { return ws_connected.load(); }
 
     // Called by the fetch-thread RAII guard when a background filament fetch finishes.
     // Serialized with the reservation so shutdown()'s wait cannot miss the transition to 0.
@@ -418,6 +422,7 @@ private:
 
     std::atomic<bool>   ws_stop{false};
     std::atomic<bool>   ws_reconnect_requested{false};  // Flag to trigger reconnection
+    std::atomic<bool>   ws_connected{false};            // WebSocket connected and subscribed
     std::atomic<uint64_t> ws_last_emit_ms{0};
     std::thread         ws_thread;
 

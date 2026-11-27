@@ -154,6 +154,12 @@ public:
     virtual bool supports_command(const std::string& /*dev_id*/, const std::string& /*command*/) const { return true; }
     virtual bool supports_feature(const std::string& /*dev_id*/, const std::string& /*feature*/) const { return false; }
 
+    // The shared device state reports a capability the printer advertised, per device.
+    // The shared contract stays OrcaSonar; an agent may retain a compatibility message
+    // for a legacy transport and record this to adapt its own sends. The default ignores
+    // it, which is correct for printers that speak the shared protocol.
+    virtual void note_mqtt_alive_support(const std::string& /*dev_id*/, bool /*supported*/) {}
+
     // Whether this agent serializes AMS lane selection into print.gcode_file's
     // per-print filament_mapping field. A dialect question, not a capability one:
     // the no-AMS external-spool normalization runs before capabilities are known.

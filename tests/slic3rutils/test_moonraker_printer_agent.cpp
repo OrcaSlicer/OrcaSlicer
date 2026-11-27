@@ -924,6 +924,43 @@ TEST_CASE("The status stream reconnects at the shortest delay while the printer 
     CHECK(f.stops_within(3s));
 }
 
+TEST_CASE("The status transport reports connected until its stream is stopped", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    Reports       reports;
+    StreamFixture f(Behavior::AnswersPings);
+    reports.attach(f.agent);
+
+    CHECK_FALSE(f.agent.is_status_transport_connected());
+    f.start();
+    REQUIRE(reports.wait_for(1));
+    CHECK(f.agent.is_status_transport_connected());
+
+    // AnswersPings keeps the connection open until the fixture stops it, so this check does
+    // not race the printer closing the socket right after its first status.
+    CHECK(f.stops_within(3s));
+    CHECK_FALSE(f.agent.is_status_transport_connected());
+}
+
+TEST_CASE("A closed Moonraker status link reports disconnected", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    Reports       reports;
+    StreamFixture f(Behavior::HangsUp);
+    f.agent.ws_timings.reconnect_delay = 10s;
+    reports.attach(f.agent);
+    f.start();
+
+    // The status confirms the client reached the read loop; the printer then closes. Do not
+    // assert a transient connected state here: wait until the client observes the close.
+    REQUIRE(reports.wait_for(1));
+    REQUIRE(f.printer.wait_for_ready_connections(1));
+    const auto deadline = std::chrono::steady_clock::now() + 2s;
+    while (f.agent.is_status_transport_connected() && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(5ms);
+
+    CHECK_FALSE(f.agent.is_status_transport_connected());
+    CHECK(f.stops_within(3s));
+}
+
 TEST_CASE("The status stream keeps retrying a printer that never answers", "[MoonrakerPrinterAgent][StatusStream]")
 {
     StreamFixture f(Behavior::HangsUpWithoutAnswer);

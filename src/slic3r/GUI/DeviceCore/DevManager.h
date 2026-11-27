@@ -55,6 +55,11 @@ public:
     void start_refresher();
     void stop_refresher();
 
+    // Probes the selected printer on one tick when it has been silent for TIMEOUT_FOR_STRAT
+    // and its transport is still open. Public so the refresher and tests can drive a tick
+    // without depending on cloud sign-in; it only ever acts on the current selection.
+    bool check_selected_machine_liveness(std::chrono::system_clock::time_point now = std::chrono::system_clock::now());
+
     MachineObject* get_selected_machine();
     bool set_selected_machine(std::string dev_id);
 
@@ -142,11 +147,19 @@ private:
     bool read_user_print_info(const std::string& body);
 
     void keep_alive();
-    void check_pushing();
+    bool is_selected_machine_transport_open(MachineObject* obj) const;
     std::string get_current_cloud_provider() const;
+    // The app's cloud provider when the GUI exists (unchanged runtime behavior); a headless
+    // fallback for tests that never construct wxApp.
+    std::string get_effective_cloud_provider() const;
 
     void OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state);
     void OnSelectedMachineChanged(const std::string& pre_dev_id, const std::string& new_dev_id);
+
+    // Selected-machine lookup for the liveness probe. Unlike get_selected_machine(), it does
+    // not consult cloud login, so an already-selected cloud printer is still probeable while
+    // its server channel is open. It still only ever returns the current selection.
+    MachineObject* get_selected_machine_for_liveness();
 
 
     /*TODO*/

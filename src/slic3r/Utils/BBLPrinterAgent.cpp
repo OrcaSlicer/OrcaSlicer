@@ -17,6 +17,7 @@
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <chrono>
 #include <exception>
 #include <functional>
 #include <map>
@@ -88,6 +89,16 @@ const BambuFilamentIdMap& bambu_filament_id_map()
 // auto nozzle mapping request and the rack status in the push message.
 constexpr std::array<std::string_view, 5> filament_id_keys{"tray_info_idx", "filament_id", "filamentId", "cate", "fila_id"};
 
+// The previous Bambu path sent pushing.start after a quiet period. Retain that
+// compatibility behavior for printers that report they do not support the MQTT alive
+// capability, and for printers that do not report it at all. The shared liveness probe
+// already waits 20 s of silence before sending its OrcaSonar pushing.pushall, so the
+// compatibility start uses the same threshold. The independent throttle keeps an
+// unaware caller from starting more often than the old Bambu keep-alive did
+// (REQUEST_START_MIN_TIME in DeviceManager).
+constexpr std::chrono::seconds LEGACY_PUSH_START_SILENCE{20};
+constexpr std::chrono::seconds LEGACY_PUSH_START_MIN_INTERVAL{15};
+
 // Rewrites every string under a filament id key, at any depth, in place.
 void rewrite_filament_ids(json& j, const std::unordered_map<std::string, std::string>& map)
 {
@@ -118,16 +129,6 @@ std::string rewrite_filament_ids(std::string text, const std::unordered_map<std:
     } catch (const std::exception&) {
         return text;                                        // not JSON: forward as received
     }
-}
-
-// Wraps an inbound message callback so every Bambu id it delivers arrives already translated.
-// A null fn is a deregistration (see GUI_App.cpp's shutdown phase 1 and NetworkAgent::apply_printer_callbacks
-// clearing callbacks with {}), and must stay null rather than become a live wrapper around an empty target.
-OnMessageFn to_orca_messages(OnMessageFn fn)
-{
-    if (!fn)
-        return fn;
-    return [fn = std::move(fn)](std::string dev_id, std::string msg) { fn(std::move(dev_id), BBLPrinterAgent::to_orca_payload(std::move(msg))); };
 }
 
 // Retypes a plug-in entry point for an older plug-in generation. The detour through the
@@ -462,6 +463,12 @@ int BBLPrinterAgent::publish(const std::string& dev_id, const nlohmann::json& j,
 
 int BBLPrinterAgent::send_message(std::string dev_id, std::string json_str, int qos, int flag)
 {
+    maybe_emit_legacy_pushing_start(dev_id, json_str, false);
+    return send_cloud_message(std::move(dev_id), std::move(json_str), qos, flag);
+}
+
+int BBLPrinterAgent::send_cloud_message(std::string dev_id, std::string json_str, int qos, int flag)
+{
     json_str = from_orca_payload(std::move(json_str));
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
@@ -489,6 +496,8 @@ int BBLPrinterAgent::send_message(std::string dev_id, std::string json_str, int 
 
 int BBLPrinterAgent::connect_printer(const PrinterConnectionParams& params)
 {
+    if (!params.dev_id.empty())
+        note_activity(params.dev_id, legacy_clock_now());
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_connect_printer();
@@ -574,6 +583,12 @@ int BBLPrinterAgent::disconnect_printer()
 
 int BBLPrinterAgent::send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag)
 {
+    maybe_emit_legacy_pushing_start(dev_id, json_str, true);
+    return send_lan_message(std::move(dev_id), std::move(json_str), qos, flag);
+}
+
+int BBLPrinterAgent::send_lan_message(std::string dev_id, std::string json_str, int qos, int flag)
+{
     json_str = from_orca_payload(std::move(json_str));
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
@@ -595,6 +610,124 @@ int BBLPrinterAgent::send_message_to_printer(std::string dev_id, std::string jso
         }
     }
     return -1;
+}
+
+void BBLPrinterAgent::note_activity(const std::string& dev_id, std::chrono::steady_clock::time_point now)
+{
+    std::lock_guard<std::mutex> lock(m_mqtt_alive_mutex);
+    MqttAliveState& state = m_mqtt_alive[dev_id];
+    state.last_activity = now;
+    state.activity_seen = true;
+}
+
+void BBLPrinterAgent::note_mqtt_alive_support(const std::string& dev_id, bool supported)
+{
+    const MqttAliveSupport reported = supported ? MqttAliveSupport::supported : MqttAliveSupport::unsupported;
+    const auto             now      = legacy_clock_now();
+    std::lock_guard<std::mutex> lock(m_mqtt_alive_mutex);
+    MqttAliveState& state = m_mqtt_alive[dev_id];
+    // The capability itself arrived in a printer report, so it is also evidence that
+    // the status stream was alive at this moment.
+    state.last_activity = now;
+    state.activity_seen = true;
+    if (state.support == reported)
+        return;
+    state.support = reported;
+    BOOST_LOG_TRIVIAL(info) << "BBLPrinterAgent: device " << dev_id
+                            << " reports mqtt alive " << (supported ? "supported" : "unsupported");
+}
+
+void BBLPrinterAgent::note_inbound_message(const std::string& dev_id)
+{
+    note_activity(dev_id, legacy_clock_now());
+}
+
+std::chrono::steady_clock::time_point BBLPrinterAgent::legacy_clock_now() const
+{
+    return std::chrono::steady_clock::now();
+}
+
+std::string BBLPrinterAgent::next_legacy_sequence_id()
+{
+    return std::to_string(m_legacy_sequence.fetch_add(1) % 10000);
+}
+
+void BBLPrinterAgent::maybe_emit_legacy_pushing_start(const std::string& dev_id, const std::string& payload, bool lan_mode)
+{
+    // The shared contract may send more than pushall; only a full-status request can
+    // follow the quiet period this compatibility start is meant for.
+    if (payload.find("\"pushall\"") == std::string::npos)
+        return;
+
+    const json request = json::parse(payload, nullptr, false);
+    if (!request.is_object())
+        return;
+    const auto pushing_it = request.find("pushing");
+    if (pushing_it == request.end() || !pushing_it->is_object())
+        return;
+    // A non-string command is not a pushall. Do not let json::value() throw a type
+    // error here: the original payload must pass through unchanged like any other
+    // command this agent does not recognize.
+    const auto command_it = pushing_it->find("command");
+    if (command_it == pushing_it->end() || !command_it->is_string() ||
+        command_it->get<std::string>() != "pushall")
+        return;
+
+    const auto now = legacy_clock_now();
+    {
+        std::lock_guard<std::mutex> lock(m_mqtt_alive_mutex);
+        // An unknown state is meaningful: the printer may predate the capability report.
+        MqttAliveState& state = m_mqtt_alive[dev_id];
+        if (state.support == MqttAliveSupport::supported)
+            return; // the printer reports support: the shared pushall is enough
+
+        // The first connect request never adds a start, regardless of capability. It
+        // only establishes an activity reference when selection/connect and inbound
+        // reports have not already provided one.
+        if (!state.first_pushall_seen) {
+            state.first_pushall_seen = true;
+            if (!state.activity_seen) {
+                state.last_activity = now;
+                state.activity_seen = true;
+            }
+            return;
+        }
+
+        if (now - state.last_activity < LEGACY_PUSH_START_SILENCE)
+            return; // the stream is alive; an ordinary pushall needs no extra start
+        if (state.legacy_start_sent && now - state.last_legacy_start < LEGACY_PUSH_START_MIN_INTERVAL)
+            return;
+
+        // Record the attempt before sending: a second pushall arriving from another
+        // thread must not repeat the start, even if the transport reports failure.
+        state.legacy_start_sent  = true;
+        state.last_legacy_start  = now;
+    }
+
+    json start;
+    start["pushing"]["command"]     = "start";
+    start["pushing"]["sequence_id"] = next_legacy_sequence_id();
+    const std::string start_payload = start.dump();
+    BOOST_LOG_TRIVIAL(info) << "BBLPrinterAgent: " << dev_id
+                            << " has been quiet; adding compatibility pushing.start " << start_payload;
+    const int result = lan_mode ? send_lan_message(dev_id, start_payload, 0, 0)
+                                : send_cloud_message(dev_id, start_payload, 0, 0);
+    if (result != 0)
+        BOOST_LOG_TRIVIAL(warning) << "BBLPrinterAgent: compatibility pushing.start failed dev_id=" << dev_id
+                                   << " code=" << result;
+}
+
+OnMessageFn BBLPrinterAgent::wrap_inbound_message(OnMessageFn fn)
+{
+    // A null fn is a deregistration (see GUI_App.cpp's shutdown phase 1 and
+    // NetworkAgent::apply_printer_callbacks clearing callbacks with {}), and must stay null
+    // rather than become a live wrapper around an empty target.
+    if (!fn)
+        return fn;
+    return [this, fn = std::move(fn)](std::string dev_id, std::string msg) {
+        note_inbound_message(dev_id);
+        fn(std::move(dev_id), BBLPrinterAgent::to_orca_payload(std::move(msg)));
+    };
 }
 
 // ============================================================================
@@ -769,6 +902,8 @@ std::string BBLPrinterAgent::get_user_selected_machine()
 
 int BBLPrinterAgent::set_user_selected_machine(std::string dev_id)
 {
+    if (!dev_id.empty())
+        note_activity(dev_id, legacy_clock_now());
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_set_user_selected_machine();
@@ -963,7 +1098,7 @@ int BBLPrinterAgent::set_on_message_fn(OnMessageFn fn)
     auto agent = plugin.get_agent();
     auto func = plugin.get_set_on_message_fn();
     if (func && agent) {
-        return func(agent, to_orca_messages(std::move(fn)));
+        return func(agent, wrap_inbound_message(std::move(fn)));
     }
     return -1;
 }
@@ -996,7 +1131,7 @@ int BBLPrinterAgent::set_on_local_message_fn(OnMessageFn fn)
     auto agent = plugin.get_agent();
     auto func = plugin.get_set_on_local_message_fn();
     if (func && agent) {
-        return func(agent, to_orca_messages(std::move(fn)));
+        return func(agent, wrap_inbound_message(std::move(fn)));
     }
     return -1;
 }

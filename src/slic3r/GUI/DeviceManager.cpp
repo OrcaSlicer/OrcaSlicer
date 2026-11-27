@@ -1529,13 +1529,18 @@ int MachineObject::command_get_access_code() {
 
 int MachineObject::command_request_push_all(bool request_now)
 {
-    auto curr_time = std::chrono::system_clock::now();
-    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - last_request_push);
+    return request_push_all(request_now, true);
+}
+
+int MachineObject::request_push_all(bool request_now, bool report_unsupported,
+                                    std::chrono::system_clock::time_point now)
+{
+    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_request_push);
 
     if (diff.count() < REQUEST_PUSH_MIN_TIME) {
         if (request_now) {
             BOOST_LOG_TRIVIAL(trace) << "static: command_request_push_all, dev_id=" << dev_id;
-            last_request_push = std::chrono::system_clock::now();
+            last_request_push = now;
         }
         else {
             BOOST_LOG_TRIVIAL(trace) << "static: command_request_push_all: send request too fast, dev_id=" << dev_id;
@@ -1543,7 +1548,7 @@ int MachineObject::command_request_push_all(bool request_now)
         }
     } else {
         BOOST_LOG_TRIVIAL(trace) << "static: command_request_push_all, dev_id=" << dev_id;
-        last_request_push = std::chrono::system_clock::now();
+        last_request_push = now;
     }
 
     json j;
@@ -1551,7 +1556,45 @@ int MachineObject::command_request_push_all(bool request_now)
     j["pushing"]["command"]     = "pushall";
     j["pushing"]["version"]     =  1;
     j["pushing"]["push_target"] =  1;
-    return this->publish_json(j);
+    return this->publish_json(j, 0, 0, report_unsupported);
+}
+
+bool MachineObject::request_liveness_probe(std::chrono::system_clock::time_point now)
+{
+    // The transport is the selected LAN session, not SSDP discovery's m_is_online: discovery
+    // after a lost link must not reopen probing. The 30 s display timeout stays independent:
+    // sends below do not touch last_update_time or last_printer_message_time, so a silent
+    // printer still shows disconnected even while this keeps retrying an open transport.
+    if (is_lan_mode_printer()) {
+        if (!m_lan_session_open)
+            return false;
+    } else if (!m_is_online) {
+        return false;
+    }
+
+    const auto silent_for = now - last_printer_message_time;
+    if (silent_for < std::chrono::milliseconds(static_cast<int>(TIMEOUT_FOR_STRAT)))
+        return false;
+
+    // One probe per quiet interval. last_request_push also covers pushall requests started by
+    // the keep-alive, reconnects and user actions, so an automatic probe never overlaps one.
+    // On the very first automatic probe, the startup 5 s retries may have just stopped; allow
+    // the handoff there instead of postponing it by another full interval.
+    const auto probe_interval = std::chrono::milliseconds(static_cast<int>(LIVENESS_PROBE_INTERVAL));
+    if (now - last_liveness_probe < probe_interval)
+        return false;
+    const bool startup_handoff =
+        m_push_count == 0 && last_liveness_probe == std::chrono::system_clock::time_point{};
+    if (!startup_handoff && now - last_request_push < probe_interval)
+        return false;
+    // The pushall serialization itself rejects anything inside 3 s. Check that before
+    // recording the probe, so a rejected handoff is retried on the next tick instead of
+    // being postponed by a full probe interval.
+    if (now - last_request_push < std::chrono::milliseconds(static_cast<int>(REQUEST_PUSH_MIN_TIME)))
+        return false;
+
+    last_liveness_probe = now;
+    return request_push_all(false, false, now) == 0;
 }
 
 int MachineObject::command_pushing(std::string cmd)
@@ -1951,6 +1994,12 @@ bool MachineObject::printer_uses_filament_mapping() const
 bool MachineObject::printer_supports_feature(const char* feature) const
 {
     return feature && m_agent && m_agent->supports_feature(printer_agent_id, get_dev_id(), feature);
+}
+
+void MachineObject::report_mqtt_alive_support(bool supported)
+{
+    if (m_agent)
+        m_agent->note_mqtt_alive_support(printer_agent_id, get_dev_id(), supported);
 }
 
 bool MachineObject::supports_extrusion_cali() const
@@ -2783,13 +2832,21 @@ void MachineObject::reset_update_time()
     subscribe_counter = SUBSCRIBE_RETRY_COUNT;
 }
 
+void MachineObject::reset_liveness_window()
+{
+    last_printer_message_time = std::chrono::system_clock::now();
+    last_liveness_probe = {};
+}
+
 void MachineObject::reset()
 {
     BOOST_LOG_TRIVIAL(trace) << "reset dev_id=" << dev_id;
     last_update_time = std::chrono::system_clock::now();
+    reset_liveness_window();
     subscribe_counter = SUBSCRIBE_RETRY_COUNT;
     m_push_count = 0;
     m_full_msg_count = 0;
+    m_lan_session_open = false;
     is_220V_voltage = false;
     get_version_retry = 0;
     camera_recording = false;
@@ -2870,7 +2927,9 @@ static bool connects_through_moonraker_agent(const std::string& agent_id)
 
 int MachineObject::connect()
 {
+    m_lan_session_open = false;
     if (m_access_revoked || get_dev_ip().empty()) return -1;
+    reset_liveness_window();
     std::string username = m_agent ? m_agent->default_lan_username() : std::string();
     // The stored access code may be the "no API key" sentinel; agents expect an empty credential.
     std::string password = normalize_access_code(get_access_code());
@@ -2937,6 +2996,7 @@ int MachineObject::connect()
 int MachineObject::disconnect()
 {
     if (m_agent) {
+        m_lan_session_open = false;
         const int result = m_agent->disconnect_printer();
         if (result == 0)
             set_online_state(false);
@@ -3027,7 +3087,7 @@ bool MachineObject::is_camera_busy_off()
     return false;
 }
 
-int MachineObject::publish_json(const json& json_item, int qos, int flag)
+int MachineObject::publish_json(const json& json_item, int qos, int flag, bool report_unsupported)
 {
     int rtn = 0;
     if (m_agent && !m_agent->owns_agent(printer_agent_id)) {
@@ -3040,15 +3100,19 @@ int MachineObject::publish_json(const json& json_item, int qos, int flag)
 
     if (rtn == 0) {
         BOOST_LOG_TRIVIAL(info) << "publish_json: " << json_item.dump() << " code: " << rtn;
-    } else {
+    } else if (report_unsupported) {
         BOOST_LOG_TRIVIAL(error) << "publish_json: " << json_item.dump() << " code: " << rtn;
+    } else {
+        // Automatic liveness probes retry on a timer; do not fill the log with a failure
+        // the user did not trigger and cannot act on.
+        BOOST_LOG_TRIVIAL(debug) << "publish_json(automatic): " << json_item.dump() << " code: " << rtn;
     }
 
     // why: the agent is the only thing that knows what it can translate, so it reports
     // not-supported in its return value and this - the single funnel every command_* builder
     // passes through - is the one place that turns it into something the user sees. No list of
     // unsupported commands is needed anywhere: an agent that has no case for a command says so.
-    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE) {
+    if (report_unsupported && (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)) {
         show_unsupported_dlg(rtn);
     }
 
@@ -3194,6 +3258,16 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
         client_disconnected = j_pre["event"]["event"].get<std::string>() == "client.disconnected";
     }
 
+    // A LAN report proves the selected session is carrying bytes, including for agents that
+    // do not emit a loss callback. client.disconnected closes it even though it updates the
+    // generic last-message clock.
+    if (is_lan_mode_printer()) {
+        if (client_disconnected)
+            m_lan_session_open = false;
+        else if (tunnel == "lan")
+            m_lan_session_open = true;
+    }
+
     // A disconnect notification is a transport message too, but it must not first mark an
     // already-offline device as online through the generic message-received path.
     set_online_state(!client_disconnected);
@@ -3202,7 +3276,10 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
     auto diff1 = std::chrono::duration_cast<std::chrono::microseconds>(curr_time - last_update_time);
 
     /* update last received time */
-    last_update_time = std::chrono::system_clock::now();
+    const auto received = std::chrono::system_clock::now();
+    last_update_time = received;
+    if (parse_ok && !j_pre.empty() && !client_disconnected)
+        last_printer_message_time = received;
 
     try {
         bool restored_json = false;
@@ -3577,6 +3654,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 if (jj.contains("support_mqtt_alive")) {
                     if (jj["support_mqtt_alive"].is_boolean()) {
                         is_support_mqtt_alive = jj["support_mqtt_alive"].get<bool>();
+                        report_mqtt_alive_support(is_support_mqtt_alive);
                     }
                 }
 
@@ -5932,7 +6010,13 @@ void MachineObject::parse_new_info2(const json& info)
     parse_bool("support_1080dpi", is_support_1080dpi);
     parse_bool("support_cloud_print_only", is_support_cloud_print_only);
     parse_bool("support_command_ams_switch", is_support_command_ams_switch);
-    parse_bool("support_mqtt_alive", is_support_mqtt_alive);
+    {
+        const auto it = flags.find("support_mqtt_alive");
+        if (it != flags.end() && it->is_boolean()) {
+            is_support_mqtt_alive = it->get<bool>();
+            report_mqtt_alive_support(is_support_mqtt_alive);
+        }
+    }
     parse_bool("support_motor_noise_cali", is_support_motor_noise_cali);
     parse_bool("support_timelapse", is_support_timelapse);
     parse_bool("support_user_preset", is_support_user_preset);
@@ -6106,7 +6190,11 @@ int MachineObject::get_flag_bits(int num, int start, int count, int base) const
 
 void MachineObject::update_filament_list()
 {
+    if (!wxTheApp)
+        return;
     PresetBundle *preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
+    if (!preset_bundle)
+        return;
 
     // custom filament
     typedef std::map<std::string, std::pair<std::vector<int>, std::vector<int>>> map_pair;
@@ -6170,6 +6258,8 @@ void MachineObject::update_filament_list()
 void MachineObject::update_printer_preset_name()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << "start update preset_name";
+    if (!wxTheApp)
+        return;
     PresetBundle *     preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
     if (!preset_bundle) return;
     auto               printer_model = DevPrinterConfigUtil::get_printer_display_name(this->printer_type);

@@ -3,11 +3,15 @@
 
 #include "IPrinterAgent.hpp"
 #include "bambu_networking.hpp"
+#include <atomic>
+#include <chrono>
 #include <functional>
 #include <string>
 #include <memory>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <set>
+#include <unordered_map>
 #include <vector>
 
 namespace Slic3r { class ICloudServiceAgent; }
@@ -34,6 +38,10 @@ public:
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
+    // Shared device state reports the printer's advertised capability. The Bambu agent
+    // retains its old compatibility start after the status stream goes quiet; that
+    // translation lives here, not in the shared OrcaSonar contract.
+    void note_mqtt_alive_support(const std::string& dev_id, bool supported) override;
     int command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode) override;
     int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override;
     int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override;
@@ -127,9 +135,50 @@ public:
     // Sets the CA file the plug-in's cert folder trusts for dev_id; an empty ca_file removes it.
     static void trust_ca_file(const std::string& dev_id, const std::string& ca_file);
 
+protected:
+    // Wire seams. The public send methods apply the shared-contract -> Bambu
+    // adaptation and hand the resulting payloads here, so a test can observe the
+    // exact transport calls without loading the proprietary plug-in.
+    virtual int send_cloud_message(std::string dev_id, std::string json_str, int qos, int flag);
+    virtual int send_lan_message(std::string dev_id, std::string json_str, int qos, int flag);
+    virtual std::chrono::steady_clock::time_point legacy_clock_now() const;
+
+    // Called for each inbound printer report before it is translated and forwarded.
+    // The legacy pushing.start decision uses this, and the selection/connect time, as
+    // its evidence that the stream is still alive.
+    void note_inbound_message(const std::string& dev_id);
+
 private:
+    enum class MqttAliveSupport { unknown, supported, unsupported };
+    struct MqttAliveState
+    {
+        MqttAliveSupport                       support = MqttAliveSupport::unknown;
+        // Last inbound report or selection/connect, whichever is later. A first pushall
+        // with neither records itself here, so the first connect request never looks like
+        // silence. The usual 20 s threshold then applies, retaining the old Bambu behavior
+        // for printers that do not report the capability.
+        std::chrono::steady_clock::time_point  last_activity{};
+        bool                                   activity_seen = false;
+        bool                                   first_pushall_seen = false;
+        std::chrono::steady_clock::time_point  last_legacy_start{};
+        bool                                   legacy_start_sent = false;
+    };
+
+    // A reported "not supported" starts after the same silence the shared probe waits for.
+    // A printer that does not report the capability may still be a legacy target: it uses
+    // the same 20 s threshold, but never on the first pushall observed for that device.
+    // Known supporting printers and active streams are never started.
+    void maybe_emit_legacy_pushing_start(const std::string& dev_id, const std::string& payload, bool lan_mode);
+    void note_activity(const std::string& dev_id, std::chrono::steady_clock::time_point now);
+    std::string next_legacy_sequence_id();
+    OnMessageFn wrap_inbound_message(OnMessageFn fn);
+
     // why: the lan/cloud DECISION stays machine-side; keep this mechanical branch in sync with publish_json.
     int publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode);
+
+    mutable std::mutex                                  m_mqtt_alive_mutex;
+    std::unordered_map<std::string, MqttAliveState>     m_mqtt_alive;
+    std::atomic<unsigned>                               m_legacy_sequence{90000};
 };
 
 } // namespace Slic3r

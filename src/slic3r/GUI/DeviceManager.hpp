@@ -44,6 +44,7 @@
 #define PUSHINFO_TIMEOUT        15000.f     // milliseconds
 #define TIMEOUT_FOR_STRAT       20000.f     // milliseconds
 #define TIMEOUT_FOR_KEEPALIVE   5* 60 * 1000.f     // milliseconds
+#define LIVENESS_PROBE_INTERVAL 20000.f     // milliseconds
 #define REQUEST_PUSH_MIN_TIME   3000.f     // milliseconds
 #define REQUEST_START_MIN_TIME  15000.f     // milliseconds
 #define EXTRUSION_OMIT_TIME     20000.f     // milliseconds
@@ -298,6 +299,12 @@ public:
     time_t last_alive;
     bool m_is_online;
     bool m_lan_mode_connection_state{false};
+    // The selected LAN transport itself, not SSDP-discovered reachability. It is set when the
+    // local connect callback reports success and cleared on loss/deselect/disconnect, so a
+    // discovery broadcast cannot make a closed session look probeable.
+    bool m_lan_session_open{false};
+    void set_lan_session_open(bool open) { m_lan_session_open = open; }
+    bool is_lan_session_open() const { return m_lan_session_open; }
     bool m_set_ctt_dlg{ false };
     bool m_unsupported_dlg_shown{ false };
     void set_lan_mode_connection_state(bool state) {m_lan_mode_connection_state = state;};
@@ -307,11 +314,16 @@ public:
     int  parse_msg_count = 0;
     int  keep_alive_count = 0;
     std::chrono::system_clock::time_point   last_update_time;   /* last received print data from machine */
+    // Last successfully parsed, non-empty printer report that was not client.disconnected.
+    // Display freshness still uses last_update_time; liveness uses this so synthetic reloads,
+    // malformed payloads and empty objects do not postpone the idle probe.
+    std::chrono::system_clock::time_point   last_printer_message_time;
     std::chrono::system_clock::time_point   last_utc_time;   /* last received print data from machine */
     std::chrono::system_clock::time_point   last_keep_alive;    /* last received print data from machine */
     std::chrono::system_clock::time_point   last_push_time;     /* last received print push from machine */
     std::chrono::system_clock::time_point   last_request_push;  /* last received print push from machine */
     std::chrono::system_clock::time_point   last_request_start; /* last received print push from machine */
+    std::chrono::system_clock::time_point   last_liveness_probe; /* last automatic pushall liveness probe */
 
     bool device_cert_installed = false;
 
@@ -780,6 +792,11 @@ public:
     /* command commands */
     int command_get_version(bool with_retry = true);
     int command_request_push_all(bool request_now = false);
+    // Shared LAN/cloud liveness probe: after TIMEOUT_FOR_STRAT of silence on an open
+    // connection, send a quiet pushing.pushall, retried no faster than
+    // LIVENESS_PROBE_INTERVAL. Its full-status reply is an ordinary push_status, so
+    // parse_json() stamps last_update_time and resets the disconnect clock.
+    bool request_liveness_probe(std::chrono::system_clock::time_point now);
     int command_pushing(std::string cmd);
     int command_clean_print_error(std::string task_id, int print_error);
     int command_clean_print_error_uiop(int print_error);
@@ -921,6 +938,9 @@ public:
     bool is_printing_finished();
     bool is_core_xy();
     void reset_update_time();
+    // Starts a fresh liveness window for a real selection/reset/reconnect. Ordinary view
+    // refreshes must call reset_update_time() only, which leaves this probe clock alone.
+    void reset_liveness_window();
     void reset();
     static bool is_in_printing_status(std::string status);
 
@@ -941,7 +961,7 @@ public:
 
     /* Msg for display MsgFn */
     typedef std::function<void(std::string topic, std::string payload)> MsgFn;
-    int publish_json(const nlohmann::json& json_item, int qos = 0, int flag = 0) ;
+    int publish_json(const nlohmann::json& json_item, int qos = 0, int flag = 0, bool report_unsupported = true) ;
     int publish_json(const std::string& json_str, int qos = 0, int flag = 0) = delete;
     int cloud_publish_json(std::string json_str, int qos = 0, int flag = 0);
     int local_publish_json(std::string json_str, int qos = 0, int flag = 0);
@@ -1035,6 +1055,12 @@ public:
 
 private:
     int command_with_dialog(int cmd_result);
+    // Forward a printer-reported capability to the owning agent. The shared contract stays
+    // OrcaSonar; an agent may need it to adapt its own transport (Bambu legacy firmware
+    // needs pushing.start to resume a status stream that went quiet).
+    void report_mqtt_alive_support(bool supported);
+    int request_push_all(bool request_now, bool report_unsupported,
+                         std::chrono::system_clock::time_point now = std::chrono::system_clock::now());
     /* xcam door open check*/
     bool is_support_door_open_check = false;
     DoorOpenCheckState xcam_door_open_check  = DoorOpenCheckState::DOOR_OPEN_CHECK_DISABLE;
