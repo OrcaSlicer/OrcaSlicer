@@ -229,13 +229,15 @@ TEST_CASE("a change counts when it clears the 3% bar and both runs' CV", "[OrcaB
 
 TEST_CASE("a stage that changed state, or that one run lacks, is significant", "[OrcaBench][Compare]")
 {
+    const std::string variant = GENERATE(as<std::string> {}, "never ran in the other", "is missing from the other",
+                                         "also started without finishing in the other");
+    CAPTURE(variant);
     const IterationResult both    = iteration_of(200ms, {{"posSlice", 50ms}, {"posSupportMaterial", 60ms}});
     IterationResult       changed = iteration_of(200ms, {{"posSlice", 50ms}});
     bool                  timed   = false;
-    SECTION("ran in one run and never ran in the other") { changed.not_run = {{"posSupportMaterial", "object:0"}}; }
-    SECTION("ran in one run and is missing from the other") {}
-    SECTION("ran in both, and in one also started without finishing")
-    {
+    if (variant == "never ran in the other") {
+        changed.not_run = {{"posSupportMaterial", "object:0"}};
+    } else if (variant == "also started without finishing in the other") {
         changed            = both;
         changed.unfinished = {{"posSupportMaterial", "object:1", Clock::time_point {} + 1ms}};
         timed              = true;
