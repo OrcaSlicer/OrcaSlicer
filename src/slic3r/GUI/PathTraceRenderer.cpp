@@ -28,6 +28,7 @@
 #include <numeric>
 #include <set>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -387,8 +388,34 @@ void PathTraceRenderer::stop_worker()
         m_bvh_future.wait();
 }
 
+// Out of line, as the destructor: the program of the filament layer walk is an incomplete type in the header.
+PathTraceRenderer::PathTraceRenderer(GLCanvas3D& canvas) : m_canvas(canvas) {}
+
+PathTraceRenderer::~PathTraceRenderer()
+{
+    // Without a current OpenGL context release_gl_resources() was not called, and the program is left to
+    // the context, as the other GL objects are.
+    (void) m_filament_layers_shader.release();
+}
+
+GLShaderProgram* PathTraceRenderer::filament_layers_shader()
+{
+    if (m_filament_layers_shader == nullptr && !m_filament_layers_shader_failed) {
+        GLShaderProgram::ShaderFilenames filenames{};
+        filenames[static_cast<size_t>(GLShaderProgram::EShaderType::Compute)] = "430/pathtrace.comp";
+        auto shader = std::make_unique<GLShaderProgram>();
+        if (shader->init_from_files("pathtrace_compute_filament_layers", filenames, { std::string_view("FILAMENT_LAYERS") }))
+            m_filament_layers_shader = std::move(shader);
+        else
+            m_filament_layers_shader_failed = true;
+    }
+    return m_filament_layers_shader.get();
+}
+
 void PathTraceRenderer::release_gl_resources()
 {
+    m_filament_layers_shader.reset();
+    m_filament_layers_shader_failed = false;
     if (m_gpu_node_buffer != 0 || m_gpu_triangle_buffer != 0 ||
         m_gpu_shading_buffer != 0 || m_gpu_instance_buffer != 0 ||
         m_gpu_tlas_buffer != 0 || m_gpu_normal_buffer != 0) {
@@ -1856,6 +1883,13 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
     combine(size_t(quality.quality_preset));
     combine(size_t(m_canvas._shadow_mode()));
     combine(size_t(glossy_toolpaths));
+    const auto colors_by_filament = [](libvgcode::EViewType type) {
+        return type == libvgcode::EViewType::Summary || type == libvgcode::EViewType::ColorPrint || type == libvgcode::EViewType::Tool;
+    };
+    const bool filament_layers = m_canvas.m_canvas_type == GLCanvas3D::ECanvasType::CanvasPreview && wxGetApp().app_config != nullptr &&
+                                 wxGetApp().app_config->get_bool(SETTING_OPENGL_PATHTRACE_FILAMENT_LAYERS) &&
+                                 colors_by_filament(m_canvas.m_gcode_viewer.get_view_type()) && filament_layers_shader() != nullptr;
+    combine(size_t(filament_layers));
     combine(preview_z_max);
     combine(preview_move_min);
     combine(preview_move_max);
@@ -1949,7 +1983,7 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
     m_is_interactive = interactive;
 
     // Both exist, see is_available().
-    GLShaderProgram* compute_shader = wxGetApp().get_shader("pathtrace_compute");
+    GLShaderProgram* compute_shader = filament_layers ? filament_layers_shader() : wxGetApp().get_shader("pathtrace_compute");
     GLShaderProgram* denoise_shader = wxGetApp().get_shader("pathtrace_denoise");
 
     if (m_gpu_scene_signature != m_geom_signature && !upload_scene(geom_signature))

@@ -468,8 +468,11 @@ wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString too
     //// save config
     combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, config_name_index, onchange](wxCommandEvent& e) {
         app_config->set(param, config_name_index[e.GetSelection()]);
-        if (param == SETTING_OPENGL_SHADING_MODEL && m_pathtrace_quality_combobox)
-            m_pathtrace_quality_combobox->Enable(config_name_index[e.GetSelection()] == "pathtrace");
+        if (param == SETTING_OPENGL_SHADING_MODEL) {
+            const bool pathtrace = config_name_index[e.GetSelection()] == "pathtrace";
+            if (m_pathtrace_quality_combobox) m_pathtrace_quality_combobox->Enable(pathtrace);
+            if (m_pathtrace_filament_layers_checkbox) m_pathtrace_filament_layers_checkbox->Enable(pathtrace);
+        }
         if (onchange != nullptr) onchange(config_name_index[e.GetSelection()]);
         e.Skip();
     });
@@ -1160,6 +1163,10 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
 
     if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
     if (param == SETTING_OPENGL_SKIP_IDENTICAL_FRAMES) { m_skip_identical_frames_checkbox = checkbox; }
+    if (param == SETTING_OPENGL_PATHTRACE_FILAMENT_LAYERS) {
+        m_pathtrace_filament_layers_checkbox = checkbox;
+        checkbox->Enable(app_config->get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace");
+    }
 
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
 

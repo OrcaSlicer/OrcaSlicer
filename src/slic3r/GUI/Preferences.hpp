@@ -104,6 +104,7 @@ public:
     ::TextInput *m_backup_interval_textinput = {nullptr};
     ::SpinInput *m_dim_previous_layers_brightness_input = {nullptr};
     ::ComboBox * m_pathtrace_quality_combobox = {nullptr};
+    ::CheckBox * m_pathtrace_filament_layers_checkbox = {nullptr};
     // Disabled while persistent outlines are off.
     wxWindow *   m_persistent_outline_color_button = {nullptr};
     wxStaticText *m_download_path_text       = {nullptr}; // the downloads folder, in its row

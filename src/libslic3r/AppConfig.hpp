@@ -53,6 +53,8 @@
 #define SETTING_OPENGL_OUTLINE_PERSISTENT "opengl_outline_persistent"
 #define SETTING_OPENGL_OUTLINE_COLOR "opengl_outline_color"
 #define SETTING_OPENGL_SELECTION_OUTLINE_COLOR "opengl_selection_outline_color"
+// The path tracer shows the layers of opaque filaments in Preview letting light through.
+#define SETTING_OPENGL_PATHTRACE_FILAMENT_LAYERS "opengl_pathtrace_filament_layers"
 
 #define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
 #define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1

@@ -120,6 +120,14 @@ uniform bool bed_hidden;
 // the move grey_below_move.
 uniform ivec4 lit_layer_moves;
 uniform int grey_below_move;
+// Opaque filaments seen in Preview let light through their thin layers, see filament_layer(). Only the
+// program built with FILAMENT_LAYERS walks them: the code of the walk alone makes the other one about a
+// fifth slower where it never runs.
+#ifdef FILAMENT_LAYERS
+const bool filament_layers = true;
+#else
+const bool filament_layers = false;
+#endif
 uniform float layer_dim;
 uniform int kept_vertex;
 uniform bool glossy_toolpaths;
@@ -172,6 +180,17 @@ const float EDGE_TOLERANCE = 2e-4;
 const uint NO_HIT = 0xFFFFFFFFu;
 
 const float OPAQUE_OPACITY = 0.96;
+// Share of the light a filament lets through at its transmission distance.
+const float LAYER_RESIDUAL = 0.015;
+// Largest extinction of a channel in a layer of opaque filament, per mm.
+const float LAYER_MAX_EXTINCTION = 16.0;
+// Air along a walk through the layers of a filament that ends it, in mm: wider than the grooves
+// between neighboring beads.
+const float LAYER_AIR_GAP = 0.15;
+// Saunderson's correction for an index of 1.5: reflectance of the surface from outside at normal
+// incidence, and of diffuse light from inside.
+const float SAUNDERSON_OUTSIDE = 0.04;
+const float SAUNDERSON_INSIDE = 0.6;
 // The triangles of the markers, travels and wipes of the preview carry an opacity of 2 plus how much
 // nearer, in mm, a closest hit takes them than they are, at most OVERLAY_MAX_BIAS: the rasterizer
 // moves the markers and wipes toward the eye, so that they show on the toolpaths they sit in.
@@ -226,6 +245,7 @@ const uint D_LIGHT = 1u;
 const uint D_BSDF = 2u;
 const uint D_DIFFUSE = 3u;
 const uint D_SSS = 4u;
+const uint D_LAYERS = 5u;
 
 const int TRAVERSE_CLOSEST = 0;
 const int TRAVERSE_SHADOW = 1;
@@ -236,6 +256,11 @@ bool g_has_z_filter = false;
 bool g_only_opaque = false;
 // Where the last translucent bead the ray started inside of ends, in world units, or below zero.
 float g_bead_far = -1.0;
+// The ray looks through the beads behind a surface, opaque ones too, from inside the ones it overlaps.
+bool g_layer_march = false;
+// The walk has found a bead it starts inside of: it first goes on to where that ends, whatever other
+// bead it enters on its way, or the plastic up to there would go uncounted.
+bool g_layer_inside = false;
 bool g_interactive = false;
 // Distances along the current ray between which the section view keeps geometry.
 float g_clip_near = 0.0;
@@ -514,6 +539,37 @@ vec3 wall_transmittance(vec3 albedo, float opacity, float thickness)
 {
     float straight = exp(-straight_extinction(opacity) * thickness);
     return straight * exp(-dye_extinction(albedo) * thickness) + (1.0 - straight) * (1.0 - diffuse_reflect_share(opacity)) * albedo;
+}
+
+// Kubelka-Munk describes the plastic below its surface, which holds back part of the light going out:
+// the reflectance inside it for an observed one, and back.
+float saunderson_inside_f(float observed) { return observed / ((1.0 - SAUNDERSON_OUTSIDE) * (1.0 - SAUNDERSON_INSIDE) + SAUNDERSON_INSIDE * observed); }
+vec3 saunderson_inside(vec3 observed) { return observed / ((1.0 - SAUNDERSON_OUTSIDE) * (1.0 - SAUNDERSON_INSIDE) + SAUNDERSON_INSIDE * observed); }
+vec3 saunderson_observed(vec3 inside) { return (1.0 - SAUNDERSON_OUTSIDE) * (1.0 - SAUNDERSON_INSIDE) * inside / (1.0 - SAUNDERSON_INSIDE * inside); }
+
+// Reflectance and transmittance inside a layer of opaque filament, by Kubelka-Munk. Its reflectance when
+// thick is the filament color, which so stays exact on a thick stack. Its luminance is down to
+// LAYER_RESIDUAL at the transmission distance, the thickness at which a filament stops showing what
+// lies behind it, estimated from the brightness of the color. That gives the scattering, which is
+// the same for all channels: the channels the filament reflects little of then die out much sooner,
+// so that layers filter each other's light as pigments do, and yellow and blue make green. A channel
+// that dies out at once would leave no pale tints in a thin layer, so its extinction is limited.
+void filament_layer(vec3 color, float thickness, out vec3 reflectance, out vec3 transmittance)
+{
+    float observed_l = clamp(dot(color, vec3(0.2126, 0.7152, 0.0722)), 0.005, 0.995);
+    float transmission_distance = mix(0.6, 3.5, sqrt(observed_l));
+    vec3 c = clamp(saunderson_inside(color), vec3(0.005), vec3(0.995));
+    float l = clamp(saunderson_inside_f(observed_l), 0.005, 0.995);
+    float a_l = 1.0 + (1.0 - l) * (1.0 - l) / (2.0 * l);
+    float b_l = sqrt(a_l * a_l - 1.0);
+    // The denominator below is sinh(y + atanh(b / a)), which gives the y of the transmission distance.
+    float scattering = (asinh(b_l / LAYER_RESIDUAL) - atanh(b_l / a_l)) / (b_l * transmission_distance);
+    vec3 a = 1.0 + (1.0 - c) * (1.0 - c) / (2.0 * c);
+    vec3 b = sqrt(a * a - 1.0);
+    vec3 y = min(min(b * scattering, vec3(LAYER_MAX_EXTINCTION)) * thickness, vec3(20.0));
+    vec3 d = a * sinh(y) + b * cosh(y);
+    reflectance = sinh(y) / d;
+    transmittance = b / d;
 }
 
 int shading_sss_mode(Shading sh) { return clamp(int(floor(sh.params.y * 0.5 + 1e-4)), 0, 3); }
@@ -845,7 +901,7 @@ void closest_bead_test(uint i, Ray local_ray, float loc_scale, uint inst_idx, in
     float t_hit = hit.distance * loc_scale;
     float t_limit = tie ? t_hit + BEAD_TIE : t_hit;
     float near_limit = max(ray_epsilon, g_has_clipping ? g_clip_near * loc_scale : 0.0);
-    bool sees_inside = translucent || g_has_clipping || g_only_instance != NO_HIT;
+    bool sees_inside = translucent || g_has_clipping || g_only_instance != NO_HIT || g_layer_march;
     BeadRay br = bead_ray(bead, local_ray.origin, local_ray.direction);
     float t_in;
     float t_out;
@@ -854,14 +910,19 @@ void closest_bead_test(uint i, Ray local_ray, float loc_scale, uint inst_idx, in
     bool inside = t_in < near_limit;
     if (inside && translucent)
         g_bead_far = max(g_bead_far, t_out / loc_scale);
-    float t_local = inside ? t_out : t_in;
-    if (t_local < near_limit || t_local >= t_limit)
+    if (g_layer_march && !inside && g_layer_inside)
         return;
-    if (tie && t_local > t_hit - BEAD_TIE && bead.vertex_id < triangles[hit.tri_index].vertex_id)
+    bool replaces_entry = g_layer_march && inside && !g_layer_inside;
+    float t_local = inside ? t_out : t_in;
+    if (t_local < near_limit || (!replaces_entry && t_local >= t_limit))
+        return;
+    if (!replaces_entry && tie && t_local > t_hit - BEAD_TIE && bead.vertex_id < triangles[hit.tri_index].vertex_id)
         return;
     float t_world = t_local / loc_scale;
     if (g_has_clipping && t_world > g_clip_far)
         return;
+    if (g_layer_march && inside)
+        g_layer_inside = true;
     hit.distance = t_world;
     hit.bary = vec2(inside ? 1.0 : 0.0, 0.0);
     hit.tag = bead.tag_z;
@@ -1387,6 +1448,23 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
     Ray resume = ray;
     bool resume_done = false;
 
+    // Light through the layers of opaque filament: from the surface the camera ray hit, a ray walks
+    // the beads behind it in a direction diffuse in the plastic, adding them up as Kubelka-Munk layers.
+    // Then the surface is traced again and shaded as opaque with what they reflect. Adding them up
+    // instead of scattering between them keeps the cost to the camera ray and takes in all the light
+    // going to and fro between thin layers, which paths of a few bounces would lose: a stack of white
+    // layers would turn out grey. The diffuse direction is what mixes the layers seen from the side,
+    // where a straight ray would stay in its own.
+    bool layers_started = false;
+    bool layers_marching = false;
+    bool layers_ready = false;
+    vec3 layers_reflect = vec3(0.0);
+    vec3 layers_through = vec3(1.0);
+    int layers_count = 0;
+    Ray layers_ray = ray;
+    // Cosine of the walk with the surface: Kubelka-Munk layers count their thickness along the normal.
+    float layers_cos = 1.0;
+
     for (int step = 0; step < 40; ++step) {
         // Russian roulette on shadow rays: those of bounced light are traced half the time, and those
         // of highlights on walls behind other translucent walls a quarter of the time, at the inverse
@@ -1411,13 +1489,18 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
             break;
 
         Hit hit;
-        hit.distance = probe != PROBE_NONE ? probe_max : FLT_BIG;
-        g_only_opaque = probe == PROBE_NONE && trans >= max_trans;
+        // A walk through the layers of a filament looks no further than the widest air it crosses:
+        // the bead it is inside of is found wherever that ends, and wider air ends the walk.
+        hit.distance = probe != PROBE_NONE ? probe_max : (layers_marching ? LAYER_AIR_GAP + BEAD_TIE : FLT_BIG);
+        g_only_opaque = probe == PROBE_NONE && trans >= max_trans && !layers_marching;
+        g_layer_march = layers_marching;
+        g_layer_inside = false;
         g_only_instance = probe != PROBE_NONE ? probe_inst : NO_HIT;
         g_bead_far = -1.0;
         bool has_hit = intersect_scene(r, hit);
         g_only_instance = NO_HIT;
         g_only_opaque = false;
+        g_layer_march = false;
 
         if (probe != PROBE_NONE) {
             bool own_surface = has_hit && hit.inst_index == probe_inst && hit.tag > -1.5 && hit.opacity >= OPAQUE_OPACITY;
@@ -1441,6 +1524,72 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
             probe = PROBE_NONE;
             r = resume;
             done = resume_done;
+            continue;
+        }
+
+        if (filament_layers && !layers_started && depth == 0 && has_hit && hit.bead && hit.front_face &&
+            hit.opacity >= OPAQUE_OPACITY && shadings[hit.tri_index].params.z <= 3.5) {
+            layers_started = true;
+            layers_marching = true;
+            layers_ray = r;
+            r.direction = cosine_sample_hemisphere(-hit.normal, sample_2d(vertex_dimension(step, D_LAYERS)));
+            r.origin = hit.position + r.direction * BEAD_TIE;
+            layers_cos = max(dot(r.direction, -hit.normal), 0.05);
+            --step;
+            continue;
+        }
+        if (layers_marching) {
+            bool stop = !has_hit;
+            float advance = 0.0;
+            // Air behind the last layer sends back what the surface there reflects inside. The light
+            // going on through it is scattered, and lost in the dark of the part: what lies across the
+            // air does not show through the wall.
+            vec3 base = vec3(SAUNDERSON_INSIDE);
+            // The bed, right behind the last layer.
+            if (has_hit && hit.tag < -1.5) {
+                stop = true;
+                base = saunderson_inside(shadings[hit.tri_index].albedo.rgb);
+            } else if (has_hit && hit.front_face && hit.distance > LAYER_AIR_GAP) {
+                stop = true;
+            } else if (has_hit && (!hit.bead || shadings[hit.tri_index].params.z > 3.5)) {
+                // A marker within the print, whose hit lies its bias before it.
+                advance = hit.distance + max(triangles[hit.tri_index].opacity - 2.0, 0.0);
+            } else if (has_hit) {
+                // From inside a bead overlapping the last one, only the rest of it counts.
+                float thickness = hit.front_face ? hit.chord : hit.distance;
+                advance = hit.front_face ? hit.distance + hit.chord : hit.distance;
+                vec3 layer_color = shadings[hit.tri_index].albedo.rgb;
+                layer_shading(layer_color, triangles[hit.tri_index].vertex_id);
+                vec3 layer_reflect;
+                vec3 layer_through;
+                if (hit.opacity >= OPAQUE_OPACITY) {
+                    filament_layer(layer_color, thickness * layers_cos, layer_reflect, layer_through);
+                } else {
+                    float straight = exp(-straight_extinction(hit.opacity) * thickness);
+                    layer_reflect = saunderson_inside((1.0 - straight) * diffuse_reflect_share(hit.opacity) * layer_color);
+                    layer_through = wall_transmittance(layer_color, hit.opacity, thickness);
+                }
+                vec3 denominator = 1.0 - layers_reflect * layer_reflect;
+                layers_reflect += layers_through * layers_through * layer_reflect / denominator;
+                layers_through *= layer_through / denominator;
+                // Light reaches what lies behind and comes back through the layers in front, so that
+                // adds at most the square of what gets through: below 0.5%, or past the budget, what
+                // lies behind counts as more of the same filament.
+                float through = max3(layers_through);
+                if (through * through < 0.005 || ++layers_count >= (g_interactive ? 12 : 32)) {
+                    stop = true;
+                    base = saunderson_inside(layer_color);
+                }
+            }
+            if (stop) {
+                layers_reflect += layers_through * layers_through * base / (1.0 - layers_reflect * base);
+                layers_marching = false;
+                layers_ready = true;
+                r = layers_ray;
+            } else {
+                r.origin += r.direction * (advance + BEAD_TIE);
+            }
+            --step;
             continue;
         }
 
@@ -1523,6 +1672,13 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
         }
         if (!is_preview_canvas && depth == 0 && trans == 0)
             albedo = object_view_tint(albedo, hit);
+        // The filament of the surface guides the denoiser and the reprojection: what the walk adds up
+        // differs from sample to sample.
+        vec3 guide_albedo = albedo;
+        if (layers_ready) {
+            albedo = saunderson_observed(layers_reflect);
+            layers_ready = false;
+        }
         int sss = shading_sss_mode(sh);
         float roughness = clamp(sh.params.y - 2.0 * float(sss), 0.05, 1.0);
         float alpha = max(roughness * roughness, alpha_floor);
@@ -1536,7 +1692,7 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
 
         if (step == 0) {
             aux_normal_depth = vec4(ns, hit.distance);
-            aux_albedo = vec4(clamp(albedo, vec3(0.0), vec3(1.0)), opacity < OPAQUE_OPACITY ? CLASS_TRANSLUCENT : CLASS_OPAQUE);
+            aux_albedo = vec4(clamp(guide_albedo, vec3(0.0), vec3(1.0)), opacity < OPAQUE_OPACITY ? CLASS_TRANSLUCENT : CLASS_OPAQUE);
         }
 
         if (marker) {

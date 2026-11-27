@@ -36,7 +36,8 @@ struct Camera;
 class PathTraceRenderer
 {
 public:
-    explicit PathTraceRenderer(GLCanvas3D& canvas) : m_canvas(canvas) {}
+    explicit PathTraceRenderer(GLCanvas3D& canvas);
+    ~PathTraceRenderer();
 
     // OpenGL 4.3 with the shaders of the path tracer built.
     static bool is_available();
@@ -95,6 +96,8 @@ private:
     unsigned int m_gpu_tlas_buffer{0};
     unsigned int m_gpu_accumulation_image{0};
     unsigned int m_gpu_display_image{0};
+    std::unique_ptr<GLShaderProgram> m_filament_layers_shader;
+    bool m_filament_layers_shader_failed{false};
     unsigned int m_gpu_trans_accumulation_image{0};
     unsigned int m_gpu_trans_display_image{0};
     // Denoiser inputs (first surface normal and distance, albedo and class) and its ping-pong images
@@ -246,6 +249,9 @@ private:
     // Resolves the accumulation of the last pass into the interactive or the full resolution display
     // images, through the denoiser.
     void resolve_image(GLShaderProgram& shader, bool interactive, uint32_t width, uint32_t height, uint32_t samples);
+    // The path tracing program that walks the layers of opaque filaments, built when first needed;
+    // nullptr if it failed to build.
+    GLShaderProgram* filament_layers_shader();
     // Composites the path traced display images over the rasterized bed and what draw_under draws.
     void render_composite(const std::function<void()>& draw_under);
 };

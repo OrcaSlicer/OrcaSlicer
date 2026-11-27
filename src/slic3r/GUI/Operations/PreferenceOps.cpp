@@ -453,6 +453,12 @@ std::vector<Preference> build_table()
                                              {L("Configures the quality and performance of the GPU path tracer.")});
     pathtrace_quality.own_row = true;
     pathtrace_quality.shown   = &PathTraceRenderer::is_available;
+    Preference& filament_layers = t.checkbox(
+        SETTING_OPENGL_PATHTRACE_FILAMENT_LAYERS, L("Light through filament layers"),
+        {L("Shows in Preview what lies behind thin layers of opaque filament, so that stacked colors blend as in a"
+           " color-layered print. Applies to the views that color toolpaths by filament.\n"
+           "Costs more rendering time on every print.")});
+    filament_layers.shown = &PathTraceRenderer::is_available;
     t.checkbox(SETTING_OPENGL_REALISTIC_PREVIEW, L("Enable in Preview"),
                {L("Also applies realistic view to the Preview canvas, not just Prepare.\n"
                   "Preview draws the full toolpath geometry, so shadows and SSAO cost considerably"
@@ -938,7 +944,7 @@ const std::vector<std::string>& canvas_preferences()
         SETTING_OPENGL_FXAA_ENABLED,       SETTING_OPENGL_FPS_CAP,           SETTING_OPENGL_SHOW_FPS_OVERLAY,
         SETTING_OPENGL_SHOW_RENDER_TIMINGS, SETTING_OPENGL_SCENE_CACHE,       SETTING_OPENGL_SKIP_IDENTICAL_FRAMES,
         SETTING_OPENGL_REALISTIC_SHADOWS,   SETTING_OPENGL_REALISTIC_GLOSS,   SETTING_OPENGL_OUTLINE_PERSISTENT,
-        SETTING_OPENGL_OUTLINE_COLOR,       SETTING_OPENGL_SELECTION_OUTLINE_COLOR};
+        SETTING_OPENGL_OUTLINE_COLOR,       SETTING_OPENGL_SELECTION_OUTLINE_COLOR, SETTING_OPENGL_PATHTRACE_FILAMENT_LAYERS};
     return keys;
 }
 
