@@ -812,10 +812,11 @@ PainterGizmoType GLGizmoMmuSegmentation::get_painter_type() const
 // BBS
 ColorRGBA GLGizmoMmuSegmentation::get_cursor_hover_color() const
 {
-    if (m_selected_extruder_idx < m_extruders_colors.size())
-        return m_extruders_colors[m_selected_extruder_idx];
-    else
-        return m_extruders_colors[0];
+    ColorRGBA color = m_selected_extruder_idx < m_extruders_colors.size() ? m_extruders_colors[m_selected_extruder_idx] : m_extruders_colors[0];
+    // ORCA: the hovering sphere is translucent like in the other painting tools. it allows to see other colors before painting
+    if(m_current_tool == ImGui::SphereButtonIcon)
+        color.a(0.4f);
+    return color;
 }
 
 void GLGizmoMmuSegmentation::on_set_state()
