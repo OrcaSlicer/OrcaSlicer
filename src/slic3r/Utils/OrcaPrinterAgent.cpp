@@ -1338,7 +1338,13 @@ int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
                 dispatch_local_connect(ConnectStatusOk, params.dev_id, "0");
             } else if (!connected && !initial) {
                 forget_device_capabilities(params.dev_id);
-                dispatch_local_connect(ConnectStatusLost, params.dev_id, "connection_lost");
+                // A refusal with rc 4/5 on a later attempt ends the transport for good: report it as
+                // the failure it is, as the first attempt does, rather than as a drop it recovers from.
+                const int rc = conn->last_connack_rc();
+                if (!conn->is_running() && (rc == 4 || rc == 5))
+                    dispatch_local_connect(ConnectStatusFailed, params.dev_id, std::to_string(rc));
+                else
+                    dispatch_local_connect(ConnectStatusLost, params.dev_id, "connection_lost");
             }
         });
         BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: LAN MQTT start returned ok=" << ok << " generation=" << gen

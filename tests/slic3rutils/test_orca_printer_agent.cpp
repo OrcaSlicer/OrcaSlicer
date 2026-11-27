@@ -9,10 +9,13 @@
 #include "catch2/matchers/catch_matchers.hpp"
 #include "orca_mqtt_mock_broker.hpp"
 
+#include <algorithm>
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <slic3r/Utils/bambu_networking.hpp>
 #include <string>
 #include <thread>
@@ -694,8 +697,7 @@ TEST_CASE("send_message* reject when there is no connection", "[OrcaPrinterAgent
 TEST_CASE("send_message_to_printer publishes on the LAN connection", "[OrcaPrinterAgent]") {
     orca_mqtt_test::MockBroker broker;
     OrcaPrinterAgent agent("/tmp");
-    const auto ep = broker.host_port();
-    agent.connect_printer(Slic3r::PrinterConnectionParams{"dev-1", ep.first + ":" + ep.second, "", "orcasonar", "code", false, ""});
+    agent.connect_printer(Slic3r::PrinterConnectionParams{"dev-1", "127.0.0.1:" + std::to_string(broker.port()), "", "orcasonar", "code", false, ""});
 
     for (int i = 0; i < 150 && broker.connect_count() == 0; ++i)
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -712,6 +714,39 @@ TEST_CASE("send_message_to_printer publishes on the LAN connection", "[OrcaPrint
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
     CHECK(saw_pause);
+    agent.disconnect_printer();
+}
+
+TEST_CASE("a refusal for bad credentials after a drop is reported as a failed connection", "[OrcaPrinterAgent]") {
+    orca_mqtt_test::MockBroker broker;
+    // Declared before the agent, so they outlive any callback it makes while it is destroyed.
+    std::mutex mutex;
+    std::condition_variable changed;
+    std::vector<std::pair<int, std::string>> statuses;
+    OrcaPrinterAgent agent("/tmp");
+    agent.set_on_local_connect_fn([&](int status, std::string /*dev_id*/, std::string msg) {
+        std::lock_guard<std::mutex> lock(mutex);
+        statuses.emplace_back(status, std::move(msg));
+        changed.notify_all();
+    });
+    const auto wait_for_status = [&](int status) {
+        std::unique_lock<std::mutex> lock(mutex);
+        return changed.wait_for(lock, std::chrono::seconds(30), [&] {
+            return std::any_of(statuses.begin(), statuses.end(), [&](const auto& entry) { return entry.first == status; });
+        });
+    };
+
+    agent.connect_printer(Slic3r::PrinterConnectionParams{"dev-1", "127.0.0.1:" + std::to_string(broker.port()), "", "orcasonar", "code", false, ""});
+    REQUIRE(wait_for_status(Slic3r::ConnectStatusOk));
+
+    broker.set_connack_rc(5); // the next attempt is refused as not authorised
+    broker.drop_client();
+    REQUIRE(wait_for_status(Slic3r::ConnectStatusFailed));
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        const auto failed = std::find_if(statuses.begin(), statuses.end(), [](const auto& entry) { return entry.first == Slic3r::ConnectStatusFailed; });
+        CHECK(failed->second == "5");
+    }
     agent.disconnect_printer();
 }
 
