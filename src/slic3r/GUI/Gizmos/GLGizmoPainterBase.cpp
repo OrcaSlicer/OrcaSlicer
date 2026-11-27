@@ -248,8 +248,7 @@ void GLGizmoPainterBase::render_ortho_switch(float scale, bool show_vertical, bo
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered  , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_HOVER_DARK : ImGuiWrapper::COL_ORCA_HOVER);
     ImGui::PushStyleColor(ImGuiCol_Text           , m_is_dark_mode ? ImVec4(1.f, 1.f, 1.f, .55f) : ImVec4(0.f, 0.f, 0.f, .55f));
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f * scale, 5.f * scale));
-    // The flags are per gizmo, so read the mode from them on every frame: a function-local static
-    // would be shared by every painter gizmo now that they all draw the switch through here.
+
     int ortho_mode = m_vertical_only ? vertical_idx : m_horizontal_only ? horizontal_idx : 0;
     if (m_imgui->multi_switch("##ortho", labels, ortho_mode)) {
         m_vertical_only   = ortho_mode == vertical_idx;
