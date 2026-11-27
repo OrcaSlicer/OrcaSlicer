@@ -35,6 +35,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include "plugin_test_utils.hpp"
+#include <pybind11/gil.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/cast.h>
 #include "python_test_support.hpp"
@@ -77,6 +78,8 @@ bool has_attr(const py::handle& object, const char* name)
 
 TEST_CASE("Plugin host API exposes host-owned bundle and preset surface to Python", "[PluginHost][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::module_ orca = import_orca_module();
     REQUIRE(has_attr(orca, "host"));
 
@@ -171,6 +174,8 @@ TEST_CASE("Plugin host API exposes host-owned bundle and preset surface to Pytho
 TEST_CASE("Plugin host API exposes the editable preset category handles and guards them before Orca app initialization",
           "[PluginHost][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object host   = import_orca_module().attr("host");
     py::object preset = host.attr("preset");
 
@@ -204,6 +209,8 @@ TEST_CASE("Plugin host API exposes the editable preset category handles and guar
 
 TEST_CASE("Plugin host API exposes the filament slot form of preset update and guards it", "[PluginHost][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object host   = import_orca_module().attr("host");
     py::object preset = host.attr("preset");
 
@@ -234,6 +241,8 @@ TEST_CASE("Plugin host API exposes the filament slot form of preset update and g
 
 TEST_CASE("Plugin host API exposes staged preset update transactions", "[PluginHost][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object preset = import_orca_module().attr("host").attr("preset");
     py::object transaction_type = preset.attr("PresetTransaction");
     py::object result_type = preset.attr("PresetUpdateResult");
@@ -307,6 +316,8 @@ TEST_CASE("A settings group resolves an option's id from its option map", "[Plug
 
 TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initialization", "[PluginHost][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object host = import_orca_module().attr("host");
     py::object bundles = host.attr("preset").attr("bundles");
 
@@ -340,6 +351,8 @@ TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initi
 
 TEST_CASE("Plugin host API reports no GL details before the 3D view exists", "[PluginHost][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object host = import_orca_module().attr("host");
 
     CHECK(host.attr("gl_info")().is_none());
@@ -351,6 +364,8 @@ TEST_CASE("Plugin host API reports no GL details before the 3D view exists", "[P
 
 TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app initialization", "[PluginHost][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object host = import_orca_module().attr("host");
     REQUIRE(has_attr(host, "ui"));
 
@@ -460,6 +475,8 @@ TEST_CASE("Plugin host API exposes model geometry and structure to Python", "[Pl
     using Catch::Matchers::WithinAbs;
     using Catch::Matchers::WithinRel;
 
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object host = import_orca_module().attr("host");
     REQUIRE(has_attr(host, "BoundingBox"));
     REQUIRE(has_attr(host, "Model"));
@@ -539,6 +556,8 @@ TEST_CASE("Plugin host API exposes TriangleMesh geometry to Python", "[PluginHos
     using Catch::Matchers::WithinAbs;
     using Catch::Matchers::WithinRel;
 
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object host = import_orca_module().attr("host");
     REQUIRE(has_attr(host, "TriangleMesh"));
 

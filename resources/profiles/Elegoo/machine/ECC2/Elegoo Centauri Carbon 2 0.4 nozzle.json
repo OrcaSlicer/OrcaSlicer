@@ -61,6 +61,8 @@
 	"gcode_flavor": "klipper",
 	"machine_pause_gcode": "M600",
 	"support_multi_filament": "1",
+	"support_multi_bed_types": "1",
+	"default_bed_type": "Textured PEI Plate",
 	"support_wan_network": "1",
 	"bed_mesh_max": "243,245",
 	"bed_mesh_min": "10,10",
