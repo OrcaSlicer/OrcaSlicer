@@ -21,6 +21,7 @@
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 #include <map>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <utility>

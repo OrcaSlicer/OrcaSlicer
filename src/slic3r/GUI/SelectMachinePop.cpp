@@ -35,6 +35,7 @@
 #include "slic3r/GUI/ReleaseNote.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Auxiliary.hpp"
 #include "libslic3r/Preset.hpp"
 #include <cstddef>

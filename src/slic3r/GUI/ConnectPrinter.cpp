@@ -13,9 +13,11 @@
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "slic3r/GUI/Mcp/WindowNames.hpp"
 #include <wx/event.h>
+#include <cstddef>
 #include <string>
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Config.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
 #include "DeviceCore/DevManager.h"

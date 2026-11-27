@@ -2,6 +2,8 @@
 
 #include <boost/format.hpp>
 
+#include <string>
+
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 
