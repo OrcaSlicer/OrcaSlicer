@@ -336,6 +336,9 @@ public:
     DevAms*     get_curr_Ams();
     DevAmsTray* get_curr_tray();
     DevAmsTray* get_ams_tray(std::string ams_id, std::string tray_id);;
+    /* External (virtual tray) slot carrying the given virtual tray id, or nullptr if none does.
+       Look up by id instead of a fixed pair index so any extruder count is supported. */
+    DevAmsTray* get_external_virtual_tray(const std::string& ams_id);
 
     std::string  get_filament_id(std::string ams_id, std::string tray_id) const;
     std::string  get_filament_type(const std::string& ams_id, const std::string& tray_id) const;
@@ -354,7 +357,7 @@ public:
     bool is_multi_extruders() const;
     int  get_extruder_id_by_ams_id(const std::string& ams_id);
     // Orca: the printer preset's extruder index of device extruder extder_id
-    int  get_preset_extruder_index(int extder_id) const { return is_multi_extruders() ? (is_main_extruder_on_left() ? extder_id : 1 - extder_id) : 0; }
+    int  get_preset_extruder_index(int extder_id) const;
 
     /* E3D has extra nozzle flow type info */
     bool has_extra_flow_type{false};
@@ -957,6 +960,16 @@ public:
      */
     std::vector<DevAmsTray> vt_slot;
     DevAmsTray parse_vt_tray(nlohmann::json vtray);
+
+    /**
+     * Give every live device extruder an external virtual tray slot (non-Bambu printers only).
+     *
+     * Slots are addressed by VIRTUAL_TRAY_MAIN_ID - extruder_id, so a slot already reported for an
+     * extruder keeps its tray metadata and sparse/out-of-order reports never shift the slot ->
+     * extruder association. Only missing topology slots are added, so the call is idempotent across
+     * refreshes. Bambu keeps its existing fixed pair reported through vir_slot/vt_tray.
+     */
+    void ensure_external_virtual_tray_slots();
 
     /*get ams slot info*/
     bool    contains_tray(const std::string &ams_id, const std::string &tray_id) const;

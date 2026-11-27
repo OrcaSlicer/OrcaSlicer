@@ -19,6 +19,7 @@
 #include <ios>
 #include <iomanip>
 #include <wx/anybutton.h>
+#include <wx/app.h>
 #include <wx/checklst.h>
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
@@ -80,6 +81,11 @@
 namespace Slic3r { namespace GUI {
 
 wxDEFINE_EVENT(EVT_SELECTED_COLOR, wxCommandEvent);
+
+static bool is_bbl_vendor_printer()
+{
+    return wxTheApp != nullptr && wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
+}
 
 namespace {
 
@@ -711,7 +717,7 @@ void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
             int tray_id = ams_id * 4 + slot_id;
             if (is_virtual_tray()) {
                 tray_id = ams_id;
-                if (!obj->is_enable_np) {
+                if (is_bbl_vendor_printer() && !obj->is_enable_np) {
                     tray_id = VIRTUAL_TRAY_DEPUTY_ID;
                 }
             }
@@ -946,7 +952,7 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
         }
 
         auto vt_tray = ams_id;
-        if (!obj->is_enable_np) {
+        if (is_bbl_vendor_printer() && !obj->is_enable_np) {
             vt_tray = VIRTUAL_TRAY_DEPUTY_ID;
         }
 
@@ -1110,9 +1116,9 @@ void AMSMaterialsSetting::on_clr_picker(wxMouseEvent &event)
 
 bool AMSMaterialsSetting::is_virtual_tray()
 {
-    if (ams_id == VIRTUAL_TRAY_MAIN_ID || ams_id == VIRTUAL_TRAY_DEPUTY_ID)
-        return true;
-    return false;
+    // A generic multi-extruder device owns one external spool per extruder (255 down), not only the
+    // Bambu pair; IsVirtualSlot resolves the right set for the active vendor.
+    return devPrinterUtil::IsVirtualSlot(ams_id);
 }
 
 void AMSMaterialsSetting::update_widgets()
@@ -1734,7 +1740,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
         }
 
         m_comboBox_cali_result->Set(items);
-        if (ams_id == VIRTUAL_TRAY_MAIN_ID || ams_id == VIRTUAL_TRAY_DEPUTY_ID) {
+        if (is_virtual_tray()) {
             if (from_printer && (*from_printer == 1)) {
                 for (auto slot : obj->vt_slot) {
                     if (slot.id == std::to_string(ams_id))

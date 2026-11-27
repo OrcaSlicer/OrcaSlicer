@@ -2568,29 +2568,9 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
     }
 
-
-    //Orca: sync filament num if it's a multi tool printer
-    if (opt_key == "extruders_count" && !m_config->opt_bool("single_extruder_multi_material")){
-        const size_t num_extruder = boost::any_cast<size_t>(value);
-        auto        *bundle       = wxGetApp().preset_bundle;
-        Sidebar     &sidebar      = wxGetApp().plater()->sidebar();
-        // A tool changer feeds filament N from nozzle N, so the extruder count sizes the physical
-        // run only; mixed slots are virtual and keep the tail. Go one slot at a time through the
-        // sidebar's own +/- calls: they insert ahead of the mixed tail and renumber filament ids,
-        // painted facets, custom g-code and mixed components, which a bulk resize clamps away.
-        // Both also refresh the print tab and export the selections, so nothing to do afterwards.
-        size_t physical = bundle->num_physical_filaments();
-        while (physical != num_extruder) {
-            if (physical < num_extruder)
-                sidebar.add_custom_filament(Plater::get_next_color_for_filament());
-            else
-                sidebar.delete_filament(physical - 1);   // physical > num_extruder >= 1
-            const size_t updated = bundle->num_physical_filaments();
-            if (updated == physical)
-                break;   // the call declined, e.g. the total slot limit - do not spin
-            physical = updated;
-        }
-    }
+    // Orca: the filament slot list is independent of the extruder count, so changing the number
+    // of tools must not add or delete filament slots. Add/delete live in the sidebar (with their
+    // own >= 1 and MAXIMUM_EXTRUDER_NUMBER bounds) and only the user changes the slot list.
 
     //Orca: disable purge_in_prime_tower if single_extruder_multi_material is disabled
     if (opt_key == "single_extruder_multi_material" && m_config->opt_bool("single_extruder_multi_material") == false){

@@ -12,6 +12,7 @@
 #include <wx/event.h>
 #include <wx/colour.h>
 #include <string>
+#include <exception>
 #include <wx/panel.h>
 #include <wx/gdicmn.h>
 #include <vector>
@@ -78,6 +79,36 @@ namespace Slic3r { namespace GUI {
 #define MATERIAL_ITEM_SIZE wxSize(FromDIP(65), FromDIP(50))
 #define MATERIAL_REC_WHEEL_SIZE wxSize(FromDIP(17), FromDIP(16))
 #define MAPPING_ITEM_REAL_SIZE wxSize(FromDIP(48), FromDIP(60))
+
+wxString mapping_tray_label(const MachineObject* obj, int tray_id)
+{
+    if (!obj || (wxGetApp().preset_bundle && wxGetApp().preset_bundle->is_bbl_vendor()))
+        return wxGetApp().transition_tridid(tray_id);
+
+    const auto tray_map = obj->GetFilaSystem()->GetTrayIndexMap();
+    const auto tray = tray_map.find(tray_id);
+    if (tray == tray_map.end())
+        return "-";
+
+    int unit_index = 0;
+    for (const auto& [id, unit] : obj->GetFilaSystem()->GetAmsList()) {
+        if (id == std::to_string(tray->second.first)) {
+            if (unit_index < 26)
+                return wxString::Format("%c%d", 'A' + unit_index, tray->second.second + 1);
+            return wxString::Format("%d-%d", unit_index + 1, tray->second.second + 1);
+        }
+        ++unit_index;
+    }
+    for (const auto& external : obj->vt_slot) {
+        try {
+            if (std::stoi(external.id) == tray_id)
+                return _L("Ext");
+        } catch (const std::exception&) {
+            // Invalid external slot IDs are omitted from GetTrayIndexMap().
+        }
+    }
+    return "-";
+}
 
 
 wxDEFINE_EVENT(EVT_SET_FINISH_MAPPING, wxCommandEvent);
@@ -1095,9 +1126,13 @@ void AmsMapingPopup::show_reset_button() {
 }
 
 // Orca: dropped by the reference but still consumed by SelectMachine.
-std::vector<TrayData> AmsMapingPopup::parse_ams_mapping(const std::map<std::string, DevAms*, NumericStrCompare>& amsList)
+std::vector<TrayData> AmsMapingPopup::parse_ams_mapping(MachineObject* obj)
 {
     std::vector<TrayData> m_tray_data;
+    if (!obj) return m_tray_data;
+    const auto& amsList = obj->GetFilaSystem()->GetAmsList();
+    const auto tray_map = obj->GetFilaSystem()->GetTrayIndexMap();
+    const bool generic = !wxGetApp().preset_bundle || !wxGetApp().preset_bundle->is_bbl_vendor();
     for (auto ams_iter = amsList.begin(); ams_iter != amsList.end(); ams_iter++) {
         BOOST_LOG_TRIVIAL(trace) << "ams_mapping ams id " << ams_iter->first.c_str();
 
@@ -1110,6 +1145,13 @@ std::vector<TrayData> AmsMapingPopup::parse_ams_mapping(const std::map<std::stri
             TrayData    td;
 
             td.id = ams_indx * AMS_TOTAL_COUNT + atoi(tray_data->id.c_str());
+            if (generic) {
+                const auto slot = std::make_pair(ams_indx, atoi(tray_data->id.c_str()));
+                const auto found = std::find_if(tray_map.begin(), tray_map.end(),
+                    [&slot](const auto& entry) { return entry.second == slot; });
+                if (found == tray_map.end()) continue;
+                td.id = found->first;
+            }
 
             if (!tray_data->is_exists) {
                 td.type = EMPTY;
@@ -2049,8 +2091,9 @@ MappingContainer::MappingContainer(wxWindow *parent, const wxString &ams_type, i
     else
     {
         ams_mapping_item_container = create_scaled_bitmap("ams_mapping_container_4", this, 82);
-        SetMinSize(wxSize(FromDIP(230), FromDIP(82)));
-        SetMaxSize(wxSize(FromDIP(230), FromDIP(82)));
+        const int width = std::max(230, 14 + 54 * slots_num);
+        SetMinSize(wxSize(FromDIP(width), FromDIP(82)));
+        SetMaxSize(wxSize(FromDIP(width), FromDIP(82)));
     }
 }
 
@@ -2099,7 +2142,12 @@ void MappingContainer::render(wxDC& dc)
 
 void MappingContainer::doRender(wxDC& dc)
 {
-    dc.DrawBitmap(ams_mapping_item_container, 0, 0);
+    if (m_slots_num > 4) {
+        const wxSize size = GetSize();
+        dc.DrawBitmap(wxBitmap(ams_mapping_item_container.ConvertToImage().Scale(size.x, size.y)), 0, 0);
+    } else {
+        dc.DrawBitmap(ams_mapping_item_container, 0, 0);
+    }
 
     dc.SetFont(::Label::Head_11);
     auto size   = GetSize();
@@ -2307,7 +2355,7 @@ void  AmsReplaceMaterialDialog::update_to_nozzle(int nozzle_id)
                         DevAmsTray* cur_tray = id2tray[elem.first];
                         if (!cur_tray)
                             continue;
-                        auto tray_name = wxGetApp().transition_tridid(elem.first).ToStdString();
+                        auto tray_name = mapping_tray_label(m_obj, elem.first).ToStdString();
                         auto it = std::find(m_tray_used.begin(), m_tray_used.end(), tray_name);
                         if (it != m_tray_used.end())
                         {

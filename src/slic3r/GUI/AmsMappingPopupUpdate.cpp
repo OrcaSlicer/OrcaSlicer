@@ -35,6 +35,7 @@
 #include <miniz.h>
 #include <algorithm>
 #include <optional>
+#include <utility>
 #include <wx/wx.h>
 #include "Plater.hpp"
 
@@ -259,6 +260,8 @@ void AmsMapingPopup::update_mapping_items(MachineObject* obj, const std::vector<
     std::vector<MappingContainer*> right_four_slot_containers;
 
     const auto& ams_list = obj->GetFilaSystem()->GetAmsList();
+    const auto tray_map = obj->GetFilaSystem()->GetTrayIndexMap();
+    const bool generic = !wxGetApp().preset_bundle || !wxGetApp().preset_bundle->is_bbl_vendor();
     for (auto ams_iter = ams_list.begin(); ams_iter != ams_list.end(); ams_iter++) {
         const auto& extruder_set = ams_iter->second->GetBindedExtruderSet();
         if (extruder_set.size() <= 0) {
@@ -282,7 +285,8 @@ void AmsMapingPopup::update_mapping_items(MachineObject* obj, const std::vector<
         }
 
         auto sizer_mapping_list = new wxBoxSizer(wxHORIZONTAL);
-        auto ams_mapping_item_container = new MappingContainer(target_panel, ams_iter->second->GetDisplayName(), ams_iter->second->GetSlotCount());
+        const int slot_count = ams_iter->second->GetSlotCount();
+        auto ams_mapping_item_container = new MappingContainer(target_panel, ams_iter->second->GetDisplayName(), slot_count);
         ams_mapping_item_container->SetName(target_panel->GetName());
         ams_mapping_item_container->SetSizer(sizer_mapping_list);
         ams_mapping_item_container->Layout();
@@ -294,8 +298,16 @@ void AmsMapingPopup::update_mapping_items(MachineObject* obj, const std::vector<
         std::vector<TrayData>                      tray_datas;
         std::map<std::string, DevAmsTray*>::const_iterator tray_iter;
         for (tray_iter = ams_group->GetTrays().cbegin(); tray_iter != ams_group->GetTrays().cend(); tray_iter++) {
-            const auto& td_opt = sGetTrayData(tray_iter->second, ams_group->GetAmsId(), ams_type);
+            auto td_opt = sGetTrayData(tray_iter->second, ams_group->GetAmsId(), ams_type);
             if (td_opt.has_value()) {
+                if (generic) {
+                    const auto slot = std::make_pair(td_opt->ams_id, td_opt->slot_id);
+                    const auto found = std::find_if(tray_map.begin(), tray_map.end(),
+                        [&slot](const auto& entry) { return entry.second == slot; });
+                    if (found == tray_map.end()) continue;
+                    td_opt->id = found->first;
+                    td_opt->label = mapping_tray_label(obj, td_opt->id);
+                }
                 tray_datas.push_back(td_opt.value());
             }
         }
@@ -590,6 +602,8 @@ void AmsMapingPopup::add_ams_mapping(std::vector<TrayData> tray_data,
         if ((m_show_type == ShowType::LEFT_AND_RIGHT || m_show_type == ShowType::LEFT_AND_RIGHT_DYNAMIC)
             && (tray_data[i].id == VIRTUAL_TRAY_MAIN_ID || tray_data[i].id == VIRTUAL_TRAY_DEPUTY_ID)) {
             m_mapping_item->set_tray_index(tray_data[i].id == VIRTUAL_TRAY_MAIN_ID ? _L("Ext-R") : _L("Ext-L"));
+        } else if (!tray_data[i].label.empty()) {
+            m_mapping_item->set_tray_index(tray_data[i].label);
         } else {
             m_mapping_item->set_tray_index(wxGetApp().transition_tridid(tray_data[i].id));
         }

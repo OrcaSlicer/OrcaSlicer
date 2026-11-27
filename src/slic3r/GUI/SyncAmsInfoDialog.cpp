@@ -37,6 +37,7 @@
 #include <vector>
 #include <wx/anybutton.h>
 #include <wx/animate.h>
+#include <wx/app.h>
 #include <wx/busycursor.h>
 #include <wx/chartype.h>
 #include <wx/arrstr.h>
@@ -1259,12 +1260,13 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
                 wxString ams_id;
                 wxColour ams_col;
 
-                if (f->tray_id == VIRTUAL_TRAY_MAIN_ID || f->tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
+                if (devPrinterUtil::IsVirtualSlot(f->ams_id)) {
                     ams_id = _L("Ext");
                 }
 
                 else if (f->tray_id >= 0) {
-                    ams_id = wxGetApp().transition_tridid(f->tray_id);
+                    auto* dev = wxGetApp().getDeviceManager();
+                    ams_id = mapping_tray_label(dev ? dev->get_selected_machine() : nullptr, f->tray_id);
                     // ams_id = wxString::Format("%02d", f->tray_id + 1);
                 } else {
                     ams_id = "-";
@@ -1411,6 +1413,8 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
     if (m_ams_mapping_result.empty())
         return false;
 
+    const bool is_bbl_vendor = wxTheApp != nullptr && wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
+
     bool valid_mapping_result = true;
     int  invalid_count        = 0;
     for (int i = 0; i < m_ams_mapping_result.size(); i++) {
@@ -1462,12 +1466,19 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
                         auto it = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
                         if (it != nullptr) { mapping_item["filamentId"] = it->filament_id; }
                     }
-                    /* nozzle id */
-                    if (i >= 0 && i < filament_maps.size()) { mapping_item["nozzleId"] = convert_filament_map_nozzle_id_to_task_nozzle_id(filament_maps[i]); }
+                    /* nozzle id; a generic printer's third and later toolheads have no BBL task id */
+                    if (i >= 0 && i < filament_maps.size()) {
+                        const int task_nozzle_id = convert_filament_map_nozzle_id_to_task_nozzle_id(filament_maps[i]);
+                        if (task_nozzle_id >= 0)
+                            mapping_item["nozzleId"] = task_nozzle_id;
+                    }
                     // convert #RRGGBB to RRGGBBAA
                     mapping_item["sourceColor"] = m_filaments[k].color;
                     mapping_item["targetColor"] = m_ams_mapping_result[k].color;
-                    if (tray_id == VIRTUAL_TRAY_MAIN_ID || tray_id == VIRTUAL_TRAY_DEPUTY_ID) { tray_id = -1; }
+                    // The legacy v0 mapping array encodes an external spool as -1, a BBL-firmware
+                    // contract. A generic printer keeps the virtual tray id (255 - extruder) so the
+                    // payload still says which extruder's external slot was mapped.
+                    if (is_bbl_vendor && (tray_id == VIRTUAL_TRAY_MAIN_ID || tray_id == VIRTUAL_TRAY_DEPUTY_ID)) { tray_id = -1; }
 
                     /*new ams mapping data*/
                     try {
@@ -1647,11 +1658,11 @@ int SyncAmsInfoDialog::convert_filament_map_nozzle_id_to_task_nozzle_id(int nozz
         return (int) CloudTaskNozzleId::NOZZLE_LEFT;
     } else if (nozzle_id == (int) FilamentMapNozzleId::NOZZLE_RIGHT) {
         return (int) CloudTaskNozzleId::NOZZLE_RIGHT;
-    } else {
-        /* unsupported nozzle id */
-        assert(false);
-        return nozzle_id;
     }
+    // A generic printer can map filaments to more than two toolheads, but the BBL task payload only
+    // names the left/right pair. Return a "no task nozzle id" sentinel and let the caller omit the
+    // field instead of asserting on a valid generic mapping.
+    return -1;
 }
 
 void SyncAmsInfoDialog::prepare(int print_plate_idx) { m_print_plate_idx = print_plate_idx; }

@@ -17,6 +17,7 @@ class TextInput : public wxNavigationEnabled<StaticBox>
     wxSize labelSize;
     ScalableBitmap icon;
     ScalableBitmap icon_1;
+    ScalableBitmap corner_badge;
     StateColor     label_color;
     StateColor     text_color;
     wxTextCtrl * text_ctrl;
@@ -60,6 +61,9 @@ public:
 
     void SetIcon_1(const wxString &icon);
     void SetIcon_1(const wxBitmap &icon);
+
+    // Small status badge inside the top-right corner, with space reserved from the label.
+    void ShowCornerBadge(bool show);
 
     void SetLabelColor(StateColor const &color);
 
