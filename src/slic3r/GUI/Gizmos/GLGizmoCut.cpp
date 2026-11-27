@@ -345,16 +345,29 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
     Vec2i32 mouse_coord(mouse_event.GetX(), mouse_event.GetY());
     Vec2d mouse_pos = mouse_coord.cast<double>();
 
-    // Let the plane or canvas start its usual drag even if the press hits a vertex.
-    // Only a plain click may replace the plane flip on release.
-    if (mouse_event.LeftDown())
-        m_pressed_vertex = can_hover_vertex() && mouse_event.GetModifiers() == wxMOD_NONE ?
+    if (mouse_event.ShiftDown() && mouse_event.LeftDown()) {
+        // Start the usual cut line at the press. A click on a corner can finish as a snap instead.
+        m_pressed_vertex = mouse_event.GetModifiers() == wxMOD_SHIFT && can_hover_vertex() ?
                            pick_vertex(mouse_pos) : std::nullopt;
-    else if (mouse_event.Dragging() || mouse_event.Leaving() || mouse_event.GetModifiers() != wxMOD_NONE)
-        m_pressed_vertex.reset();
-
-    if (mouse_event.ShiftDown() && mouse_event.LeftDown())
-        return gizmo_event(SLAGizmoEventType::LeftDown, mouse_pos, mouse_event.ShiftDown(), mouse_event.AltDown(), mouse_event.CmdDown());
+        return gizmo_event(SLAGizmoEventType::LeftDown, mouse_pos, true, mouse_event.AltDown(), mouse_event.CmdDown()) ||
+               m_pressed_vertex.has_value();
+    }
+    if (m_pressed_vertex) {
+        if (mouse_event.Dragging() || mouse_event.Leaving() || mouse_event.GetModifiers() != wxMOD_SHIFT)
+            m_pressed_vertex.reset();
+        else if (mouse_event.LeftUp()) {
+            const double delta = m_cut_normal.dot(*m_pressed_vertex - m_plane_center);
+            m_pressed_vertex.reset();
+            discard_cut_line_processing();
+            if (!is_approx(delta, 0.0)) {
+                shift_cut(delta);
+                reset_cut_by_contours();
+                check_and_update_connectors_state();
+            }
+            m_parent.request_extra_frame();
+            return true;
+        }
+    }
     if (mouse_event.CmdDown() && mouse_event.LeftDown())
         return false;
     if (cut_line_processing()) {
@@ -377,20 +390,7 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
             m_cut_plane_start_move_pos = pos_world;
     }
 
-    const auto clicked_vertex = mouse_event.LeftUp() ? std::exchange(m_pressed_vertex, std::nullopt) : std::nullopt;
-    const bool used_grabber = use_grabbers(mouse_event);
-    if (clicked_vertex && !m_parent.is_mouse_dragging()) {
-        const double delta = m_cut_normal.dot(*clicked_vertex - m_plane_center);
-        if (!is_approx(delta, 0.0)) {
-            shift_cut(delta);
-            reset_cut_by_contours();
-            check_and_update_connectors_state();
-            m_parent.request_extra_frame();
-        }
-        return true;
-    }
-
-    if (used_grabber) {
+    if (use_grabbers(mouse_event)) {
         if (m_hover_id >= m_connectors_group_id) {
             if (mouse_event.LeftDown() && !mouse_event.CmdDown() && !mouse_event.AltDown())
                 unselect_all_connectors();
@@ -527,7 +527,8 @@ bool GLGizmoCut3D::can_hover_vertex() const
 
 bool GLGizmoCut3D::render_follows_cursor() const
 {
-    return can_hover_vertex() && is_mouse_over_selected_object(m_parent.get_local_mouse_position());
+    return get_mouse_state().GetModifiers() == wxMOD_SHIFT && can_hover_vertex() &&
+           is_mouse_over_selected_object(m_parent.get_local_mouse_position());
 }
 
 std::optional<Vec3d> GLGizmoCut3D::pick_vertex(const Vec2d& mouse_pos)
@@ -1513,7 +1514,7 @@ bool GLGizmoCut3D::on_init()
     const wxString shift = GUI::shortkey_shift_prefix();
 
     m_shortcuts_cut = {
-        {_L("Left mouse button"),           _L("Move the cut plane through a highlighted vertex")},
+        {shift + _L("Left mouse button"),   _L("Move the cut plane through a highlighted vertex")},
         {_L("Drag"),                        _L("Move cut line")},
         {shift + _L("Drag"),                _L("Draw cut line")}
     };
@@ -2504,9 +2505,9 @@ void GLGizmoCut3D::on_render()
         render_cut_plane_grabbers();
     }
 
-    const wxMouseState mouse = wxGetMouseState();
-    m_hovered_vertex = can_hover_vertex() && !mouse.LeftIsDown() && !mouse.MiddleIsDown() && !mouse.RightIsDown() &&
-                       mouse.GetModifiers() == wxMOD_NONE && !m_imgui->want_mouse() ?
+    const wxMouseState mouse = get_mouse_state();
+    m_hovered_vertex = mouse.GetModifiers() == wxMOD_SHIFT && can_hover_vertex() && !mouse.LeftIsDown() && !mouse.MiddleIsDown() && !mouse.RightIsDown() &&
+                       !m_imgui->want_mouse() ?
                        pick_vertex(m_parent.get_local_mouse_position()) : std::nullopt;
     if (m_hovered_vertex) {
         const Camera& camera = wxGetApp().plater()->get_camera();
@@ -4141,6 +4142,14 @@ void GLGizmoCut3D::process_selection_rectangle(CutConnectors &connectors)
 
 bool GLGizmoCut3D::gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_position, bool shift_down, bool alt_down, bool control_down)
 {
+    if (action == SLAGizmoEventType::ShiftUp && !m_connectors_editing) {
+        m_hovered_vertex.reset();
+        if (m_pressed_vertex) {
+            m_pressed_vertex.reset();
+            discard_cut_line_processing();
+        }
+        return false;
+    }
     if (is_dragging() || m_connector_mode == CutConnectorMode::Auto)
         return false;
 
