@@ -150,13 +150,12 @@ json filament_list()
 
 // ---- The filament slot commands made from menu items ----
 
-// What a filament slot command answers for a refusal: as information where its menu item told it so (no slots to change, no
-// + and - buttons for the printer, no room for another slot, the only slot), else as an error.
+// What a filament slot command answers for a refusal: as information where its menu item told it so (no slots to change,
+// no room for another slot, the only slot), else as an error.
 AppActionRunResult slot_refused(const Ops::Refusal& refusal)
 {
     const std::string code = refusal.code;
-    const bool info = code == "filaments_unavailable" || code == "one_filament_per_extruder" || code == "too_many_filaments" ||
-                      code == "last_filament_slot";
+    const bool info = code == "filaments_unavailable" || code == "too_many_filaments" || code == "last_filament_slot";
     return NativeCommands::refused(refusal, info ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Error);
 }
 
@@ -188,6 +187,8 @@ AppActionRunResult filament_delete_command(const json& args)
         op.merge_into = arg_int(args, "merge_into", 1);
     if (args.contains("break_mix"))
         op.break_mix = arg_bool(args, "break_mix", false);
+    if (args.contains("confirm_shift"))
+        op.confirm_shift = arg_bool(args, "confirm_shift", false);
     const Ops::Outcome<Ops::DeletedFilament> deleted = Ops::delete_filament_slot(op);
     if (!deleted)
         return slot_refused(deleted.refusal());
@@ -280,7 +281,6 @@ void register_filament_tools(CommandCatalog& catalog)
 
     // The + and - buttons above the filament list and a slot's Delete menu item, each named as the button or menu item is, in the Speed
     // Dial's section Filament.
-    const std::string slot_buttons = "Refused for a printer that has one filament per extruder, which shows no + and - buttons.";
     catalog.add(inspect_tool(
         "filament_list", L("List the filaments"),
         "Read the filament list as the sidebar shows it. filaments has a row per slot in config order, the physical "
@@ -306,9 +306,10 @@ void register_filament_tools(CommandCatalog& catalog)
                                                 "Add a filament slot, as the + button above the filament list does. It takes the next "
                                                 "colour and the last slot's preset (change them with `filament_set_colour` and "
                                                 "`preset_select` `filament_slot`). It goes after the physical slots: mixed "
-                                                "filaments move up by one, and objects on them follow. " +
-                                                    slot_buttons + " Reply: `filament_slot` (the new slot) and `filament_slots` (how many the "
-                                                                   "project has).",
+                                                "filaments move up by one, and objects on them follow. The slots are independent "
+                                                "of the printer's extruders, so a toolchanger adds one too. Reply: "
+                                                "`filament_slot` (the new slot) and `filament_slots` (how many the project "
+                                                "has).",
                                                 object_schema({}), json(), filament_add_command),
                                     L("Filament"), "add_filament")));
     catalog.add(reaching(
@@ -321,12 +322,15 @@ void register_filament_tools(CommandCatalog& catalog)
                                "deleted as the sidebar deletes it: the mix is broken (`broken_mixed`) until `filament_edit_mixed` "
                                "names its filaments again. A merge into a mixed filament that mixes the slot asks first, as Merge "
                                "with does, and replies `blocked_by_dialog`, unless `break_mix` answers: `true` merges, `false` refuses "
-                               "(`mixed_uses_slot`). Refused: the only physical slot, and a mixed filament while one physical "
-                               "slot is left, where the sidebar hides the mixed filaments (`filament_add` first). " +
-                                   slot_buttons + " Not in the undo history. Reply: `filament_slot` (the slot deleted), `merged_into` "
-                                                  "(the slot its objects went to, as numbered afterwards), `filament_slots`, and "
-                                                  "`broken_mixed` (the mixed filaments broken afterwards, as numbered then) where "
-                                                  "there are any.",
+                               "(`mixed_uses_slot`). A physical slot before a later one on a non-Bambu Lab printer with more "
+                               "than one nozzle and without `single_extruder_multi_material` asks before the later slots' "
+                               "tool numbers shift, and replies `blocked_by_dialog`, unless `confirm_shift` answers: `true` "
+                               "deletes, `false` refuses (`shifts_tools`); a cancel is refused (`delete_cancelled`). The slots "
+                               "are independent of the printer's extruders, so a toolchanger deletes them too. Refused: the only "
+                               "physical slot, and a mixed filament while one physical slot is left, where the sidebar hides the "
+                               "mixed filaments (`filament_add` first). Not in the undo history. Reply: `filament_slot` (the slot "
+                               "deleted), `merged_into` (the slot its objects went to, as numbered afterwards), `filament_slots`, "
+                               "and `broken_mixed` (the mixed filaments broken afterwards, as numbered then) where there are any.",
                                object_schema({{"filament_slot", {{"type", "integer"},
                                                                  {"minimum", 1},
                                                                  {"description", "The 1-based filament slot. Default: the last "
@@ -337,7 +341,13 @@ void register_filament_tools(CommandCatalog& catalog)
                                                                               "with does. Default: they take the first filament."}}},
                                               {"break_mix", prop("boolean", "The answer to Merge with's question about a merge into "
                                                                             "a mixed filament that mixes the slot: `true` merges, "
-                                                                            "`false` merges nothing. Default: the question opens.")}}),
+                                                                            "`false` merges nothing. Default: the question opens.")},
+                                              {"confirm_shift", prop("boolean", "The answer to Delete's or Merge with's question "
+                                                                                "about the later slots' tool numbers, on a non-Bambu Lab "
+                                                                                "printer with more than one nozzle and without "
+                                                                                "single_extruder_multi_material, when a slot before a "
+                                                                                "later one is deleted or merged: `true` deletes, `false` "
+                                                                                "deletes nothing. Default: the question opens.")}}),
                                json(), filament_delete_command),
                    L("Filament"), "delete_filament")));
 
