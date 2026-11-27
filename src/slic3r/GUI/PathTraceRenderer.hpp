@@ -39,12 +39,16 @@ public:
     explicit PathTraceRenderer(GLCanvas3D& canvas);
     ~PathTraceRenderer();
 
-    // OpenGL 4.3 with the shaders of the path tracer built.
+    // OpenGL 4.3 with the shaders of the path tracer built, or being built. Makes no OpenGL call.
     static bool is_available();
     // Whether the path tracer draws this volume, or the rasterizer draws it over the path traced image.
     static bool draws_volume(const GLVolume& volume);
-    // Path tracing is the shading model of this canvas and can run. The scene stays for as long as this
-    // is true.
+    // Checks the build of the path tracer's shaders while this canvas waits for them, with its OpenGL context
+    // current: until they are built, the rasterizer draws the canvas and a notification says why.
+    void poll_shaders();
+    bool is_waiting_for_shaders() const { return m_waiting_for_shaders; }
+    // Path tracing is the shading model of this canvas and can run, its shaders built. The scene stays for as
+    // long as this is true.
     bool is_selected() const;
     // Whether to path trace now: selected, and no open view that draws the objects through its own shaders.
     bool is_enabled() const;
@@ -101,6 +105,12 @@ private:
     unsigned int m_gpu_display_image{0};
     std::unique_ptr<GLShaderProgram> m_filament_layers_shader;
     bool m_filament_layers_shader_failed{false};
+    // Path tracing is the shading model of this canvas, which waits for the path tracer's shaders to be
+    // built, see poll_shaders().
+    bool m_waiting_for_shaders{false};
+
+    // Path tracing is the shading model of this canvas and the graphics card can run it.
+    bool is_chosen() const;
     unsigned int m_gpu_trans_accumulation_image{0};
     unsigned int m_gpu_trans_display_image{0};
     // Denoiser inputs (first surface normal and distance, albedo and class) and its ping-pong images

@@ -44,6 +44,7 @@ int GLAD_GL_VERSION_4_5 = 0;
 int GLAD_GL_VERSION_4_6 = 0;
 int GLAD_GL_ARB_compatibility = 0;
 int GLAD_GL_ARB_framebuffer_object = 0;
+int GLAD_GL_ARB_parallel_shader_compile = 0;
 int GLAD_GL_EXT_framebuffer_blit = 0;
 int GLAD_GL_EXT_framebuffer_multisample = 0;
 int GLAD_GL_EXT_framebuffer_object = 0;
@@ -566,6 +567,7 @@ PFNGLMATERIALFVPROC glad_glMaterialfv = NULL;
 PFNGLMATERIALIPROC glad_glMateriali = NULL;
 PFNGLMATERIALIVPROC glad_glMaterialiv = NULL;
 PFNGLMATRIXMODEPROC glad_glMatrixMode = NULL;
+PFNGLMAXSHADERCOMPILERTHREADSARBPROC glad_glMaxShaderCompilerThreadsARB = NULL;
 PFNGLMEMORYBARRIERPROC glad_glMemoryBarrier = NULL;
 PFNGLMEMORYBARRIERBYREGIONPROC glad_glMemoryBarrierByRegion = NULL;
 PFNGLMINSAMPLESHADINGPROC glad_glMinSampleShading = NULL;
@@ -2253,6 +2255,10 @@ static void glad_gl_load_GL_ARB_framebuffer_object( GLADuserptrloadfunc load, vo
     glad_glRenderbufferStorage = (PFNGLRENDERBUFFERSTORAGEPROC) load(userptr, "glRenderbufferStorage");
     glad_glRenderbufferStorageMultisample = (PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC) load(userptr, "glRenderbufferStorageMultisample");
 }
+static void glad_gl_load_GL_ARB_parallel_shader_compile( GLADuserptrloadfunc load, void* userptr) {
+    if(!GLAD_GL_ARB_parallel_shader_compile) return;
+    glad_glMaxShaderCompilerThreadsARB = (PFNGLMAXSHADERCOMPILERTHREADSARBPROC) load(userptr, "glMaxShaderCompilerThreadsARB");
+}
 static void glad_gl_load_GL_EXT_framebuffer_blit( GLADuserptrloadfunc load, void* userptr) {
     if(!GLAD_GL_EXT_framebuffer_blit) return;
     glad_glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC) load(userptr, "glBlitFramebufferEXT");
@@ -2378,6 +2384,7 @@ static int glad_gl_find_extensions_gl(void) {
 
     GLAD_GL_ARB_compatibility = glad_gl_has_extension(exts, exts_i, "GL_ARB_compatibility");
     GLAD_GL_ARB_framebuffer_object = glad_gl_has_extension(exts, exts_i, "GL_ARB_framebuffer_object");
+    GLAD_GL_ARB_parallel_shader_compile = glad_gl_has_extension(exts, exts_i, "GL_ARB_parallel_shader_compile");
     GLAD_GL_EXT_framebuffer_blit = glad_gl_has_extension(exts, exts_i, "GL_EXT_framebuffer_blit");
     GLAD_GL_EXT_framebuffer_multisample = glad_gl_has_extension(exts, exts_i, "GL_EXT_framebuffer_multisample");
     GLAD_GL_EXT_framebuffer_object = glad_gl_has_extension(exts, exts_i, "GL_EXT_framebuffer_object");
@@ -2465,6 +2472,7 @@ int gladLoadGLUserPtr( GLADuserptrloadfunc load, void *userptr) {
 
     if (!glad_gl_find_extensions_gl()) return 0;
     glad_gl_load_GL_ARB_framebuffer_object(load, userptr);
+    glad_gl_load_GL_ARB_parallel_shader_compile(load, userptr);
     glad_gl_load_GL_EXT_framebuffer_blit(load, userptr);
     glad_gl_load_GL_EXT_framebuffer_multisample(load, userptr);
     glad_gl_load_GL_EXT_framebuffer_object(load, userptr);

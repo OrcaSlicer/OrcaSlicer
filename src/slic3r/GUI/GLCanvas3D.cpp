@@ -3533,6 +3533,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     m_shadow_map_valid = false;
     _render_background();
 
+    m_path_tracer->poll_shaders();
     if (!m_path_tracer->is_selected())
         m_path_tracer->release_scene();
     // Whether this frame shows the path traced image, or the rasterizer stood in for it.
@@ -5512,8 +5513,8 @@ void GLCanvas3D::on_render_timer(wxTimerEvent& evt)
     // m_dirty = true;
     // wxWakeUpIdle();
     // ORCA: except for the path tracer, whose progressive passes are frames scheduled on this timer
-    // that must redraw the scene.
-    if (m_path_tracer->is_enabled()) {
+    // that must redraw the scene, as are the checks of its shaders while they are built.
+    if (m_path_tracer->is_enabled() || m_path_tracer->is_waiting_for_shaders()) {
         m_dirty = true;
         wxWakeUpIdle();
     }

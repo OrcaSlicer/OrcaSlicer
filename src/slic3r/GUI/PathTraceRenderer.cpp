@@ -330,15 +330,68 @@ float preview_overlay_opacity(const libvgcode::PathVertex& v)
     return 2.0f + (v.is_option() ? 0.1f : v.is_wipe() ? 0.05f : 0.0f);
 }
 
+// The path tracer's two programs, which the shader manager builds in the background; nullptr where one is
+// missing.
+std::array<GLShaderProgram*, 2> pathtrace_shaders()
+{
+    return {wxGetApp().get_shader("pathtrace_compute"), wxGetApp().get_shader("pathtrace_denoise")};
+}
+
+bool pathtrace_shaders_built()
+{
+    const std::array<GLShaderProgram*, 2> shaders = pathtrace_shaders();
+    return std::all_of(shaders.begin(), shaders.end(),
+                       [](const GLShaderProgram* s) { return s != nullptr && !s->is_building() && s->get_id() != 0; });
+}
+
+void close_shader_notification(NotificationType type)
+{
+    if (NotificationManager* notifications = wxGetApp().plater() != nullptr ? wxGetApp().plater()->get_notification_manager() : nullptr) {
+        notifications->stop_delayed_notifications_of_type(type);
+        notifications->close_notification_of_type(type);
+    }
+}
+
 } // namespace
 
 bool PathTraceRenderer::is_available()
 {
-    return wxGetApp().is_gl_version_greater_or_equal_to(4, 3) && wxGetApp().get_shader("pathtrace_compute") != nullptr &&
-           wxGetApp().get_shader("pathtrace_denoise") != nullptr;
+    if (!wxGetApp().is_gl_version_greater_or_equal_to(4, 3))
+        return false;
+    // A program that failed to build has no id.
+    const std::array<GLShaderProgram*, 2> shaders = pathtrace_shaders();
+    return std::all_of(shaders.begin(), shaders.end(),
+                       [](const GLShaderProgram* s) { return s != nullptr && (s->is_building() || s->get_id() != 0); });
 }
 
-bool PathTraceRenderer::is_selected() const
+void PathTraceRenderer::poll_shaders()
+{
+    if (!is_chosen()) {
+        if (m_waiting_for_shaders)
+            close_shader_notification(NotificationType::PathTraceBuilding);
+        m_waiting_for_shaders = false;
+        return;
+    }
+    for (GLShaderProgram* shader : pathtrace_shaders())
+        shader->poll_build();
+    if (!pathtrace_shaders_built() && is_available()) {
+        if (!m_waiting_for_shaders) {
+            // Only a build that takes a while is worth a notification, one for all the canvases waiting.
+            NotificationManager* notifications = wxGetApp().plater() != nullptr ? wxGetApp().plater()->get_notification_manager() : nullptr;
+            if (notifications != nullptr && !notifications->has_notification_of_type(NotificationType::PathTraceBuilding)) {
+                notifications->stop_delayed_notifications_of_type(NotificationType::PathTraceBuilding);
+                notifications->push_delayed_notification(NotificationType::PathTraceBuilding, [] { return true; }, 500, 0);
+            }
+        }
+        m_waiting_for_shaders = true;
+        m_canvas.schedule_extra_frame(100);
+    } else if (m_waiting_for_shaders) {
+        m_waiting_for_shaders = false;
+        close_shader_notification(NotificationType::PathTraceBuilding);
+    }
+}
+
+bool PathTraceRenderer::is_chosen() const
 {
     // Only these views of an FFF printer have a path traced branch in _render_scene().
     if ((m_canvas.m_canvas_type != GLCanvas3D::ECanvasType::CanvasView3D && m_canvas.m_canvas_type != GLCanvas3D::ECanvasType::CanvasPreview) ||
@@ -346,6 +399,11 @@ bool PathTraceRenderer::is_selected() const
         return false;
     const AppConfig* cfg = wxGetApp().app_config;
     return cfg != nullptr && cfg->get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace" && m_canvas._is_realistic_view_enabled() && is_available();
+}
+
+bool PathTraceRenderer::is_selected() const
+{
+    return is_chosen() && pathtrace_shaders_built();
 }
 
 bool PathTraceRenderer::is_enabled() const
@@ -398,22 +456,42 @@ PathTraceRenderer::~PathTraceRenderer()
     (void) m_filament_layers_shader.release();
 }
 
+// The program is built the first time the preference asks for it, which takes the driver seconds where it
+// has not cached it. Where the driver builds in threads of its own, the path tracer renders without the walk
+// until it is done, and a notification says so, instead of the view hanging.
 GLShaderProgram* PathTraceRenderer::filament_layers_shader()
 {
     if (m_filament_layers_shader == nullptr && !m_filament_layers_shader_failed) {
         GLShaderProgram::ShaderFilenames filenames{};
         filenames[static_cast<size_t>(GLShaderProgram::EShaderType::Compute)] = "430/pathtrace.comp";
         auto shader = std::make_unique<GLShaderProgram>();
-        if (shader->init_from_files("pathtrace_compute_filament_layers", filenames, { std::string_view("FILAMENT_LAYERS") }))
+        if (shader->start_init_from_files("pathtrace_compute_filament_layers", filenames, { std::string_view("FILAMENT_LAYERS") })) {
             m_filament_layers_shader = std::move(shader);
-        else
+            // Only a build that takes a while is worth a notification.
+            if (NotificationManager* notifications = wxGetApp().plater() != nullptr ? wxGetApp().plater()->get_notification_manager() : nullptr)
+                notifications->push_delayed_notification(NotificationType::PathTraceFilamentLayersBuilding, [] { return true; }, 500, 0);
+        } else {
             m_filament_layers_shader_failed = true;
+        }
+    }
+    if (m_filament_layers_shader != nullptr && m_filament_layers_shader->is_building()) {
+        if (!m_filament_layers_shader->poll_build()) {
+            m_canvas.schedule_extra_frame(100);
+            return nullptr;
+        }
+        close_shader_notification(NotificationType::PathTraceFilamentLayersBuilding);
+        if (m_filament_layers_shader->get_id() == 0) {
+            m_filament_layers_shader.reset();
+            m_filament_layers_shader_failed = true;
+        }
     }
     return m_filament_layers_shader.get();
 }
 
 void PathTraceRenderer::release_gl_resources()
 {
+    if (m_filament_layers_shader != nullptr && m_filament_layers_shader->is_building())
+        close_shader_notification(NotificationType::PathTraceFilamentLayersBuilding);
     m_filament_layers_shader.reset();
     m_filament_layers_shader_failed = false;
     if (m_gpu_node_buffer != 0 || m_gpu_triangle_buffer != 0 ||
@@ -1985,7 +2063,7 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
     m_max_samples = quality.cfg_max_samples;
     m_is_interactive = interactive;
 
-    // Both exist, see is_available().
+    // Both are built, see is_selected().
     GLShaderProgram* compute_shader = filament_layers ? filament_layers_shader() : wxGetApp().get_shader("pathtrace_compute");
     GLShaderProgram* denoise_shader = wxGetApp().get_shader("pathtrace_denoise");
 

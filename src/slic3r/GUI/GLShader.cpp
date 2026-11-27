@@ -23,14 +23,35 @@
 
 namespace Slic3r {
 
-GLShaderProgram::~GLShaderProgram()
+namespace {
+
+const char* shader_type_as_string(GLShaderProgram::EShaderType type)
 {
-    if (m_id > 0)
-        glsafe(::glDeleteProgram(m_id));
+    switch (type)
+    {
+    case GLShaderProgram::EShaderType::Vertex:         { return "vertex"; }
+    case GLShaderProgram::EShaderType::Fragment:       { return "fragment"; }
+    case GLShaderProgram::EShaderType::Geometry:       { return "geometry"; }
+    case GLShaderProgram::EShaderType::TessEvaluation: { return "tesselation evaluation"; }
+    case GLShaderProgram::EShaderType::TessControl:    { return "tesselation control"; }
+    case GLShaderProgram::EShaderType::Compute:        { return "compute"; }
+    default:                                           { return "unknown"; }
+    }
 }
 
-bool GLShaderProgram::init_from_files(const std::string& name, const ShaderFilenames& filenames, const std::initializer_list<std::string_view> &defines)
+void release_shaders(std::vector<std::pair<GLShaderProgram::EShaderType, unsigned int>>& shaders)
 {
+    for (const auto& [type, id] : shaders)
+        glsafe(::glDeleteShader(id));
+    shaders.clear();
+}
+
+// Reads the sources of a program from files, with a block of defines after the version line of each.
+bool load_sources(const GLShaderProgram::ShaderFilenames& filenames, const std::initializer_list<std::string_view>& defines,
+                  GLShaderProgram::ShaderSources& sources)
+{
+    using EShaderType = GLShaderProgram::EShaderType;
+
     // Load a shader program from file, prepend defs block.
     auto load_from_file = [](const std::string& filename, const std::string &defs) {
         std::string path = resources_dir() + "/shaders/" + filename;
@@ -69,37 +90,58 @@ bool GLShaderProgram::init_from_files(const std::string& name, const ShaderFilen
     // Create a block of C "defines" from list of symbols.
     std::string defines_program;
     for (std::string_view def : defines)
-        // Our shaders are stored with "\r\n", thus replicate the same here for consistency. Likely "\n" would suffice, 
+        // Our shaders are stored with "\r\n", thus replicate the same here for consistency. Likely "\n" would suffice,
         // but we don't know all the OpenGL shader compilers around.
         defines_program += format("#define %s\r\n", def);
 
-    ShaderSources sources = {};
     for (size_t i = 0; i < static_cast<size_t>(EShaderType::Count); ++i) {
         sources[i] = filenames[i].empty() ? std::string() : load_from_file(filenames[i], defines_program);
     }
 
     bool valid = !sources[static_cast<size_t>(EShaderType::Vertex)].empty() && !sources[static_cast<size_t>(EShaderType::Fragment)].empty() && sources[static_cast<size_t>(EShaderType::Compute)].empty();
-    valid |= !sources[static_cast<size_t>(EShaderType::Compute)].empty() && sources[static_cast<size_t>(EShaderType::Vertex)].empty() && sources[static_cast<size_t>(EShaderType::Fragment)].empty() && 
+    valid |= !sources[static_cast<size_t>(EShaderType::Compute)].empty() && sources[static_cast<size_t>(EShaderType::Vertex)].empty() && sources[static_cast<size_t>(EShaderType::Fragment)].empty() &&
               sources[static_cast<size_t>(EShaderType::Geometry)].empty() && sources[static_cast<size_t>(EShaderType::TessEvaluation)].empty() && sources[static_cast<size_t>(EShaderType::TessControl)].empty();
+    return valid;
+}
 
-    return valid ? init_from_texts(name, sources) : false;
+} // namespace
+
+GLShaderProgram::~GLShaderProgram()
+{
+    release_shaders(m_pending_shaders);
+    if (m_id > 0)
+        glsafe(::glDeleteProgram(m_id));
+}
+
+bool GLShaderProgram::init_from_files(const std::string& name, const ShaderFilenames& filenames, const std::initializer_list<std::string_view> &defines)
+{
+    ShaderSources sources = {};
+    return load_sources(filenames, defines, sources) && init_from_texts(name, sources);
+}
+
+bool GLShaderProgram::start_init_from_files(const std::string& name, const ShaderFilenames& filenames, const std::initializer_list<std::string_view> &defines)
+{
+    ShaderSources sources = {};
+    if (!load_sources(filenames, defines, sources))
+        return false;
+    // The driver's threads are at most this many by default, yet NVIDIA's only compile once the count is set:
+    // the first status query would wait for the whole build otherwise. Setting it waits for the builds under
+    // way, so it is set once, for the one context the app shares between its canvases.
+    static bool compiler_threads_set = false;
+    if (!compiler_threads_set && GLAD_GL_ARB_parallel_shader_compile && glMaxShaderCompilerThreadsARB != nullptr) {
+        glsafe(::glMaxShaderCompilerThreadsARB(0xFFFFFFFF));
+        compiler_threads_set = true;
+    }
+    return start_init_from_texts(name, sources);
 }
 
 bool GLShaderProgram::init_from_texts(const std::string& name, const ShaderSources& sources)
 {
-    auto shader_type_as_string = [](EShaderType type) {
-        switch (type)
-        {
-        case EShaderType::Vertex:         { return "vertex"; }
-        case EShaderType::Fragment:       { return "fragment"; }
-        case EShaderType::Geometry:       { return "geometry"; }
-        case EShaderType::TessEvaluation: { return "tesselation evaluation"; }
-        case EShaderType::TessControl:    { return "tesselation control"; }
-        case EShaderType::Compute:        { return "compute"; }
-        default:                          { return "unknown"; }
-        }
-    };
+    return start_init_from_texts(name, sources) && finish_init();
+}
 
+bool GLShaderProgram::start_init_from_texts(const std::string& name, const ShaderSources& sources)
+{
     auto create_shader = [](EShaderType type) {
         GLuint id = 0;
         switch (type)
@@ -112,54 +154,32 @@ bool GLShaderProgram::init_from_texts(const std::string& name, const ShaderSourc
         case EShaderType::Compute:        { id = ::glCreateShader(GL_COMPUTE_SHADER); glcheck(); break; }
         default:                          { break; }
         }
-           
+
         return (id == 0) ? std::make_pair(false, GLuint(0)) : std::make_pair(true, id);
     };
 
-    auto release_shaders = [](const std::array<GLuint, static_cast<size_t>(EShaderType::Count)>& shader_ids) {
-        for (size_t i = 0; i < static_cast<size_t>(EShaderType::Count); ++i) {
-            if (shader_ids[i] > 0)
-                glsafe(::glDeleteShader(shader_ids[i]));
-        }
-    };
-
-    assert(m_id == 0);
+    assert(m_id == 0 && m_pending_shaders.empty());
 
     m_name = name;
 
-    std::array<GLuint, static_cast<size_t>(EShaderType::Count)> shader_ids = { 0 };
-
+    // The driver may compile and link in threads of its own: finish_init() checks the results.
     for (size_t i = 0; i < static_cast<size_t>(EShaderType::Count); ++i) {
         const std::string& source = sources[i];
         if (!source.empty()) {
             EShaderType type = static_cast<EShaderType>(i);
             auto [result, id] = create_shader(type);
-            if (result)
-                shader_ids[i] = id;
-            else {
+            if (!result) {
                 BOOST_LOG_TRIVIAL(error) << "glCreateShader() failed for " << shader_type_as_string(type) << " shader of shader program '" << name << "'";
 
                 // release shaders
-                release_shaders(shader_ids);
+                release_shaders(m_pending_shaders);
                 return false;
             }
+            m_pending_shaders.emplace_back(type, id);
 
             const char* source_ptr = source.c_str();
             glsafe(::glShaderSource(id, 1, &source_ptr, nullptr));
             glsafe(::glCompileShader(id));
-            GLint params;
-            glsafe(::glGetShaderiv(id, GL_COMPILE_STATUS, &params));
-            if (params == GL_FALSE) {
-                // Compilation failed. 
-                glsafe(::glGetShaderiv(id, GL_INFO_LOG_LENGTH, &params));
-                std::vector<char> msg(params);
-                glsafe(::glGetShaderInfoLog(id, params, &params, msg.data()));
-                BOOST_LOG_TRIVIAL(error) << "Unable to compile " << shader_type_as_string(type) << " shader of shader program '" << name << "':\n" << msg.data();
-
-                // release shaders
-                release_shaders(shader_ids);
-                return false;
-            }
         }
     }
 
@@ -169,38 +189,72 @@ bool GLShaderProgram::init_from_texts(const std::string& name, const ShaderSourc
         BOOST_LOG_TRIVIAL(error) << "glCreateProgram() failed for shader program '" << name << "'";
 
         // release shaders
-        release_shaders(shader_ids);
+        release_shaders(m_pending_shaders);
         return false;
     }
 
-    for (size_t i = 0; i < static_cast<size_t>(EShaderType::Count); ++i) {
-        if (shader_ids[i] > 0)
-            glsafe(::glAttachShader(m_id, shader_ids[i]));
-    }
+    for (const auto& [type, id] : m_pending_shaders)
+        glsafe(::glAttachShader(m_id, id));
 
     glsafe(::glLinkProgram(m_id));
-    GLint params;
-    glsafe(::glGetProgramiv(m_id, GL_LINK_STATUS, &params));
-    if (params == GL_FALSE) {
-        // Linking failed. 
-        glsafe(::glGetProgramiv(m_id, GL_INFO_LOG_LENGTH, &params));
-        std::vector<char> msg(params);
-        glsafe(::glGetProgramInfoLog(m_id, params, &params, msg.data()));
-        BOOST_LOG_TRIVIAL(error) << "Unable to link shader program '" << name << "':\n" << msg.data();
+    return true;
+}
 
-        // release shaders
-        release_shaders(shader_ids);
+bool GLShaderProgram::poll_build()
+{
+    if (!is_building())
+        return true;
+    if (GLAD_GL_ARB_parallel_shader_compile) {
+        GLint done = GL_TRUE;
+        glsafe(::glGetProgramiv(m_id, GL_COMPLETION_STATUS_ARB, &done));
+        if (done == GL_FALSE)
+            return false;
+    }
+    finish_init();
+    return true;
+}
 
-        // release shader program
-        glsafe(::glDeleteProgram(m_id));
-        m_id = 0;
-
+bool GLShaderProgram::finish_init()
+{
+    if (m_id == 0)
         return false;
+
+    bool compiled = true;
+    for (const auto& [type, id] : m_pending_shaders) {
+        GLint params;
+        glsafe(::glGetShaderiv(id, GL_COMPILE_STATUS, &params));
+        if (params == GL_FALSE) {
+            // Compilation failed.
+            glsafe(::glGetShaderiv(id, GL_INFO_LOG_LENGTH, &params));
+            std::vector<char> msg(params);
+            glsafe(::glGetShaderInfoLog(id, params, &params, msg.data()));
+            BOOST_LOG_TRIVIAL(error) << "Unable to compile " << shader_type_as_string(type) << " shader of shader program '" << m_name << "':\n" << msg.data();
+            compiled = false;
+            break;
+        }
+    }
+
+    GLint params = GL_FALSE;
+    if (compiled) {
+        glsafe(::glGetProgramiv(m_id, GL_LINK_STATUS, &params));
+        if (params == GL_FALSE) {
+            // Linking failed.
+            glsafe(::glGetProgramiv(m_id, GL_INFO_LOG_LENGTH, &params));
+            std::vector<char> msg(params);
+            glsafe(::glGetProgramInfoLog(m_id, params, &params, msg.data()));
+            BOOST_LOG_TRIVIAL(error) << "Unable to link shader program '" << m_name << "':\n" << msg.data();
+        }
     }
 
     // release shaders, they are no more needed
-    release_shaders(shader_ids);
+    release_shaders(m_pending_shaders);
 
+    if (!compiled || params == GL_FALSE) {
+        // release shader program
+        glsafe(::glDeleteProgram(m_id));
+        m_id = 0;
+        return false;
+    }
     return true;
 }
 
