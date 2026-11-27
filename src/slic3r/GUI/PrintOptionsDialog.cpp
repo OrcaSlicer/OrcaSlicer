@@ -1,13 +1,17 @@
 #include "PrintOptionsDialog.hpp"
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 #include <cstddef>
 #include <ctime>
 #include <cassert>
 #include <initializer_list>
+#include <nlohmann/json.hpp>
+#include <vector>
 #include <wx/colour.h>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <utility>
 #include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/format.hpp"
 #include <wx/wx.h>
 #include <wx/gdicmn.h>
 #include <wx/toplevel.h>
@@ -1585,73 +1589,10 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     auto multi_line = new wxPanel(multiple_panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     multi_line->SetBackgroundColour(wxColour("#A6A9AA"));
 
-    /*left*/
-    auto leftTitle = new Label(multiple_panel, _L("Left Nozzle"));
-    leftTitle->SetFont(::Label::Head_14);
-    leftTitle->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#2C2C2E")));
-
-    wxBoxSizer *multiple_left_line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto multiple_left_nozzle_type = new Label(multiple_panel, _L_CONTEXT(L_CONTEXT("Type", "Nozzle Type"), "Nozzle Type"));
-    multiple_left_nozzle_type->SetFont(Label::Body_14);
-    multiple_left_nozzle_type->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
-
-    multiple_left_nozzle_type_checkbox = new ComboBox(multiple_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(180), -1), 0, NULL, wxCB_READONLY);
-
-    auto multiple_left_nozzle_diameter = new Label(multiple_panel, _L_CONTEXT(L_CONTEXT("Diameter", "Nozzle Diameter"), "Nozzle Diameter"));
-    multiple_left_nozzle_diameter->SetFont(Label::Body_14);
-    multiple_left_nozzle_diameter->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
-    multiple_left_nozzle_diameter_checkbox = new ComboBox(multiple_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(140), -1), 0, NULL, wxCB_READONLY);
-
-    auto multiple_left_nozzle_flow = new Label(multiple_panel, _L_CONTEXT(L_CONTEXT("Flow", "Nozzle Flow"), "Nozzle Flow"));
-    multiple_left_nozzle_flow->SetFont(Label::Body_14);
-    multiple_left_nozzle_flow->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
-    multiple_left_nozzle_flow_checkbox = new ComboBox(multiple_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(140), -1), 0, NULL, wxCB_READONLY);
-
-    multiple_left_line_sizer->Add(multiple_left_nozzle_type, 0, wxALIGN_CENTER, 0);
-    multiple_left_line_sizer->Add(0, 0, 0, wxLEFT, FromDIP(8));
-    multiple_left_line_sizer->Add(multiple_left_nozzle_type_checkbox, 0, wxALIGN_CENTER, 0);
-    multiple_left_line_sizer->Add(0, 0, 0, wxLEFT, FromDIP(15));
-    multiple_left_line_sizer->Add(multiple_left_nozzle_diameter, 0, wxALIGN_CENTER, 0);
-    multiple_left_line_sizer->Add(0, 0, 1, wxLEFT, FromDIP(8));
-    multiple_left_line_sizer->Add(multiple_left_nozzle_diameter_checkbox, 0, wxALIGN_CENTER, 0);
-    multiple_left_line_sizer->Add(0, 0, 0, wxLEFT, FromDIP(15));
-    multiple_left_line_sizer->Add(multiple_left_nozzle_flow, 0, wxALIGN_CENTER, 0);
-    multiple_left_line_sizer->Add(0, 0, 1, wxLEFT, FromDIP(8));
-    multiple_left_line_sizer->Add(multiple_left_nozzle_flow_checkbox, 0, wxALIGN_CENTER, 0);
-
-    /*right*/
-    auto rightTitle = new Label(multiple_panel, _L("Right Nozzle"));
-    rightTitle->SetFont(::Label::Head_14);
-    rightTitle->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#2C2C2E")));
-
-    wxBoxSizer *multiple_right_line_sizer  = new wxBoxSizer(wxHORIZONTAL);
-    auto        multiple_right_nozzle_type = new Label(multiple_panel, _L_CONTEXT(L_CONTEXT("Type", "Nozzle Type"), "Nozzle Type"));
-    multiple_right_nozzle_type->SetFont(Label::Body_14);
-    multiple_right_nozzle_type->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
-
-    multiple_right_nozzle_type_checkbox = new ComboBox(multiple_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(180), -1), 0, NULL, wxCB_READONLY);
-
-    auto multiple_right_nozzle_diameter = new Label(multiple_panel, _L_CONTEXT(L_CONTEXT("Diameter", "Nozzle Diameter"), "Nozzle Diameter"));
-    multiple_right_nozzle_diameter->SetFont(Label::Body_14);
-    multiple_right_nozzle_diameter->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
-    multiple_right_nozzle_diameter_checkbox = new ComboBox(multiple_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(140), -1), 0, NULL, wxCB_READONLY);
-
-    auto multiple_right_nozzle_flow = new Label(multiple_panel, _L_CONTEXT(L_CONTEXT("Flow", "Nozzle Flow"), "Nozzle Flow"));
-    multiple_right_nozzle_flow->SetFont(Label::Body_14);
-    multiple_right_nozzle_flow->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
-    multiple_right_nozzle_flow_checkbox = new ComboBox(multiple_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(140), -1), 0, NULL, wxCB_READONLY);
-
-    multiple_right_line_sizer->Add(multiple_right_nozzle_type, 0, wxALIGN_CENTER, 0);
-    multiple_right_line_sizer->Add(0, 0, 0, wxLEFT, FromDIP(8));
-    multiple_right_line_sizer->Add(multiple_right_nozzle_type_checkbox, 0, wxALIGN_CENTER, 0);
-    multiple_right_line_sizer->Add(0, 0, 0, wxLEFT, FromDIP(15));
-    multiple_right_line_sizer->Add(multiple_right_nozzle_diameter, 0, wxALIGN_CENTER, 0);
-    multiple_right_line_sizer->Add(0, 0, 1, wxLEFT, FromDIP(8));
-    multiple_right_line_sizer->Add(multiple_right_nozzle_diameter_checkbox, 0, wxALIGN_CENTER, 0);
-    multiple_right_line_sizer->Add(0, 0, 0, wxLEFT, FromDIP(15));
-    multiple_right_line_sizer->Add(multiple_right_nozzle_flow, 0, wxALIGN_CENTER, 0);
-    multiple_right_line_sizer->Add(0, 0, 1, wxLEFT, FromDIP(8));
-    multiple_right_line_sizer->Add(multiple_right_nozzle_flow_checkbox, 0, wxALIGN_CENTER, 0);
+    nozzle_rows_window = new wxScrolledWindow(multiple_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
+    nozzle_rows_window->SetScrollRate(0, FromDIP(10));
+    nozzle_rows_sizer = new wxBoxSizer(wxVERTICAL);
+    nozzle_rows_window->SetSizer(nozzle_rows_sizer);
 
     multiple_change_nozzle_tips = new Label(multiple_panel, _L("Please change the nozzle settings on the printer."));
     multiple_change_nozzle_tips->SetFont(Label::Body_13);
@@ -1680,13 +1621,7 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
 
     multiple_sizer->Add(multi_line, 0, wxEXPAND, 0);
     multiple_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
-    multiple_sizer->Add(leftTitle, 0, wxLEFT, FromDIP(18));
-    multiple_sizer->Add(0, 0, 0, wxTOP, FromDIP(8));
-    multiple_sizer->Add(multiple_left_line_sizer, 0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(18));
-    multiple_sizer->Add(0, 0, 0, wxTOP, FromDIP(24));
-    multiple_sizer->Add(rightTitle, 0, wxLEFT, FromDIP(18));
-    multiple_sizer->Add(0, 0, 0, wxTOP, FromDIP(8));
-    multiple_sizer->Add(multiple_right_line_sizer, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(18));
+    multiple_sizer->Add(nozzle_rows_window, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
     multiple_sizer->Add(0, 0, 0, wxTOP, FromDIP(20));
     multiple_sizer->Add(multiple_change_tips_sizer, 0, wxLEFT, FromDIP(18));
     multiple_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
@@ -1719,89 +1654,129 @@ void PrinterPartsDialog::on_dpi_changed(const wxRect& suggested_rect) {
 
     Fit();
 }
-void PrinterPartsDialog::update_machine_obj(MachineObject* obj_) { if (obj_) { obj = obj_; }}
+void PrinterPartsDialog::update_machine_obj(MachineObject* obj_) { obj = obj_; }
 bool PrinterPartsDialog::Show(bool show)
 {
     if (show) {
+        EnableEditing(false);
+        UpdateParts();
         wxGetApp().UpdateDlgDarkUI(this);
         CentreOnParent();
-
-        /*disable editing*/
-        EnableEditing(false);
-        assert(DevPrinterConfigUtil::get_printer_can_set_nozzle(obj->printer_type) == false);/*editing is not supported*/
-
-        if (obj->GetExtderSystem()->GetTotalExtderSize() <= 1) {
-            single_panel->Show();
-            multiple_panel->Hide();
-
-            auto type     = obj->GetExtderSystem()->GetNozzleType(MAIN_EXTRUDER_ID);
-            auto diameter = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
-            nozzle_type_checkbox->SetValue(GetString(type));
-            nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
-
-            // nozzle flow type
-            nozzle_flow_type_label->Show(obj->is_nozzle_flow_type_supported());
-            nozzle_flow_type_checkbox->Show(obj->is_nozzle_flow_type_supported());
-            if (obj->is_nozzle_flow_type_supported())
-            {
-                auto flow_type = obj->GetExtderSystem()->GetNozzleFlowType(MAIN_EXTRUDER_ID);
-                nozzle_flow_type_checkbox->SetValue(GetString(flow_type));
-            }
-            if (obj->is_support_refresh_nozzle) {
-                m_single_update_nozzle_button->Show();
-            } else {
-                m_single_update_nozzle_button->Hide();
-            }
-        } else {
-            single_panel->Hide();
-            multiple_panel->Show();
-
-            //left
-            auto type      = obj->GetExtderSystem()->GetNozzleType(DEPUTY_EXTRUDER_ID);
-            auto diameter  = obj->GetExtderSystem()->GetNozzleDiameter(DEPUTY_EXTRUDER_ID);
-            auto flow_type = obj->GetExtderSystem()->GetNozzleFlowType(DEPUTY_EXTRUDER_ID);
-            multiple_left_nozzle_type_checkbox->SetValue(GetString(type));
-            multiple_left_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
-            multiple_left_nozzle_flow_checkbox->SetValue(GetString(flow_type));
-
-            //right
-            type      = obj->GetExtderSystem()->GetNozzleType(MAIN_EXTRUDER_ID);
-            diameter  = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
-            flow_type = obj->GetExtderSystem()->GetNozzleFlowType(MAIN_EXTRUDER_ID);
-            multiple_right_nozzle_type_checkbox->SetValue(GetString(type));
-            multiple_right_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
-            multiple_right_nozzle_flow_checkbox->SetValue(GetString(flow_type));
-
-            if (obj->is_support_refresh_nozzle) {
-                m_multiple_update_nozzle_button->Show();
-            } else {
-                m_multiple_update_nozzle_button->Hide();
-            }
-        }
-
-        GetSizer()->SetSizeHints(this);
-        Layout();
-        Fit();
     }
     return DPIDialog::Show(show);
 }
 
 void PrinterPartsDialog::EnableEditing(bool enable) {
-
     nozzle_type_checkbox->Enable(enable);
     nozzle_diameter_checkbox->Enable(enable);
     nozzle_flow_type_checkbox->Enable(enable);
-
-    multiple_left_nozzle_type_checkbox->Enable(enable);
-    multiple_left_nozzle_diameter_checkbox->Enable(enable);
-    multiple_left_nozzle_flow_checkbox->Enable(enable);
-
-    multiple_right_nozzle_type_checkbox->Enable(enable);
-    multiple_right_nozzle_diameter_checkbox->Enable(enable);
-    multiple_right_nozzle_flow_checkbox->Enable(enable);
-
+    for (auto &row : nozzle_rows) {
+        row.type->Enable(enable);
+        row.diameter->Enable(enable);
+        row.flow->Enable(enable);
+    }
     change_nozzle_tips->Show(!enable);
     multiple_change_nozzle_tips->Show(!enable);
+}
+
+void PrinterPartsDialog::UpdateParts()
+{
+    auto *system = obj ? obj->GetExtderSystem() : nullptr;
+    const int count = system ? system->GetTotalExtderSize() : 0;
+    const bool single = count <= 1;
+    const bool flow_supported = obj && obj->is_nozzle_flow_type_supported();
+    single_panel->Show(single);
+    multiple_panel->Show(!single);
+    nozzle_flow_type_label->Show(flow_supported);
+    nozzle_flow_type_checkbox->Show(flow_supported);
+    m_single_update_nozzle_button->Show(obj && obj->is_support_refresh_nozzle);
+    m_multiple_update_nozzle_button->Show(obj && obj->is_support_refresh_nozzle);
+
+    auto values = [&](int tool, ComboBox *type, ComboBox *diameter, ComboBox *flow) {
+        const bool valid = system && tool >= 0 && tool < count && system->GetExtderById(tool).has_value();
+        type->SetValue(valid ? GetString(system->GetNozzleType(tool)) : _L("Unknown"));
+        diameter->SetValue(valid ? format_nozzle_diameter(system->GetNozzleDiameter(tool)) : _L("Unknown"));
+        flow->SetValue(valid && flow_supported ? GetString(system->GetNozzleFlowType(tool)) : wxString{});
+    };
+
+    if (single) {
+        const int tool = count == 1 ? obj->device_tool_for_display_index(0) : -1;
+        values(tool, nozzle_type_checkbox, nozzle_diameter_checkbox, nozzle_flow_type_checkbox);
+    } else {
+        std::vector<std::pair<int, wxString>> tools;
+        const auto names = DevPrinterConfigUtil::get_value_from_config<nlohmann::json>(
+            obj->printer_type, "tool_head_display_names");
+        for (int i = 0; i < count; ++i) {
+            const int tool = obj->device_tool_for_display_index(i);
+            wxString name;
+            if (tool >= 0 && tool < count) {
+                const auto key = std::to_string(tool);
+                const bool configured = names.is_object() && names.contains(key) && names[key].is_object() &&
+                                        names[key].contains("nozzle") && names[key]["nozzle"].is_array() &&
+                                        !names[key]["nozzle"].empty() && names[key]["nozzle"][0].is_string() &&
+                                        !names[key]["nozzle"][0].get<std::string>().empty();
+                if (configured)
+                    name = _L(DevPrinterConfigUtil::get_toolhead_display_name(
+                        obj->printer_type, tool, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase));
+            }
+            if (name.empty()) {
+                if (count == 2)
+                    name = i == 0 ? _L("Left Nozzle") : _L("Right Nozzle");
+                else
+                    name = format_wxstr(_L("Nozzle %1%"), i + 1);
+            }
+            tools.emplace_back(tool, name);
+        }
+        bool rebuild = tools.size() != nozzle_rows.size();
+        for (size_t i = 0; !rebuild && i < tools.size(); ++i)
+            rebuild = tools[i].first != nozzle_rows[i].tool || tools[i].second != nozzle_rows[i].name;
+        // Flow labels are created with the rows, so rebuild when support changes.
+        if (!rebuild)
+            rebuild = nozzle_rows_flow_supported != flow_supported;
+        if (rebuild) {
+            nozzle_rows_sizer->Clear(true);
+            nozzle_rows.clear();
+            nozzle_rows_flow_supported = flow_supported;
+            for (const auto &entry : tools) {
+                auto *title = new Label(nozzle_rows_window, entry.second);
+                title->SetFont(::Label::Head_14);
+                title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#2C2C2E")));
+                nozzle_rows_sizer->Add(title, 0, wxBOTTOM, FromDIP(8));
+                auto *line = new wxBoxSizer(wxHORIZONTAL);
+                auto add_field = [&](const wxString &label, int width) {
+                    auto *caption = new Label(nozzle_rows_window, label);
+                    caption->SetFont(Label::Body_14);
+                    caption->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
+                    auto *box = new ComboBox(nozzle_rows_window, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                             wxSize(FromDIP(width), -1), 0, NULL, wxCB_READONLY);
+                    box->Enable(false);
+                    line->Add(caption, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(8));
+                    line->Add(box, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(15));
+                    return std::make_pair(caption, box);
+                };
+                auto type = add_field(_L_CONTEXT(L_CONTEXT("Type", "Nozzle Type"), "Nozzle Type"), 180);
+                auto diameter = add_field(_L_CONTEXT(L_CONTEXT("Diameter", "Nozzle Diameter"), "Nozzle Diameter"), 140);
+                auto flow = add_field(_L_CONTEXT(L_CONTEXT("Flow", "Nozzle Flow"), "Nozzle Flow"), 140);
+                flow.first->Show(flow_supported);
+                flow.second->Show(flow_supported);
+                nozzle_rows.push_back({entry.first, entry.second, type.second, diameter.second, flow.second});
+                nozzle_rows_sizer->Add(line, 0, wxBOTTOM, FromDIP(24));
+            }
+            nozzle_rows_window->FitInside();
+            const wxSize size = nozzle_rows_sizer->GetMinSize();
+            nozzle_rows_window->SetMinSize(wxSize(size.x + FromDIP(20), std::min(size.y, FromDIP(400))));
+            wxGetApp().UpdateDlgDarkUI(this);
+        }
+        for (auto &row : nozzle_rows)
+            values(row.tool, row.type, row.diameter, row.flow);
+    }
+    const bool refreshing = obj && obj->GetNozzleSystem() && obj->GetNozzleSystem()->IsRefreshing();
+    auto *button = single ? m_single_update_nozzle_button : m_multiple_update_nozzle_button;
+    button->SetLabel(refreshing ? _L("Refreshing") : _L("Refresh"));
+    button->Enable(!refreshing);
+    GetSizer()->SetSizeHints(this);
+    Layout();
+    Fit();
 }
 
 wxString PrinterPartsDialog::GetString(NozzleType nozzle_type) const {
@@ -1849,65 +1824,9 @@ void PrinterPartsDialog::OnNozzleRefresh(wxCommandEvent& e)
     obj->command_refresh_nozzle();
 }
 
-void PrinterPartsDialog::UpdateNozzleInfo(){
-    /* nozzle in checking*/
-    if (obj->GetNozzleSystem()->IsRefreshing()) {
-        if (single_panel->IsShown()) {
-            m_single_update_nozzle_button->SetLabel(_L("Refreshing"));
-            m_single_update_nozzle_button->Disable();
-        } else if (multiple_panel->IsShown()) {
-            m_multiple_update_nozzle_button->SetLabel(_L("Refreshing"));
-            m_multiple_update_nozzle_button->Disable();
-        }
-        BOOST_LOG_TRIVIAL(info) << "Nozzle state in refreshing.";
-        Layout();
-        Fit();
-        return;
-    } else {
-        if (single_panel->IsShown()) {
-            m_single_update_nozzle_button->SetLabel(_L("Refresh"));
-            m_single_update_nozzle_button->Enable();
-        } else if (multiple_panel->IsShown()) {
-            m_multiple_update_nozzle_button->SetLabel(_L("Refresh"));
-            m_multiple_update_nozzle_button->Enable();
-        }
-        BOOST_LOG_TRIVIAL(info) << "Nozzle state in idle.";
-    }
-
-    if (single_panel->IsShown()) {
-        auto type     = obj->GetExtderSystem()->GetNozzleType(MAIN_EXTRUDER_ID);
-        auto diameter = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
-        nozzle_type_checkbox->SetValue(GetString(type));
-        nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
-
-        // nozzle flow type
-        nozzle_flow_type_label->Show(obj->is_nozzle_flow_type_supported());
-        nozzle_flow_type_checkbox->Show(obj->is_nozzle_flow_type_supported());
-        if (obj->is_nozzle_flow_type_supported())
-        {
-            auto flow_type = obj->GetExtderSystem()->GetNozzleFlowType(MAIN_EXTRUDER_ID);
-            nozzle_flow_type_checkbox->SetValue(GetString(flow_type));
-        }
-    } else if(multiple_panel->IsShown()){
-        //left
-        auto type      = obj->GetExtderSystem()->GetNozzleType(DEPUTY_EXTRUDER_ID);
-        auto diameter  = obj->GetExtderSystem()->GetNozzleDiameter(DEPUTY_EXTRUDER_ID);
-        auto flow_type = obj->GetExtderSystem()->GetNozzleFlowType(DEPUTY_EXTRUDER_ID);
-        multiple_left_nozzle_type_checkbox->SetValue(GetString(type));
-        multiple_left_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
-        multiple_left_nozzle_flow_checkbox->SetValue(GetString(flow_type));
-
-        //right
-        type      = obj->GetExtderSystem()->GetNozzleType(MAIN_EXTRUDER_ID);
-        diameter  = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
-        flow_type = obj->GetExtderSystem()->GetNozzleFlowType(MAIN_EXTRUDER_ID);
-        multiple_right_nozzle_type_checkbox->SetValue(GetString(type));
-        multiple_right_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
-        multiple_right_nozzle_flow_checkbox->SetValue(GetString(flow_type));
-    }
-
-    Layout();
-    Fit();
+void PrinterPartsDialog::UpdateNozzleInfo()
+{
+    UpdateParts();
 }
 
 }} // namespace Slic3r::GUI
