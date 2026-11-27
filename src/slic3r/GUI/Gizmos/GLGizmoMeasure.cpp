@@ -47,6 +47,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/GLShader.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/GUI_Colors.hpp"
 #include "slic3r/GUI/GUI_Geometry.hpp"
 #include <tbb/parallel_for.h>
 
