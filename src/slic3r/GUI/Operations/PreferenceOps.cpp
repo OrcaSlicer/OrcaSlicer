@@ -175,7 +175,7 @@ std::vector<Preference> build_table()
     table.back().restart_needed = true;
 #endif
     // ORCA: the values are the names in UI_COLOR_SET_NAMES of GUI_Colors.cpp
-    t.choice("ui_color_set", L("Color set"), {{"default", L("Default")}, {"deutan", L("Colorblind friendly (red-green)")}},
+    t.choice("ui_color_set", L("Color set"), {{"default", L("Default")}, {"deutan", L("Colorblind friendly (red-green)")}, {"tritan", L("Colorblind friendly (blue-yellow)")}},
         {L("The colors of the color scales of the sliced preview (speed, flow, layer time, etc.), of the axes, of the "
            "two-color pairs of the measure, assembly and cut tools and of the two brushes and the overhang highlight "
            "of the painting tools (supports, seam, fuzzy skin, etc.).\n"

@@ -119,6 +119,23 @@ static std::array<UIColors, size_t(UIColorSet::Count)> make_ui_colors()
         "#AA2E37"  // reddish
     });
 
+    // TRITAN: starts as the default set and changes what it needs to
+    /////////////////////////////////////////////////////////
+    // Axes: red, green and a dark blue, as blue and green look alike with tritanopia
+    // Brushes and overhang: stay apart with tritanopia, also where a brush covers an overhang
+    // Pairs: the default cyan and magenta already stay apart
+    UIColors& tritan = sets[size_t(UIColorSet::Tritan)];
+    tritan              = def;
+    tritan.axes         = {{
+        rgba("#F67271"), // X
+        rgba("#37FC5E"), // Y
+        rgba("#2501B3")  // Z
+    }};
+    tritan.enforcer     = rgba("#00FF80");
+    tritan.blocker      = rgba("#FF002F");
+    tritan.overhang     = rgb("#7000FF");
+    tritan.ranges       = deutan.ranges;
+
     return sets;
 }
 
@@ -130,7 +147,7 @@ UIColorSet      ui_color_set() { return s_ui_color_set; }
 const UIColors& ui_colors()    { return UI_COLORS[size_t(s_ui_color_set)]; }
 
 // ORCA: the names the preference stores the sets with, in the order of UIColorSet
-static const std::array<const char*, size_t(UIColorSet::Count)> UI_COLOR_SET_NAMES = {{ "default", "deutan" }};
+static const std::array<const char*, size_t(UIColorSet::Count)> UI_COLOR_SET_NAMES = {{ "default", "deutan", "tritan" }};
 
 void set_ui_color_set(const std::string& name)
 {

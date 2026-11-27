@@ -45,8 +45,9 @@ const char* GetRenderColName(RenderCol idx);
 
 namespace GUI {
 
-// ORCA: color sets of the "ui_color_set" preference, stored by name. Deutan covers deuteranopia and protanopia
-enum class UIColorSet : unsigned char { Default, Deutan, Count };
+// ORCA: color sets of the "ui_color_set" preference, stored by name. Deutan covers deuteranopia and protanopia,
+// Tritan covers tritanopia
+enum class UIColorSet : unsigned char { Default, Deutan, Tritan, Count };
 
 // ORCA: colors that depend on the color set, defined by make_ui_colors() in GUI_Colors.cpp
 struct UIColors
