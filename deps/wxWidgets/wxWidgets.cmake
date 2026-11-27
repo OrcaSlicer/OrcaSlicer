@@ -44,7 +44,7 @@ endif ()
 orcaslicer_add_cmake_project(
     wxWidgets
     GIT_REPOSITORY "https://github.com/OrcaSlicer/Orca-deps-wxWidgets"
-    GIT_TAG b44c39c100975a0ac0e46f937aa3f3eae5e18631
+    GIT_TAG 89844cb1f80b17a5916d5274cd88317cac3e2a3c
     # A shallow clone fetches only the branch head, so checking out a pinned commit fails once the
     # branch moves past it.
     GIT_SHALLOW OFF

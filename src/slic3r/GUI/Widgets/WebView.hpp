@@ -6,6 +6,9 @@
 #include <wx/webview.h>
 #include <wx/event.h>
 
+#include <functional>
+#include <string>
+
 class wxWebView;
 class wxWindow;
 
@@ -26,6 +29,14 @@ public:
     static wxString RedactUrl(const wxString& url);
 
     static bool RunScript(wxWebView * webView, wxString const & msg);
+
+    // Runs `javascript`, an expression whose value is a string, in the page's main frame and hands
+    // that value to `done` on the UI thread: done(true, value), or done(false, why) when it could
+    // not run. Unlike wxWebView::RunScriptAsync(), whose completion keeps a raw pointer to the web
+    // view, the native completion holds `done` alone, so the web view may be destroyed while the
+    // script is pending; `done` then reports an error, or on WebView2 is never called. The script is
+    // run as given, without wx's eval() wrapper, so it also runs in pages whose CSP forbids eval.
+    static void RunScriptAsync(wxWebView* webView, const wxString& javascript, std::function<void(bool ok, const std::string& result)> done);
 
     // Marks "wx" as registered so CreateWebView's deferred add skips the duplicate.
     static void MarkScriptMessageHandlerAdded(wxWebView * webView);

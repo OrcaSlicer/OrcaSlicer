@@ -9,6 +9,7 @@ Rules for writing tests under `tests/`. [CATCH2.md](CATCH2.md) is the Catch2 ref
 - `sla_print`: SLA support-tree and pad geometry, support-point generation, raycast.
 - `libnest2d`: 2D nesting and packing.
 - `slic3rutils`: the Python plugin system and its slicing-pipeline bindings.
+- `automation`: the automation core: the command catalog's type, the dispatch core, the MCP protocol and transport, the replay model; no GUI library.
 - `filament_group`: filament-to-extruder grouping, checked against golden files.
 - `cli`: end-to-end runs of the built `orca-slicer` binary, Linux only. These tests carry the `RequiresApp` label, which the CI unit-test job excludes because it receives only `build/tests`; run them with `ctest --test-dir build/tests -C Release -L RequiresApp`.
 
@@ -27,6 +28,7 @@ Rebuild a single suite with `cmake --build build --config Release --target <suit
 - Pick the suite by the production code the test exercises, not by how the test is written.
 - A property of a class that holds with no `Print` involved belongs in `libslic3r`. Behavior that depends on print settings, or produces or consumes G-code or slicing state, belongs in `fff_print`.
 - One file per subsystem, named `test_<subsystem>.cpp`. It owns every test for that subsystem, whether the test reads in-memory state or generated output.
+- `test_command_catalog.cpp`, `test_mcp_core.cpp` and `test_mcp_protocol.cpp` exist in both `automation` and `slic3rutils`: a case goes to `automation` when it compiles against `libslic3r_automation`'s headers alone, otherwise to the `slic3rutils` file of the same name.
 - When you add a file, list it in that suite's `CMakeLists.txt` in the same change.
 
 ## Use the existing helpers
@@ -35,7 +37,7 @@ Check these before writing your own setup or output-parsing code.
 
 - `tests/test_utils.hpp` is shared by every suite. `load_model()` loads a mesh from `tests/data/`, and `ScopedTemporaryFile` gives a temp path that removes itself.
 - `fff_print/test_helpers.hpp` builds and slices a `Print` and parses the emitted G-code. Read it before writing an fff_print test rather than assembling a `Print` by hand.
-- The other suites have their own: `sla_print/sla_test_utils.hpp`, `libnest2d/libnest2d_test_utils.hpp`, `slic3rutils/plugin_test_utils.hpp`, `filament_group/fg_test_utils.hpp`. `libslic3r` has none and uses the shared header.
+- The other suites have their own: `sla_print/sla_test_utils.hpp`, `libnest2d/libnest2d_test_utils.hpp`, `slic3rutils/plugin_test_utils.hpp`, `slic3rutils/mcp_test_utils.hpp` (the MCP tests' catalog and call contexts), `automation/automation_test_utils.hpp`, `filament_group/fg_test_utils.hpp`. `libslic3r` has none and uses the shared header.
 - Test data lives in `tests/data/` and is reached through the `TEST_DATA_DIR` define. Wrap it in `std::string(...)` before joining a path onto it.
 
 ## Writing the test

@@ -23,6 +23,8 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r_version.h"
 #include "slic3r/GUI/UserNotification.hpp"
+#include "slic3r/GUI/GUI_Init.hpp"
+#include "slic3r/GUI/Mcp/AutomationRuntimePtr.hpp"
 #include "slic3r/Utils/CloudDeleteQueue.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include "libslic3r/Point.hpp"
@@ -98,12 +100,17 @@ class ObjectSettings;
 class ObjectList;
 class ObjectLayers;
 class Plater;
+class AgentActivityPanel;
+class RunScriptPanel;
 class ParamsPanel;
 class NotificationManager;
 class Downloader;
 struct GUI_InitParams;
 class ParamsDialog;
 class HMSQuery;
+namespace Ops {
+class RefreshTicket;
+}
 class ModelMallDialog;
 class PingCodeBindDialog;
 class PresetBundleDialog;
@@ -117,6 +124,9 @@ class HttpServer;
 class ImGuiWrapper;
 class OpenGLManager;
 class UpgradeNetworkJob;
+namespace Mcp {
+class McpEndpoint;
+}
 
 typedef std::function<void(int status, int percent, bool& cancel)> InstallProgressFn;
 
@@ -383,6 +393,12 @@ private:
     bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
     std::unique_ptr<HttpServer> m_http_server;
+    Mcp::AutomationRuntimePtr m_automation;
+    // After the runtime, so it is destroyed first: it holds the runtime by reference. Null in a session that never
+    // opened it.
+    std::unique_ptr<Mcp::McpEndpoint> m_mcp_endpoint;
+    std::unique_ptr<RunScriptPanel> m_run_script_panel;
+    std::unique_ptr<AgentActivityPanel> m_agent_activity_panel;
     bool             m_show_gcode_window{true};
     boost::thread    m_check_network_thread;
 public:
@@ -394,9 +410,16 @@ public:
     int             OnExit() override;
     void            CleanUp() override;
     bool            initialized() const { return m_initialized; }
+    // A --run launch, whose replay or script owns the session: the questions that are a person's, such as restoring
+    // their unsaved project, wait for their next launch.
+    bool launched_for_run() const { return this->init_params != nullptr && !this->init_params->mcp.run_file.empty(); }
     inline bool     is_enable_multi_machine() { return this->app_config&& this->app_config->get("enable_multi_machine") == "true"; }
 #ifdef SLIC3R_CAD
-    inline bool     is_enable_cad_feature() { return this->app_config && this->app_config->get_bool("enable_cad_feature"); }
+    // the saved preference
+    bool cad_feature_setting() const { return this->app_config && this->app_config->get_bool("enable_cad_feature"); }
+    // in force: the preference, or --cad for this run
+    bool is_enable_cad_feature() const { return cad_feature_setting() || cad_feature_set_for_run(); }
+    bool cad_feature_set_for_run() const { return this->init_params != nullptr && this->init_params->cad; }
     inline bool     is_auto_close_sketch_loops() { return !this->app_config
         || this->app_config->get_bool("auto_close_sketch_loops"); }
 #endif
@@ -661,6 +684,37 @@ public:
     void            start_http_server(int port, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            stop_http_server();
 
+    // The automation runtime, ready for use: started, by this call if need be and without the MCP endpoint, and not
+    // stopping. nullptr while OrcaSlicer closes or the runtime stops. UI thread.
+    Mcp::AutomationRuntime* automation();
+    // The runtime if something has started it, stopping or not. Never starts it. UI thread.
+    Mcp::AutomationRuntime* automation_if_started();
+    // The MCP endpoint, or nullptr before the first open. UI thread.
+    Mcp::McpEndpoint* mcp_endpoint();
+    // Opens the endpoint on the port of the command line, else of the preference, starting the runtime first.
+    // Shows a notification when it cannot open and no other window holds the port. While OrcaSlicer closes it
+    // opens nothing and only returns the error.
+    bool open_mcp_endpoint(std::string* error = nullptr);
+    // Closes the endpoint until the next open, as turning the server off in Preferences does. The runtime carries
+    // on, since an MCP call may have opened Preferences. UI thread.
+    void close_mcp_endpoint();
+    // Moves the endpoint to the port set in Preferences, which replaces one given on the command line for the rest
+    // of the session: an endpoint that serves, or waits for a port another window holds, reopens on it, and a later
+    // open opens on it. UI thread.
+    bool restart_mcp_endpoint(std::string* error = nullptr);
+    // Closes the endpoint, then stops the runtime; both are kept, since a call may still be on the stack.
+    void stop_automation();
+    // Stops both and frees them once no thread is inside. Outside any event loop only (OnExit, CleanUp).
+    void destroy_automation();
+    // The Run Script panel's controller, built on first use and kept until the automation runtime, whose job hosts
+    // its session, goes away.
+    RunScriptPanel&  run_script_panel();
+    RunScriptPanel*  run_script_panel_if_built() { return m_run_script_panel.get(); }
+    // The Agent Activity pane's controller, built on first use and kept until the automation runtime, whose activity
+    // log it shows, goes away.
+    AgentActivityPanel& agent_activity_panel();
+    AgentActivityPanel* agent_activity_panel_if_built() { return m_agent_activity_panel.get(); }
+
     void            on_show_check_privacy_dlg(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            show_check_privacy_dlg(wxCommandEvent& evt);
     void            on_check_privacy_update(wxCommandEvent &evt);
@@ -705,6 +759,9 @@ public:
     bool            check_and_save_current_preset_changes(const wxString& caption, const wxString& header, bool remember_choice = true, bool use_dont_save_insted_of_discard = false);
     void            apply_keeped_preset_modifications();
     bool            check_and_keep_current_preset_changes(const wxString& caption, const wxString& header, int action_buttons, bool* postponed_apply_of_keeped_changes = nullptr);
+    // The Discard of check_and_keep_current_preset_changes(): drops every modified preset's unsaved
+    // changes and reloads the presets.
+    void            discard_current_preset_changes();
     bool            can_load_project();
     bool            check_print_host_queue();
     bool            checked_tab(Tab* tab);
@@ -730,9 +787,13 @@ public:
     // Called on the GUI thread after an audit prompt stores a grant outside the Plugins dialog.
     // Refreshes an existing dialog instance; never creates or raises it.
     void            notify_plugin_permissions_changed(const std::string& plugin_key);
-    // Dialog-free plugin actions used by the speed dial: they never require the Plugins dialog to be open.
-    void            refresh_plugins();
-    void            install_local_plugin();
+    // Refresh Plugins, which needs no Plugins dialog: starts a run of Ops::start_plugin_refresh(), whose end a
+    // notification reports, and returns its ticket. A refresh asked for while one waits or runs is a run of its own
+    // after it, with a notification of its own. GUI thread.
+    Ops::RefreshTicket refresh_plugins();
+    // Shows the current plugin list in the Plugins dialog when it is open, after a change made outside it
+    // (the speed dial's refresh or install, a plugin loading). GUI thread; never creates or raises it.
+    void            update_plugins_dialog();
     void            open_terminal_dialog();
     void            open_speed_dial();
     ActionRegistry& action_registry() { return *m_action_registry; }
