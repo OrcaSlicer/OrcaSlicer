@@ -1388,7 +1388,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // Orca: used_filaments and objects() still describe the previous model. The check after the
     // region update normalizes this copy again by the current ones.
     DynamicPrintConfig unnormalized_config = new_full_config;
-    t_config_option_keys changed_keys = new_full_config.normalize_fdm_2(objects().size(), used_filaments.size());
+    t_config_option_keys changed_keys = new_full_config.normalize_fdm_2(num_object_instances(), used_filaments.size());
     if (changed_keys.size() > 0) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", got changed_keys, size=%1%")%changed_keys.size();
         for (int i = 0; i < changed_keys.size(); i++)
@@ -2273,7 +2273,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     //BBS: check the config again
     int new_used_filaments = this->extruders(true).size();
-    t_config_option_keys new_changed_keys = unnormalized_config.normalize_fdm_2(objects().size(), new_used_filaments);
+    t_config_option_keys new_changed_keys = unnormalized_config.normalize_fdm_2(num_object_instances(), new_used_filaments);
     // Compare both passes with what was applied above, so a key disabled there can be enabled again.
     append(new_changed_keys, changed_keys);
     new_changed_keys.erase(std::remove_if(new_changed_keys.begin(), new_changed_keys.end(), [&](const std::string &key) {
