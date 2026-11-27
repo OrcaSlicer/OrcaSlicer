@@ -448,17 +448,6 @@ std::vector<Preference> build_table()
                 "Phong: per-pixel lighting with specular highlights, cast shadows, and SSAO.\n"
                 "Path tracing: physically based GPU ray tracing with ambient occlusion and soft shadows.")})
         .own_row = true;
-    Preference& pathtrace_quality = t.choice(SETTING_OPENGL_PATHTRACE_QUALITY, L("Path tracer quality"),
-                                             {{"low", L("Low")}, {"medium", L("Medium")}, {"high", L("High")}},
-                                             {L("Configures the quality and performance of the GPU path tracer.")});
-    pathtrace_quality.own_row = true;
-    pathtrace_quality.shown   = &PathTraceRenderer::is_available;
-    Preference& filament_layers = t.checkbox(
-        SETTING_OPENGL_PATHTRACE_FILAMENT_LAYERS, L("Light through filament layers"),
-        {L("Shows in Preview what lies behind thin layers of opaque filament, so that stacked colors blend as in a"
-           " color-layered print. Applies to the views that color toolpaths by filament.\n"
-           "Costs more rendering time on every print.")});
-    filament_layers.shown = &PathTraceRenderer::is_available;
     t.checkbox(SETTING_OPENGL_REALISTIC_PREVIEW, L("Enable in Preview"),
                {L("Also applies realistic view to the Preview canvas, not just Prepare.\n"
                   "Preview draws the full toolpath geometry, so shadows and SSAO cost considerably"
@@ -476,6 +465,20 @@ std::vector<Preference> build_table()
     t.checkbox(SETTING_OPENGL_REALISTIC_GLOSS, L("Glossy toolpaths"),
                {L("Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
                   "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view.")});
+
+    //// GRAPHICS > Path tracer: shown only where the graphics card can run it.
+    t.section(kGraphics, L("Path tracer"));
+    Preference& pathtrace_quality = t.choice(SETTING_OPENGL_PATHTRACE_QUALITY, L("Path tracer quality"),
+                                             {{"low", L("Low")}, {"medium", L("Medium")}, {"high", L("High")}},
+                                             {L("Configures the quality and performance of the GPU path tracer.")});
+    pathtrace_quality.own_row = true;
+    pathtrace_quality.shown   = &PathTraceRenderer::is_available;
+    Preference& filament_layers = t.checkbox(
+        SETTING_OPENGL_PATHTRACE_FILAMENT_LAYERS, L("Light through filament layers"),
+        {L("Shows in Preview what lies behind thin layers of opaque filament, so that stacked colors blend as in a"
+           " color-layered print. Applies to the views that color toolpaths by filament.\n"
+           "Costs more rendering time on every print.")});
+    filament_layers.shown = &PathTraceRenderer::is_available;
 
     //// GRAPHICS > Outline
     t.section(kGraphics, L("Outline"));
