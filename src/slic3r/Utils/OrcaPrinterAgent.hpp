@@ -156,7 +156,10 @@ protected:
     std::function<void(const std::string&, const std::string&)> make_lan_message_handler(uint64_t generation);
 
     // Pure LAN-address parsing + client-id. protected static so the test Probe reaches them.
-    static bool parse_lan_endpoint(const std::string& dev_ip, std::string& host, std::string& port);
+    // When `explicit_port` is non-null it reports whether the input carried a port of
+    // its own; otherwise `port` falls back to OrcaSonar's default 8280.
+    static bool parse_lan_endpoint(const std::string& dev_ip, std::string& host, std::string& port,
+                                   bool* explicit_port = nullptr);
     static std::string make_lan_client_id(const std::string& dev_id);
 
     // Pure serializer for PrintParams::ams_mapping2 -> print.gcode_file.filament_mapping.
@@ -176,6 +179,24 @@ protected:
     // entries and entries without a usable name are skipped; a missing path falls
     // back to the name and size/modified default to 0. protected static for the Probe.
     static std::vector<PrinterFileEntry> parse_files_list_reply(const std::string& payload);
+
+    // Pure GET /files/space reply parser: {"free_bytes": <uint64>}. Returns false for
+    // a malformed body, a missing field, or a negative/non-integer value so the
+    // upload fails closed instead of treating an unknown space as free. protected
+    // static for the Probe.
+    static bool parse_files_space_reply(const std::string& payload, std::uint64_t& free_bytes);
+
+    // Pure resolution of the native upload endpoint. `dev_ip`, when set, names the
+    // requested printer and wins; the live session is used only when it belongs to
+    // `requested_dev_id`. Scheme policy: a matching wss session rejects an explicit
+    // http target; otherwise an explicit http(s) scheme wins, a matching session
+    // contributes its own MQTT scheme, and a pre-connect target uses
+    // `pre_connect_use_ssl` (the MQTT flag). A bare dev_ip takes the session's
+    // actual port when the session is the same printer, otherwise the default 8280.
+    // protected static for the Probe.
+    static bool resolve_upload_origin(const std::string& dev_ip, bool pre_connect_use_ssl,
+                                      const std::string& session_dev_id, const std::string& session_url,
+                                      const std::string& requested_dev_id, std::string& origin);
 
     // Pure JSON -> metadata normalization for the files.metadata MQTT reply. Missing
     // or malformed fields default to 0. protected static for the Probe.

@@ -10,6 +10,7 @@
 #include "orca_mqtt_mock_broker.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <slic3r/Utils/bambu_networking.hpp>
@@ -28,10 +29,12 @@ struct Probe : OrcaPrinterAgent {
     using OrcaPrinterAgent::parse_lan_endpoint;
     using OrcaPrinterAgent::make_lan_client_id;
     using OrcaPrinterAgent::lan_connection_target;
+    using OrcaPrinterAgent::resolve_upload_origin;
     using OrcaPrinterAgent::build_filament_mapping;
     using OrcaPrinterAgent::build_gcode_file_payload;
     using OrcaPrinterAgent::prepare_outgoing_request;
     using OrcaPrinterAgent::parse_files_list_reply;
+    using OrcaPrinterAgent::parse_files_space_reply;
     using OrcaPrinterAgent::parse_files_metadata_reply;
     using OrcaPrinterAgent::parse_files_thumbnail_reply;
     using OrcaPrinterAgent::try_consume_files_reply;
@@ -173,6 +176,123 @@ TEST_CASE("OrcaPrinterAgent::parse_lan_endpoint", "[OrcaPrinterAgent]") {
     REQUIRE(Probe::parse_lan_endpoint("http://host.local:9000/x", h, p));
     CHECK(h == "host.local"); CHECK(p == "9000");
     CHECK_FALSE(Probe::parse_lan_endpoint("", h, p));
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_lan_endpoint distinguishes a default port from an explicit one", "[OrcaPrinterAgent]") {
+    std::string h, p;
+    bool explicit_port = false;
+    REQUIRE(Probe::parse_lan_endpoint("192.168.1.9", h, p, &explicit_port));
+    CHECK_FALSE(explicit_port);
+    CHECK(p == "8280");
+
+    explicit_port = false;
+    REQUIRE(Probe::parse_lan_endpoint("host.local:9000", h, p, &explicit_port));
+    CHECK(explicit_port);
+    CHECK(p == "9000");
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_lan_endpoint handles bracketed IPv6 literals", "[OrcaPrinterAgent]") {
+    std::string h, p;
+    bool explicit_port = false;
+
+    REQUIRE(Probe::parse_lan_endpoint("[::1]", h, p, &explicit_port));
+    CHECK(h == "[::1]");
+    CHECK(p == "8280");
+    CHECK_FALSE(explicit_port);
+
+    explicit_port = false;
+    REQUIRE(Probe::parse_lan_endpoint("[::1]:9000", h, p, &explicit_port));
+    CHECK(h == "[::1]");
+    CHECK(p == "9000");
+    CHECK(explicit_port);
+
+    explicit_port = false;
+    REQUIRE(Probe::parse_lan_endpoint("https://[2001:db8::1]:8123/mqtt", h, p, &explicit_port));
+    CHECK(h == "[2001:db8::1]");
+    CHECK(p == "8123");
+    CHECK(explicit_port);
+
+    CHECK_FALSE(Probe::parse_lan_endpoint("[::1", h, p));
+    CHECK_FALSE(Probe::parse_lan_endpoint("[::1]garbage", h, p));
+}
+
+TEST_CASE("OrcaPrinterAgent::resolve_upload_origin targets the requested printer", "[OrcaPrinterAgent]") {
+    std::string origin;
+
+    // A job with its own dev_ip uses that host and the default 8280 when no port is given.
+    REQUIRE(Probe::resolve_upload_origin("192.168.1.20", false, "", "", "dev-1", origin));
+    CHECK(origin == "http://192.168.1.20:8280");
+
+    // An embedded port and an explicit scheme are preserved.
+    REQUIRE(Probe::resolve_upload_origin("printer.local:9000", false, "", "", "dev-1", origin));
+    CHECK(origin == "http://printer.local:9000");
+    REQUIRE(Probe::resolve_upload_origin("https://printer.local", false, "", "", "dev-1", origin));
+    CHECK(origin == "https://printer.local:8280");
+    REQUIRE(Probe::resolve_upload_origin("printer.local", true, "", "", "dev-1", origin));
+    CHECK(origin == "https://printer.local:8280");
+    REQUIRE(Probe::resolve_upload_origin("http://printer.local", true, "", "", "dev-1", origin));
+    CHECK(origin == "http://printer.local:8280");
+
+    // A bracketed IPv6 host keeps its brackets and never gains a second port.
+    REQUIRE(Probe::resolve_upload_origin("[::1]:9000", false, "", "", "dev-1", origin));
+    CHECK(origin == "http://[::1]:9000");
+    REQUIRE(Probe::resolve_upload_origin("[::1]", false, "dev-1", "wss://[::1]:8123/mqtt", "dev-1", origin));
+    CHECK(origin == "https://[::1]:8123");
+
+    // A bare host takes the live session's actual port when that session is the
+    // requested printer.
+    REQUIRE(Probe::resolve_upload_origin("printer.local", false, "dev-1", "ws://printer.local:8123/mqtt", "dev-1", origin));
+    CHECK(origin == "http://printer.local:8123");
+
+    // A matching session supplies the scheme too: TLS stays TLS even when the
+    // pre-connect/flag value is false, and plain stays plain when it is true.
+    REQUIRE(Probe::resolve_upload_origin("printer.local", false, "dev-1", "wss://printer.local:8123/mqtt", "dev-1", origin));
+    CHECK(origin == "https://printer.local:8123");
+    REQUIRE(Probe::resolve_upload_origin("printer.local", true, "dev-1", "ws://printer.local:8123/mqtt", "dev-1", origin));
+    CHECK(origin == "http://printer.local:8123");
+
+    // An explicit target may upgrade a plain session, but must not downgrade a
+    // matching TLS session: that would send the access code in clear.
+    CHECK_FALSE(Probe::resolve_upload_origin("http://printer.local", false, "dev-1", "wss://printer.local:8123/mqtt", "dev-1", origin));
+    CHECK_FALSE(Probe::resolve_upload_origin("http://printer.local:9000", false, "dev-1", "wss://printer.local:8123/mqtt", "dev-1", origin));
+    REQUIRE(Probe::resolve_upload_origin("https://printer.local", false, "dev-1", "ws://printer.local:8123/mqtt", "dev-1", origin));
+    CHECK(origin == "https://printer.local:8123");
+    REQUIRE(Probe::resolve_upload_origin("http://printer.local", false, "dev-1", "ws://printer.local:8123/mqtt", "dev-1", origin));
+    CHECK(origin == "http://printer.local:8123");
+
+    // A different printer's TLS session does not constrain an explicit target.
+    REQUIRE(Probe::resolve_upload_origin("http://printer.local", false, "dev-2", "wss://printer.local:8123/mqtt", "dev-1", origin));
+    CHECK(origin == "http://printer.local:8280");
+
+    // A session that belongs to another printer must not supply its port, host or
+    // scheme: the pre-connect MQTT flag is the only TLS source left.
+    REQUIRE(Probe::resolve_upload_origin("printer.local", false, "dev-2", "wss://printer.local:8123/mqtt", "dev-1", origin));
+    CHECK(origin == "http://printer.local:8280");
+    REQUIRE(Probe::resolve_upload_origin("printer.local", true, "dev-2", "ws://printer.local:8123/mqtt", "dev-1", origin));
+    CHECK(origin == "https://printer.local:8280");
+
+    // Without a dev_ip, only a session for the requested printer is usable.
+    REQUIRE(Probe::resolve_upload_origin("", false, "dev-1", "wss://printer.local:8123/mqtt", "dev-1", origin));
+    CHECK(origin == "https://printer.local:8123");
+    CHECK_FALSE(Probe::resolve_upload_origin("", false, "dev-2", "ws://printer.local:8123/mqtt", "dev-1", origin));
+    CHECK_FALSE(Probe::resolve_upload_origin("", false, "", "", "dev-1", origin));
+}
+
+TEST_CASE("OrcaPrinterAgent::parse_files_space_reply reads a 64-bit free_bytes", "[OrcaPrinterAgent]") {
+    std::uint64_t free_bytes = 0;
+
+    REQUIRE(Probe::parse_files_space_reply(R"({"free_bytes": 123456})", free_bytes));
+    CHECK(free_bytes == 123456u);
+    REQUIRE(Probe::parse_files_space_reply(R"({"free_bytes": 5000000000})", free_bytes));
+    CHECK(free_bytes == 5000000000ull);
+
+    CHECK_FALSE(Probe::parse_files_space_reply("", free_bytes));
+    CHECK_FALSE(Probe::parse_files_space_reply("not json", free_bytes));
+    CHECK_FALSE(Probe::parse_files_space_reply("{}", free_bytes));
+    CHECK_FALSE(Probe::parse_files_space_reply(R"({"free_bytes": -1})", free_bytes));
+    CHECK_FALSE(Probe::parse_files_space_reply(R"({"free_bytes": "123"})", free_bytes));
+    CHECK_FALSE(Probe::parse_files_space_reply(R"({"free_bytes": 1.5})", free_bytes));
+    CHECK_FALSE(Probe::parse_files_space_reply("[]", free_bytes));
 }
 
 TEST_CASE("OrcaPrinterAgent::make_lan_client_id is stable and prefixed", "[OrcaPrinterAgent]") {
@@ -472,12 +592,24 @@ TEST_CASE("start_local_print_with_record never reports silent success", "[OrcaPr
 TEST_CASE("connect_printer wires up a LAN Config", "[OrcaPrinterAgent][.integration]") {
     Probe agent("/tmp");
     Slic3r::PrinterConnectionParams params{
-        "dev-1", "10.255.255.1", "orcasonar", "code", "", false, ""
+        "dev-1", "10.255.255.1", "", "orcasonar", "code", false, ""
     };
     const int rc = agent.connect_printer(params);
     CHECK(rc == BAMBU_NETWORK_SUCCESS);
     CHECK(agent.lan_connection_target() == "ws://10.255.255.1:8280/mqtt");
     CHECK(agent.get_user_selected_machine().empty());   // LAN path must not touch the cloud selection
+    agent.disconnect_printer();
+}
+
+TEST_CASE("connect_printer uses the separately supplied port", "[OrcaPrinterAgent][.integration]") {
+    Probe agent("/tmp");
+    // DeviceManager strips the port from dev_ip and passes it in params.port.
+    Slic3r::PrinterConnectionParams params{
+        "dev-1", "10.255.255.1", "9999", "orcasonar", "code", false, ""
+    };
+    const int rc = agent.connect_printer(params);
+    CHECK(rc == BAMBU_NETWORK_SUCCESS);
+    CHECK(agent.lan_connection_target() == "ws://10.255.255.1:9999/mqtt");
     agent.disconnect_printer();
 }
 
@@ -563,7 +695,7 @@ TEST_CASE("send_message_to_printer publishes on the LAN connection", "[OrcaPrint
     orca_mqtt_test::MockBroker broker;
     OrcaPrinterAgent agent("/tmp");
     const auto ep = broker.host_port();
-    agent.connect_printer(Slic3r::PrinterConnectionParams{"dev-1", ep.first + ":" + ep.second, "orcasonar", "code", "", false, ""});
+    agent.connect_printer(Slic3r::PrinterConnectionParams{"dev-1", ep.first + ":" + ep.second, "", "orcasonar", "code", false, ""});
 
     for (int i = 0; i < 150 && broker.connect_count() == 0; ++i)
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -586,7 +718,7 @@ TEST_CASE("send_message_to_printer publishes on the LAN connection", "[OrcaPrint
 TEST_CASE("destroying an agent mid-connect does not hang or crash", "[OrcaPrinterAgent]") {
     for (int i = 0; i < 20; ++i) {
         auto agent = std::make_unique<OrcaPrinterAgent>("/tmp");
-        agent->connect_printer(Slic3r::PrinterConnectionParams{"dev-1", "127.0.0.1:1", "orcasonar", "code", "", false, ""});  // nothing listening: instant ECONNREFUSED
+        agent->connect_printer(Slic3r::PrinterConnectionParams{"dev-1", "127.0.0.1:1", "", "orcasonar", "code", false, ""});  // nothing listening: instant ECONNREFUSED
         agent.reset();   // ~OrcaPrinterAgent must stop the conn, join the thread, and not hang/crash
     }
     SUCCEED();

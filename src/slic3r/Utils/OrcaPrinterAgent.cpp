@@ -138,9 +138,9 @@ std::string remote_gcode_name(const PrintParams& params)
     return name;
 }
 
-// http(s) origin of the Moonraker-compatible upload facade, derived from the live
-// LAN MQTT session URL ("ws://host:port/mqtt" -> "http://host:port"). Used only as
-// a fallback when the print job carries no dev_ip of its own.
+// http(s) origin of OrcaSonar's native file API, derived from the live LAN MQTT
+// session URL ("ws://host:port/mqtt" -> "http://host:port"). Used only when the
+// upload job has no dev_ip of its own and the session is the requested printer.
 std::string http_origin_from_lan_ws(const std::string& ws_url)
 {
     if (ws_url.empty())
@@ -1021,8 +1021,11 @@ int OrcaPrinterAgent::command_axis_control(std::string dev_id,
     return route_send(lan_mode, dev_id, j.dump());
 }
 
-bool OrcaPrinterAgent::parse_lan_endpoint(const std::string& dev_ip, std::string& host, std::string& port)
+bool OrcaPrinterAgent::parse_lan_endpoint(const std::string& dev_ip, std::string& host, std::string& port,
+                                          bool* explicit_port)
 {
+    if (explicit_port)
+        *explicit_port = false;
     std::string s = dev_ip;
     if (s.rfind("http://", 0) == 0)
         s.erase(0, 7);
@@ -1033,15 +1036,90 @@ bool OrcaPrinterAgent::parse_lan_endpoint(const std::string& dev_ip, std::string
     if (s.empty())
         return false;
     port = "8280";
-    // split a trailing :port only for host:port, not an unbracketed IPv6 literal
-    if (const auto colon = s.rfind(':'); colon != std::string::npos && s.find(']') == std::string::npos) {
-        port = s.substr(colon + 1);
-        s.erase(colon);
+    if (s.front() == '[') {
+        // Bracketed IPv6 literal, with an optional :port after the closing bracket.
+        const auto close = s.find(']');
+        if (close == std::string::npos || close == 1)
+            return false;
+        host = s.substr(0, close + 1);
+        if (close + 1 < s.size()) {
+            if (s[close + 1] != ':')
+                return false;
+            port = s.substr(close + 2);
+            if (explicit_port)
+                *explicit_port = true;
+        }
+    } else {
+        // Plain host:port; bracketed IPv6 literals were handled above.
+        if (const auto colon = s.rfind(':'); colon != std::string::npos) {
+            port = s.substr(colon + 1);
+            s.erase(colon);
+            if (explicit_port)
+                *explicit_port = true;
+        }
+        host = s;
     }
-    if (s.empty() || port.empty())
+    if (host.empty() || port.empty())
         return false;
-    host = s;
     return true;
+}
+
+// Resolve the origin the native upload calls target. A dev_ip supplied with the
+// job names the printer the user asked for, even when the live session still
+// belongs to another one; the session supplies the actual port (for a bare host)
+// and the scheme for a matching printer, and is never used as the host when it
+// belongs to a different dev_id.
+bool OrcaPrinterAgent::resolve_upload_origin(const std::string& dev_ip, bool pre_connect_use_ssl,
+                                             const std::string& session_dev_id, const std::string& session_url,
+                                             const std::string& requested_dev_id, std::string& origin)
+{
+    const bool session_matches =
+        !requested_dev_id.empty() && !session_url.empty() && session_dev_id == requested_dev_id;
+
+    if (!dev_ip.empty()) {
+        std::string host, port;
+        bool        explicit_port = false;
+        if (!parse_lan_endpoint(dev_ip, host, port, &explicit_port))
+            return false;
+
+        if (!explicit_port && session_matches) {
+            std::string session_host, session_port;
+            if (parse_lan_endpoint(http_origin_from_lan_ws(session_url), session_host, session_port) &&
+                session_host == host && !session_port.empty())
+                port = session_port;
+        }
+
+        // Scheme policy: an explicit target may upgrade a plain session, but it
+        // must never downgrade a TLS session and send the access code in clear.
+        // A pre-connect target has no session to learn from, so it uses the MQTT
+        // TLS flag rather than the FTP/file-transfer one.
+        const bool explicit_tls   = boost::istarts_with(dev_ip, "https://");
+        const bool explicit_plain = boost::istarts_with(dev_ip, "http://");
+        const bool session_is_tls = session_matches && boost::istarts_with(session_url, "wss://");
+
+        if (session_is_tls && explicit_plain)
+            return false;
+
+        bool tls = false;
+        if (explicit_tls)
+            tls = true;
+        else if (explicit_plain)
+            tls = false;
+        else if (session_matches)
+            tls = session_is_tls;
+        else
+            tls = pre_connect_use_ssl;
+
+        origin = (tls ? "https://" : "http://") + host + ":" + port;
+        return true;
+    }
+
+    if (session_matches) {
+        origin = http_origin_from_lan_ws(session_url);
+        return !origin.empty();
+    }
+
+    return false;
 }
 
 std::string OrcaPrinterAgent::make_lan_client_id(const std::string& dev_id)
@@ -1198,6 +1276,10 @@ int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
         BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: connect_printer rejected unparsable LAN endpoint dev_ip=" << params.host;
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
     }
+    // DeviceManager strips the port out of dev_ip and passes it separately; a call
+    // that still embeds one in host is supported by parse_lan_endpoint.
+    if (!params.port.empty())
+        port = params.port;
     forget_device_capabilities(params.dev_id);
     disconnect_printer();
     const uint64_t gen = ++m_lan_generation;
@@ -1618,9 +1700,9 @@ int OrcaPrinterAgent::start_local_print_with_record(PrintParams /*params*/,
     return BAMBU_NETWORK_ERR_FTP_UPLOAD_FAILED;
 }
 
-// Upload one G-code file to the printer's `gcodes` root over OrcaSonar's
-// Moonraker-compatible HTTP facade. No print is started here (print=false); the
-// caller issues print.gcode_file over MQTT separately (start_sdcard_print).
+// Upload one G-code file to the printer's `gcodes` root over OrcaSonar's native
+// file API (GET /files/space, then POST /files/upload). No print is started here;
+// the caller issues print.gcode_file over MQTT separately (start_sdcard_print).
 int OrcaPrinterAgent::start_send_gcode_to_sdcard(PrintParams params,
                                                  OnUpdateStatusFn update_fn,
                                                  WasCancelledFn cancel_fn,
@@ -1647,96 +1729,113 @@ int OrcaPrinterAgent::start_send_gcode_to_sdcard(PrintParams params,
         return BAMBU_NETWORK_ERR_PRINT_SG_UPLOAD_FTP_FAILED;
     }
 
-    bool        use_ssl = false;
-    std::string ca_file;
+    std::string session_dev_id;
+    std::string session_url;
+    std::string session_ca_file;
     {
         std::lock_guard<std::mutex> lock(state_mutex);
-        use_ssl = m_lan_use_ssl;
-        ca_file = m_lan_ca_file;
+        if (m_current_connection == LAN) {
+            session_dev_id = m_lan_dev_id;
+            session_url    = m_lan_url;
+            session_ca_file = m_lan_ca_file;
+        }
     }
 
-    std::string host, port, origin;
-    if (parse_lan_endpoint(params.dev_ip, host, port))
-        origin = (use_ssl ? "https://" : "http://") + host;
-    else
-        origin = http_origin_from_lan_ws(lan_connection_target());
-    if (origin.empty()) {
-        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: no LAN HTTP endpoint for G-code upload (dev_ip=" << params.dev_ip << ")";
+    std::string origin;
+    const bool  session_matches_requested =
+        !params.dev_id.empty() && !session_url.empty() && session_dev_id == params.dev_id;
+    const bool target_has_scheme = boost::istarts_with(params.dev_ip, "http://") ||
+                                   boost::istarts_with(params.dev_ip, "https://");
+    // Pre-connect verification has no matching session and no explicit target scheme
+    // to learn the scheme from; the MQTT TLS flag describes the same printer
+    // transport. Never use the FTP flag here: it can differ and would change the
+    // HTTP(S) scheme.
+    const bool pre_connect_use_ssl =
+        !params.dev_ip.empty() && !session_matches_requested && !target_has_scheme && params.use_ssl_for_mqtt;
+    if (!resolve_upload_origin(params.dev_ip, pre_connect_use_ssl, session_dev_id, session_url, params.dev_id, origin)) {
+        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: no upload endpoint for the requested printer dev_id=" << params.dev_id
+                                   << " dev_ip=" << params.dev_ip << " session_dev_id=" << session_dev_id;
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
     }
+    const bool origin_is_tls = boost::istarts_with(origin, "https://");
+
+    // The CA belongs to the live session only when that session is the requested
+    // printer; a verify against another printer must not borrow it.
+    const std::string ca_file = session_matches_requested ? session_ca_file : std::string();
+    const std::string access_code = normalize_access_code(params.password);
 
     const std::string upload_name = remote_gcode_name(params);
-    BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: uploading G-code " << local_path << " -> " << origin << "/server/files/upload as "
+    BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: uploading G-code " << local_path << " -> " << origin << "/files/upload as "
                             << upload_name << " (" << file_size << " bytes)";
+
+    if (cancel_fn && cancel_fn())
+        return BAMBU_NETWORK_ERR_CANCELED;
 
     if (update_fn)
         update_fn(PrintingStageUpload, 0, "Uploading...");
 
-    bool canceled    = false;
-    long http_status = 0;
+    bool        canceled    = false;
+    long        http_status = 0;
     std::string http_error;
-    std::string response_body;
 
-    // check if printer has enough storage
-    auto directory_http = Http::get(origin + "/server/files/directory?path=gcodes");
-    directory_http.tls_verify(use_ssl);
+    // Native space check: GET /files/space -> {"free_bytes": <uint64>}. Fail closed
+    // on an unreachable printer or a body that does not carry a usable 64-bit value.
+    long        space_status = 0;
+    std::string space_error;
+    std::string space_body;
+    auto space_http = Http::get(origin + "/files/space");
+    space_http.follow_redirects(false)
+        .tls_verify(origin_is_tls)
+        .size_limit(8 * 1024)
+        .timeout_connect(5)
+        .timeout_max(15);
     if (!ca_file.empty())
-        directory_http.ca_file(ca_file);
-    directory_http
+        space_http.ca_file(ca_file);
+    if (!access_code.empty())
+        space_http.header("X-Api-Key", access_code);
+    space_http
         .on_complete([&](std::string body, unsigned status) {
-            if (body.empty()) {
-                http_status = 400;
-                http_error  = "Failed to get gcodes directory.";
-            }
-
-            int free = 0;
-
-            nlohmann::json json = nlohmann::json::parse(body);
-            if (json.contains("result")) {
-                json = json["result"];
-                if (json.contains("disk_usage")) {
-                    json = json["disk_usage"];
-                    if (json.contains("free"))
-                        free = json["free"].get<int>();
-                }
-            }
-
-            if (free < file_size) {
-                http_status = 507;
-                http_error  = "Not enough storage on the printer.";
-            }
+            space_status = status;
+            space_body   = std::move(body);
         })
         .on_error([&](std::string body, std::string err, unsigned status) {
-            http_status   = status;
-            http_error    = std::move(err);
-            response_body = std::move(body);
+            space_status = status;
+            space_error  = std::move(err);
+            space_body   = std::move(body);
         })
         .perform_sync();
 
-    if (http_status >= 400) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " failed with error code: " << http_status << ", " << http_error;
+    std::uint64_t free_bytes = 0;
+    if (space_status != 200 || !parse_files_space_reply(space_body, free_bytes)) {
+        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: /files/space failed http_status=" << space_status
+                                   << " error=" << space_error;
+        return BAMBU_NETWORK_ERR_PRINT_SG_UPLOAD_FTP_FAILED;
+    }
+    if (file_size > free_bytes) {
+        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: not enough storage on the printer: need " << file_size
+                                   << " bytes, free " << free_bytes;
         return BAMBU_NETWORK_ERR_PRINT_SG_UPLOAD_FTP_FAILED;
     }
 
-    auto http = Http::post(origin + "/server/files/upload");
-    http.tls_verify(use_ssl);
+    // Native upload: exactly one multipart "file" part, no Moonraker root/print
+    // fields. Redirects are disabled because the request carries the access code.
+    auto http = Http::post(origin + "/files/upload");
+    http.follow_redirects(false)
+        .tls_verify(origin_is_tls)
+        .size_limit(8 * 1024)
+        .timeout_connect(5)
+        .timeout_max(300); // large G-code over a slow link
     if (!ca_file.empty())
         http.ca_file(ca_file);
-    if (!params.password.empty())
-        http.header("X-Api-Key", params.password); // trusted LAN facades may not require it; harmless when they do not
-    http.form_add("root", "gcodes")
-        .form_add("print", "false")
-        .form_add_file("file", source, upload_name)
-        .timeout_connect(5)
-        .timeout_max(300) // large G-code over a slow link
-        .on_complete([&](std::string body, unsigned status) {
+    if (!access_code.empty())
+        http.header("X-Api-Key", access_code);
+    http.form_add_file("file", source, upload_name)
+        .on_complete([&](std::string /*body*/, unsigned status) {
             http_status   = status;
-            response_body = std::move(body);
         })
-        .on_error([&](std::string body, std::string err, unsigned status) {
+        .on_error([&](std::string /*body*/, std::string err, unsigned status) {
             http_status   = status;
             http_error    = std::move(err);
-            response_body = std::move(body);
         })
         .on_progress([&](Http::Progress progress, bool& cancel) {
             if (cancel_fn && cancel_fn()) {
@@ -1756,10 +1855,9 @@ int OrcaPrinterAgent::start_send_gcode_to_sdcard(PrintParams params,
         return BAMBU_NETWORK_ERR_CANCELED;
     }
 
-    // OrcaSonar's Moonraker facade returns 201 Created on a successful save.
-    if (http_status != 200 && http_status != 201) {
-        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: G-code upload failed http_status=" << http_status << " error=" << http_error
-                                   << " body=" << response_body;
+    // The native upload contract reports success with 201 Created only.
+    if (http_status != 201) {
+        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: G-code upload failed http_status=" << http_status << " error=" << http_error;
         return BAMBU_NETWORK_ERR_PRINT_SG_UPLOAD_FTP_FAILED;
     }
 
@@ -2004,6 +2102,31 @@ PrinterFileMetadata OrcaPrinterAgent::parse_files_metadata_reply(const std::stri
         meta.filament_weight = weight_it->get<double>();
 
     return meta;
+}
+
+// Pure parser for GET /files/space: {"free_bytes": <uint64>}. A malformed body,
+// missing field or negative/non-integer value is rejected so the upload fails
+// closed rather than assuming the printer has room.
+bool OrcaPrinterAgent::parse_files_space_reply(const std::string& payload, std::uint64_t& free_bytes)
+{
+    const nlohmann::json root = nlohmann::json::parse(payload, nullptr, false);
+    if (root.is_discarded() || !root.is_object())
+        return false;
+
+    const auto it = root.find("free_bytes");
+    if (it == root.end() || !it->is_number_integer())
+        return false;
+
+    if (it->is_number_unsigned()) {
+        free_bytes = it->get<std::uint64_t>();
+        return true;
+    }
+
+    const std::int64_t signed_free = it->get<std::int64_t>();
+    if (signed_free < 0)
+        return false;
+    free_bytes = static_cast<std::uint64_t>(signed_free);
+    return true;
 }
 
 // Standard (RFC 4648) base64 -> bytes. OrcaSonar sends StdEncoding (+ / alphabet, padded).
