@@ -8,6 +8,7 @@
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include "slic3r/Utils/QidiDialect.hpp"
 
 #include "GUI_App.hpp"
 #include "DeviceErrorDialog.hpp"
@@ -1578,6 +1579,8 @@ int MachineObject::command_go_home()
 int MachineObject::command_task_partskip(std::vector<int> part_ids)
 {
     BOOST_LOG_TRIVIAL(trace) << "command_task_partskip: ";
+    // Qidi: QidiDialect translates skip_objects into one EXCLUDE_OBJECT per object
+    // (names read from PartSkipDialog's m_partskip_names; an empty script is dropped).
     json j;
     j["print"]["command"] = "skip_objects";
     j["print"]["obj_list"] = part_ids;
@@ -1727,6 +1730,9 @@ int MachineObject::command_refresh_nozzle(){
 
 int MachineObject::command_set_chamber(int temp)
 {
+    // Qidi: QidiDialect maps set_ctt -> SET_HEATER_TEMPERATURE HEATER=chamber (the
+    // same chamber heater command as QIDI Studio's EVTSET_CHAMBER_TEMPERATURE).
+    // BBL's set_ctt is silently swallowed by Moonraker's agent.
     json j;
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
     j["print"]["command"] = "set_ctt";
@@ -1748,8 +1754,27 @@ int MachineObject::check_resume_condition()
     }
     return 0;
 }
+// Qidi: eject the filament of a Box slot (slot numbering matches command_ams_change_filament).
+// Non-Qidi printers have no such macro, so this is a no-op there.
+int MachineObject::command_ams_eject_filament(std::string ams_id, std::string slot_id)
+{
+    if (printer_agent_id != QIDI_PRINTER_AGENT_ID) {
+        BOOST_LOG_TRIVIAL(trace) << "command_ams_eject_filament: not a Qidi printer, ignored";
+        return 1;
+    }
+    int       slot = 16;
+    const int ams  = atoi(ams_id.c_str());
+    if (ams >= 0 && ams < 16)
+        slot = ams * 4 + atoi(slot_id.c_str());
+    return publish_gcode((boost::format("EJECT_FILAMENT_CONTROL SLOT=%1%") % slot).str());
+}
+
 int MachineObject::command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp, int new_temp, std::optional<int> extruder_id)
 {
+    // Qidi: QidiDialect builds LOAD/UNLOAD_FILAMENT_CONTROL (+ optional extruder
+    // SET_HEATER_TEMPERATURE) from this JSON. Slot numbering matches QIDI Studio's
+    // SetBox tasks: 0..15 = Box slots, 16 = external spool (Orca addresses it as
+    // ams 254/255).
     json j;
     try {
         auto tray_id = 0;
@@ -1769,6 +1794,10 @@ int MachineObject::command_ams_change_filament(bool load, std::string ams_id, st
         if (!load) {
             j["print"]["target"]  = 255;
             j["print"]["slot_id"] = 255; // the new protocol to mark unload
+            // Qidi: UNLOAD_FILAMENT_CONTROL SLOT= still needs the real tray - BBL's
+            // marker above would lose it - so QidiDialect reads it from tray_id.
+            if (printer_agent_id == QIDI_PRINTER_AGENT_ID)
+                j["print"]["tray_id"] = atoi(slot_id.c_str());
 
         } else {
             if (tray_id == 0) {
@@ -1806,6 +1835,9 @@ int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read
     m_fila_system->GetAmsSystemSetting().SetDetectRemainEnabled(remain_flag);
     ams_user_setting_start = time(nullptr);
 
+    // Qidi: QidiDialect maps startup_read_option -> SET_ENABLE_INIT_READ_RFID and
+    // tray_read_option -> SET_ENABLE_RFID_READ (calibrate_remain_flag has no counterpart).
+
     return this->publish_json(j);
 }
 
@@ -1816,7 +1848,7 @@ int MachineObject::command_ams_calibrate(int ams_id)
 }
 
 int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type,
-                                                 int nozzle_temp_min, int nozzle_temp_max, const std::vector<std::string>& tray_colors, int tray_ctype)
+                                                 int nozzle_temp_min, int nozzle_temp_max, const std::vector<std::string>& tray_colors, int tray_ctype, std::string tray_vendor)
 {
     int tag_tray_id = 0;
     int tag_ams_id  = ams_id;
@@ -1832,6 +1864,29 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
     BOOST_LOG_TRIVIAL(info) << "command_ams_filament_settings, ams_id = " << tag_ams_id << ", slot_id = " << tag_slot_id << ", tray_id = " << tag_tray_id << ", tray_color = " << tray_color
                             << ", tray_type = " << tray_type << ", filament_id = " << filament_id
                             << ", setting_id = " << setting_id << ", temp_min: = " << nozzle_temp_min << ", temp_max: = " << nozzle_temp_max;
+
+    // Qidi firmware has no BBL "ams_filament_setting" command: a Box slot (or the external
+    // holder) edit is its UPDATE_FILAMENT_INFORMATION gcode - the same local script QIDI
+    // Studio dispatches for EVTSET_FILAMENT_INFO. Slot numbering there is 0..15 for the
+    // Box slots and 16 for the external holder (mapped to multi_color_controller.extra).
+    if (printer_agent_id == QIDI_PRINTER_AGENT_ID) {
+        const int slot = (tag_ams_id == VIRTUAL_TRAY_MAIN_ID || tag_ams_id == VIRTUAL_TRAY_DEPUTY_ID) ? 16 : tag_ams_id * 4 + tag_slot_id;
+        // QIDI Studio sends COLOR='RRGGBB' (not RGBA); the '#' is stripped before sending
+        std::string color6 = tray_color;
+        if (!color6.empty() && color6[0] == '#') color6.erase(0, 1);
+        if (color6.size() > 6) color6.resize(6);
+        std::string script = "UPDATE_FILAMENT_INFORMATION SLOT=" + std::to_string(slot) + " COLOR='" + color6 + "'";
+        if (!tray_vendor.empty())
+            script += " VENDOR='" + tray_vendor + "'";
+        if (!tray_type.empty())
+            script += " FILAMENT='" + tray_type + "'";
+        json j;
+        j["print"]["command"]     = "gcode_line";
+        j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+        j["print"]["param"]       = script;
+        return this->publish_json(j);
+    }
+
     json j;
     j["print"]["command"]       = "ams_filament_setting";
     j["print"]["sequence_id"]   = std::to_string(MachineObject::m_sequence_id++);
@@ -1875,6 +1930,10 @@ int MachineObject::command_ams_select_tray(std::string tray_id)
 int MachineObject::command_ams_control(std::string action)
 {
     if (action == "resume" && check_resume_condition()) return 0;
+
+    // Qidi: QidiDialect maps pause -> PAUSE, resume/done -> RESUME and drops
+    // "abort"/"reset" (BBL transport actions with no dialect counterpart - the printer
+    // keeps its current state; paused handling is done on the printer).
 
     //valid actions
     if (action == "resume" || action == "reset" || action == "pause" || action == "done" || action == "abort") {
@@ -1943,12 +2002,17 @@ int MachineObject::command_extrusion_cali_set(int tray_index, std::string settin
         j["print"]["nozzle_temp"]   = nozzle_temp;
         j["print"]["max_volumetric_speed"] = max_volumetric_speed;
     }
+    // Qidi: QidiDialect maps extrusion_cali_set -> SET_PRESSURE_ADVANCE ADVANCE=k_value
+    // (the dialect QIDI Studio's GCodeWriter::set_pressure_advance writes; the
+    // N/SMOOTH_TIME part has no counterpart - only K is applied).
     return this->publish_json(j);
 }
 
 
 int MachineObject::command_set_printing_speed(DevPrintingSpeedLevel lvl)
 {
+    // Qidi: QidiDialect maps print_speed -> Marlin M220 with the same percent ladder
+    // QIDI Studio sends (see EVTSET_PRINT_SPEED), not the BBL print_speed level.
     json j;
     j["print"]["command"] = "print_speed";
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
@@ -2036,6 +2100,8 @@ int MachineObject::command_axis_control(std::string axis, double unit, double in
 
 int MachineObject::command_extruder_control(int nozzle_id, double val)
 {
+    // Qidi: QidiDialect maps set_extrusion_length -> M83/G1 E feed-retract script
+    // (firmware has no set_extrusion_length; val < 0 retracts).
     json j;
     j["print"]["command"]     = "set_extrusion_length";
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
@@ -2315,6 +2381,9 @@ int MachineObject::command_ipcam_resolution_set(std::string resolution)
 
 int MachineObject::command_xcam_control(std::string module_name, bool on_off, std::string lvl)
 {
+    // Qidi: QidiDialect maps xcam_control_set -> SAVE_VARIABLE (noodle detection and
+    // the pre-print model check exist printer-side as persistent variables; every
+    // other BBL xcam module has no counterpart and is acknowledged silently).
     json j;
     j["xcam"]["command"] = "xcam_control_set";
     j["xcam"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
@@ -2865,6 +2934,20 @@ bool MachineObject::is_camera_busy_off()
 
 int MachineObject::publish_json(const json& json_item, int qos, int flag)
 {
+    // Qidi: the single funnel every command_* JSON builder passes through - the one
+    // place the BBL dialect is translated into gcode (QidiDialect). SendGcode routes
+    // through publish_gcode(), which re-enters this method with a "gcode_line" JSON
+    // that QidiDialect passes straight through, so there is no recursion. Drop is
+    // acknowledged locally with 0, as every scattered Qidi branch used to do.
+    if (printer_agent_id == QIDI_PRINTER_AGENT_ID) {
+        std::string qidi_gcode;
+        const QidiDialect::Verdict verdict = QidiDialect::translate(json_item, this, qidi_gcode);
+        if (verdict == QidiDialect::Verdict::SendGcode)
+            return publish_gcode(qidi_gcode);
+        if (verdict == QidiDialect::Verdict::Drop)
+            return 0;
+    }
+
     int rtn = 0;
     if (is_lan_mode_printer()) {
         rtn = local_publish_json(json_item.dump(), qos, flag);
