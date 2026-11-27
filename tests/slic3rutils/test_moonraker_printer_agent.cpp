@@ -45,13 +45,22 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/convert.hpp>
 #include <boost/nowide/cstdlib.hpp>
+#include <wx/app.h>
+#include <wx/init.h>
 #include <miniz.h>
 #include <nlohmann/json.hpp>
 
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Utils.hpp"
 #include "libslic3r/miniz_extension.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/DeviceCore/DevStorage.h"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "test_utils.hpp"
 
@@ -92,6 +101,7 @@ class DiscoveryAgent : public MoonrakerPrinterAgent
 public:
     using MoonrakerPrinterAgent::MoonrakerPrinterAgent;
     using MoonrakerPrinterAgent::device_info;
+    using MoonrakerPrinterAgent::init_device_info;
     mutable unsigned fetch_count = 0;
 
 protected:
@@ -1137,4 +1147,70 @@ TEST_CASE("A file that is not a 3MF is uploaded as it is, named after the job wh
     CHECK(upload.find("filename=\"" + file_name + "\"") != std::string::npos);
     CHECK(upload.find("; plain G-code") != std::string::npos);
     CHECK(std::distance(boost::filesystem::directory_iterator(dir.path()), boost::filesystem::directory_iterator()) == 1);
+}
+
+
+TEST_CASE("Moonraker reconnects a saved printer with its own model while another preset is edited",
+          "[MoonrakerPrinterAgent][SavedIdentity][Regression]")
+{
+    // wxInitialize constructs the registered GUI_App, but does not call OnInit.
+    // Set its data directory first so even construction never reads user settings.
+    ScopedTemporaryDir dir("moonraker-identity");
+    struct RestoreDataDir {
+        std::string previous = Slic3r::data_dir();
+        ~RestoreDataDir() { Slic3r::set_data_dir(previous); }
+    } restore;
+    set_data_dir(dir.string());
+    wxInitializer wx;
+    REQUIRE(wx.IsOk());
+    auto& app = GUI::wxGetApp();
+    app.preset_bundle = new PresetBundle();
+    auto& bundle = *app.preset_bundle;
+    VendorProfile::PrinterModel saved_model;
+    saved_model.id = "saved-profile";
+    saved_model.name = "Saved printer";
+    saved_model.model_id = "saved-model";
+    VendorProfile::PrinterModel edited_model;
+    edited_model.name = "Edited printer";
+    edited_model.model_id = "edited-model";
+    bundle.vendors["test"].models = {saved_model, edited_model};
+    bundle.printers.get_edited_preset().config.set_key_value("printer_model", new ConfigOptionString(edited_model.name));
+
+    BBLocalMachine machine;
+    machine.dev_id = "192.0.2.10:7125";
+    machine.dev_ip = machine.dev_id;
+    machine.dev_name = "Workshop printer";
+    machine.printer_type = saved_model.model_id;
+    machine.printer_agent_id = MOONRAKER_PRINTER_AGENT_ID;
+    bool saved_identity = true;
+    SECTION("Saved model id") {}
+    SECTION("Saved profile id") { machine.printer_type = saved_model.id; }
+    SECTION("Saved model name") { machine.printer_type = saved_model.name; }
+    SECTION("Unknown saved model") {
+        machine.printer_type = "custom-model";
+        saved_model.model_id = machine.printer_type;
+        saved_model.name = machine.printer_type;
+    }
+    SECTION("Unsaved connection uses the edited preset") { saved_identity = false; }
+    SECTION("Another agent's saved entry is not identity evidence") {
+        machine.printer_agent_id = "another-agent";
+        saved_identity = false;
+    }
+    if (machine.printer_agent_id != MOONRAKER_PRINTER_AGENT_ID || saved_identity)
+        app.app_config->update_local_machine(machine);
+
+    DiscoveryAgent agent("");
+    REQUIRE(agent.init_device_info(machine.dev_id, machine.dev_ip, "", "test-key", false, ""));
+    nlohmann::json announcement;
+    agent.set_on_ssdp_msg_fn([&](std::string payload) { announcement = nlohmann::json::parse(payload); });
+    agent.start_discovery(true, false);
+    REQUIRE_FALSE(announcement.is_null());
+    CHECK(announcement.at("dev_id") == machine.dev_id);
+    CHECK(announcement.at("dev_ip") == machine.dev_ip);
+    CHECK(announcement.at("dev_type") == (saved_identity ? saved_model.model_id : edited_model.model_id));
+    CHECK(announcement.at("dev_name") == (saved_identity ? saved_model.name : edited_model.name));
+    CHECK(agent.fetch_count == 0);
+    CHECK(agent.device_info.dev_name == (saved_identity ? machine.dev_name : machine.dev_id));
+    CHECK(agent.device_info.api_key == "test-key");
+    CHECK(agent.device_info.base_url == "http://" + machine.dev_ip);
 }
