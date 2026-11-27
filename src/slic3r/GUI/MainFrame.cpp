@@ -770,6 +770,8 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& event) {
         if (m_plater != nullptr && event.GetActive())
             m_plater->on_activate();
+        if (event.GetActive())
+            wxGetApp().request_subscriptions_fetch();
         event.Skip();
     });
 
@@ -1566,6 +1568,12 @@ void MainFrame::init_tabpanel() {
         //BBS
         wxWindow* panel = m_tabpanel->GetCurrentPage();
         //wxString page_text = m_tabpanel->GetPageText(sel);
+        // Leaving the Home tab with the cloud pane open: a bundle subscribed there never took the focus from
+        // the main window, so ask for it here. The old page comes from the event: the Home page shown at
+        // startup is never recorded in m_last_selected_tab.
+        if (const int old_sel = e.GetOldSelection(); old_sel != wxNOT_FOUND && m_tabpanel->GetPageName(size_t(old_sel)) == TAB_ID_HOME)
+            if (WebViewPanel* home = WebViewPanel::if_built(); home && home->cloud_mode_active())
+                wxGetApp().request_subscriptions_fetch();
         m_last_selected_tab = m_tabpanel->GetSelectedPageName();
         if (panel == m_plater) {
             if (m_last_selected_tab == TAB_ID_PREPARE) {

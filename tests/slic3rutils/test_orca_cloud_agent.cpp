@@ -24,6 +24,7 @@
 #include <istream>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -900,4 +901,54 @@ TEST_CASE_METHOD(HealthCheckFixture, "A pull answered 304 keeps the sync state i
     // Nothing changed, so there is still no cursor and none is written for the next session.
     CHECK(agent->get_sync_state().last_sync_timestamp == 0);
     CHECK_FALSE(fs::exists(dir.path() / "user" / "user-a" / "sync_state"));
+}
+
+namespace {
+
+const std::chrono::steady_clock::time_point SYNC_T0 = std::chrono::steady_clock::time_point{} + 1000h;
+
+bool fetch_due(std::optional<std::chrono::steady_clock::duration> since_last_fetch, bool fetch_requested, bool has_subscribed_bundles)
+{
+    std::optional<std::chrono::steady_clock::time_point> last_fetch;
+    if (since_last_fetch)
+        last_fetch = SYNC_T0 - *since_last_fetch;
+    return OrcaCloudServiceAgent::subscriptions_fetch_due(last_fetch, SYNC_T0, fetch_requested,
+                                                          [has_subscribed_bundles] { return has_subscribed_bundles; });
+}
+
+} // namespace
+
+TEST_CASE("The preset sync's first pass fetches the subscribed bundles", "[OrcaCloudServiceAgent][Subscriptions]")
+{
+    // Startup, sign-in and Sync Presets all start a new sync thread, which has not fetched yet.
+    CHECK(fetch_due(std::nullopt, false, false));
+}
+
+TEST_CASE("A user with no subscribed bundles is not polled while the window keeps its focus", "[OrcaCloudServiceAgent][Subscriptions]")
+{
+    CHECK_FALSE(fetch_due(1min, false, false));
+    CHECK_FALSE(fetch_due(2h, false, false));
+}
+
+TEST_CASE("Focusing the window fetches the subscribed bundles at most once a minute", "[OrcaCloudServiceAgent][Subscriptions]")
+{
+    CHECK_FALSE(fetch_due(59s, true, false));
+    CHECK(fetch_due(1min, true, false));
+    CHECK(fetch_due(2h, true, false));
+}
+
+TEST_CASE("A user with subscribed bundles is polled every 30 minutes", "[OrcaCloudServiceAgent][Subscriptions]")
+{
+    CHECK_FALSE(fetch_due(29min, false, true));
+    CHECK(fetch_due(30min, false, true));
+}
+
+TEST_CASE("The subscribed bundles are only looked up once 30 minutes have passed", "[OrcaCloudServiceAgent][Subscriptions]")
+{
+    int lookups = 0;
+    const auto has_subscribed_bundles = [&lookups] { ++lookups; return true; };
+    OrcaCloudServiceAgent::subscriptions_fetch_due(SYNC_T0 - 29min, SYNC_T0, false, has_subscribed_bundles);
+    CHECK(lookups == 0);
+    OrcaCloudServiceAgent::subscriptions_fetch_due(SYNC_T0 - 30min, SYNC_T0, false, has_subscribed_bundles);
+    CHECK(lookups == 1);
 }
