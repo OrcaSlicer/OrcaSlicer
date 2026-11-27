@@ -3,6 +3,7 @@
 #include "Point.hpp"
 
 #include <Eigen/Core>
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <atomic>
@@ -49,6 +50,40 @@ struct PathTraceTriangle
     bool smooth{false};
 };
 
+// An extrusion of the G-code preview, traced as one analytic primitive. Its section is a stadium,
+// width by height: a box of (width - height) by height between two half cylinders of radius
+// height / 2. The section is swept from p0 to p1 and turned around the vertical axis at both ends,
+// so that consecutive beads join like real extrusions, as the union of two rounded beads. In the
+// bead's frame (x along the segment, y across it, z up) it is the set of points within the radius of
+// the flat region a disk of radius flat_half_width() sweeps from p0 to p1: a convex body.
+struct PathTraceBead
+{
+    Vec3f p0{Vec3f::Zero()};
+    Vec3f p1{Vec3f::Zero()};
+    float width{0.0f};
+    float height{0.0f};
+    PathTraceAlbedo albedo{};
+
+    // Radius of the round sides; a bead narrower than high is round.
+    float radius() const { return 0.5f * std::max(std::min(width, height), 0.0f); }
+    // Half the width of the flat top and bottom.
+    float flat_half_width() const { return 0.5f * std::max(width - height, 0.0f); }
+};
+
+// Frame of a bead: x along the segment, y to its right, z up, as the shader builds it.
+Eigen::Matrix3f path_trace_bead_frame(const PathTraceBead& bead);
+
+// Axis aligned bounds of a bead, tight for any slope of its segment.
+void path_trace_bead_bounds(const PathTraceBead& bead, Vec3f& min, Vec3f& max);
+
+// Distances at which a ray enters and leaves a bead, by the method the shader uses; false on a miss.
+// direction must be a unit vector. Mirrors bead_interval() in pathtrace.comp, which the tests check
+// through it.
+bool intersect_path_trace_bead(const PathTraceBead& bead, const Vec3f& origin, const Vec3f& direction, float& t_in, float& t_out);
+
+// Outward unit normal of a bead's surface at a point on it.
+Vec3f path_trace_bead_normal(const PathTraceBead& bead, const Vec3f& point);
+
 // Shading normals of a GPU triangle: xyz the encoded normals at its vertices, w 1 when they apply.
 using PathTraceGpuNormals = std::array<uint32_t, 4>;
 static_assert(sizeof(PathTraceGpuNormals) == 16, "PathTraceGpuNormals must be 16 bytes");
@@ -57,6 +92,8 @@ static_assert(sizeof(PathTraceGpuNormals) == 16, "PathTraceGpuNormals must be 16
 uint32_t pack_unit_vector_oct(const Vec3f& n);
 Vec3f unpack_unit_vector_oct(uint32_t packed);
 
+// A triangle, or a bead in the BVH of a bead instance: a.xyz its p0, b.xyz its p1, c.x the half width
+// of its flat top and c.y its radius.
 struct alignas(16) PathTraceGpuTriangle
 {
     std::array<float, 4> a{}; // xyz: vertex A, w: tag_z
@@ -122,6 +159,8 @@ void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
 
 // Without with_normals the scene has no shading normals, which saves their memory when nothing reads them.
 PathTraceGpuScene build_path_trace_gpu_scene(const std::vector<PathTraceTriangle>& triangles, const std::atomic<bool>* cancel_token = nullptr, bool with_normals = true);
+// The BVH of beads, packed as PathTraceGpuTriangle; normals stay empty.
+PathTraceGpuScene build_path_trace_gpu_scene(const std::vector<PathTraceBead>& beads, const std::atomic<bool>* cancel_token = nullptr);
 
 // Camera of a path traced frame.
 struct PathTraceCamera

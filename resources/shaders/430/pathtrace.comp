@@ -11,6 +11,8 @@ struct BvhNode
     uint count_and_axis;
 };
 
+// A triangle, or in the BVH of a bead instance a toolpath bead: a.xyz its start, b.xyz its end, c.x
+// the half width of its flat top and c.y the radius of its round sides.
 struct Triangle
 {
     vec3 a;
@@ -24,7 +26,7 @@ struct Triangle
 struct Shading
 {
     vec4 albedo;
-    vec4 params; // x: layer_height, y: roughness + 2 * sss_mode, z: facet kind, w: curvature delta angle
+    vec4 params; // x: layer_height, y: roughness + 2 * sss_mode, z: facet kind, 4 for the markers, travels and wipes of Preview
 };
 
 struct Ray
@@ -49,6 +51,9 @@ struct Hit
     // normals describe, so that the shadow terminator follows that surface instead of the facets.
     vec3 lifted_position;
     bool front_face;
+    // A toolpath bead, rather than a triangle, and the length of the ray's line through it.
+    bool bead;
+    float chord;
 };
 
 struct Instance
@@ -105,7 +110,6 @@ uniform vec4 clipping_plane;
 uniform vec3 light_direction_uniform;
 uniform vec3 fill_direction_uniform;
 uniform bool shadows_enabled;
-uniform int layer_profile_mode;
 uniform bool is_preview_canvas;
 // Seen from below, the rasterizer draws the bed see-through: the path tracer leaves it out.
 uniform bool bed_hidden;
@@ -230,6 +234,8 @@ bool g_has_clipping = false;
 bool g_has_move_filter = false;
 bool g_has_z_filter = false;
 bool g_only_opaque = false;
+// Where the last translucent bead the ray started inside of ends, in world units, or below zero.
+float g_bead_far = -1.0;
 bool g_interactive = false;
 // Distances along the current ray between which the section view keeps geometry.
 float g_clip_near = 0.0;
@@ -480,10 +486,10 @@ void eval_plastic(vec3 v, vec3 l, vec3 n, vec3 albedo, float alpha, out vec3 dif
 }
 
 // Light of the sky on a surface that is not sampled any further.
-vec3 sky_ambient(vec3 v, vec3 n, vec3 albedo, float spec_scale, float occlusion)
+vec3 sky_ambient(vec3 v, vec3 n, vec3 albedo, float occlusion)
 {
     float f_v = fresnel_dielectric(dot(n, v), IOR);
-    return albedo * ((1.0 - f_v) * sky_irradiance(n) * occlusion) + f_v * spec_scale * sky_radiance(reflect(-v, n));
+    return albedo * ((1.0 - f_v) * sky_irradiance(n) * occlusion) + f_v * sky_radiance(reflect(-v, n));
 }
 
 // Translucent filament, per mm of plastic crossed. The opacity of a filament color is the share of
@@ -511,13 +517,6 @@ vec3 wall_transmittance(vec3 albedo, float opacity, float thickness)
 }
 
 int shading_sss_mode(Shading sh) { return clamp(int(floor(sh.params.y * 0.5 + 1e-4)), 0, 3); }
-
-// Path length through an extrusion bead in Preview, from its nominal 0.4 mm width and its layer height.
-float bead_path(vec3 direction, float layer_height)
-{
-    float lh = layer_height > 0.01 ? layer_height : 0.20;
-    return min(0.40 / max(length(direction.xy), 0.35), lh / max(abs(direction.z), 0.35));
-}
 
 float transmitted_cos(float cos_i) { return sqrt(max(0.0, 1.0 - (1.0 - cos_i * cos_i) / (IOR * IOR))); }
 
@@ -653,12 +652,11 @@ void closest_leaf_test(uint i, Ray local_ray, float loc_scale, uint inst_idx, in
     hit.inst_index = inst_idx;
 }
 
-// A shadow ray crossing a translucent triangle takes the Fresnel transmission of the interface and
-// the transmittance of the wall behind it, half an extrusion bead in Preview or one wall in Prepare:
-// the light going straight through, tinted by the dye, and the diffused light leaving on the far
-// side, in the filament color. In Prepare it also takes, signed by the facing, the Beer-Lambert
-// attenuation of the infill up to the triangle: summed over the closed surface of a part, the signed
-// terms leave the infill length inside it whatever the hit order.
+// A shadow ray crossing a translucent triangle of Prepare takes the Fresnel transmission of the
+// interface and the transmittance of one wall behind it: the light going straight through, tinted by
+// the dye, and the diffused light leaving on the far side, in the filament color. It also takes, signed by
+// the facing, the Beer-Lambert attenuation of the infill up to the triangle: summed over the closed
+// surface of a part, the signed terms leave the infill length inside it whatever the hit order.
 // Returns true when the traversal can stop.
 bool shadow_leaf_test(uint i, Ray local_ray, float loc_scale)
 {
@@ -687,7 +685,7 @@ bool shadow_leaf_test(uint i, Ray local_ray, float loc_scale)
     vec3 e1 = tri.b.xyz - tri.a.xyz;
     vec3 e2 = tri.c.xyz - tri.a.xyz;
     float cos_i = clamp(abs(det) / max(length(cross(e1, e2)), 1e-20), 0.0, 1.0);
-    float wall = tri.tag_z >= 0.0 ? 0.5 * bead_path(g_sh_dir, sh.params.x) : PREPARE_WALL / max(transmitted_cos(cos_i), 0.2);
+    float wall = PREPARE_WALL / max(transmitted_cos(cos_i), 0.2);
     g_sh_walls *= (1.0 - fresnel_dielectric(cos_i, IOR)) * wall_transmittance(sh.albedo.rgb, opacity, wall);
     if (tri.tag_z < 0.0) {
         vec3 extinction = straight_extinction(opacity) + dye_extinction(sh.albedo.rgb);
@@ -702,11 +700,229 @@ bool shadow_leaf_test(uint i, Ray local_ray, float loc_scale)
     return g_sh_hits >= g_sh_max_hits;
 }
 
+// ---------------------------------------------------------------------------------------------
+// Toolpath beads
+// ---------------------------------------------------------------------------------------------
+
+// A bead (PathTraceBead) is an extrusion of stadium section swept along its segment and turned around
+// the vertical axis at its ends. In its frame, x along the segment from its start, y across, z up,
+// it is the set of points within its radius of the flat region a disk of the flat half width sweeps
+// along the segment: a convex body. A ray crosses it in one interval, and the distance from the flat
+// region is convex along the ray, so Newton's method on it, started outside, converges monotonically
+// to the surface without ever stepping through: in one step on the flat top and bottom, in a few on
+// the round sides and ends. The ray is taken relative to the bead's start, which keeps the precision
+// of beads far from the origin; both ends of the interval give the path length through the bead.
+// Mirrored by intersect_path_trace_bead() in PathTracer.cpp, which the tests check.
+const int BEAD_NEWTON_STEPS = 12;
+// Distance from the surface, in mm, at which a ray has reached it: far below what a pixel shows.
+const float BEAD_TOLERANCE = 1e-4;
+// Overlapping beads of a layer share the plane of their flat tops, where a ray hits both at the same
+// distance. Hits closer together than this, in mm, are one: the bead printed later, which lies on
+// top in the print, takes it. Otherwise which one the traversal meets first would decide, pixel by
+// pixel, and the edge between a top surface and its wall would fray.
+const float BEAD_TIE = 1e-3;
+
+struct BeadRay
+{
+    mat3 frame; // columns: along the segment, across it, up
+    vec3 origin; // in the frame, relative to the start
+    vec3 direction;
+    float len;
+    float flat_half;
+    float radius;
+};
+
+BeadRay bead_ray(Triangle bead, vec3 origin, vec3 direction)
+{
+    BeadRay br;
+    vec3 segment = bead.b.xyz - bead.a.xyz;
+    br.len = length(segment);
+    vec3 axis = br.len > 1e-7 ? segment / br.len : vec3(1.0, 0.0, 0.0);
+    vec3 right = vec3(axis.y, -axis.x, 0.0);
+    float right_len = length(right);
+    right = right_len > 1e-4 ? right / right_len : vec3(1.0, 0.0, 0.0);
+    br.frame = mat3(axis, right, cross(right, axis));
+    br.origin = (origin - bead.a.xyz) * br.frame;
+    br.direction = direction * br.frame;
+    br.flat_half = bead.c.x;
+    br.radius = bead.c.y;
+    return br;
+}
+
+// Distance from the bead's flat region less its radius, negative inside, and its gradient, in the frame.
+float bead_distance(BeadRay br, vec3 p, out vec3 grad)
+{
+    vec2 v = vec2(p.x - clamp(p.x, 0.0, br.len), p.y);
+    float dl = length(v);
+    float s = max(dl - br.flat_half, 0.0);
+    vec3 delta = vec3(dl > 0.0 ? v * (s / dl) : vec2(0.0), p.z);
+    float dist = length(delta);
+    grad = dist > 0.0 ? delta / dist : vec3(0.0, 0.0, 1.0);
+    return dist - br.radius;
+}
+
+// Distance from o along d, at most t_max, at which a ray from outside reaches the surface, or -1.0.
+float bead_newton(BeadRay br, vec3 o, vec3 d, float t_max)
+{
+    float t = 0.0;
+    for (int i = 0; i < BEAD_NEWTON_STEPS; ++i) {
+        vec3 grad;
+        float f = bead_distance(br, o + t * d, grad);
+        if (f <= BEAD_TOLERANCE)
+            return t;
+        float slope = dot(grad, d);
+        if (slope >= 0.0)
+            return -1.0;
+        t -= f / slope;
+        if (t > t_max)
+            return -1.0;
+    }
+    return -1.0;
+}
+
+// Distances at which the ray enters and leaves the bead, false on a miss or where it enters past
+// t_limit. The exit is only searched where the ray enters before exit_below; otherwise t_out is t_in.
+bool bead_interval(BeadRay br, float t_limit, float exit_below, out float t_in, out float t_out)
+{
+    t_in = -1.0;
+    t_out = -1.0;
+    float reach = br.flat_half + br.radius;
+    vec3 inv_dir = 1.0 / safe_ray_dir3(br.direction);
+    vec3 t0 = (vec3(-reach, -reach, -br.radius) - br.origin) * inv_dir;
+    vec3 t1 = (vec3(br.len + reach, reach, br.radius) - br.origin) * inv_dir;
+    vec3 t_min = min(t0, t1);
+    vec3 t_max = max(t0, t1);
+    float box_in = max3(t_min);
+    float box_out = min3(t_max);
+    if (box_out < max(box_in, ray_epsilon) || box_in >= t_limit)
+        return false;
+    // The ray's line passes the stadium section of the bead's body on one side: a miss, before the
+    // Newton steps, which take longest on misses.
+    vec3 d = br.direction;
+    float side = abs(d.z * br.origin.y - d.y * br.origin.z) - abs(br.flat_half * d.z);
+    if (side > 0.0 && side * side > br.radius * br.radius * dot(d.yz, d.yz))
+        return false;
+    float entry = bead_newton(br, br.origin + box_in * br.direction, br.direction, box_out - box_in);
+    if (entry < 0.0)
+        return false;
+    t_in = box_in + entry;
+    t_out = t_in;
+    if (t_in < exit_below) {
+        float exit = bead_newton(br, br.origin + box_out * br.direction, -br.direction, box_out - box_in);
+        if (exit >= 0.0)
+            t_out = box_out - exit;
+    }
+    return true;
+}
+
+// Outward normal of the bead at the point of the ray at distance t, in the instance's frame, and the
+// point relative to the bead's start.
+vec3 bead_normal(BeadRay br, float t, out vec3 offset)
+{
+    vec3 p = br.origin + t * br.direction;
+    vec3 grad;
+    bead_distance(br, p, grad);
+    offset = br.frame * p;
+    return br.frame * grad;
+}
+
+// Closest hit on a bead: where the ray enters it, or where a ray from inside leaves it. Rays leave
+// opaque beads from outside, so only translucent beads, the section view, which cuts beads open,
+// and probes looking for the back of a wall see their insides, as back faces.
+void closest_bead_test(uint i, Ray local_ray, float loc_scale, uint inst_idx, inout Hit hit)
+{
+    Triangle bead = triangles[i];
+    if (triangle_hidden(bead))
+        return;
+    float opacity = bead.opacity;
+    if (opacity < 0.005)
+        return;
+    bool translucent = opacity < OPAQUE_OPACITY;
+    if (g_only_opaque && translucent)
+        return;
+    // The closest hit so far is a bead of this instance: a tie with it goes to the later move.
+    bool tie = hit.inst_index == inst_idx && hit.tri_index != NO_HIT;
+    float t_hit = hit.distance * loc_scale;
+    float t_limit = tie ? t_hit + BEAD_TIE : t_hit;
+    float near_limit = max(ray_epsilon, g_has_clipping ? g_clip_near * loc_scale : 0.0);
+    bool sees_inside = translucent || g_has_clipping || g_only_instance != NO_HIT;
+    BeadRay br = bead_ray(bead, local_ray.origin, local_ray.direction);
+    float t_in;
+    float t_out;
+    if (!bead_interval(br, t_limit, sees_inside ? near_limit : -FLT_BIG, t_in, t_out))
+        return;
+    bool inside = t_in < near_limit;
+    if (inside && translucent)
+        g_bead_far = max(g_bead_far, t_out / loc_scale);
+    float t_local = inside ? t_out : t_in;
+    if (t_local < near_limit || t_local >= t_limit)
+        return;
+    if (tie && t_local > t_hit - BEAD_TIE && bead.vertex_id < triangles[hit.tri_index].vertex_id)
+        return;
+    float t_world = t_local / loc_scale;
+    if (g_has_clipping && t_world > g_clip_far)
+        return;
+    hit.distance = t_world;
+    hit.bary = vec2(inside ? 1.0 : 0.0, 0.0);
+    hit.tag = bead.tag_z;
+    hit.opacity = clamp(opacity, 0.0, 1.0);
+    hit.tri_index = i;
+    hit.inst_index = inst_idx;
+}
+
+// A shadow ray crossing a translucent bead takes, at each interface it crosses, the Fresnel
+// transmission and the transmittance of half the bead's path length, as the camera path takes them at
+// the bead's front and back. An opaque bead ends the ray. Returns true when the traversal can stop.
+bool shadow_bead_test(uint i, Ray local_ray, float loc_scale)
+{
+    Triangle bead = triangles[i];
+    if (triangle_hidden(bead))
+        return false;
+    float opacity = bead.opacity;
+    if (opacity < 0.01)
+        return false;
+    bool opaque = opacity >= OPAQUE_OPACITY;
+    BeadRay br = bead_ray(bead, local_ray.origin, local_ray.direction);
+    float t_in;
+    float t_out;
+    if (!bead_interval(br, FLT_BIG, opaque ? -FLT_BIG : FLT_BIG, t_in, t_out))
+        return false;
+    bool inside = t_in < ray_epsilon;
+    // A ray leaving the surface of an opaque bead, or of a neighbor it is fused with, starts at or
+    // just inside it.
+    if (inside && (opaque || t_out < ray_epsilon))
+        return false;
+    float t_world = (inside ? t_out : t_in) / loc_scale;
+    if (g_has_clipping && (t_world < g_clip_near || t_world > g_clip_far))
+        return false;
+    if (opaque) {
+        g_sh_blocked = true;
+        return true;
+    }
+
+    vec3 albedo = shadings[i].albedo.rgb;
+    vec3 half_wall = wall_transmittance(albedo, opacity, 0.5 * (t_out - t_in) / loc_scale);
+    vec3 offset;
+    float t_exit = 1.0 - fresnel_dielectric(abs(dot(bead_normal(br, t_out, offset), br.direction)), IOR);
+    g_sh_walls *= t_exit * half_wall;
+    if (!inside) {
+        float t_entry = 1.0 - fresnel_dielectric(abs(dot(bead_normal(br, t_in, offset), br.direction)), IOR);
+        g_sh_walls *= t_entry * half_wall;
+    }
+    ++g_sh_hits;
+    if (max3(g_sh_walls) < 0.01) {
+        g_sh_blocked = true;
+        return true;
+    }
+    return g_sh_hits >= g_sh_max_hits;
+}
+
 // Traverses one bottom level BVH. The current node stays in registers and the far child of an
 // inner node is pushed. The stack holds indices only: keeping the entry distances too, to drop
 // pushed nodes behind a closer hit, costs more in registers than the box tests it saves.
-// Returns true when the whole traversal can stop.
-bool traverse_blas(int mode, uint root, bool is_print_inst, uint inst_idx, Ray local_ray, vec3 local_inv_dir, float loc_scale, inout Hit hit)
+// The leaves hold beads in a bead instance, triangles otherwise. Returns true when the whole
+// traversal can stop.
+bool traverse_blas(int mode, uint root, bool is_print_inst, bool beads, uint inst_idx, Ray local_ray, vec3 local_inv_dir, float loc_scale, inout Hit hit)
 {
     if (root >= uint(nodes.length()))
         return false;
@@ -720,7 +936,9 @@ bool traverse_blas(int mode, uint root, bool is_print_inst, uint inst_idx, Ray l
     vec3 origin_inv = local_ray.origin * local_inv_dir;
 
     BvhNode node = nodes[root];
-    if (node_entry(node, z_cull, local_inv_dir, origin_inv, t_near, min(clip_far, (hit.distance + g_hit_slack) * loc_scale)) < 0.0)
+    // A bead tied with the closest hit lies up to BEAD_TIE behind it, a marker or a wipe up to its bias.
+    float tie_reach = beads ? BEAD_TIE : 0.0;
+    if (node_entry(node, z_cull, local_inv_dir, origin_inv, t_near, min(clip_far, (hit.distance + g_hit_slack) * loc_scale + tie_reach)) < 0.0)
         return false;
 
     uint stack_index[32];
@@ -732,7 +950,7 @@ bool traverse_blas(int mode, uint root, bool is_print_inst, uint inst_idx, Ray l
             uint left = uint(node.left_or_first);
             BvhNode node_a = nodes[left];
             BvhNode node_b = nodes[left + 1u];
-            float t_far = min(clip_far, (hit.distance + g_hit_slack) * loc_scale);
+            float t_far = min(clip_far, (hit.distance + g_hit_slack) * loc_scale + tie_reach);
             float d_a = node_entry(node_a, z_cull, local_inv_dir, origin_inv, t_near, t_far);
             float d_b = node_entry(node_b, z_cull, local_inv_dir, origin_inv, t_near, t_far);
             if (d_a >= 0.0 && d_b >= 0.0) {
@@ -757,10 +975,14 @@ bool traverse_blas(int mode, uint root, bool is_print_inst, uint inst_idx, Ray l
         } else {
             uint first = uint(node.left_or_first);
             for (uint i = first; i < first + count; ++i) {
-                if (mode == TRAVERSE_CLOSEST)
-                    closest_leaf_test(i, local_ray, loc_scale, inst_idx, hit);
-                else if (shadow_leaf_test(i, local_ray, loc_scale))
+                if (mode == TRAVERSE_CLOSEST) {
+                    if (beads)
+                        closest_bead_test(i, local_ray, loc_scale, inst_idx, hit);
+                    else
+                        closest_leaf_test(i, local_ray, loc_scale, inst_idx, hit);
+                } else if (beads ? shadow_bead_test(i, local_ray, loc_scale) : shadow_leaf_test(i, local_ray, loc_scale)) {
                     return true;
+                }
             }
         }
 
@@ -794,7 +1016,7 @@ bool visit_instance(int mode, uint inst_idx, Ray ray, vec3 inv_dir, vec3 origin_
         local_ray.direction = local_dir / loc_scale;
         local_inv_dir = 1.0 / safe_ray_dir3(local_ray.direction);
     }
-    return traverse_blas(mode, instances[inst_idx].data.x, bmin.w > 0.0, inst_idx, local_ray, local_inv_dir, loc_scale, hit);
+    return traverse_blas(mode, instances[inst_idx].data.x, bmin.w > 0.0, bmin.w > 1.5, inst_idx, local_ray, local_inv_dir, loc_scale, hit);
 }
 
 // Walks the instances the ray may reach, all of them in a small scene, the leaves of the top level
@@ -892,25 +1114,51 @@ bool intersect_scene(Ray ray, inout Hit hit)
         return false;
 
     Triangle tri = triangles[hit.tri_index];
-    vec3 edge1 = tri.b.xyz - tri.a.xyz;
-    vec3 edge2 = tri.c.xyz - tri.a.xyz;
-    vec3 edge3 = tri.c.xyz - tri.b.xyz;
-    float len1 = dot(edge1, edge1);
-    float len2 = dot(edge2, edge2);
-    float len3 = dot(edge3, edge3);
-    // Cross the two shortest edges, the most accurate normal of a sliver.
+    bool identity = instances[hit.inst_index].bounds_max.w > 0.5;
     vec3 raw_normal;
-    if (len1 >= len2 && len1 >= len3)
-        raw_normal = cross(edge3, -edge2);
-    else if (len2 >= len1 && len2 >= len3)
-        raw_normal = cross(edge1, edge3);
-    else
-        raw_normal = cross(edge1, edge2);
-
-    vec3 local_position = tri.a.xyz + hit.bary.x * edge1 + hit.bary.y * edge2;
+    vec3 local_position;
+    hit.chord = 0.0;
+    uvec4 packed_normals = uvec4(0u);
+    hit.bead = instances[hit.inst_index].bounds_min.w > 1.5;
+    if (hit.bead) {
+        // A bead: its exact surface point, normal and path length, from the ray in its frame.
+        Ray local_ray = ray;
+        float loc_scale = 1.0;
+        if (!identity) {
+            mat4 world_to_local = instances[hit.inst_index].world_to_local;
+            vec3 local_dir = (world_to_local * vec4(ray.direction, 0.0)).xyz;
+            loc_scale = length(local_dir);
+            local_ray.origin = (world_to_local * vec4(ray.origin, 1.0)).xyz;
+            local_ray.direction = local_dir / loc_scale;
+        }
+        BeadRay br = bead_ray(tri, local_ray.origin, local_ray.direction);
+        float t_in;
+        float t_out;
+        bead_interval(br, FLT_BIG, FLT_BIG, t_in, t_out);
+        vec3 offset;
+        raw_normal = bead_normal(br, hit.bary.x > 0.5 ? t_out : t_in, offset);
+        local_position = tri.a.xyz + offset;
+        hit.chord = (t_out - t_in) / loc_scale;
+    } else {
+        vec3 edge1 = tri.b.xyz - tri.a.xyz;
+        vec3 edge2 = tri.c.xyz - tri.a.xyz;
+        vec3 edge3 = tri.c.xyz - tri.b.xyz;
+        float len1 = dot(edge1, edge1);
+        float len2 = dot(edge2, edge2);
+        float len3 = dot(edge3, edge3);
+        // Cross the two shortest edges, the most accurate normal of a sliver.
+        if (len1 >= len2 && len1 >= len3)
+            raw_normal = cross(edge3, -edge2);
+        else if (len2 >= len1 && len2 >= len3)
+            raw_normal = cross(edge1, edge3);
+        else
+            raw_normal = cross(edge1, edge2);
+        local_position = tri.a.xyz + hit.bary.x * edge1 + hit.bary.y * edge2;
+        if (has_vertex_normals)
+            packed_normals = vertex_normals[hit.tri_index];
+    }
     vec3 local_shading = raw_normal;
     vec3 local_lifted = local_position;
-    uvec4 packed_normals = has_vertex_normals ? vertex_normals[hit.tri_index] : uvec4(0u);
     if (packed_normals.w != 0u) {
         float w0 = 1.0 - hit.bary.x - hit.bary.y;
         vec3 n0 = decode_unit_vector_oct(packed_normals.x);
@@ -927,7 +1175,7 @@ bool intersect_scene(Ray ray, inout Hit hit)
     }
     vec3 world_normal;
     vec3 world_shading;
-    if (instances[hit.inst_index].bounds_max.w > 0.5) {
+    if (identity) {
         hit.position = local_position;
         hit.lifted_position = local_lifted;
         world_normal = raw_normal;
@@ -1049,99 +1297,6 @@ vec3 object_view_tint(vec3 albedo, Hit hit)
     return pow(c, vec3(2.2));
 }
 
-// Rounded bead normal of a toolpath facet seen by the camera. The flat facets of the toolpath mesh
-// stand for round extrusions, so their shading normal is rebuilt from the facet kind and where the
-// hit lies on its bead. diffuse_scale and spec_scale darken the grooves between beads.
-vec3 toolpath_shading_normal(Hit hit, Shading sh, vec3 view_dir, inout float diffuse_scale, inout float spec_scale)
-{
-    // Every quad of the toolpath mesh is the triangles (p00, p10, p11) and (p00, p11, p01), p00 and
-    // p01 at the start of the segment; the second carries a quarter on its facet kind. Hence where
-    // the hit lies along the segment, and across it. The rounded ends of flat beads carry a half,
-    // and ironing, which shades flat, three quarters.
-    float facet = floor(sh.params.z + 0.01);
-    float facet_tag = fract(sh.params.z + 0.01);
-    bool flat_ribbon = facet_tag > 0.65;
-    bool cap = facet_tag > 0.4 && !flat_ribbon;
-    bool second_triangle = facet_tag > 0.1 && !cap;
-    float along = clamp(second_triangle ? hit.bary.x : hit.bary.x + hit.bary.y, 0.0, 1.0);
-    float h_len = length(hit.normal.xy);
-    vec2 h_dir = h_len > 1e-4 ? (hit.normal.xy / h_len) : vec2(1.0, 0.0);
-    float delta_angle = sh.params.w;
-    if (abs(delta_angle) > 1e-4) {
-        float rot = (along - 0.5) * delta_angle;
-        float cos_r = cos(rot);
-        float sin_r = sin(rot);
-        h_dir = vec2(h_dir.x * cos_r - h_dir.y * sin_r, h_dir.x * sin_r + h_dir.y * cos_r);
-    }
-    float lh = (sh.params.x > 0.01) ? sh.params.x : 0.20;
-    float layer_center = hit.tag - 0.5 * lh;
-    float rel_z = clamp((hit.position.z - layer_center) / (0.5 * lh), -1.0, 1.0);
-
-    vec3 n;
-    if (facet < 0.5 && h_len < 0.3) {
-        // A flat ribbon: the lines of top and bottom surfaces, solid infill, bridges, and their
-        // rounded ends. Each line is a bead seen from above and takes the profile the roofs of the
-        // perimeters around it show: straight up on its crest, turning to the side towards its
-        // edges, with a groove between neighboring lines. Across the ribbon the hit runs from its
-        // right edge (p00, p10) to its left edge (p11, p01); on an end it lies at a radius from the
-        // end point a, b on the rim.
-        float up = hit.normal.z >= 0.0 ? 1.0 : -1.0;
-        n = vec3(0.0, 0.0, up);
-        if (layer_profile_mode > 0 && !flat_ribbon) {
-            Triangle tri = triangles[hit.tri_index];
-            vec2 ab = tri.b.xy - tri.a.xy;
-            vec2 ac = tri.c.xy - tri.a.xy;
-            vec2 offset;
-            float half_width;
-            if (cap) {
-                offset = hit.bary.x * ab + hit.bary.y * ac;
-                half_width = length(ab);
-            } else {
-                vec2 across = second_triangle ? ac : tri.c.xy - tri.b.xy;
-                float lateral = second_triangle ? hit.bary.x + hit.bary.y : hit.bary.y;
-                offset = (lateral - 0.5) * across;
-                half_width = 0.5 * length(across);
-            }
-            float r = length(offset);
-            if (half_width > 1e-4 && r > 1e-6) {
-                float s = clamp(1.0 - r / half_width, 0.0, 0.97);
-                n = normalize(vec3((offset / r) * sqrt(1.0 - s * s), up * s));
-                float groove = smoothstep(0.60, 0.98, 1.0 - s);
-                diffuse_scale *= mix(1.0, 0.88, groove);
-                spec_scale *= mix(1.0, 0.85, groove);
-            }
-        }
-    } else if (layer_profile_mode > 0) {
-        // The side of a bead, slanted deck facets of perimeters included. A bead is pressed flat
-        // onto the layer below: in section a stadium, its side a half circle as high as the layer,
-        // whose normal turns from the side at mid height to straight up or down at the seams between
-        // layers. That turn puts a narrow highlight on every layer, and on a sloped surface the layers
-        // above hide the part of each bead facing away from the slope, so where the hits land follows
-        // the slope by itself.
-        float s = clamp(rel_z, -0.97, 0.97);
-        vec3 bead_n = normalize(vec3(h_dir * sqrt(1.0 - s * s), s));
-        n = bead_n;
-        // On a wall the grooves are the seams between layers, at the top and bottom of the bead. A
-        // roof of a perimeter seen from above, the deck facet, has its crest on top and its grooves
-        // at its edges, at mid height, next to the neighboring perimeter or line.
-        bool roof = facet < 0.5 && rel_z > 0.0;
-        float groove = smoothstep(0.60, 0.98, roof ? 1.0 - rel_z : abs(rel_z));
-        diffuse_scale *= mix(1.0, 0.88, groove);
-        spec_scale *= mix(1.0, 0.85, groove);
-    } else {
-        n = normalize(vec3(h_dir, hit.normal.z * 0.12));
-    }
-
-    // Keep the synthetic normal in front of the visible geometric horizon.
-    float nv_shade = dot(n, view_dir);
-    float nv_geom = max(0.0, dot(hit.normal, view_dir));
-    if (nv_shade < 0.25 * nv_geom) {
-        float pull = clamp((0.25 * nv_geom - nv_shade) / max(0.05, 0.25 * nv_geom - nv_shade + 0.20), 0.0, 1.0);
-        n = normalize(mix(n, hit.normal, pull));
-    }
-    return n;
-}
-
 // Shadow ray queued by the current path vertex. A vertex queues at most one, and the path loop
 // traces it at a single place: GLSL inlines every call, so each call site of a traversal adds a
 // full copy of it to the kernel, and the register pressure of those copies slows every ray.
@@ -1213,6 +1368,10 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
     int max_trans = g_interactive ? (is_preview_canvas ? 8 : 6) : max(max_trans_bounces, 4);
     Ray r = ray;
     bool done = false;
+    // Where the ray entered the fused translucent beads it is in, and the path its front took, or
+    // below zero when it is not known to have come through their front.
+    vec3 wall_start = vec3(0.0);
+    float wall_front = -1.0;
 
     int probe = PROBE_NONE;
     float probe_max = 0.0;
@@ -1255,6 +1414,7 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
         hit.distance = probe != PROBE_NONE ? probe_max : FLT_BIG;
         g_only_opaque = probe == PROBE_NONE && trans >= max_trans;
         g_only_instance = probe != PROBE_NONE ? probe_inst : NO_HIT;
+        g_bead_far = -1.0;
         bool has_hit = intersect_scene(r, hit);
         g_only_instance = NO_HIT;
         g_only_opaque = false;
@@ -1281,6 +1441,15 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
             probe = PROBE_NONE;
             r = resume;
             done = resume_done;
+            continue;
+        }
+
+        // Translucent beads are fused where they overlap: a face inside another bead is no surface.
+        // The closest hit lies inside a bead only if the ray started inside that bead, as that
+        // bead's entry would be closer otherwise, so this needs no further query. Go on from just
+        // behind the face: markers and opaque beads may lie further inside.
+        if (has_hit && hit.bead && hit.opacity < OPAQUE_OPACITY && g_bead_far > hit.distance + BEAD_TIE) {
+            r.origin += r.direction * (hit.distance + BEAD_TIE);
             continue;
         }
 
@@ -1362,14 +1531,8 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
         vec3 v = -r.direction;
         vec3 ng = hit.normal;
         vec3 ns = hit.shading_normal;
-        float diffuse_scale = 1.0;
-        float spec_scale = 1.0;
-        // Synthetic bead normals only where the camera sees the surface; bounces use the facets.
-        if (toolpath && depth == 0 && !marker && trans < 3)
-            ns = toolpath_shading_normal(hit, sh, v, diffuse_scale, spec_scale);
         if (dot(ns, v) < 1e-3)
             ns = ng;
-        vec3 diffuse_albedo = albedo * diffuse_scale;
 
         if (step == 0) {
             aux_normal_depth = vec4(ns, hit.distance);
@@ -1392,8 +1555,18 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
             // slab with near parallel faces, so the light going through leaves it in the direction it
             // came in: a print is no solid block of plastic, it neither bends the view through it nor
             // reflects totally inside.
-            float wall = toolpath ? 0.5 * bead_path(r.direction, sh.params.x)
-                                  : PREPARE_WALL / max(transmitted_cos(dot(ng, v)), 0.2);
+            // A bead is crossed twice, at its front and its back: each takes half its path length. Fused
+            // beads count as one: the front takes half the first bead, the back the rest of the way.
+            float wall = toolpath ? 0.5 * hit.chord : PREPARE_WALL / max(transmitted_cos(dot(ng, v)), 0.2);
+            if (hit.bead) {
+                if (hit.front_face) {
+                    wall_start = hit.position;
+                    wall_front = wall;
+                } else if (wall_front >= 0.0) {
+                    wall = max(distance(hit.position, wall_start) - wall_front, 0.0);
+                    wall_front = -1.0;
+                }
+            }
             float straight = exp(-straight_extinction(opacity) * wall);
             vec3 tint = exp(-dye_extinction(albedo) * wall);
             float reflect_share = diffuse_reflect_share(opacity);
@@ -1410,9 +1583,9 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
             vec3 key_weight = vec3(0.0);
             if (!matte) {
                 if (lit_front)
-                    key_weight = throughput * (ggx_reflection(v, l, ns, alpha, IOR) * spec_scale * KEY_IRRADIANCE);
+                    key_weight = throughput * (ggx_reflection(v, l, ns, alpha, IOR) * KEY_IRRADIANCE);
                 if (dot(fill_dir, ng) > 0.0)
-                    contribute(throughput * (ggx_reflection(v, fill_dir, ns, max(alpha, FILL_ALPHA), IOR) * spec_scale * FILL_IRRADIANCE), depth);
+                    contribute(throughput * (ggx_reflection(v, fill_dir, ns, max(alpha, FILL_ALPHA), IOR) * FILL_IRRADIANCE), depth);
             }
 
             vec3 h = sample_ggx_vndf(v, ns, alpha, sample_2d(vertex_dimension(step, D_BSDF)));
@@ -1428,7 +1601,7 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
             // Choosing the reflection with probability f alone leaves it rare while it often sees a
             // much brighter environment than the light coming through the absorbing wall: weigh the
             // transmission by the wall's best channel instead, and correct with f / p.
-            float t_estimate = (1.0 - f) * (straight * max3(tint) + (1.0 - straight) * max3(diffuse_albedo));
+            float t_estimate = (1.0 - f) * (straight * max3(tint) + (1.0 - straight) * max3(albedo));
             float p_reflect = f > 0.0 ? f / max(f + t_estimate, 1e-6) : 0.0;
             if (rand() < p_reflect) {
                 queue_shadow(shadow_origin, l, key_weight, depth, false, highlight_keep);
@@ -1439,6 +1612,7 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
                     refl = reflect(-v, ng);
                 throughput *= ggx_g1(max(dot(ns, refl), 1e-3), alpha * alpha) * (f / p_reflect);
                 chain = false;
+                wall_front = -1.0;
                 if (depth >= max_bounces) {
                     if (hit.front_face)
                         contribute(throughput * sky_radiance(refl), depth);
@@ -1468,7 +1642,8 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
             // Diffused by the wall: Lambertian in the filament color, on the side the light came from
             // with reflect_share, through to the far side otherwise.
             chain = false;
-            throughput *= diffuse_albedo;
+            wall_front = -1.0;
+            throughput *= albedo;
             float key_cos = max(dot(lit_front ? ns : -ns, l), 0.0) * (lit_front ? reflect_share : 1.0 - reflect_share);
             queue_shadow(shadow_origin, l, key_weight + throughput * (INV_PI * key_cos * KEY_IRRADIANCE), depth, false);
             bool fill_front = dot(fill_dir, ng) > 0.0;
@@ -1499,16 +1674,16 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
         vec3 key_diffuse = vec3(0.0);
         float key_specular = 0.0;
         if (key_up)
-            eval_plastic(v, l, ns, diffuse_albedo, alpha, key_diffuse, key_specular);
+            eval_plastic(v, l, ns, albedo, alpha, key_diffuse, key_specular);
         vec3 c_diffuse = throughput * key_diffuse * KEY_IRRADIANCE;
-        vec3 c_specular = throughput * (key_specular * spec_scale * KEY_IRRADIANCE);
+        vec3 c_specular = throughput * (key_specular * KEY_IRRADIANCE);
         vec3 entry_origin = offset_ray(hit.lifted_position, ng);
 
         if (dot(fill_dir, ng) > 0.0) {
             vec3 fill_diffuse;
             float fill_specular;
-            eval_plastic(v, fill_dir, ns, diffuse_albedo, max(alpha, FILL_ALPHA), fill_diffuse, fill_specular);
-            contribute(throughput * (fill_diffuse + fill_specular * spec_scale) * FILL_IRRADIANCE, depth);
+            eval_plastic(v, fill_dir, ns, albedo, max(alpha, FILL_ALPHA), fill_diffuse, fill_specular);
+            contribute(throughput * (fill_diffuse + fill_specular) * FILL_IRRADIANCE, depth);
         }
 
         int next_probe = PROBE_NONE;
@@ -1549,7 +1724,7 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
                 probe_ray.origin = offset_ray(hit.position, -ng);
                 probe_ray.direction = -ng;
                 probe_max = 6.0 * d_max;
-                probe_diffuse = throughput * diffuse_albedo * (INV_PI * KEY_IRRADIANCE * (1.0 - f_v));
+                probe_diffuse = throughput * albedo * (INV_PI * KEY_IRRADIANCE * (1.0 - f_v));
             }
             probe_d = d;
         }
@@ -1566,22 +1741,22 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
         Ray next_ray = r;
         bool next_done = false;
         if (depth >= max_bounces) {
-            contribute(throughput * sky_ambient(v, ns, diffuse_albedo, spec_scale, 1.0), depth);
+            contribute(throughput * sky_ambient(v, ns, albedo, 1.0), depth);
             next_done = true;
         } else {
-            float w_diffuse = (1.0 - f_v) * luminance(diffuse_albedo);
-            float w_specular = f_v * spec_scale;
+            float w_diffuse = (1.0 - f_v) * luminance(albedo);
+            float w_specular = f_v;
             float p_specular = clamp(w_specular / max(w_specular + w_diffuse, 1e-4), 0.1, 0.9);
             vec2 u = sample_2d(vertex_dimension(step, D_BSDF));
             vec3 next = rand() < p_specular ? reflect(-v, sample_ggx_vndf(v, ns, alpha, u)) : cosine_sample_hemisphere(ns, u);
             vec3 f_diffuse;
             float f_specular;
-            eval_plastic(v, next, ns, diffuse_albedo, alpha, f_diffuse, f_specular);
+            eval_plastic(v, next, ns, albedo, alpha, f_diffuse, f_specular);
             float pdf = p_specular * ggx_reflection_pdf(v, next, ns, alpha) + (1.0 - p_specular) * dot(ns, next) * INV_PI;
             if (dot(next, ng) <= 0.0 || dot(next, ns) <= 0.0 || pdf <= 1e-6) {
                 next_done = true;
             } else {
-                throughput *= (f_diffuse + f_specular * spec_scale) / pdf;
+                throughput *= (f_diffuse + f_specular) / pdf;
                 ++depth;
                 alpha_floor = SECONDARY_ALPHA_FLOOR;
                 float survive = clamp(max3(throughput), 0.05, 1.0);

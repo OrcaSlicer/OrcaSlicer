@@ -9708,6 +9708,8 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
     ImGui::SetNextWindowPos(pos, ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowBgAlpha(0.35f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * get_scale());
+    // The path traced Preview has a debug switch in the overlay; otherwise it takes no input.
+    const bool overlay_input = show_fps && m_canvas_type == ECanvasType::CanvasPreview && m_path_tracer->is_enabled();
     imgui.begin(
         std::string("###fps_overlay"),
         ImGuiWindowFlags_AlwaysAutoResize |
@@ -9716,7 +9718,7 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
         ImGuiWindowFlags_NoTitleBar |
         ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoSavedSettings |
-        ImGuiWindowFlags_NoInputs);
+        (overlay_input ? ImGuiWindowFlags_None : ImGuiWindowFlags_NoInputs));
     if (show_fps) {
         imgui.text(std::string("FPS: ") + std::to_string(fps));
         ImGui::SameLine();

@@ -524,54 +524,64 @@ PathTraceRenderer::SceneBuildResult PathTraceRenderer::build_scene_async(
     if (cancel_token && cancel_token->load(std::memory_order_relaxed))
         return {};
 
+    // Appends a bottom level BVH of Preview to the scene, its node and primitive indices offset to
+    // their place there. Toolpaths and seam markers have no vertex normals.
+    const auto append_blas = [&result](PathTraceGpuScene& local) {
+        VolumeBlas blas;
+        blas.root_node = uint32_t(result.gpu_scene.nodes.size());
+        blas.node_count = uint32_t(local.nodes.size());
+        blas.tri_offset = uint32_t(result.gpu_scene.triangles.size());
+        blas.tri_count = uint32_t(local.triangles.size());
+        blas.local_bounds_min = Vec3f(local.nodes[0].bounds_min[0], local.nodes[0].bounds_min[1], local.nodes[0].bounds_min[2]);
+        blas.local_bounds_max = Vec3f(local.nodes[0].bounds_max[0], local.nodes[0].bounds_max[1], local.nodes[0].bounds_max[2]);
+        for (PathTraceGpuNode& node : local.nodes)
+            node.left_or_first += int32_t(node.is_leaf() ? blas.tri_offset : blas.root_node);
+        result.gpu_scene.nodes.insert(result.gpu_scene.nodes.end(), local.nodes.begin(), local.nodes.end());
+        result.gpu_scene.triangles.insert(result.gpu_scene.triangles.end(), local.triangles.begin(), local.triangles.end());
+        result.gpu_scene.shadings.insert(result.gpu_scene.shadings.end(), local.shadings.begin(), local.shadings.end());
+        return blas;
+    };
+
     if (job.is_preview) {
-        if (job.preview_triangles.empty())
+        if (job.preview_beads.empty() && job.preview_triangles.empty())
             return result;
 
-        // Toolpaths shade with their own bead normals.
-        result.gpu_scene = build_path_trace_gpu_scene(job.preview_triangles, cancel_token.get(), false);
-        job.preview_triangles.clear();
-        job.preview_triangles.shrink_to_fit();
-
+        // The toolpaths, one bead per segment, in an instance of their own: its BVH holds beads.
+        PathTraceGpuScene beads = build_path_trace_gpu_scene(job.preview_beads, cancel_token.get());
+        job.preview_beads.clear();
+        job.preview_beads.shrink_to_fit();
         if (cancel_token && cancel_token->load(std::memory_order_relaxed))
             return {};
-
-        if (!job.source_tri_vertex_id.empty() && !result.gpu_scene.original_indices.empty()) {
-            result.gpu_tri_vertex_id.resize(result.gpu_scene.triangles.size(), SIZE_MAX);
-            for (size_t i = 0; i < result.gpu_scene.triangles.size(); ++i) {
-                const size_t src_idx = size_t(result.gpu_scene.original_indices[i]);
-                if (src_idx < job.source_tri_vertex_id.size()) {
-                    result.gpu_tri_vertex_id[i] = job.source_tri_vertex_id[src_idx];
-                    result.gpu_scene.triangles[i].a[3] = job.source_tri_tag_z[src_idx];
-                    const uint32_t v_id = (job.source_tri_vertex_id[src_idx] == SIZE_MAX)
-                        ? UINT32_MAX
-                        : uint32_t(job.source_tri_vertex_id[src_idx]);
-                    result.gpu_scene.triangles[i].b[3] = vertex_id_bits(v_id);
-                    const float tri_opacity = (src_idx < job.source_tri_opacity.size()) ? job.source_tri_opacity[src_idx] : 1.0f;
-                    result.gpu_scene.triangles[i].c[3] = tri_opacity;
-                    result.gpu_scene.shadings[i].params[0] = job.source_tri_height[src_idx];
-                    result.gpu_scene.shadings[i].params[1] = job.source_tri_role[src_idx];
-                    result.gpu_scene.shadings[i].params[2] = (src_idx < job.source_tri_facet.size()) ? job.source_tri_facet[src_idx] : 0.0f;
-                    result.gpu_scene.shadings[i].params[3] = (src_idx < job.source_tri_delta_angle.size()) ? job.source_tri_delta_angle[src_idx] : 0.0f;
-                    if (job.source_tri_vertex_id[src_idx] == SIZE_MAX) {
-                        result.gpu_scene.shadings[i].albedo = PLATE_ALBEDO;
-                    } else {
-                        result.gpu_scene.shadings[i].albedo[3] = std::min(tri_opacity, 1.0f);
-                    }
-                }
+        if (!beads.nodes.empty()) {
+            for (size_t i = 0; i < beads.triangles.size(); ++i) {
+                const size_t src_idx = beads.original_indices[i];
+                beads.triangles[i].a[3] = job.source_bead_tag_z[src_idx];
+                beads.triangles[i].b[3] = vertex_id_bits(uint32_t(job.source_bead_vertex_id[src_idx]));
+                beads.shadings[i].params = {job.source_bead_height[src_idx], job.source_bead_role[src_idx], 0.0f, 0.0f};
+                result.gpu_tri_vertex_id.push_back(job.source_bead_vertex_id[src_idx]);
             }
+            VolumeBlas blas = append_blas(beads);
+            blas.beads = true;
+            result.volume_blas.push_back(blas);
         }
 
-        if (!result.gpu_scene.nodes.empty()) {
-            VolumeBlas blas;
-            blas.root_node = 0;
-            blas.node_count = uint32_t(result.gpu_scene.nodes.size());
-            blas.tri_offset = 0;
-            blas.tri_count = uint32_t(result.gpu_scene.triangles.size());
-            blas.local_bounds_min = Vec3f(result.gpu_scene.nodes[0].bounds_min[0], result.gpu_scene.nodes[0].bounds_min[1], result.gpu_scene.nodes[0].bounds_min[2]);
-            blas.local_bounds_max = Vec3f(result.gpu_scene.nodes[0].bounds_max[0], result.gpu_scene.nodes[0].bounds_max[1], result.gpu_scene.nodes[0].bounds_max[2]);
-            blas.plate_idx = -1;
-            result.volume_blas.push_back(blas);
+        // The markers, travels and wipes, triangles exempt from shadows (facet kind 4).
+        if (!job.preview_triangles.empty()) {
+            PathTraceGpuScene triangles = build_path_trace_gpu_scene(job.preview_triangles, cancel_token.get(), false);
+            if (cancel_token && cancel_token->load(std::memory_order_relaxed))
+                return {};
+            if (!triangles.nodes.empty()) {
+                for (size_t i = 0; i < triangles.triangles.size(); ++i) {
+                    const size_t src_idx = triangles.original_indices[i];
+                    triangles.triangles[i].a[3] = job.source_tri_tag_z[src_idx];
+                    triangles.triangles[i].b[3] = vertex_id_bits(uint32_t(job.source_tri_vertex_id[src_idx]));
+                    triangles.triangles[i].c[3] = job.source_tri_opacity[src_idx];
+                    triangles.shadings[i].albedo[3] = std::min(job.source_tri_opacity[src_idx], 1.0f);
+                    triangles.shadings[i].params = {job.source_tri_height[src_idx], job.source_tri_role[src_idx], 4.0f, 0.0f};
+                    result.gpu_tri_vertex_id.push_back(job.source_tri_vertex_id[src_idx]);
+                }
+                result.volume_blas.push_back(append_blas(triangles));
+            }
         }
     } else {
         for (auto& grp_data : job.volume_groups) {
@@ -763,109 +773,13 @@ void PathTraceRenderer::extract_preview_toolpaths(
                 segments.push_back(ToolpathSegment{p0, p1, next.width, next.height, i + 1, next.role, uint16_t(next.extruder_id)});
             }
         }
-        const size_t quads_per_seg = 4;
-        job.preview_triangles.reserve(segments.size() * quads_per_seg * 2);
-        job.source_tri_vertex_id.reserve(segments.size() * quads_per_seg * 2);
-        job.source_tri_tag_z.reserve(segments.size() * quads_per_seg * 2);
-        job.source_tri_height.reserve(segments.size() * quads_per_seg * 2);
-        job.source_tri_role.reserve(segments.size() * quads_per_seg * 2);
-        job.source_tri_facet.reserve(segments.size() * quads_per_seg * 2);
-        job.source_tri_delta_angle.reserve(segments.size() * quads_per_seg * 2);
-        job.source_tri_opacity.reserve(segments.size() * quads_per_seg * 2);
+        job.preview_beads.reserve(segments.size());
+        job.source_bead_vertex_id.reserve(segments.size());
+        job.source_bead_tag_z.reserve(segments.size());
+        job.source_bead_height.reserve(segments.size());
+        job.source_bead_role.reserve(segments.size());
 
-        const size_t num_segs = segments.size();
-        std::vector<Vec3f> seg_dirs(num_segs, Vec3f{0.0f, 1.0f, 0.0f});
-        std::vector<Vec3f> seg_rights(num_segs, Vec3f{1.0f, 0.0f, 0.0f});
-        for (size_t s = 0; s < num_segs; ++s) {
-            Vec3f d = segments[s].p1 - segments[s].p0;
-            const float d_len = d.norm();
-            if (d_len > 1e-5f)
-                d /= d_len;
-            else
-                d = Vec3f{0.0f, 1.0f, 0.0f};
-            seg_dirs[s] = d;
-            Vec3f r = d.cross(Vec3f{0.0f, 0.0f, 1.0f});
-            const float r_len = r.norm();
-            if (r_len > 1e-4f)
-                r /= r_len;
-            else
-                r = Vec3f{1.0f, 0.0f, 0.0f};
-            seg_rights[s] = r;
-        }
-
-        std::vector<bool> has_joint(num_segs, false);
-        std::vector<Vec3f> joint_w(num_segs, Vec3f{0.0f, 0.0f, 0.0f});
-        std::vector<float> joint_delta_angle(num_segs, 0.0f);
-
-        for (size_t s = 0; s + 1 < num_segs; ++s) {
-            const ToolpathSegment& cur = segments[s];
-            const ToolpathSegment& nxt = segments[s + 1];
-            if (cur.role == nxt.role &&
-                std::abs(cur.p1.z() - nxt.p0.z()) < 1e-3f &&
-                (cur.p1 - nxt.p0).squaredNorm() < 1e-5f) {
-                const float dot = seg_dirs[s].dot(seg_dirs[s + 1]);
-                if (dot > -0.707f) {
-                    has_joint[s] = true;
-                    Vec3f miter = seg_rights[s] + seg_rights[s + 1];
-                    const float m_len = miter.norm();
-                    const float half_w = std::max(0.01f, cur.width * 0.5f);
-                    if (m_len > 1e-4f) {
-                        miter /= m_len;
-                        const float cos_half = miter.dot(seg_rights[s]);
-                        const float scale = (cos_half > 0.5f) ? std::min(1.4142f, 1.0f / cos_half) : 1.4142f;
-                        joint_w[s] = miter * (half_w * scale);
-                    } else {
-                        joint_w[s] = seg_rights[s] * half_w;
-                    }
-                    if (dot > 0.866f) { // gentle curve <= 30 deg
-                        const float cross_z = seg_dirs[s].x() * seg_dirs[s + 1].y() - seg_dirs[s].y() * seg_dirs[s + 1].x();
-                        joint_delta_angle[s] = std::atan2(cross_z, dot);
-                    }
-                }
-            }
-        }
-
-        for (size_t s = 0; s < num_segs; ++s) {
-            const ToolpathSegment& seg = segments[s];
-            const Vec3f& dir = seg_dirs[s];
-            const Vec3f up = seg_rights[s].cross(dir);
-
-            const float half_w = std::max(0.01f, seg.width * 0.5f);
-            const float half_h = std::max(0.01f, seg.height * 0.5f);
-
-            const bool conn_prev = (s > 0 && has_joint[s - 1]);
-            const bool conn_next = (s + 1 < num_segs && has_joint[s]);
-
-            const Vec3f w0 = conn_prev ? joint_w[s - 1] : (seg_rights[s] * half_w);
-            const Vec3f w1 = conn_next ? joint_w[s]     : (seg_rights[s] * half_w);
-            const Vec3f h0 = up * half_h;
-            const Vec3f h1 = h0;
-
-            const Vec3f r0 = seg.p0 + w0;
-            const Vec3f r1 = seg.p1 + w1;
-            const Vec3f l0 = seg.p0 - w0;
-            const Vec3f l1 = seg.p1 - w1;
-            const Vec3f t0 = seg.p0 + h0;
-            const Vec3f t1 = seg.p1 + h1;
-            const Vec3f b0 = seg.p0 - h0;
-            const Vec3f b1 = seg.p1 - h1;
-
-            using Role = libvgcode::EGCodeExtrusionRole;
-            const Role role = seg.role;
-            const bool is_external = role == Role::ExternalPerimeter || role == Role::OverhangPerimeter || role == Role::Skirt ||
-                                     role == Role::SupportMaterial || role == Role::SupportMaterialInterface || role == Role::WipeTower ||
-                                     role == Role::Custom || role == Role::Brim || role == Role::SupportTransition;
-
-            float delta_angle = 0.0f;
-            if (is_external) {
-                if (conn_prev && conn_next)
-                    delta_angle = 0.5f * (joint_delta_angle[s - 1] + joint_delta_angle[s]);
-                else if (conn_prev)
-                    delta_angle = joint_delta_angle[s - 1];
-                else if (conn_next)
-                    delta_angle = joint_delta_angle[s];
-            }
-
+        for (const ToolpathSegment& seg : segments) {
             const Vec4f def_lin = to_linear_albedo(0.75f, 0.77f, 0.80f, 1.0f);
             float seg_opacity = 1.0f;
             Vec3f seg_rgb{def_lin.x(), def_lin.y(), def_lin.z()};
@@ -877,90 +791,25 @@ void PathTraceRenderer::extract_preview_toolpaths(
                 seg_rgb = {lin.x(), lin.y(), lin.z()};
                 seg_opacity = lin.w();
             }
-
-            const float tag_z = seg.p0.z() + half_h;
             const float roughness = 0.35f;
             const size_t ext_idx = (seg.extruder_id > 0) ? size_t(seg.extruder_id - 1) : 0;
             const int sss_mode = sss_mode_for_extruder(job.extruder_sss_families, ext_idx, seg_opacity, seg_rgb);
-            const float encoded_param1 = roughness + float(sss_mode) * 2.0f;
 
-            const auto add_tri = [&](const Vec3f& a, const Vec3f& b, const Vec3f& c, float facet_kind, float cur_delta_angle) {
-                PathTraceTriangle t;
-                t.a = a; t.b = b; t.c = c;
-                t.albedo = Vec4f{seg_rgb.x(), seg_rgb.y(), seg_rgb.z(), seg_opacity};
-                job.preview_triangles.push_back(std::move(t));
-                job.source_tri_vertex_id.push_back(seg.vertex_id);
-                job.source_tri_tag_z.push_back(tag_z);
-                job.source_tri_height.push_back(seg.height);
-                job.source_tri_role.push_back(encoded_param1);
-                job.source_tri_facet.push_back(facet_kind);
-                job.source_tri_delta_angle.push_back(cur_delta_angle);
-                job.source_tri_opacity.push_back(seg_opacity);
-            };
-            // The second triangle of a quad carries a quarter on its facet kind, so that the shader
-            // tells its corners apart whatever order the BVH puts the triangles in.
-            const auto add_quad = [&](const Vec3f& p00, const Vec3f& p10, const Vec3f& p11, const Vec3f& p01, float facet_kind, float cur_delta_angle = 0.0f) {
-                add_tri(p00, p10, p11, facet_kind, cur_delta_angle);
-                add_tri(p00, p11, p01, facet_kind + 0.25f, cur_delta_angle);
-            };
-            // Rounded end of a flat bead: a half disk fanned around its end point c, from c + w over
-            // c + out to c - w, tagged with half on its facet kind for the shader to take the normal
-            // from the radius.
-            const auto add_cap = [&](const Vec3f& c, const Vec3f& w, const Vec3f& out, float facet_kind = 0.5f) {
-                const Vec3f q1 = c + 0.5f * w + 0.8660254f * out;
-                const Vec3f q2 = c - 0.5f * w + 0.8660254f * out;
-                add_tri(c, c + w, q1, facet_kind, 0.0f);
-                add_tri(c, q1, q2, facet_kind, 0.0f);
-                add_tri(c, q2, c - w, facet_kind, 0.0f);
-            };
-
-            if (is_external) {
-                add_quad(r0, r1, t1, t0, 1.0f, delta_angle);
-                add_quad(t0, t1, l1, l0, 0.0f);
-                add_quad(l0, l1, b1, b0, 2.0f);
-                add_quad(b0, b1, r1, r0, 2.0f, delta_angle);
-                if (!conn_prev) add_quad(r0, t0, l0, b0, 2.0f);
-                if (!conn_next) add_quad(t1, r1, b1, l1, 2.0f);
-            } else if (role == Role::InternalInfill) {
-                // Sparse internal infill: upper roof bevels visible from top and side (4 tris)
-                add_quad(r0, r1, t1, t0, 2.0f);
-                add_quad(t0, t1, l1, l0, 2.0f);
-            } else if (role == Role::Perimeter || role == Role::Mixed) {
-                // Inner perimeters: upper bevels forming top deck and side walls (4 tris)
-                add_quad(r0, r1, t1, t0, 0.0f);
-                add_quad(t0, t1, l1, l0, 0.0f);
-            } else {
-                // Solid infill, top/bottom decks, bridge, gap fill: horizontal ribbon (2 tris), at the
-                // top of the layer like the crests of the walls around it, the segment running at mid height.
-                // Only gentle bends are mitered: a miter skews the profile the shader rebuilds across
-                // the ribbon. Ends and sharper turns are rounded, a half disk reaching half the width
-                // past the point, so that a turn is the union of two rounded beads. Where those
-                // overlap in one plane, a ray would hit either surface at random, each with its own
-                // normal, and leave speckles: the ends lie a hair below the ribbons, and every other
-                // ribbon a hair below its neighbors, so that one surface wins throughout.
-                // Ironing smooths the top surface with lines that overlap each other many times: its
-                // ribbons shade flat, carrying three quarters on their facet kind, and lie a hair above
-                // the top surface they iron.
-                const bool ironing = role == Role::Ironing;
-                const bool miter_prev = conn_prev && seg_dirs[s - 1].dot(dir) > 0.866f;
-                const bool miter_next = conn_next && dir.dot(seg_dirs[s + 1]) > 0.866f;
-                const Vec3f straight = seg_rights[s] * half_w;
-                const Vec3f m0 = miter_prev ? w0 : straight;
-                const Vec3f m1 = miter_next ? w1 : straight;
-                const Vec3f lift = up * (half_h - ((s & 1) ? 1e-4f : 0.0f) + (ironing ? 1e-3f : 0.0f));
-                const Vec3f p0 = seg.p0 + lift;
-                const Vec3f p1 = seg.p1 + lift;
-                if (ironing) {
-                    add_tri(p0 + m0, p1 + m1, p1 - m1, 0.75f, 0.0f);
-                    add_tri(p0 + m0, p1 - m1, p0 - m0, 0.75f, 0.0f);
-                } else {
-                    add_quad(p0 + m0, p1 + m1, p1 - m1, p0 - m0, 0.0f);
-                }
-                const Vec3f below = up * 2e-4f;
-                const float cap_kind = ironing ? 0.75f : 0.5f;
-                if (!miter_prev) add_cap(p0 - below, straight, -half_w * dir, cap_kind);
-                if (!miter_next) add_cap(p1 - below, straight, half_w * dir, cap_kind);
-            }
+            // A bead pressed onto the layer below, its segment at mid height. Ironing overlaps its
+            // own lines many times, and their flat tops make a flat surface; it lies a hair above the
+            // top surface it irons, so that the two never fight where they are level.
+            const Vec3f lift{0.0f, 0.0f, seg.role == libvgcode::EGCodeExtrusionRole::Ironing ? 1e-3f : 0.0f};
+            PathTraceBead bead;
+            bead.p0 = seg.p0 + lift;
+            bead.p1 = seg.p1 + lift;
+            bead.width = std::max(seg.width, 0.02f);
+            bead.height = std::max(seg.height, 0.02f);
+            bead.albedo = Vec4f{seg_rgb.x(), seg_rgb.y(), seg_rgb.z(), seg_opacity};
+            job.preview_beads.push_back(bead);
+            job.source_bead_vertex_id.push_back(seg.vertex_id);
+            job.source_bead_tag_z.push_back(seg.p0.z() + 0.5f * seg.height);
+            job.source_bead_height.push_back(seg.height);
+            job.source_bead_role.push_back(roughness + float(sss_mode) * 2.0f);
         }
 
         // The markers of the options the legend shows, which the rasterized preview draws as points:
@@ -993,8 +842,10 @@ void PathTraceRenderer::extract_preview_toolpaths(
                 // OptionTemplate scaled by its options shader).
                 const float h = (v.height > 0.01f ? v.height : 0.20f);
                 const float w = (v.width > 0.01f ? v.width : 0.45f);
-                const float half_h = 0.75f * h * marker_scale[option];
-                const float r = 0.75f * w * marker_scale[option];
+                // Beads reach half the width out at mid height: there, these markers are half a layer
+                // high, so that those of the layers of a wall join up into a band.
+                const float half_h = h * marker_scale[option];
+                const float r = w * marker_scale[option];
                 const Vec3f center{v.position[0], v.position[1], v.position[2] - 0.5f * h};
                 const Vec3f top = center + Vec3f(0.0f, 0.0f, half_h);
                 const Vec3f bot = center - Vec3f(0.0f, 0.0f, half_h);
@@ -1008,8 +859,6 @@ void PathTraceRenderer::extract_preview_toolpaths(
                     job.source_tri_tag_z.push_back(center.z());
                     job.source_tri_height.push_back(h);
                     job.source_tri_role.push_back(0.35f);
-                    job.source_tri_facet.push_back(4.0f); // 4.0 for a marker
-                    job.source_tri_delta_angle.push_back(0.0f);
                     job.source_tri_opacity.push_back(preview_overlay_opacity(v));
                 };
 
@@ -1061,8 +910,6 @@ void PathTraceRenderer::extract_preview_toolpaths(
                 job.source_tri_tag_z.push_back(tag_z);
                 job.source_tri_height.push_back(2.0f * half);
                 job.source_tri_role.push_back(0.35f);
-                job.source_tri_facet.push_back(4.0f); // shaded as a marker
-                job.source_tri_delta_angle.push_back(0.0f);
                 job.source_tri_opacity.push_back(preview_overlay_opacity(next));
             };
             const auto add_quad = [&](const Vec3f& p00, const Vec3f& p10, const Vec3f& p11, const Vec3f& p01) {
@@ -1087,7 +934,7 @@ void PathTraceRenderer::extract_preview_toolpaths(
         }
     }
 
-    if (!job.preview_triangles.empty() && plate_visible && current_plate != nullptr)
+    if ((!job.preview_beads.empty() || !job.preview_triangles.empty()) && plate_visible && current_plate != nullptr)
         job.plate_groups.push_back({0, plate_triangles_for_pathtrace(*current_plate)});
 }
 
@@ -1228,7 +1075,7 @@ void PathTraceRenderer::update_instances_and_tlas(size_t transform_signature)
             world_min = world_min.cwiseMin(world_pt);
             world_max = world_max.cwiseMax(world_pt);
         }
-        inst.bounds_min = {world_min.x(), world_min.y(), world_min.z(), (blas.plate_idx >= 0) ? -2.0f : 1.0f};
+        inst.bounds_min = {world_min.x(), world_min.y(), world_min.z(), (blas.plate_idx >= 0) ? -2.0f : (blas.beads ? 2.0f : 1.0f)};
         inst.bounds_max = {world_max.x(), world_max.y(), world_max.z(), is_identity ? 1.0f : 0.0f};
         m_gpu_instances.push_back(inst);
     };
@@ -2206,7 +2053,6 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
         compute_shader->set_uniform("fill_direction_uniform", fill_dir);
         compute_shader->set_uniform("glossy_toolpaths", glossy_toolpaths);
         compute_shader->set_uniform("shadows_enabled", m_canvas._shadow_mode() != GLCanvas3D::EShadowMode::Off);
-        compute_shader->set_uniform("layer_profile_mode", (m_canvas.m_canvas_type == GLCanvas3D::ECanvasType::CanvasPreview) ? 1 : 0);
         compute_shader->set_uniform("is_preview_canvas", m_canvas.m_canvas_type == GLCanvas3D::ECanvasType::CanvasPreview);
         compute_shader->set_uniform("bed_hidden", !source_camera.is_looking_downward());
         compute_shader->set_uniform("lit_layer_moves", lit_layer_moves);

@@ -24,7 +24,10 @@
 namespace Slic3r {
 namespace {
 
+// Primitives a leaf holds at most. A bead test costs several triangle tests, so beads take a leaf
+// each: the deeper tree culls more of them than its extra boxes cost.
 constexpr size_t leaf_triangle_count = 4;
+constexpr size_t leaf_bead_count = 1;
 constexpr int max_bvh_depth = 24;
 constexpr size_t sah_bin_count = 12;
 
@@ -62,87 +65,44 @@ struct BvhNode
     int split_axis{0};
 };
 
-// Binned SAH BVH over the triangles, packed for the GPU path tracer.
+// Binned SAH BVH over the bounds of primitives, packed for the GPU path tracer.
 class BvhBuilder
 {
 public:
-    explicit BvhBuilder(const std::vector<PathTraceTriangle>& triangles, const std::atomic<bool>* cancel_token = nullptr)
-        : m_triangles(triangles), m_cancel_token(cancel_token)
+    // Builds over the bounds and centroids of the primitives, which it consumes, with at most leaf_size
+    // primitives in a leaf.
+    BvhBuilder(std::vector<Bounds> prim_bounds, std::vector<Vec3f> prim_centroids, size_t leaf_size, const std::atomic<bool>* cancel_token = nullptr)
+        : m_prim_bounds(std::move(prim_bounds)), m_prim_centroids(std::move(prim_centroids)), m_leaf_size(leaf_size), m_cancel_token(cancel_token)
     {
-        if (m_cancel_token != nullptr && m_cancel_token->load(std::memory_order_relaxed))
+        assert(m_prim_bounds.size() == m_prim_centroids.size());
+        if (cancelled())
             return;
-        const size_t n = triangles.size();
+        const size_t n = m_prim_bounds.size();
         m_indices.resize(n);
         std::iota(m_indices.begin(), m_indices.end(), size_t{0});
         if (n > 0) {
-            m_prim_bounds.resize(n);
-            m_prim_centroids.resize(n);
-            tbb::parallel_for(tbb::blocked_range<size_t>(0, n),
-                [&](const tbb::blocked_range<size_t>& range) {
-                    for (size_t i = range.begin(); i < range.end(); ++i) {
-                        const PathTraceTriangle& tri = triangles[i];
-                        Bounds b;
-                        b.include(tri.a);
-                        b.include(tri.b);
-                        b.include(tri.c);
-                        m_prim_bounds[i] = b;
-                        m_prim_centroids[i] = (tri.a + tri.b + tri.c) * (1.0f / 3.0f);
-                    }
-                });
             m_nodes.resize(2 * n + 64);
             m_node_count.store(0, std::memory_order_relaxed);
             build_node(0, n, 0);
             const size_t total_nodes = m_node_count.load(std::memory_order_relaxed);
             m_nodes.resize(total_nodes);
             m_nodes.shrink_to_fit();
-            m_prim_bounds.clear();
-            m_prim_bounds.shrink_to_fit();
-            m_prim_centroids.clear();
-            m_prim_centroids.shrink_to_fit();
         }
+        m_prim_bounds.clear();
+        m_prim_bounds.shrink_to_fit();
+        m_prim_centroids.clear();
+        m_prim_centroids.shrink_to_fit();
     }
 
-    PathTraceGpuScene pack_for_gpu(bool with_normals) const
+    bool cancelled() const { return m_cancel_token != nullptr && m_cancel_token->load(std::memory_order_relaxed); }
+    bool empty() const { return m_nodes.empty(); }
+    // Primitive of each leaf slot, the order the packed primitives follow.
+    const std::vector<size_t>& indices() const { return m_indices; }
+
+    // Nodes flattened breadth first, so that the children of each inner node are contiguous.
+    std::vector<PathTraceGpuNode> pack_nodes() const
     {
-        if (m_cancel_token != nullptr && m_cancel_token->load(std::memory_order_relaxed))
-            return {};
-        if (m_nodes.empty())
-            return {};
-
-        PathTraceGpuScene packed;
-        packed.triangles.resize(m_indices.size());
-        packed.shadings.resize(m_indices.size());
-        if (with_normals)
-            packed.normals.resize(m_indices.size());
-        packed.nodes.resize(m_nodes.size());
-        packed.original_indices.resize(m_indices.size());
-
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, m_indices.size()),
-            [&](const tbb::blocked_range<size_t>& range) {
-                for (size_t i = range.begin(); i < range.end(); ++i) {
-                    packed.original_indices[i] = uint32_t(m_indices[i]);
-                    const PathTraceTriangle& source = m_triangles[m_indices[i]];
-                    PathTraceGpuTriangle& triangle = packed.triangles[i];
-                    PathTraceGpuShading& shading = packed.shadings[i];
-                    for (size_t axis = 0; axis < 3; ++axis) {
-                        triangle.a[axis] = source.a[axis];
-                        triangle.b[axis] = source.b[axis];
-                        triangle.c[axis] = source.c[axis];
-                        shading.albedo[axis] = source.albedo[axis];
-                    }
-                    triangle.a[3] = -1.0f; // default tag_z
-                    float invalid_v_id_f;
-                    const uint32_t invalid_v_id = UINT32_MAX;
-                    std::memcpy(&invalid_v_id_f, &invalid_v_id, sizeof(float));
-                    triangle.b[3] = invalid_v_id_f;
-                    triangle.c[3] = std::clamp(source.albedo[3], 0.0f, 1.0f); // opacity
-                    shading.albedo[3] = source.albedo[3];
-                    shading.params = {0.20f, 0.0f, 0.0f, 0.0f};
-                    if (with_normals)
-                        packed.normals[i] = {source.vertex_normals[0], source.vertex_normals[1], source.vertex_normals[2], source.smooth ? 1u : 0u};
-                }
-            });
-
+        std::vector<PathTraceGpuNode> packed(m_nodes.size());
         // Breadth-First flattening so that each inner node's children are placed contiguously: [child, child + 1]
         std::vector<int> new_indices(m_nodes.size(), -1);
         std::vector<int> queue;
@@ -157,8 +117,8 @@ public:
             const int u = queue[head++];
             const BvhNode& source = m_nodes[u];
             const int dst_idx = new_indices[u];
-            assert(dst_idx >= 0 && dst_idx < int(packed.nodes.size()));
-            PathTraceGpuNode& dst = packed.nodes[dst_idx];
+            assert(dst_idx >= 0 && dst_idx < int(packed.size()));
+            PathTraceGpuNode& dst = packed[dst_idx];
 
             for (size_t axis = 0; axis < 3; ++axis) {
                 dst.bounds_min[axis] = source.bounds.min[axis];
@@ -190,7 +150,7 @@ public:
             }
         }
 
-        packed.nodes.resize(next_child_idx > 1 ? next_child_idx : 1);
+        packed.resize(next_child_idx > 1 ? next_child_idx : 1);
         return packed;
     }
 
@@ -212,7 +172,7 @@ private:
             centroids.include(m_prim_centroids[idx]);
         }
         m_nodes[node_index].bounds = bounds;
-        if (count <= leaf_triangle_count || depth >= max_bvh_depth) {
+        if (count <= m_leaf_size || depth >= max_bvh_depth) {
             m_nodes[node_index].first = first;
             m_nodes[node_index].count = count;
             m_nodes[node_index].left = -1;
@@ -340,12 +300,12 @@ private:
         return int(node_index);
     }
 
-    const std::vector<PathTraceTriangle>& m_triangles;
     std::vector<size_t> m_indices;
     std::vector<Bounds> m_prim_bounds;
     std::vector<Vec3f> m_prim_centroids;
     std::vector<BvhNode> m_nodes;
     std::atomic<uint32_t> m_node_count{0};
+    size_t m_leaf_size;
     const std::atomic<bool>* m_cancel_token{nullptr};
 };
 
@@ -462,9 +422,218 @@ void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
     append_path_trace_triangles(triangles, vertices, indices, Vec4f(albedo.x(), albedo.y(), albedo.z(), 1.0f), smooth_normals);
 }
 
+namespace {
+
+float invalid_vertex_id_bits()
+{
+    float bits;
+    const uint32_t invalid_v_id = UINT32_MAX;
+    std::memcpy(&bits, &invalid_v_id, sizeof(float));
+    return bits;
+}
+
+// Packs the primitives in the order of the BVH leaves; pack(source, slot) fills a slot's geometry.
+template<typename Primitive, typename Pack>
+PathTraceGpuScene pack_path_trace_scene(const BvhBuilder& bvh, const std::vector<Primitive>& primitives, Pack pack)
+{
+    if (bvh.cancelled() || bvh.empty())
+        return {};
+    const std::vector<size_t>& indices = bvh.indices();
+    PathTraceGpuScene packed;
+    packed.triangles.resize(indices.size());
+    packed.shadings.resize(indices.size());
+    packed.original_indices.resize(indices.size());
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, indices.size()),
+        [&](const tbb::blocked_range<size_t>& range) {
+            for (size_t i = range.begin(); i < range.end(); ++i) {
+                packed.original_indices[i] = uint32_t(indices[i]);
+                const Primitive& source = primitives[indices[i]];
+                PathTraceGpuTriangle& slot = packed.triangles[i];
+                PathTraceGpuShading& shading = packed.shadings[i];
+                for (Eigen::Index channel = 0; channel < 4; ++channel)
+                    shading.albedo[size_t(channel)] = source.albedo[channel];
+                shading.params = {0.20f, 0.0f, 0.0f, 0.0f};
+                pack(source, slot);
+                slot.a[3] = -1.0f; // default tag_z
+                slot.b[3] = invalid_vertex_id_bits();
+                slot.c[3] = std::clamp(source.albedo[3], 0.0f, 1.0f); // opacity
+            }
+        });
+    packed.nodes = bvh.pack_nodes();
+    return packed;
+}
+
+// Newton steps of a ray towards a bead's surface, BEAD_NEWTON_STEPS in pathtrace.comp.
+constexpr int bead_newton_steps = 12;
+// Distance from a bead's surface at which a ray has reached it, in mm, BEAD_TOLERANCE in pathtrace.comp.
+constexpr float bead_tolerance = 1e-4f;
+
+// Distance from the flat region of a bead minus its radius, and its gradient, in the bead's frame:
+// bead_distance() in pathtrace.comp.
+float bead_distance(const Vec3f& p, float length, float flat_half_width, float radius, Vec3f& grad)
+{
+    const Vec2f v{p.x() - std::clamp(p.x(), 0.0f, length), p.y()};
+    const float dl = v.norm();
+    const float s = std::max(dl - flat_half_width, 0.0f);
+    const Vec2f h = dl > 0.0f ? Vec2f(v * (s / dl)) : Vec2f::Zero();
+    const Vec3f delta{h.x(), h.y(), p.z()};
+    const float dist = delta.norm();
+    grad = dist > 0.0f ? Vec3f(delta / dist) : Vec3f::UnitZ();
+    return dist - radius;
+}
+
+// Distance from o along d, at most t_max, at which a ray from outside reaches the surface of a bead,
+// or -1: bead_newton() in pathtrace.comp. The distance from the flat region is convex along the ray,
+// so Newton's method from outside converges monotonically and never steps through the surface.
+float bead_newton(const Vec3f& o, const Vec3f& d, float t_max, float length, float flat_half_width, float radius)
+{
+    float t = 0.0f;
+    for (int i = 0; i < bead_newton_steps; ++i) {
+        Vec3f grad;
+        const float f = bead_distance(o + t * d, length, flat_half_width, radius, grad);
+        if (f <= bead_tolerance)
+            return t;
+        const float slope = grad.dot(d);
+        if (slope >= 0.0f)
+            return -1.0f;
+        t -= f / slope;
+        if (t > t_max)
+            return -1.0f;
+    }
+    return -1.0f;
+}
+
+} // namespace
+
+Eigen::Matrix3f path_trace_bead_frame(const PathTraceBead& bead)
+{
+    const Vec3f segment = bead.p1 - bead.p0;
+    const float length = segment.norm();
+    const Vec3f axis = length > 1e-7f ? Vec3f(segment / length) : Vec3f::UnitX();
+    Vec3f right{axis.y(), -axis.x(), 0.0f};
+    const float right_length = right.norm();
+    right = right_length > 1e-4f ? Vec3f(right / right_length) : Vec3f::UnitX();
+    Eigen::Matrix3f frame;
+    frame << axis, right, right.cross(axis);
+    return frame;
+}
+
+void path_trace_bead_bounds(const PathTraceBead& bead, Vec3f& min, Vec3f& max)
+{
+    // The disk of the flat region lies in the plane of the segment and its right; the round sides
+    // reach the radius further in every direction.
+    const Eigen::Matrix3f frame = path_trace_bead_frame(bead);
+    const Vec3f disk = (frame.col(0).cwiseAbs2() + frame.col(1).cwiseAbs2()).cwiseSqrt() * bead.flat_half_width();
+    const Vec3f extent = disk + Vec3f::Constant(bead.radius());
+    min = bead.p0.cwiseMin(bead.p1) - extent;
+    max = bead.p0.cwiseMax(bead.p1) + extent;
+}
+
+bool intersect_path_trace_bead(const PathTraceBead& bead, const Vec3f& origin, const Vec3f& direction, float& t_in, float& t_out)
+{
+    const Eigen::Matrix3f frame = path_trace_bead_frame(bead);
+    const float length = (bead.p1 - bead.p0).norm();
+    const float flat = bead.flat_half_width();
+    const float radius = bead.radius();
+    // The ray in the bead's frame, from p0, which keeps the precision of a bead far from the origin.
+    const Vec3f o = frame.transpose() * (origin - bead.p0);
+    const Vec3f d = frame.transpose() * direction;
+    const float reach = flat + radius;
+    const Vec3f lo{-reach, -reach, -radius};
+    const Vec3f hi{length + reach, reach, radius};
+    float t0 = std::numeric_limits<float>::lowest();
+    float t1 = std::numeric_limits<float>::max();
+    for (int axis = 0; axis < 3; ++axis) {
+        if (std::abs(d[axis]) < 1e-12f) {
+            if (o[axis] < lo[axis] || o[axis] > hi[axis])
+                return false;
+            continue;
+        }
+        const float a = (lo[axis] - o[axis]) / d[axis];
+        const float b = (hi[axis] - o[axis]) / d[axis];
+        t0 = std::max(t0, std::min(a, b));
+        t1 = std::min(t1, std::max(a, b));
+    }
+    if (t1 < t0)
+        return false;
+    // The ray's line passes the stadium section of the bead's body on one side: a miss.
+    const float side = std::abs(d.z() * o.y() - d.y() * o.z()) - std::abs(flat * d.z());
+    if (side > 0.0f && side * side > radius * radius * (d.y() * d.y() + d.z() * d.z()))
+        return false;
+    const float entry = bead_newton(o + t0 * d, d, t1 - t0, length, flat, radius);
+    if (entry < 0.0f)
+        return false;
+    t_in = t0 + entry;
+    const float exit = bead_newton(o + t1 * d, -d, t1 - t0, length, flat, radius);
+    t_out = exit >= 0.0f ? t1 - exit : t_in;
+    return true;
+}
+
+Vec3f path_trace_bead_normal(const PathTraceBead& bead, const Vec3f& point)
+{
+    const Eigen::Matrix3f frame = path_trace_bead_frame(bead);
+    Vec3f grad;
+    bead_distance(frame.transpose() * (point - bead.p0), (bead.p1 - bead.p0).norm(), bead.flat_half_width(), bead.radius(), grad);
+    return frame * grad;
+}
+
 PathTraceGpuScene build_path_trace_gpu_scene(const std::vector<PathTraceTriangle>& triangles, const std::atomic<bool>* cancel_token, bool with_normals)
 {
-    return BvhBuilder(triangles, cancel_token).pack_for_gpu(with_normals);
+    if (cancel_token != nullptr && cancel_token->load(std::memory_order_relaxed))
+        return {};
+    std::vector<Bounds> bounds(triangles.size());
+    std::vector<Vec3f> centroids(triangles.size());
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, triangles.size()),
+        [&](const tbb::blocked_range<size_t>& range) {
+            for (size_t i = range.begin(); i < range.end(); ++i) {
+                const PathTraceTriangle& tri = triangles[i];
+                bounds[i].include(tri.a);
+                bounds[i].include(tri.b);
+                bounds[i].include(tri.c);
+                centroids[i] = (tri.a + tri.b + tri.c) * (1.0f / 3.0f);
+            }
+        });
+    const BvhBuilder bvh(std::move(bounds), std::move(centroids), leaf_triangle_count, cancel_token);
+    PathTraceGpuScene packed = pack_path_trace_scene(bvh, triangles, [](const PathTraceTriangle& source, PathTraceGpuTriangle& slot) {
+        for (size_t axis = 0; axis < 3; ++axis) {
+            slot.a[axis] = source.a[axis];
+            slot.b[axis] = source.b[axis];
+            slot.c[axis] = source.c[axis];
+        }
+    });
+    if (!with_normals)
+        return packed;
+    packed.normals.resize(packed.triangles.size());
+    for (size_t i = 0; i < packed.triangles.size(); ++i) {
+        const PathTraceTriangle& source = triangles[packed.original_indices[i]];
+        packed.normals[i] = {source.vertex_normals[0], source.vertex_normals[1], source.vertex_normals[2], source.smooth ? 1u : 0u};
+    }
+    return packed;
+}
+
+PathTraceGpuScene build_path_trace_gpu_scene(const std::vector<PathTraceBead>& beads, const std::atomic<bool>* cancel_token)
+{
+    if (cancel_token != nullptr && cancel_token->load(std::memory_order_relaxed))
+        return {};
+    std::vector<Bounds> bounds(beads.size());
+    std::vector<Vec3f> centroids(beads.size());
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, beads.size()),
+        [&](const tbb::blocked_range<size_t>& range) {
+            for (size_t i = range.begin(); i < range.end(); ++i) {
+                path_trace_bead_bounds(beads[i], bounds[i].min, bounds[i].max);
+                centroids[i] = 0.5f * (beads[i].p0 + beads[i].p1);
+            }
+        });
+    const BvhBuilder bvh(std::move(bounds), std::move(centroids), leaf_bead_count, cancel_token);
+    return pack_path_trace_scene(bvh, beads, [](const PathTraceBead& source, PathTraceGpuTriangle& slot) {
+        for (size_t axis = 0; axis < 3; ++axis) {
+            slot.a[axis] = source.p0[axis];
+            slot.b[axis] = source.p1[axis];
+        }
+        slot.c[0] = source.flat_half_width();
+        slot.c[1] = source.radius();
+        slot.c[2] = 0.0f;
+    });
 }
 
 } // namespace Slic3r
