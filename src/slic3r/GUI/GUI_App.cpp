@@ -9655,24 +9655,12 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
 
     auto& edited_printer_preset = preset_bundle->printers.get_edited_preset();
     PrinterTechnology printer_technology = edited_printer_preset.printer_technology();
-    // ORCA: Sync filament count with the printer's nozzle count before loading presets for multi-tool printers.
-    // This ensures filament_presets vector is properly sized when combo boxes are created/updated.
-    if (printer_technology == ptFFF && !edited_printer_preset.config.opt_bool("single_extruder_multi_material")) {
-        auto* nozzle_diameter = edited_printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
-        if (nozzle_diameter) {
-            // Mixed-color slots are virtual filaments kept at the tail of the list, so they have no
-            // nozzle of their own and the count has to allow for them. Only ever grow: this sizes
-            // the list so the combo boxes have something to bind to, and set_num_filaments() trims
-            // at the raw tail, so shrinking here would eat the mixes rather than the surplus
-            // physical slots. A list longer than the nozzle count is a state the app reaches
-            // legitimately - raising the extruder count and not saving the printer preset leaves
-            // exactly that on the next start - and losing the project's mixes to it is worse than
-            // carrying a filament the printer has no nozzle for until the count is next changed.
-            const size_t target = nozzle_diameter->values.size() + preset_bundle->num_mixed_filaments();
-            if (target > preset_bundle->filament_presets.size())
-                preset_bundle->set_num_filaments(target);
-        }
-    }
+    // ORCA: filament slots are independent of the printer's nozzle count. A printer may run fewer
+    // materials than it has extruders (an unused tool) or more (several materials feeding one
+    // path, e.g. an AMS behind a single nozzle), so do not grow the list to the nozzle count here.
+    // Only ensure the FFF combo boxes have one slot to bind to.
+    if (printer_technology == ptFFF)
+        preset_bundle->update_filament_count();
 	this->plater()->set_printer_technology(printer_technology);
     for (Tab *tab : tabs_list)
 		if (tab->supports_printer_technology(printer_technology)) {
@@ -9686,8 +9674,8 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
 			if (active_preset_combox)
 				tab->reactive_preset_combo_box();
 		}
-    // Preset loading can resize the filament list without an extruder-count change event.
-    // Refresh the controls even when the list already matches the printer's nozzle count.
+    // Preset loading can resize the filament list without an extruder-count change event, and the
+    // slot count is no longer tied to the nozzle count, so always refresh the controls.
     if (printer_technology == ptFFF)
         this->plater()->on_filament_count_change(preset_bundle->filament_presets.size());
 
