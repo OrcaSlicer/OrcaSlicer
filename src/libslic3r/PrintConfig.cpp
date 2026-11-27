@@ -154,6 +154,20 @@ double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, 
     return config.nozzle_diameter.get_at(extruder - 1);
 }
 
+ConfigOptionInts effective_physical_extruder_map(const ConfigOptionInts* explicit_pem, int nozzle_count)
+{
+    // One entry per logical extruder, so a profile has authored a map only when its length
+    // matches. The single-element PrintConfig default does not, and is replaced rather than
+    // treated as a one-extruder machine.
+    if (explicit_pem && nozzle_count > 0 && (int) explicit_pem->values.size() == nozzle_count)
+        return *explicit_pem;
+
+    ConfigOptionInts derived;
+    derived.values.resize(std::max(nozzle_count, 1));
+    std::iota(derived.values.begin(), derived.values.end(), 0);
+    return derived;
+}
+
 
 // Orca: input shaping values types by flavor
 std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)
@@ -2211,9 +2225,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("brim_ears_detection_length", coFloat);
     def->label = L("Brim ear detection radius");
     def->category = L("Support");
-    def->tooltip = L("The geometry will be decimated before detecting sharp angles. "
-                     "This parameter indicates the minimum length of the deviation for the decimation.\n"
-                     "0 to deactivate.");
+    def->tooltip = L("The direction change at a corner is measured over a window of this length along the outline.\n"
+                     "The window grows while the outline keeps curving, so a rounded corner counts as one corner "
+                     "once its whole turn is seen.\n"
+                     "0 to measure the angle at every vertex without smoothing.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -7282,8 +7297,8 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(2));
 
     def = this->add("imex_tool_layout", coEnum);
-    def->label = L("Tool 0 Position");
-    def->tooltip = L("Physical position on the bed where tool T0 (index 0) is located. "
+    def->label = L("Tool 1 Position");
+    def->tooltip = L("Physical position on the bed where tool T1 is located. "
                      "Determines how tool indices map to bed zones. "
                      "For single-gantry setups (IDEX) only left/right matters; "
                      "for dual-gantry setups (IQEX) all four corners are selectable "
@@ -13379,9 +13394,43 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->tooltip = L("Load and store settings at the given directory. This is useful for maintaining different profiles or including configurations from a network storage.");
 
 
+    def = this->add("mcp", coBool);
+    def->label = L("MCP server");
+    def->tooltip = L("Start the MCP server for AI agents on 127.0.0.1 for this run, whatever the preference says.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("mcp_port", coInt);
+    def->label = L("MCP server port");
+    def->tooltip = L("Start the MCP server for this run on this port, as --mcp does. 0 takes the port from the preference, or 13619.");
+    def->cli_params = "port";
+    def->min = 0;
+    def->max = 65535;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("mcp_stdio", coBool);
+    def->label = L("MCP stdio bridge");
+    def->tooltip = L("Act as an MCP server on standard input and output for clients that cannot use HTTP, forwarding to the running OrcaSlicer (started with --mcp when none answers).");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("run", coString);
+    def->label = L("Run a replay or script");
+    def->tooltip = L("Run a replay (.json) or a Python script (.py) once the GUI is ready, then exit: 0 when it passed or finished, 1 when a step failed or the script did not finish, 2 when the file is invalid or cannot be read.");
+    def->cli_params = "file";
+    def->set_default_value(new ConfigOptionString());
+
+    def = this->add("unrestricted_scripts", coBool);
+    def->label = L("Unrestricted Python scripts");
+    def->tooltip = L("Let Python scripts bypass the permission checks for this run, whatever the preference says.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("cad", coBool);
+    def->label = L("Design tab");
+    def->tooltip = L("Show the Design tab and offer its commands for this run, whatever the CAD feature preference says.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("outputdir", coString);
     def->label = L("Output directory");
-    def->tooltip = L("This is the output directory for exported files.");
+    def->tooltip = L("This is the output directory for exported files. With --run, it is where the run's files go: a replay's result.json and screenshots, and the files saved without a path.");
     def->cli_params = "dir";
     def->set_default_value(new ConfigOptionString());
 

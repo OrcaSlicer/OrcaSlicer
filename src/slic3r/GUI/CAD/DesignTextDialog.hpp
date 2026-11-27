@@ -37,6 +37,15 @@ public:
     // `initial` reopens an existing text for editing; nullptr starts a new one.
     DesignTextDialog(wxWindow* parent, const Spec* initial = nullptr);
 
+    // What a new text starts from, here and in sketch_text: the font and height OK last stored, else the GUI font
+    // and 10 mm.
+    static wxFont last_font();
+    static double last_height();
+    // The face the Font list selects for `font`: its own when the list has it, else the plain sans-serif that
+    // wxFONTFAMILY_SWISS maps to, else the list's first. macOS's GUI font is its UI font, .AppleSystemUIFont, which is
+    // not an installed face; the first face there is a decorative one whose letters carry engraved holes.
+    static wxString listed_face(const wxFont& font);
+
     // The vectorised text, centred on the origin, in mm. Empty when there is nothing to insert.
     const ImportRegions& regions() const { return m_regions; }
     wxString             text() const;
@@ -45,6 +54,13 @@ public:
     std::function<void()> on_change;   // the outline changed (text, font or height)
     std::function<void()> on_accept;   // Enter / OK with something to insert
     std::function<void()> on_cancel;   // Esc / Cancel / closed
+
+    // OK and Cancel for a caller with no mouse, as the buttons press them. OK takes only what it is enabled for, text
+    // with an outline to insert; while it is not, the size line under the preview says why.
+    bool     ok_enabled() const { return !m_regions.empty(); }
+    wxString size_line() const;
+    void     accept();
+    void     cancel();
 
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
@@ -55,8 +71,6 @@ private:
     void     update_preview();     // text/font/height -> m_regions + size label
     wxFont   current_font() const;
     void     draw_preview(wxWindow* canvas);
-    void     accept();
-    void     cancel();
     bool     m_done{false};        // accept/cancel fire once
 
     double   height_mm() const;    // the typed height, or the last valid one while it is being typed

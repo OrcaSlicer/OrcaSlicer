@@ -29,10 +29,11 @@ Permissions are stored per plugin key. A plugin can hold:
 | `fs_delete` | folder list | Filesystem delete events such as `os.remove` and `shutil.rmtree`. |
 | `network_http` | target list | Network targets, consulted together with `network_socket` for both HTTP and socket events. A canonical `scheme://host` entry is host-wide and covers both layers; a URL with a path, port, query or trailing slash is exact; a bare host or legacy address tuple covers raw sockets. |
 | `network_socket` | target list | The same network matching, kept as a separate list so a plugin can declare socket access without an HTTP URL. |
-| `process` | target list | Process creation and process replacement: `os.system`, `subprocess.Popen`, `os.spawn*`, `os.exec*`, `pty.spawn`, `_winapi.CreateProcess`, and similar. Targets match the audited value verbatim. |
+| `process` | target list | Process creation and process replacement: `subprocess.Popen`, `os.spawn*`, `os.exec*`, `pty.spawn`, `_winapi.CreateProcess`, and similar. Targets name the tool, not its arguments. The exception is a Windows command line with an unquoted executable followed by arguments: it is stored as an exact full command line, because `CreateProcess` may resolve a longer executable prefix than the first token shows. `os.system` names the shell it runs (see "Target matching"). |
 | `threading` | boolean | Permission to start a Python thread with `_thread.start_new_thread`. |
 | `events` | target list | Audited events that expose no target, keyed as `<Category>:<event>`, for example `Socket:socket.__new__`. Matched verbatim. |
 | `full_access` | boolean | Turns off the permission decision for the plugin. See "Full access". |
+| `tools` | boolean | Permission to call OrcaSlicer's tools through `orca.host.tools`. See "Calling OrcaSlicer's tools". |
 
 Create and delete grants are independent of read and read/write grants. An empty list grants
 no folders; an absolute folder path grants operations directly inside that folder, while a path
@@ -89,8 +90,36 @@ that requested it and the nested deletes it performs inside that subtree.
   A canonical entry is host-wide and applies to HTTP and raw socket events for that host.
   A URL with a path, port, query, fragment or trailing slash that was stored without
   normalization remains an exact match.
-- Process entries are compared verbatim with the string the audit event reports,
-  including Python representations of a command.
+- Process entries name the tool an event runs, compared verbatim. When the event exposes
+  the executable or path, that argument is the target. For a command string or argv, the
+  first token or element is the target. Arguments after the tool are ignored, so one grant
+  covers repeated runs of the tool with different arguments. The exception is a Windows
+  command line whose executable is unquoted and followed by non-whitespace text.
+  `CreateProcess` resolves such a name by trying successively longer prefixes, so the first
+  whitespace-delimited token need not be the executable it starts: a command line
+  `C:\Program Files\app.exe --x` can start `C:\Program Files\app.exe`, not `C:\Program`.
+  The audit therefore stores the exact full command line instead of the first token, in a
+  reserved `CommandLine:` namespace in the `process` list. An exact entry matches only the
+  same full command line, compared verbatim, and a later run with different arguments asks
+  again. A quoted first argument, an explicit executable or application name, and a command
+  line that has no arguments keep the executable-only, argument-insensitive grant. The
+  command line is not parsed further, and the resolved executable is not checked: the same
+  approved command line can start a different binary if the working directory, `PATH`, or
+  the files it resolves through change. `os.system` works differently:
+  Python hands its whole string to the platform shell, so the target is every shell that may
+  run it. On POSIX that is `/bin/sh`. On Windows the C runtime runs the interpreter named by
+  `COMSPEC`, or `cmd.exe` when `COMSPEC` is unset or empty, and also falls back to `cmd.exe`
+  when it cannot open the configured file (ENOENT or EACCES). The configured interpreter and
+  the fallback are both required targets: a grant for a narrow `COMSPEC` does not authorize
+  the fallback shell. A `COMSPEC` that is already the bare name `cmd.exe`, in any casing,
+  names the fallback itself and is listed once. The value is read from the CRT environment
+  that `_wsystem` consults, not the process environment block, which can differ. The audit
+  does not test whether the `COMSPEC` file exists; the runtime decides that when it runs the
+  command, so a file present at prompt time can be gone by the call. The command string is
+  not parsed, and approving the shells covers every command and argument the plugin passes
+  to `os.system`. The targets are read when the event is raised, so a grant saved under one
+  `COMSPEC` value does not cover a run under another. Direct process creation, such as
+  `subprocess.Popen`, still names its executable.
 - An event with no target is granted by the `events` entry for its category and name. A
   targetless network event, such as `http.client.send`, is covered by any recorded
   network grant instead.
@@ -144,6 +173,22 @@ order:
 After a granted root event with a target, the hook records the operation frame so the
 nested events of the same operation are not asked again.
 
+### Python scripts
+
+A Python script run from the Run Script panel, with `--run` or by an agent's `script_run`
+is not a plugin, but its events are judged here under an identity of its own, `(script)` or `(mcp)`
+(see "Python scripts" in [mcp-server.md](mcp-server.md)). A script has no sidecar, so it holds
+no grant and is never asked: steps 1 to 3 apply to it, and any other event is denied with a
+`PermissionError` that names the setting below. A file run also reads the folder of its file,
+through a per-call scoped root.
+
+The "Run Python scripts unrestricted" setting (`python_scripts_unrestricted`: Preferences, AI features,
+Python scripts; off by default) lifts this for every script, and so does the command line's
+`--unrestricted-scripts` for one run, without writing the setting: while either is on, a script's event
+is allowed right after step 1, so only the denied paths stay blocked. No plugin's key is a script identity: a
+local plugin's key keeps only the letters, digits, `_`, `-` and `.` of its file name, and a cloud plugin's is
+its UUID.
+
 ## Permission prompts
 
 ### Declared permissions during load
@@ -157,6 +202,8 @@ GUI-thread caller is rejected when another prompt is active instead of blocking 
 Denying the request aborts the load. A readable sidecar with `full_access` accepts the
 declaration without a prompt and without adding a grant.
 
+`request_permissions(tools=True)` is one more bucket of that combined prompt, as `threading=True` is.
+
 Network URLs passed to `request_permissions(network=...)` are normalized to
 `scheme://host` before prompting or storing, so one approval covers every path and port
 on that host and also authorizes raw sockets to it. A relative filesystem tree grant is
@@ -168,7 +215,8 @@ sidecar show the absolute scope it covers.
 An event that is not covered by a saved grant or an implicit rule is either put to the
 user or denied. If the caller is on the wx main thread and no audit prompt is active, the
 modal runs inline. Otherwise, as on the Script workflow, the plugin-load worker, or the
-slicing worker, the current event is denied and the prompt is queued for the GUI thread.
+slicing worker, the current event is denied and the prompt is queued for the GUI thread. A
+plugin's tool call without the tools grant takes the same path from its Script worker.
 `AuditPromptQueue` serializes runtime prompts, one-time recursive-delete consent, and
 load-time declarations, so at most one is shown at a time,
 including during a modal dialog's nested event loop. An event raised inside that loop is
@@ -191,8 +239,12 @@ whose denial aborted the load and then retry with the saved grant.
 
 Runtime approvals store the target observed by the audit hook, except that create and delete
 approvals store its parent folder. A URL with a path, port or
-query is therefore an exact grant; a bare host remains usable for raw sockets. The
-declared form and the runtime form are not normalized by the same code path.
+query is therefore an exact grant; a bare host remains usable for raw sockets. A Windows
+command line that needs the exact fallback is saved in the reserved `CommandLine:` namespace
+as its full text, so the approval is argument-sensitive; the prompt shows the command line
+without the storage marker and states that the full line, including any sensitive values in
+its arguments, is shown and saved. The declared form and the runtime form are not normalized
+by the same code path.
 
 A recursive delete is different: a Yes grants consent for the canonical target subtree for
 that operation only. The prompt shows the subtree root and states that the consent is not
@@ -247,7 +299,7 @@ The following are denied before any allowed root or full-access check:
 
 Grants and install state live in `.install_state.json` in the plugin root. The
 `permissions` object stores `fs_read`, `fs_readwrite`, `fs_create`, `fs_delete`, `network_http`,
-`network_socket`, `process`, `threading`, `events`, and `full_access`. It never stores a
+`network_socket`, `process`, `threading`, `tools`, `events`, and `full_access`. It never stores a
 recursive-delete consent: that approval and any retry approval are in memory only, so accepting
 one does not widen the plugin's saved delete scope. The file is
 written by `write_install_state`, the single writer for the sidecar schema. In-process
@@ -263,6 +315,7 @@ Reading is deliberately fail-closed:
   form. Reading never rewrites the file.
 - `full_access` is enabled only by an explicit JSON boolean. A missing key, a string, a
   number, or any other type reads as false.
+- `tools` is granted only by a JSON `true`; a missing key or any other value reads as `false`.
 
 A sidecar that exists but cannot be read is never overwritten, because it may still hold
 grants and capability choices. The one exception is a plugin load: if the sidecar is a
@@ -311,8 +364,8 @@ lowercase `scheme://host`, dropping port, path, query and fragment. Bare hosts, 
 schemes, wildcards and URLs carrying userinfo are refused rather than guessed. Network
 entries cover every port, path and query on the host.
 
-The dialog warns before enabling full access. Grants stored
-while full access is on are inert and apply again when full access is off. Turning full access
+The dialog warns before enabling full access. The OrcaSlicer tools switch is a yes/no switch like
+Threading's. Grants stored while full access is on are inert and apply again when full access is off. Turning full access
 on does not delete the stored lists. A permission change affects subsequent audit decisions,
 not operations already authorized.
 
@@ -321,6 +374,35 @@ On Linux and macOS, create and delete operations using a directory file descript
 against its resolved path. If that path cannot be resolved, the operation is denied, even with
 full access.
 
+## Calling OrcaSlicer's tools
+
+`orca.host.tools` lets a plugin call every command a plugin caller has: an agent's commands, less the few
+[mcp-tools.md](mcp-tools.md) refuses a plugin (`replay_export`) or limits to its own jobs. Through them it reaches
+the project, presets and files, post-processing scripts (which run as programs), the window, and its dialogs,
+permission requests included. A plugin holding it can therefore give itself any other permission,
+which is why its prompt says so. `orca.host.tools.list()` and `describe()` only read the
+catalog and need no permission, and operations a plugin offers with `orca.register_operation` stay
+free; a Python script a person or an agent runs is not a plugin and is unaffected.
+
+The grant is `tools` true or full access, read from the sidecar on every call. A plugin's own call asks
+for it as an undeclared audited event does, on the plugin's Script worker before the call is admitted
+(`PluginAuditManager::request_tools_permission` in `admit_plugin_call`): without the grant the call is
+refused and the prompt queued (see "Runtime prompts"), and a Yes is saved, so the plugin's next call
+works. A sidecar that exists but cannot be read refuses the call without asking, as a declaration is refused,
+since a Yes could not be saved there. The admission on the UI thread checks the grant again without asking
+(`PluginManager::plugin_may_call_tools`), so a grant withdrawn in between cannot reopen the plugin's
+scope, and every call a plugin owns, its script and replay runs' children included, is checked again
+where the MCP core runs it (`JobRegistry::tools_refused` in `McpCore::run`). Each refuses with
+`orca.host.tools.ToolError`, `details["code"] == "tools_not_allowed"`.
+
+When a Plugins-dialog edit leaves a plugin without the tools, `AutomationRuntime::plugin_tools_withdrawn`
+asks its running calls to stop and ends its scope and its running runs' scopes, popping their
+auto-answer rules, ending their recording and releasing their held presses, as an unload does, but
+without blocking it, so a later grant works without a reload. A call that passed its check just before
+is refused the moment it would leave such an effect behind: the plugin is marked withdrawn until a call
+admitted under a new grant opens its scope again, and the places that publish a press or start a
+recording check the scope is still open (`require_owner_scope`).
+
 ## Full access
 
 Full access is a per-plugin boolean that turns off the permission decision. It does not
@@ -328,7 +410,8 @@ remove the audit hook. For recognized events it is reached after the uncondition
 denied-path check, so the application configuration, the cloud user-secret file,
 certificates, configuration paths, and `.install_state.json` stay blocked from direct
 Python access. Everything else that the audit hook recognizes is allowed without a grant
-or a prompt, and declared permissions are accepted without prompting. The read-only
+or a prompt, and declared permissions are accepted without prompting. It also allows the plugin's
+tool calls. The read-only
 `resources_dir()` root is a normal-mode restriction only: full access permits writes there
 when the operating system allows them. The denied `cert` keyword still blocks the bundled
 certificate.
@@ -361,10 +444,22 @@ never treated as an opt-out.
   context, so its events are not attributed or restricted.
 - **Subprocesses leave the policy.** A process created by a granted or full-access
   plugin runs with the user's rights and is not covered by the parent's audit scope.
+- **An `os.system` grant is a shell grant.** It authorizes every command string the plugin
+  passes to `os.system`, not only the one that triggered the prompt, because the shell
+  parses and runs the whole string. Arguments are not inspected or restricted.
+- **An exact command line grant is command-sensitive, not binary-sensitive.** It is stored
+  and shown in full, so it can expose credentials or tokens passed as arguments to anyone
+  who sees the prompt or the sidecar. Approval covers only the same full command line.
+  `CreateProcess` still resolves the executable from the working directory, `PATH`, and the
+  filesystem, so the same approved command line can start a different binary later; the
+  grant does not pin the resolved image or verify it.
 - **Host APIs are not audit events.** Calls into OrcaSlicer's Python host APIs, such as
   preset updates or UI actions, execute C++ host code and follow that API's contract. The
   audit hook judges the Python-level filesystem, network, process and thread events it is
-  given, not the host API's internal work.
+  given, not the host API's internal work. `orca.host.tools` is gated by the tools permission
+  instead (see "Calling OrcaSlicer's tools"), and once granted it reaches every command a plugin
+  caller has: the files those tools write, post-processing scripts, and dialogs, permission
+  prompts included.
 - **Denied paths are a direct-access block.** Path laundering through a symlink,
   hardlink, subprocess, or Windows 8.3 short name is outside the model. A tree grant is
   canonicalized for matching, but the deny check itself is base-name and component based.
@@ -420,7 +515,10 @@ never treated as an opt-out.
 - `src/slic3r/plugin/PluginManager.hpp` / `.cpp` - `mutate_plugin_permissions`,
   `revoke_plugin_permissions`, `get_install_state`.
 - `src/slic3r/GUI/PluginsDialog.cpp` - permission editor payloads, native confirmations,
-  and the full-access request path.
+  the full-access request path, the tools switch and its withdrawal call.
+- `src/slic3r/GUI/Mcp/McpPluginCaller.cpp`, `JobRegistry.hpp` / `.cpp`, `McpCore.cpp`,
+  `AutomationRuntime.hpp` / `.cpp` - the tools checks (`admit_plugin_call`, `tools_refused`),
+  `plugin_tools_withdrawn` and `require_owner_scope`.
 - `tests/slic3rutils/test_plugin_audit.cpp`, `tests/slic3rutils/test_plugin_install.cpp`,
   `tests/slic3rutils/test_plugin_lifecycle.cpp` - audit decision, sidecar, and permission
   mutation coverage.

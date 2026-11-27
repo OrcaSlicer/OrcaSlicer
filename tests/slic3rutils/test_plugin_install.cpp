@@ -3,8 +3,10 @@
 #include <catch2/catch_all.hpp>
 
 #include <chrono>
+#include <cstddef>
 #include <ios>
 #include <libslic3r/Utils.hpp>
+#include <slic3r/GUI/PluginsDialog.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
@@ -21,6 +23,8 @@
 #include "test_utils.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/nowide/convert.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <fstream>
@@ -30,6 +34,7 @@
 
 #include <libslic3r/Zipper.hpp>
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
 
 using namespace Slic3r;
 namespace fs = boost::filesystem;
@@ -76,6 +81,43 @@ fs::path to_extended_path(const fs::path& p)
     return Slic3r::extended_path(p);
 }
 
+// Write a small sentinel file through the extended-length form too, so a file whose parent sits
+// near MAX_PATH can be created and left in place on Windows.
+bool write_file_at_extended_path(const fs::path& path, const std::string& contents)
+{
+    fs::create_directories(to_extended_path(path.parent_path()));
+#ifdef _WIN32
+    const std::string io_path = boost::nowide::narrow(to_extended_path(path).wstring());
+#else
+    const std::string io_path = to_extended_path(path).string();
+#endif
+    boost::nowide::ofstream out(io_path, std::ios::binary | std::ios::trunc);
+    if (!out)
+        return false;
+    out.write(contents.data(), static_cast<std::streamsize>(contents.size()));
+    out.close();
+    return static_cast<bool>(out);
+}
+
+// A minimal installable wheel: one dist-info directory holding METADATA, WHEEL and RECORD, plus a
+// module. install_plugin only caches the archive, so the module body is never imported.
+void write_wheel(const fs::path& path, const std::string& dist_name)
+{
+    fs::create_directories(path.parent_path());
+
+    Zipper zipper(path.string(), Zipper::NO_COMPRESSION);
+    const std::string module   = "VALUE = 1\n";
+    const std::string metadata = "Metadata-Version: 2.1\nName: " + dist_name + "\nVersion: 1.0\n\n";
+    const std::string wheel    = "Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n";
+    const std::string record   = "demo_pkg/__init__.py,,\n";
+    const std::string info     = dist_name + "-1.0.dist-info/";
+    zipper.add_entry("demo_pkg/__init__.py", module.data(), module.size());
+    zipper.add_entry(info + "METADATA", metadata.data(), metadata.size());
+    zipper.add_entry(info + "WHEEL", wheel.data(), wheel.size());
+    zipper.add_entry(info + "RECORD", record.data(), record.size());
+    zipper.finalize();
+}
+
 // Brings the plugin system up for a case that drives a real plugin load, and tears it down
 // afterwards. Declare it first in the test so it is destroyed last; the interpreter itself is
 // process-wide and finalized once by the suite's run-end handler.
@@ -106,13 +148,15 @@ class FailingPackage(orca.base):
         raise RuntimeError("registration rejected by the plugin")
 )PY";
 
-// A plugin that declares one read permission while it registers its one capability, so its load
-// goes through the combined permission prompt.
-const char* const DECLARING_PLUGIN_SOURCE = R"PY(# /// script
+// A plugin named `name` that declares `permissions`, the arguments of orca.request_permissions(),
+// while it registers its one capability, so its load goes through the permission prompts.
+std::string declaring_plugin_source(const std::string& name, const std::string& permissions)
+{
+    return R"PY(# /// script
 # requires-python = ">=3.12"
 #
 # [tool.orcaslicer.plugin]
-# name = "Declaring Plugin"
+# name = ")PY" + name + R"PY("
 # type = "script"
 # version = "1.0"
 # ///
@@ -128,9 +172,40 @@ class Echo(orca.script.ScriptPluginCapabilityBase):
 @orca.plugin
 class DeclaringPackage(orca.base):
     def register_capabilities(self):
-        orca.request_permissions(fs_read=["/declared/read"])
+        orca.request_permissions()PY" + permissions + R"PY()
         orca.register_capability(Echo)
 )PY";
+}
+
+// What a plugin load with its permission prompts recorded produced.
+struct PromptedLoad
+{
+    bool                     loaded = false;
+    std::string              error;
+    std::vector<std::string> prompts;
+};
+
+// Loads `plugin_key` and answers each permission prompt with `answer`. The prompts run on the load
+// worker, so they are recorded there for the caller to assert on once the load is done.
+PromptedLoad load_answering_prompts(const std::string& plugin_key, bool answer)
+{
+    PromptedLoad result;
+    PluginAuditManager::set_permission_message_prompt_for_testing([&result, answer](const std::string& message) {
+        result.prompts.push_back(message);
+        return answer;
+    });
+    PluginManager& manager = PluginManager::instance();
+    manager.load_plugin(plugin_key, /*skip_deps=*/true);
+    result.loaded = manager.wait_for_plugin_load(plugin_key, std::chrono::seconds(120), result.error);
+    // A load that timed out still runs and may prompt: it ends before the prompt and `result` go.
+    if (!result.loaded && manager.is_plugin_load_in_progress(plugin_key)) {
+        manager.cancel_plugin_load(plugin_key);
+        std::string ignored;
+        manager.wait_for_plugin_load(plugin_key, std::chrono::milliseconds::max(), ignored);
+    }
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+    return result;
+}
 
 } // namespace
 
@@ -167,7 +242,24 @@ TEST_CASE("install_plugin rejects a side-loaded .py with no PEP 723 metadata", "
     const bool installed = plugin_loader::install_plugin(py, /*cloud_user_id=*/"", descriptor, error);
 
     REQUIRE_FALSE(installed);
+    // The error names the table the name goes in, so whoever reads it can fix the package.
     CHECK_THAT(error, Catch::Matchers::ContainsSubstring("PEP 723"));
+    CHECK_THAT(error, Catch::Matchers::ContainsSubstring("[tool.orcaslicer.plugin]"));
+}
+
+TEST_CASE("a local install that fails inspection reports the reason once framed as a failed install", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("install-missing");
+
+    // The package is never found, so the install stops at its inspection, before any window opens.
+    wxString   message;
+    const bool installed = GUI::install_local_plugin_package(data_dir_guard.dir / "missing.py", /*parent=*/nullptr, message);
+
+    REQUIRE_FALSE(installed);
+    const std::string text(message.ToUTF8().data());
+    CHECK_THAT(text, Catch::Matchers::StartsWith("Plugin installation failed: "));
+    CHECK(text.find("Plugin installation failed", 1) == std::string::npos);
+    CHECK_THAT(text, Catch::Matchers::ContainsSubstring("missing.py"));
 }
 
 TEST_CASE("install_plugin accepts a side-loaded .py with complete PEP 723 metadata", "[PluginInstall]")
@@ -193,6 +285,44 @@ TEST_CASE("install_plugin accepts a side-loaded .py with complete PEP 723 metada
     // Positive control: a complete side-loaded .py must still install (guards against over-rejection).
     REQUIRE(installed);
     CHECK(error.empty());
+}
+
+TEST_CASE("install_plugin caches a wheel whose destination passes MAX_PATH", "[PluginInstall][Regression]")
+{
+    ScopedDataDir      data_dir_guard("long-path-install");
+    ScopedTemporaryDir wheel_source("long-path-wheel-source");
+
+    // data_dir()/orca_plugins/<escaped filename>/<filename> is the cached copy. A long distribution
+    // name in the wheel filename pushes that copy past MAX_PATH while the plugin root stays well
+    // below it, and the Win32 APIs then refuse to create, copy or read the cache unless every
+    // operation goes through the extended-length form.
+    fs::path deep_data_dir = data_dir_guard.dir;
+    while (deep_data_dir.string().size() < 140)
+        deep_data_dir /= "deep_component";
+    fs::create_directories(to_extended_path(deep_data_dir));
+    set_data_dir(deep_data_dir.string());
+
+    const std::string dist_name = "demo_plugin_with_a_distribution_name_long_enough_to_push_the_cached_copy_past_max_path";
+    const fs::path    wheel     = wheel_source.path() / (dist_name + "-1.0-py3-none-any.whl");
+    write_wheel(wheel, dist_name);
+    if (wheel.string().size() >= 260)
+        SKIP("Temporary directory is too long for a below-MAX_PATH wheel source");
+
+    PluginDescriptor descriptor;
+    std::string      error;
+    REQUIRE(plugin_loader::install_plugin(wheel, /*cloud_user_id=*/"", descriptor, error));
+    CHECK(error.empty());
+
+    // The installed package, its descriptor identity and the sidecar beside it are all below the
+    // deep plugin folder, so each of them has to be reachable past the limit.
+    const fs::path installed = fs::path(descriptor.entry_path);
+    REQUIRE(installed.string().size() > 260);
+    CHECK(fs::is_regular_file(to_extended_path(installed)));
+    CHECK(fs::is_regular_file(to_extended_path(fs::path(descriptor.plugin_root) / INSTALL_STATE_FILE)));
+
+    // ScopedDataDir's plain remove_all cannot reach past MAX_PATH on Windows.
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(to_extended_path(deep_data_dir), cleanup_ec);
 }
 
 TEST_CASE("a .py plugin's PEP 723 dependencies split only at the commas between items", "[PluginInstall][PluginFsUtils]")
@@ -250,6 +380,7 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     state.permissions.network_socket = {"192.168.45.6:443"};
     state.permissions.process        = {"/usr/bin/curl"};
     state.permissions.threading      = true;
+    state.permissions.tools          = true;
     REQUIRE(write_install_state(plugin_dir, state));
 
     // Permission data is persisted in the same sidecar as the installation metadata.
@@ -263,6 +394,7 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     CHECK(persisted.permissions.network_socket == state.permissions.network_socket);
     CHECK(persisted.permissions.process == state.permissions.process);
     CHECK(persisted.permissions.threading == state.permissions.threading);
+    CHECK(persisted.permissions.tools == state.permissions.tools);
 
     // Reading the sidecar back onto a freshly-scanned descriptor (whose header version is still
     // 1.0.0) must surface the cloud-installed 1.2.0. This is what lets update_cloud_metadata compare
@@ -459,33 +591,57 @@ TEST_CASE("a plugin that declares permissions loads over an unparsable install-s
 
     ScopedDataDir data_dir_guard("declaring-over-unparsable");
     const fs::path plugin_dir = data_dir_guard.plugins_dir() / "Declaring_Plugin";
-    write_py_file(plugin_dir, "Declaring_Plugin.py", DECLARING_PLUGIN_SOURCE);
+    write_py_file(plugin_dir, "Declaring_Plugin.py",
+                  declaring_plugin_source("Declaring Plugin", R"(fs_read=["/declared/read"])"));
 
-    PluginManager& manager = PluginManager::instance();
-    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    PluginManager::instance().discover_plugins(/*async=*/false, /*clear=*/true);
 
     const std::string malformed = "{ \"enabled\": tru";
     write_raw_sidecar_text(plugin_dir, malformed);
 
-    // The prompt runs on the load worker: record it there and assert once the load is done.
-    std::vector<std::string> prompts;
-    PluginAuditManager::set_permission_message_prompt_for_testing([&prompts](const std::string& message) {
-        prompts.push_back(message);
-        return true;
-    });
-    std::string error;
-    manager.load_plugin("Declaring_Plugin", /*skip_deps=*/true);
-    const bool loaded = manager.wait_for_plugin_load("Declaring_Plugin", std::chrono::seconds(120), error);
-    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+    const PromptedLoad load = load_answering_prompts("Declaring_Plugin", true);
 
     // The declaration is put to the user again and the approval is saved in a fresh sidecar.
-    INFO(error);
-    CHECK(loaded);
-    CHECK(prompts.size() == 1);
+    INFO(load.error);
+    CHECK(load.loaded);
+    CHECK(load.prompts.size() == 1);
     PluginInstallState stored;
     REQUIRE(read_install_state(plugin_dir, stored));
     CHECK(stored.permissions.fs_read == std::vector<std::string>{"/declared/read"});
     CHECK(read_sidecar_text(plugin_dir, ".install_state.json.corrupt") == malformed);
+}
+
+TEST_CASE("a plugin that declares the tools is asked for them in its one permission prompt", "[PluginInstall][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const bool     answer = GENERATE(true, false);
+    ScopedDataDir  data_dir_guard("tools-declaring");
+    const fs::path plugin_dir = data_dir_guard.plugins_dir() / "Tools_Declaring_Plugin";
+    write_py_file(plugin_dir, "Tools_Declaring_Plugin.py",
+                  declaring_plugin_source("Tools Declaring Plugin", R"(fs_read=["/declared/read"], tools=True)"));
+    write_raw_install_state(plugin_dir, {{"installed_from", "local"}, {"permissions", nlohmann::json::object()}});
+
+    PluginManager::instance().discover_plugins(/*async=*/false, /*clear=*/true);
+
+    const PromptedLoad load = load_answering_prompts("Tools_Declaring_Plugin", answer);
+
+    // One prompt names both declarations and says how far the tools reach. Yes loads the plugin and
+    // stores both grants; No, as for any declaration, fails the load and stores neither.
+    INFO(load.error);
+    REQUIRE(load.prompts.size() == 1);
+    CHECK_THAT(load.prompts[0], Catch::Matchers::ContainsSubstring("/declared/read"));
+    CHECK_THAT(load.prompts[0], Catch::Matchers::ContainsSubstring("OrcaSlicer's tools"));
+    CHECK_THAT(load.prompts[0], Catch::Matchers::ContainsSubstring("permission requests included"));
+    CHECK(load.loaded == answer);
+    PluginInstallState stored;
+    REQUIRE(read_install_state(plugin_dir, stored));
+    CHECK(stored.permissions.tools == answer);
+    const std::vector<std::string> expected_fs_read = answer ? std::vector<std::string>{"/declared/read"}
+                                                             : std::vector<std::string>{};
+    CHECK(stored.permissions.fs_read == expected_fs_read);
 }
 
 TEST_CASE("a plugin load leaves a sidecar path that is not a file in place", "[PluginInstall][Python]")
@@ -670,6 +826,48 @@ TEST_CASE("install-state writes threading as a boolean and reads it back", "[Plu
 
     REQUIRE(read_install_state(plugin_dir, read_back));
     CHECK_FALSE(read_back.permissions.threading);
+}
+
+TEST_CASE("install-state reads the tools grant only from a JSON true and always writes it", "[PluginInstall]")
+{
+    ScopedDataDir  data_dir_guard("tools-permission");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+
+    const auto read_tools = [&plugin_dir]() {
+        PluginInstallState state;
+        REQUIRE(read_install_state(plugin_dir, state));
+        return state.permissions.tools;
+    };
+
+    write_raw_install_state(plugin_dir, {{"permissions", {{"tools", true}}}});
+    CHECK(read_tools());
+    write_raw_install_state(plugin_dir, {{"permissions", {{"tools", false}}}});
+    CHECK_FALSE(read_tools());
+    write_raw_install_state(plugin_dir, {{"permissions", nlohmann::json::object()}});
+    CHECK_FALSE(read_tools());
+    for (const nlohmann::json& value : std::vector<nlohmann::json>{"true", 1, nlohmann::json::array(), nullptr}) {
+        write_raw_install_state(plugin_dir, {{"permissions", {{"tools", value}}}});
+        CHECK_FALSE(read_tools());
+    }
+
+    // Written as a boolean whatever its value, as threading is.
+    const auto written_permissions = [&plugin_dir](const PluginInstallState& state) {
+        REQUIRE(write_install_state(plugin_dir, state));
+        return nlohmann::json::parse(read_sidecar_text(plugin_dir))["permissions"];
+    };
+    PluginInstallState state;
+    const nlohmann::json not_granted = written_permissions(state);
+    REQUIRE(not_granted.contains("tools"));
+    CHECK(not_granted["tools"].is_boolean());
+    CHECK(not_granted["tools"] == false);
+    CHECK_FALSE(read_tools());
+
+    state.permissions.tools = true;
+    const nlohmann::json granted = written_permissions(state);
+    REQUIRE(granted.contains("tools"));
+    CHECK(granted["tools"].is_boolean());
+    CHECK(granted["tools"] == true);
+    CHECK(read_tools());
 }
 
 TEST_CASE("reading a legacy threading value does not rewrite the sidecar and a normal write migrates it",
@@ -899,4 +1097,100 @@ TEST_CASE("extract_zip_to_directory rejects an entry that escapes the destinatio
     CHECK_FALSE(extract_zip_to_directory(wheel, dir.path() / "out", error));
     CHECK_THAT(error, Catch::Matchers::ContainsSubstring("escapes the plugin package"));
     CHECK_FALSE(fs::exists(dir.path() / "escape.txt"));
+}
+
+TEST_CASE("deleting a plugin's install cache reaches a cache root past MAX_PATH",
+          "[PluginInstall][PluginFsUtils][Regression]")
+{
+    ScopedTemporaryDir plugins_dir("deep-cache-delete");
+    const fs::path     plugins_root = plugins_dir.path();
+
+    // Keep the plugin root below MAX_PATH and size the last component so the cache root, one
+    // directory deeper, passes it. The removal root is what the extended-length form has to reach.
+    const std::size_t base_length = plugins_root.string().size();
+    if (base_length + 2 > 249)
+        SKIP("Temporary path is too long for a cache root below MAX_PATH");
+    const fs::path plugin_root = plugins_root / std::string(249 - base_length, 'c');
+    const fs::path cache_root  = plugin_root / plugin_wheel_install::EXTRACTED_DIR_NAME;
+    REQUIRE(plugin_root.string().size() < 260);
+    REQUIRE(cache_root.string().size() > 260);
+
+    fs::create_directories(to_extended_path(cache_root / "demo_pkg"));
+
+    // The real layout: the plugin root is a child of orca_plugins, and plugin_data is its sibling
+    // there, not a child of the plugin root.
+    const fs::path stored_wheel     = plugin_root / "demo_pkg-1.0-py3-none-any.whl";
+    const fs::path install_sidecar  = plugin_root / INSTALL_STATE_FILE;
+    const fs::path plugin_data      = plugins_root / PLUGIN_DATA_DIR / "demo_plugin";
+    const fs::path plugin_data_file = plugin_data / "settings.json";
+    REQUIRE(write_file_at_extended_path(stored_wheel, "stored wheel sentinel\n"));
+    REQUIRE(write_file_at_extended_path(install_sidecar, "{\"enabled\": true}\n"));
+    REQUIRE(write_file_at_extended_path(plugin_data_file, "{\"value\": 1}\n"));
+
+    std::string error;
+    const bool removed = plugin_wheel_install::delete_install_cache(plugin_root, error);
+    INFO("cache delete error: " << error);
+    REQUIRE(removed);
+    CHECK(error.empty());
+    CHECK_FALSE(fs::exists(to_extended_path(cache_root)));
+
+    // Only the cache goes: the stored wheel, install sidecar, plugin root and the sibling plugin
+    // data all stay.
+    CHECK(fs::is_directory(to_extended_path(plugin_root)));
+    CHECK(fs::is_regular_file(to_extended_path(stored_wheel)));
+    CHECK(fs::is_regular_file(to_extended_path(install_sidecar)));
+    CHECK(fs::is_regular_file(to_extended_path(plugin_data_file)));
+
+    // Remove the deep plugin root explicitly; ScopedTemporaryDir cleans up the rest.
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(to_extended_path(plugin_root), cleanup_ec);
+    CHECK_FALSE(cleanup_ec);
+}
+
+TEST_CASE("a deep plugin root is authorized inside its directory and then deleted",
+          "[PluginInstall][PluginFsUtils][Regression]")
+{
+    ScopedTemporaryDir dir("deep-plugin-root-delete");
+
+    const fs::path plugin_root = dir.path() / std::string(240, 'p');
+    REQUIRE(plugin_root.string().size() > 260);
+    fs::create_directories(to_extended_path(plugin_root / "demo_pkg"));
+
+    PluginDescriptor descriptor;
+    descriptor.plugin_root = plugin_root.string();
+
+    // The authorization check runs on the same deep root that removal will use.
+    fs::path    resolved_root;
+    std::string error;
+    REQUIRE(resolve_allowed_plugin_root(descriptor, {dir.path().string()}, "outside plugin root",
+                                        resolved_root, error));
+    CHECK(error.empty());
+
+    const bool deleted = delete_plugin_root(resolved_root, descriptor.plugin_root, error);
+    INFO("plugin delete error: " << error);
+    REQUIRE(deleted);
+    CHECK(error.empty());
+    CHECK_FALSE(fs::exists(to_extended_path(plugin_root)));
+}
+
+TEST_CASE("a plugin root outside the allowed directories is rejected before deletion",
+          "[PluginInstall][PluginFsUtils]")
+{
+    ScopedTemporaryDir allowed_dir("allowed-plugin-root");
+    ScopedTemporaryDir outside_dir("outside-plugin-root");
+
+    const fs::path outside_root = outside_dir.path() / "plugin";
+    fs::create_directories(outside_root);
+
+    PluginDescriptor descriptor;
+    descriptor.plugin_root = outside_root.string();
+
+    fs::path    resolved_root;
+    std::string error;
+    CHECK_FALSE(resolve_allowed_plugin_root(descriptor, {allowed_dir.path().string()}, "outside plugin root",
+                                            resolved_root, error));
+    CHECK(error == "outside plugin root");
+
+    // Rejection happens before removal, so the outside root is untouched.
+    CHECK(fs::is_directory(outside_root));
 }

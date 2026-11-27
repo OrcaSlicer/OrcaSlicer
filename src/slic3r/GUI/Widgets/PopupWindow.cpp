@@ -33,6 +33,30 @@ bool PopupWindow::Create(wxWindow *parent, int style)
     return true;
 }
 
+void PopupWindow::Popup(wxWindow *focus)
+{
+    // Windows pushes no handlers, and its Popup() on a shown popup moves the focus into it, which a grouped
+    // DropDown relies on when it opens a sub-list that hovering already showed.
+#ifndef __WXMSW__
+    if (IsShown())
+        return;
+    // Popup() sets these as it pushes the handlers, and only PopHandlers() (Dismiss()) clears them.
+    if (m_child != nullptr || m_focus != nullptr)
+        PopHandlers();
+#endif
+    wxPopupTransientWindow::Popup(focus);
+}
+
+bool PopupWindow::CloseOnToggle()
+{
+    if (!IsShown())
+        return false;
+#ifndef __WXMSW__
+    DismissAndNotify();
+#endif
+    return true;
+}
+
 PopupWindow::~PopupWindow()
 {
 #ifdef __WXGTK__

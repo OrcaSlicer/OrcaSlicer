@@ -502,10 +502,12 @@ namespace Slic3r
             obj->printer_agent_id = get_current_printer_agent_id();
             localMachineList.insert(std::make_pair(machine.dev_id, obj));
         }
-        if (machine.printer_type.empty())
-            obj->printer_type = _parse_printer_type("C11");
-        else
+        // Only Bambu printers use the C11 fallback. Other agents may not report a model,
+        // so leave their existing model unchanged when none is provided.
+        if (!machine.printer_type.empty())
             obj->printer_type = _parse_printer_type(machine.printer_type);
+        else if (obj->printer_agent_id == BBL_PRINTER_AGENT_ID)
+            obj->printer_type = _parse_printer_type("C11");
         obj->dev_connection_type = connection_type == "farm" ? "lan":connection_type;
         obj->bind_state          = connection_type == "farm" ? "free":bind_state;
         obj->bind_sec_link = "secure";
@@ -863,6 +865,23 @@ namespace Slic3r
             m_agent->del_subscribe(unsub_list);
         if (!dev_list.empty())
             m_agent->add_subscribe(subscribe_list_cache);
+    }
+
+    void DeviceManager::reselect_cloud_machine()
+    {
+        if (!m_agent)
+            return;
+
+        // The selection is a cloud subscription, and a LAN printer has none. Selecting one makes the
+        // Bambu network plugin unsubscribe the device, which drops the LAN session that connected it:
+        // a connect still in flight fails, and one that already succeeded stays down with no connect
+        // result to say so.
+        const std::string dev_id = m_agent->get_user_selected_machine();
+        const MachineObject* obj = get_my_machine(dev_id);
+        if (obj && obj->is_lan_mode_printer())
+            return;
+
+        m_agent->set_user_selected_machine(dev_id);
     }
 
     std::map<std::string, MachineObject*> DeviceManager::get_my_machine_list(const std::string& agent_id)

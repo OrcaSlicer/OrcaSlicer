@@ -989,6 +989,9 @@ function PrunePermissionDraftBookkeeping(draft) {
       delete draft.additions[category];
 }
 
+// The permissions that are a yes/no switch rather than a list of targets.
+const BOOLEAN_PERMISSIONS = new Set(["threading", "tools"]);
+
 // A permission grant can arrive while the tab is open. Merge the latest stored list into the
 // rows on screen, but keep every unsaved value the user typed and let the draft win a conflict.
 // Edits are keyed by the original source value, so a grant that adds or reorders rows does not
@@ -999,7 +1002,7 @@ function MergePermissionSource(draft, sourcePermissions) {
   const nextPending = {};
 
   for (const [category, entries] of Object.entries(sourcePermissions || {})) {
-    if (category === "threading" && typeof entries === "boolean") {
+    if (BOOLEAN_PERMISSIONS.has(category) && typeof entries === "boolean") {
       nextValues[category] = entries;
       continue;
     }
@@ -1108,6 +1111,7 @@ function RenderPermissions(plugin) {
     ["network_socket", "permissions_network_socket", "Network sockets"],
     ["process", "permissions_process", "Processes"],
     ["threading", "permissions_threading", "Threading"],
+    ["tools", "permissions_tools", "OrcaSlicer tools"],
     ["events", "permissions_events", "Events"]
   ];
   const categoryGuidance = {
@@ -1115,8 +1119,9 @@ function RenderPermissions(plugin) {
     fs_readwrite: [null, ""],
     network_http: [null, "https://example.com"],
     network_socket: [null, "https://example.com"],
-    process: [T("permissions_process_help", "Enter the exact value recorded by the audit. It may be a Python representation of the command."), T("permissions_process_placeholder", "Exact audited value")],
+    process: [T("permissions_process_help", "Executable grants cover all arguments. CommandLine: entries cover only the exact command line."), T("permissions_process_placeholder", "Executable or command name")],
     threading: [T("permissions_threading_help_short", "Allow this plugin to create threads."), ""],
+    tools: [T("permissions_tools_help_short", "Allow this plugin to call OrcaSlicer's tools, as AI agents do: change your project, presets and files, run post-processing scripts, and answer dialogs, permission requests included."), ""],
     events: [T("permissions_events_help", "Enter a category and event separated by a colon, such as Socket:socket.__new__."), T("permissions_events_placeholder", "Socket:socket.__new__")]
   };
   const placeholder = document.createElement("label");
@@ -1196,7 +1201,7 @@ function RenderPermissions(plugin) {
     { keys: ["fs_read", "fs_readwrite"], title: T("permissions_group_filesystem", "File system") },
     { keys: ["network_http", "network_socket"], title: T("permissions_network_access_title", "Network access"),
       guidance: T("permissions_network_access_guidance", "Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.") },
-    { keys: ["process", "threading"], title: T("permissions_group_execution", "Execution") },
+    { keys: ["process", "threading", "tools"], title: T("permissions_group_execution", "Execution") },
     { keys: ["events"], title: T("permissions_group_events", "Audit events") }
   ];
   const groupBodies = new Map();
@@ -1264,7 +1269,7 @@ function RenderPermissions(plugin) {
       description.appendChild(guidance);
     }
     const entries = draft.values[key];
-    const available = key === "threading" ? typeof entries === "boolean" : Array.isArray(entries);
+    const available = BOOLEAN_PERMISSIONS.has(key) ? typeof entries === "boolean" : Array.isArray(entries);
     if (!available) {
       const unavailable = document.createElement("p");
       unavailable.className = "permission-notice";
@@ -1274,16 +1279,16 @@ function RenderPermissions(plugin) {
       continue;
     }
 
-    const categoryEnabled = installed && (key === "threading"
+    const categoryEnabled = installed && (BOOLEAN_PERMISSIONS.has(key)
       ? typeof plugin.permissions?.[key] === "boolean"
       : Array.isArray(plugin.permissions?.[key]));
-    if (key === "threading") {
+    if (BOOLEAN_PERMISSIONS.has(key)) {
       const threadLabel = document.createElement("label");
       threadLabel.className = "permission-thread-toggle";
       const threadCheckbox = document.createElement("input");
       threadCheckbox.type = "checkbox";
       threadCheckbox.setAttribute("role", "switch");
-      threadCheckbox.id = "permission-thread-toggle";
+      threadCheckbox.id = `permission-${key}-toggle`;
       threadCheckbox.checked = entries;
       threadCheckbox.disabled = !categoryEnabled;
       threadCheckbox.setAttribute("aria-labelledby", heading.id);

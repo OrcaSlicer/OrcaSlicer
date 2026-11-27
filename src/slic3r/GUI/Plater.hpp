@@ -2,6 +2,7 @@
 #define slic3r_Plater_hpp_
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/ParameterUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include <cstddef>
 #include <map>
@@ -13,10 +14,15 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include <atomic>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <string>
+#include <utility>
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
@@ -97,6 +103,7 @@ namespace UndoRedo {
 namespace GUI {
 enum class LoadType : unsigned char;
 class SyncAmsInfoDialog;
+struct MixedFilamentResult;
 class MainFrame;
 class ConfigOptionsGroup;
 class ObjectSettings;
@@ -217,8 +224,19 @@ public:
     void on_filaments_delete(size_t filament_id);
 
     void add_filament();
-    void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1);  // 0 base, -1 means default
-    void change_filament(size_t from_id, size_t to_id);  // 0 base
+    // `confirm_tool_shift` answers deleting a physical slot before a later one on a non-Bambu Lab printer with more
+    // than one nozzle and without single_extruder_multi_material, which asks about the later slots' tool numbers: true
+    // deletes, false deletes nothing, none asks. 0 base, -1 means default.
+    void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1,
+                         std::optional<bool> confirm_tool_shift = std::nullopt);
+    // True unless its question about a physical filament that the mixed target uses was answered no. 0 base.
+    bool change_filament(size_t from_id, size_t to_id, std::optional<bool> confirm_tool_shift = std::nullopt);
+    // Whether deleting physical filament `filament_id` (0 base) can shift the tool numbers of the slots after it, which
+    // delete_filament() asks about first.
+    bool delete_shifts_tools(size_t filament_id) const;
+    // Whether merging filament `from_id` into `to_id` (0 base) deletes a physical filament that the mixed filament `to_id`
+    // mixes, which change_filament() asks about first.
+    bool merge_removes_component(size_t from_id, size_t to_id) const;
     void edit_filament();
     // Loads a filament's preset into the filament tab without showing it, so that edits go to it. 0 based.
     bool load_filament_in_tab(size_t filament_id);
@@ -228,10 +246,39 @@ public:
     void on_bed_type_change(BedType bed_type);
     void load_ams_list(MachineObject* obj);
     std::map<int, DynamicPrintConfig> build_filament_ams_list(MachineObject* obj);
-    void sync_ams_list(bool is_from_big_sync_btn = false);
+    // Synchronize Filament List from AMS: the printer's slots read again, the sync dialog where it asks, and the sync
+    // with its choice (Ops::apply_ams_sync()). Returns why it did not sync, after the warning it showed the person, or
+    // none where it synced or the person cancelled.
+    std::optional<Ops::Refusal> sync_ams_list(bool is_from_big_sync_btn = false);
+    // What apply_ams_sync() did.
+    struct AmsSyncApplied
+    {
+        unsigned int             filaments = 0; // the filament list's length afterwards; 0: nothing compatible, nothing synced
+        std::vector<std::string> unknowns;      // the slots mapped to a generic preset, "tray(type) reason", in English
+        wxString                 detail;        // the same, a line each, in the UI's language, as the sync's messages list them
+    };
+    // Syncs the filament list from the slots load_ams_list() read, as the sync dialog's Synchronize now does with its
+    // choice: `direct_sync` overwrites the list, else `sync_maps` maps each project filament (by its 0-based index) to a
+    // slot; `every_slot_changed` counts each slot's filament as changed. `unknowns_found`, when given, is told the slots
+    // mapped to a generic preset before the list changes.
+    AmsSyncApplied apply_ams_sync(bool                                          direct_sync,
+                                  std::map<int, AMSMapInfo>                     sync_maps,
+                                  bool                                          every_slot_changed,
+                                  const std::function<void(const wxString&)>& unknowns_found);
     bool sync_extruder_list();
     bool is_fila_switch_ready();
     void reset_fila_switch();
+    // The nozzle flow types the Flow combo of extruder `extruder` (0 base) lists on its nozzle card, empty while the card
+    // shows none.
+    std::vector<NozzleVolumeType> nozzle_volume_types(int extruder) const;
+    // The nozzle flow types that Flow combo lists with the printer preset whose settings are `printer` selected: what
+    // nozzle_volume_types() gives once it is, read before it is.
+    static std::vector<NozzleVolumeType> nozzle_volume_types(const DynamicPrintConfig& printer, int extruder);
+    // Picks `type`, one nozzle_volume_types() lists, in that Flow combo, as a person does.
+    void pick_nozzle_volume_type(int extruder, NozzleVolumeType type);
+    // Picks the printer variant `variant` (PresetCollection::diameters_of_selected_printer()) as the nozzle diameter
+    // combos do: the printer preset of that variant is selected. False when it was not.
+    bool pick_nozzle_variant(const std::string& variant);
     bool need_auto_sync_extruder_list_after_connect_priner(const MachineObject* obj);
     void update_sync_status(const MachineObject* obj);
     int get_sidebar_pos_right_x();
@@ -294,6 +341,11 @@ public:
 #endif
 
     std::vector<PlaterPresetComboBox*>&   combos_filament();
+    // Assigns the filament preset `preset_name` (internal name) to slot `slot_index` as picking it in the
+    // slot's selector does: the slot's colour, the mapping, the flushing volumes, the project state and,
+    // on a printer with one filament, the filament tab. `switch_tab` false leaves the tab to a caller
+    // that has made it edit the preset already.
+    void                                 select_filament_preset(size_t slot_index, const std::string& preset_name, bool switch_tab = true);
     void                                 clear_combos_filament_badge();
     void                                 udpate_combos_filament_badge();
 
@@ -309,6 +361,11 @@ public:
     // interleaving from its own paint mask to the slicer, where it happens per layer.
     int ensure_mixed_filament(const std::vector<unsigned int> &components, const std::vector<int> &ratios);
     void edit_mixed_filament(size_t idx);
+    // The mixed filament in filament slot `cfg_idx` (0-based) as the Edit Mixed Filament dialog opens with it.
+    MixedFilamentResult mixed_filament_result(size_t cfg_idx) const;
+    // What the Edit Mixed Filament dialog's OK does with `result` for filament slot `cfg_idx` (0-based): the slot keeps its
+    // number and the objects on it, and its colour becomes the components' blend.
+    void apply_mixed_filament_edit(size_t cfg_idx, const MixedFilamentResult& result);
     void delete_mixed_filament_at(size_t idx);
     // Drops every mixed filament at once, after confirming. The texture displacement gizmo can create
     // one slot per colour in its palette, so clearing them one at a time is tedious.
@@ -316,6 +373,9 @@ public:
     void decompose_filament_color(int filament_idx);
     void recalc_filament_scroll_sizes();
     void update_mixed_filament_list();
+    // The mixed filaments the sidebar marks broken, as 0-based filament indices: a component deleted or past the physical
+    // filaments, fewer than two components, or components of different filament types.
+    std::vector<size_t> broken_mixed_filaments() const;
     bool has_broken_mixed_filament() const;
     bool has_broken_mixed_filament(const PartPlate* plate) const;
     void collect_physical_filament_info(std::vector<std::string>& color_strs,
@@ -379,10 +439,15 @@ public:
     // Helper: returns config indices where filament_is_mixed == false
     std::vector<size_t> physical_filament_config_indices() const;
 
-    int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString(), bool reload_presets = true);
+    // Prompts::Skip starts it without the question about the unsaved project and modified presets. `silent` leaves
+    // the shown tab as it is and sends plugins no NewProject event, for a reset that clears the way for another
+    // project rather than starting one.
+    int new_project(Ops::Prompts prompts = Ops::Prompts::Ask, bool silent = false, const wxString& project_name = wxString(),
+                    bool reload_presets = true);
     // BBS: save & backup
     void load_project(wxString const & filename = "", wxString const & originfile = "-");
-    int save_project(bool saveAs = false);
+    // `path` saves there without asking (automation); empty keeps the interactive behaviour.
+    int save_project(bool saveAs = false, const wxString& path = {});
     //BBS download project by project id
     void import_model_id(wxString download_info);
     void download_project(const wxString& project_id);
@@ -396,9 +461,13 @@ public:
     bool open_3mf_file(const boost::filesystem::path &file_path, LoadType resolved_type);
     int  get_3mf_file_count(std::vector<boost::filesystem::path> paths);
     void add_file();
-    // Returns false when no object was added (e.g. the user cancelled the load dialog).
+    // Returns false when no object was added (e.g. the user cancelled the load dialog). Without fname the
+    // person picks the files; fname names one of Orca's own models, which loads as LoadStrategy::BundledModel.
     bool add_model(bool imperial_units = false, std::string fname = "");
-    void import_zip_archive();
+    // Without `archive`, the archive a file dialog asks for, then the files of it the archive's file list picks; with it,
+    // the files `entries` names (as the archive's own paths give them) in place of the file list, which shows where
+    // `entries` is null.
+    void import_zip_archive(const boost::filesystem::path& archive = {}, const std::vector<std::string>* entries = nullptr);
     void import_sl1_archive();
     void extract_config_from_project();
     void load_gcode();
@@ -411,16 +480,21 @@ public:
     // toolpath geometry at load time. Keeps the current layer range and only-gcode mode.
 
     // SoftFever
-    void calib_pa(const Calib_Params& params);
+    // Each test starts a new project; Prompts::Skip skips its prompts (save the project, keep or
+    // discard modified presets), keeping the modified presets, for a caller that has decided both.
+    void calib_pa(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
     //ORCA: Add pattern parameter to calib_flowrate
-    void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords, int filament_id = 0, int extruder_id = 0);
-    void calib_temp(const Calib_Params& params);
-    void calib_max_vol_speed(const Calib_Params& params);
-    void calib_retraction(const Calib_Params& params);
-    void calib_VFA(const Calib_Params& params);
-    void calib_input_shaping_freq(const Calib_Params& params);
-    void calib_input_shaping_damp(const Calib_Params& params);
-    void Calib_Cornering(const Calib_Params& params);
+    void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords, int filament_id = 0, int extruder_id = 0,
+                        Ops::Prompts prompts = Ops::Prompts::Ask);
+    // True from calib_flowrate() until other files are loaded, like the print's calibration mode
+    bool is_flowrate_calib() const;
+    void calib_temp(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void calib_max_vol_speed(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void calib_retraction(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void calib_VFA(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void calib_input_shaping_freq(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void calib_input_shaping_damp(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void Calib_Cornering(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
 
     BuildVolume_Type get_build_volume_type() const;
 
@@ -443,6 +517,9 @@ public:
     // BBS
     bool is_new_project_and_check_state() { return m_new_project_and_check_state; }
     wxString get_project_name();
+    // Names an untitled project after `file` without its extension and shows the name in the title, as File >
+    // Import does after its first model loads; the project keeps no file. A project with a name keeps it.
+    void name_untitled_project(const boost::filesystem::path& file);
     void update_all_plate_thumbnails(bool force_update = false);
     void update_plate_thumbnails(int plate_idx, bool force_update);
     void update_obj_preview_thumbnail(ModelObject *, int obj_idx, int vol_idx, std::vector<Slic3r::ColorRGBA> colors, int camera_view_angle_type);
@@ -456,7 +533,9 @@ public:
     static wxColour get_next_color_for_filament();
     static wxString get_slice_warning_string(GCodeProcessorResult::SliceWarning& warning);
 
-    bool preview_zip_archive(const boost::filesystem::path& archive_path);
+    // Loads files of the archive: those its file list picks, or those `entries` names (as the archive's own paths give
+    // them) in place of it. False when it loaded none.
+    bool preview_zip_archive(const boost::filesystem::path& archive_path, const std::vector<std::string>* entries = nullptr);
 
     // BBS: restore
     std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false, bool* published_out = nullptr,
@@ -527,14 +606,27 @@ public:
     bool is_sidebar_collapsed() const;
     void collapse_sidebar(bool collapse);
     Sidebar::DockingState get_sidebar_docking_state() const;
+    // The sidebar's width in pixels: the docked pane's while it shows, else the width it docks at when it shows
+    // again. A drag of its edge sets it, and so does set_sidebar_width(), which a floating sidebar does not take: its
+    // window's size is its own.
+    bool is_sidebar_floating() const;
+    int  sidebar_width() const;
+    void set_sidebar_width(int width);
+    // The sidebar's width in the default window layout, which reset_window_layout() restores.
+    int  default_sidebar_width() const;
 
     void reset_window_layout();
 
     // Dock panes sit alongside the sidebar; `window` must be a child of the Plater. `dock` is
     // "left", "right", "bottom" or "float", and `size` is in DIPs. A pane closed from its own close
-    // button is destroyed after on_close runs; remove_dock_pane() destroys it without calling on_close.
+    // button is destroyed after on_close runs, or, with `hide_on_close`, hidden as show_dock_pane(window,
+    // false) hides it, keeping the window; remove_dock_pane() destroys it without calling on_close. A pane
+    // shows on Prepare and Preview, docked or floating; with `floats_on_every_tab`, floating it shows on every tab.
     void add_dock_pane(wxWindow* window, const std::string& name, const wxString& caption, const std::string& dock,
-                       const wxSize& size, std::function<void()> on_close);
+                       const wxSize& size, std::function<void()> on_close, bool hide_on_close = false,
+                       bool floats_on_every_tab = false);
+    // Whether the dock pane `window` floats in a window of its own.
+    bool is_dock_pane_floating(wxWindow* window) const;
     void remove_dock_pane(wxWindow* window);
     void show_dock_pane(wxWindow* window, bool show);
     // Removes every dock pane without calling on_close, for MainFrame::shutdown() (app exit and a
@@ -566,7 +658,10 @@ public:
     void remove_selected();
     void increase_instances(size_t num = 1);
     void decrease_instances(size_t num = 1);
-    void set_number_of_copies(/*size_t num*/);
+    // Asks for the selected object's number of instances.
+    void set_number_of_copies();
+    // Gives the selected object `num` instances in one undo step; 0 deletes it, as the dialog's 0 does.
+    void set_number_of_copies(int num);
     void fill_bed_with_copies();
     void fill_bed_with_instances();
     bool is_selection_empty() const;
@@ -582,9 +677,10 @@ public:
 
     void send_to_printer(bool isall = false);
     void export_gcode(bool prefer_removable);
-    void export_gcode_3mf(bool export_all = false);
+    // `output_path` writes there without the file dialog; returns whether the file was written.
+    bool export_gcode_3mf(bool export_all = false, const boost::filesystem::path& output_path = {});
     void send_gcode_finish(wxString name);
-    void export_core_3mf();
+    void export_core_3mf(const wxString& output_path = {});
     // Write the project to output_path as a copy: the project's file name, dirty state and model stay
     // as they are, and the signed-in account is not added as the designer. False when the write fails.
     bool export_3mf_copy(const boost::filesystem::path& output_path);
@@ -596,7 +692,11 @@ public:
     bool get_pending_published(std::vector<std::string>& out_keys, std::vector<Slic3r::PublishedMaterialEntry>& out_material, bool& out_legacy_process) const;
     void set_pending_published(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
-    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);
+    // `output_path` (a directory for multi_stls) skips the file dialog. Without selection_only it writes `objects` (their
+    // indices), or every object where none is named. Returns the files it wrote.
+    std::vector<std::string> export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false,
+                                        FileType file_type = FT_STL, const wxString& output_path = {},
+                                        const std::vector<int>& objects = {});
     //BBS: remove amf
     //void export_amf();
     //BBS add extra param for exporting 3mf silence
@@ -606,11 +706,29 @@ public:
     //BBS
 
     void reload_from_disk();
+    // What reload_parts_from_disk() did: the parts [object, part] whose mesh it replaced, those whose file holds no part to
+    // take for them, and a file that could not be read, after which it loaded nothing more.
+    struct ReloadResult
+    {
+        std::vector<std::pair<int, int>> reloaded;
+        std::vector<std::pair<int, int>> unmatched;
+        std::string                      unreadable;
+    };
+    // Reloads `parts`, whose files are there, as Reload from disk does with them selected, but asking for nothing: no file
+    // dialog for a file that is gone and no message box for a part its file has none for. One undo step; the 3D view is
+    // brought up to date with what it reloaded.
+    ReloadResult reload_parts_from_disk(const std::vector<std::pair<int, int>>& parts);
     void replace_with_stl();
+    // How a part's replacement with a file ended.
+    enum class ReplaceResult { Replaced, Unreadable, Cancelled, SeveralParts };
+    // Replaces part `volume_idx` of object `object_idx` with the mesh of the file at `path`, as Replace 3D file does once its
+    // file is picked, but with no message box for a file of several parts. One undo step; then the 3D view.
+    ReplaceResult replace_part_with_file(int object_idx, int volume_idx, const std::string& path);
     void replace_all_with_stl();
     void reload_all_from_disk();
     bool has_toolpaths_to_export() const;
-    void export_toolpaths_to_obj() const;
+    // `output_path` skips the file dialog.
+    void export_toolpaths_to_obj(const wxString& output_path = {}) const;
     void reslice();
     void reslice_SLA_supports(const ModelObject &object, bool postpone_error_messages = false);
     void reslice_SLA_hollowing(const ModelObject &object, bool postpone_error_messages = false);
@@ -639,6 +757,11 @@ public:
     void print_job_finished(wxCommandEvent &evt);
     void send_job_finished(wxCommandEvent& evt);
     void open_platesettings_dialog(wxCommandEvent& evt);
+    // What the Plate Settings dialog's OK sets on a plate: the bed type, the first and the other layers'
+    // filament orders (empty for Auto), the print sequence and spiral vase (0 as the global setting,
+    // 1 on, which asks for confirmation, 2 off), then the dirty state and the update that follow.
+    void apply_plate_settings(int plate_index, BedType bed_type, const std::vector<int>& first_layer_seq,
+                              const std::vector<LayerPrintSequence>& other_layers_seq, PrintSequence print_seq, int spiral_choice);
     void open_filament_map_setting_dialog(wxCommandEvent &evt);
     void on_change_color_mode(SimpleEvent& evt);
 	void eject_drive();
@@ -647,6 +770,9 @@ public:
     //void take_snapshot(const wxString &snapshot_name);
     void take_snapshot(const std::string &snapshot_name, UndoRedo::SnapshotType snapshot_type);
     //void take_snapshot(const wxString &snapshot_name, UndoRedo::SnapshotType snapshot_type);
+    // An undo point for selecting another plate. Selecting one changes nothing a slice or an export
+    // depends on, and Slice All selects each plate in turn, so project_revision() stays as it is.
+    void take_plate_selection_snapshot();
 
     void undo();
     void redo();
@@ -737,7 +863,11 @@ public:
     void show_uv_editor(bool show);
 
     void arrange();
-    void orient();
+    // Arranges every unlocked plate as the toolbar's Arrange does, or the current plate alone as its
+    // Arrange icon does.
+    void arrange(bool current_plate_only);
+    // Auto-Orient in the background: `objects` when given, an empty list standing for every object, else the selection.
+    void orient(std::optional<std::vector<int>> objects = std::nullopt);
     void find_new_position(const ModelInstancePtrs  &instances);
     //BBS: add job state related functions
     void set_prepare_state(int state);
@@ -782,7 +912,14 @@ public:
     void search(bool plater_is_active, Preset::Type  type, wxWindow *tag, TextInput *etag, wxWindow *stag);
     void mirror(Axis axis);
     void split_object(bool auto_drop = true);
-    void split_object(int obj_idx, bool auto_drop = true);
+    // What split_object(obj_idx, ...) did: split the object, found it of one piece, or met the Auto-Drop question it was
+    // not to ask.
+    enum class SplitResult { Split, OnePiece, Unanswered };
+    // Splits object `obj_idx` into objects, as Split > To Objects does on the selected object, and selects them. Where
+    // some of them would float above the bed of an object that drops, `keep_z` answers the question the split asks
+    // (true keeps their height, as its Yes); with none it is asked with Prompts::Ask, and otherwise nothing is split. An
+    // object of one piece is told in a message box with Prompts::Ask.
+    SplitResult split_object(int obj_idx, Ops::Prompts prompts, std::optional<bool> keep_z = std::nullopt);
     void split_volume();
     void optimize_rotation();
     // find all empty cells on the plate and won't overlap with exclusion areas
@@ -871,6 +1008,8 @@ public:
     bool plugins_block_slicing() const;
     //BBS: select the plate by index
     int select_plate(int plate_index, bool need_slice = false);
+    // Locks or unlocks a plate as its lock icon does, as one undo step. Returns PartPlateList::lock_plate()'s result.
+    int set_plate_locked(int plate_index, bool locked);
     //BBS: update progress result
     void apply_background_progress();
     //BBS: select the plate by hover_id
@@ -887,6 +1026,68 @@ public:
     void set_bed_position(Vec2d& pos);
     //BBS: is the background process slicing currently
     bool is_background_process_slicing() const;
+    // Slicing in any form: the background process running, Slice All in progress, or an update or
+    // an automatic reslice after a change scheduled to start one.
+    bool is_slicing_any() const;
+
+    // A slice request from a user-facing entry point (toolbar, menu, shortcut, Speed Dial, MCP):
+    // the same path as the toolbar's Slice plate / Slice all.
+    void request_slice(bool all_plates);
+    // What the slicing progress notification's cancel button does.
+    void cancel_slicing();
+    // Why export_gcode_to() started no export: None when it did.
+    enum class ExportRefusal { None, NoObjects, AlreadyExporting, Slicing, SliceHasErrors, NotSliced, NotStarted };
+    // Starts a G-code export of the current plate to `output_path` without a dialog. Refused while the
+    // background process is running or another export is scheduled; when it cannot start, nothing is
+    // left scheduled and no dialog opens.
+    ExportRefusal export_gcode_to(const boost::filesystem::path& output_path);
+
+    // Bookkeeping that lets an automated caller tell its own slice or export from anyone else's.
+    // The project revision moves on every edit (snapshot, undo/redo, preset or setting change,
+    // reset, load); slice requests, background runs and exports are numbered.
+    // Why `plate` can't be sliced as configured (its validation error), or "" when nothing holds it
+    // back.
+    std::string plate_validation_error(int plate) const;
+
+    // A background run, or a slice request the validation refused before running (recorded
+    // finished, with the validation error).
+    struct SliceRun
+    {
+        uint64_t    seq       = 0;
+        bool        finished  = false;
+        bool        cancelled = false;
+        bool        ok        = false; // finished with a result
+        std::string error;
+        uint64_t    revision_at_finish    = 0;
+        uint64_t    request_seq_at_finish = 0;
+        uint64_t    request_seq_at_start  = 0;
+        // Started by a slice request, or by Slice All moving to its next plate. A reslice from a
+        // Preview switch or automatic slicing, or an export, also runs under the latest request
+        // number but is not that request's.
+        bool        for_request           = false;
+        int         plate                 = -1;
+    };
+    struct ExportRun
+    {
+        uint64_t    seq = 0;
+        std::string path;
+        bool        finished  = false;
+        bool        ok        = false;
+        bool        cancelled = false;
+        std::string error;
+        uint64_t    revision_at_finish = 0;
+    };
+    uint64_t                 project_revision() const;
+    uint64_t                 slice_request_seq() const;
+    // Whether a later request came while request `request_seq` was still slicing.
+    bool                     slice_request_interrupted(uint64_t request_seq) const;
+    uint64_t                 slice_run_seq() const;
+    std::optional<SliceRun>  slice_run(uint64_t seq) const;
+    uint64_t                 export_seq() const;
+    std::optional<ExportRun> export_run(uint64_t seq) const;
+    // Counts cancel_slicing() calls, so a caller that has yet to request its slice can tell that a
+    // cancel came first.
+    uint64_t                 slice_cancel_seq() const;
     //BBS: update slicing context
     void update_slicing_context_to_current_partplate();
     //BBS: show object info
@@ -1146,6 +1347,7 @@ private:
 
     void on_filament_map_mode_change();
     friend class SuppressBackgroundProcessingUpdate;
+    friend class Sidebar; // select_filament_preset() runs the plater's part of a selector pick
     friend class PlaterDropTarget;
 };
 

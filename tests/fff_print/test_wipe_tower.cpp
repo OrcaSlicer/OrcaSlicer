@@ -432,6 +432,46 @@ static DynamicPrintConfig tower_estimate_config(const char *wall_type, unsigned 
         { "raft_layers",                    "0"       } });
 }
 
+// The filament a Type 1 tower extrudes for two 20 mm cubes on filaments 1 and 2, so every layer changes
+// filament, given the process prime volume and the prime volume of each filament.
+static double type1_tower_filament(const char *prime_volume, const char *filament_prime_volume)
+{
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    config.set_deserialize_strict({ { "wipe_tower_type",       "type1" },
+                                    { "prime_volume",          prime_volume },
+                                    { "filament_prime_volume", filament_prime_volume },
+                                    { "wipe_tower_x",          "120" },
+                                    { "wipe_tower_y",          "120" } });
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides = { {}, { { "extruder", "2" } } };
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    // The filament extruded under the prime tower's role tag.
+    double      extruded = 0.;
+    bool        in_tower = false;
+    GCodeReader parser;
+    parser.apply_config(print.config());
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view raw = line.raw();
+        if (raw.rfind(";TYPE:", 0) == 0 || raw.rfind("; FEATURE: ", 0) == 0)
+            in_tower = raw.find("Prime tower") != std::string_view::npos;
+        else if (in_tower && line.extruding(self))
+            extruded += line.dist_E(self);
+    });
+    return extruded;
+}
+
+TEST_CASE("The Type 1 tower purges the prime volume of each filament, not the process one", "[WipeTower]")
+{
+    const double filament_45 = type1_tower_filament("45", "45,45");
+    REQUIRE(filament_45 > 0.);
+    CHECK_THAT(type1_tower_filament("5", "45,45"), Catch::Matchers::WithinRel(filament_45, 1e-6));
+    CHECK_THAT(type1_tower_filament("60", "45,45"), Catch::Matchers::WithinRel(filament_45, 1e-6));
+    CHECK(type1_tower_filament("45", "15,15") < filament_45);
+}
+
 TEST_CASE("The tower is sized for the thinnest layer any object on the plate is sliced at", "[WipeTower]")
 {
     // The tower has to survive its thinnest layer, so an override finer than the preset drives
@@ -1338,4 +1378,98 @@ TEST_CASE("Smooth timelapse prints each tower layer's wall once when a layer joi
     Print print;
     slice_precise_z_pair(config, "type1", 10.004, print);
     CHECK(count_joined_layers(print) > 0);
+}
+
+TEST_CASE("The travel to the Type 1 tower keeps the axis the filament change G-code does not move", "[WipeTower][Regression]")
+{
+    // The change G-code moves Y only, as some printers' does, so afterwards the head is still at the X
+    // it had before. Both cubes sit behind the tower, within its width, so the head is always above the
+    // tower then, and the travel to the wipe start on the tower's left or right side has to go round a
+    // corner of the box kept clear around the tower.
+    const std::string  change_gcode = "G1 Y190 F18000";
+    const double       change_y     = 190.;
+    DynamicPrintConfig config       = multifilament_config(2, {
+        { "enable_prime_tower",        true    },
+        { "wipe_tower_type",           "type1" },
+        { "wipe_tower_wall_type",      "rectangle" },
+        { "prime_tower_width",         40      },
+        { "prime_tower_brim_width",    3       },
+        { "prime_volume",              45      },
+        { "prime_tower_skip_points",   true    },
+        { "wipe_tower_x",              80      },
+        { "wipe_tower_y",              60      },
+        { "layer_height",              0.2     },
+        { "change_filament_gcode",     change_gcode + "\n" },
+        { "enable_arc_fitting",        false   },
+        { "timelapse_type",            "0"     },
+        { "enable_wrapping_detection", false   },
+        { "raft_layers",               "0"     } });
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> filaments = { { { "extruder", "1" } }, { { "extruder", "2" } } };
+
+    TriangleMesh near_cube = make_cube(10., 10., 1.);
+    near_cube.translate(87.f, 105.f, 0.f);
+    TriangleMesh far_cube = make_cube(10., 10., 1.);
+    far_cube.translate(87.f, 125.f, 0.f);
+
+    Print print;
+    Model model;
+    init_print({ std::move(near_cube), std::move(far_cube) }, print, model, config, &filaments, false);
+    print.apply(model, config);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    // For each filament change on the tower: where the head is after the change G-code, and the
+    // travel moves from there to the tower's first extrusion.
+    struct Change
+    {
+        Vec2d              head;
+        std::vector<Vec2d> route;
+    };
+    std::vector<Change> changes;
+    Vec2d               position = Vec2d::Zero();
+    bool                in_route = false;
+    GCodeReader         parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        const std::string_view raw = line.raw();
+        if (raw == change_gcode) {
+            position.y() = change_y;
+            changes.push_back({ position, {} });
+            in_route = true;
+        } else if (raw.rfind("; CP_TOOLCHANGE", 0) == 0) {
+            in_route = false;
+        } else if (raw.rfind(";LAYER_CHANGE", 0) == 0 || raw.rfind(";TYPE:", 0) == 0) {
+            // Not a change on the tower: the first filament is loaded before anything is printed.
+            if (in_route)
+                changes.pop_back();
+            in_route = false;
+        } else if ((line.cmd_is("G0") || line.cmd_is("G1")) && (line.has_x() || line.has_y())) {
+            if (line.has_x())
+                position.x() = line.x();
+            if (line.has_y())
+                position.y() = line.y();
+            if (in_route)
+                changes.back().route.push_back(position);
+        }
+    });
+    REQUIRE(changes.size() > 1);
+
+    for (const Change &change : changes) {
+        CAPTURE(change.head.x(), change.route.size());
+        REQUIRE(change.route.size() >= 2);
+        // The route ends with a move along X into the tower. That move starts on the side of the box.
+        size_t on_side = change.route.size() - 1;
+        while (on_side > 0 && std::abs(change.route[on_side - 1].y() - change.route.back().y()) < EPSILON)
+            --on_side;
+        const Vec2d &first   = change.route.front();
+        const Vec2d &on_box  = change.route[on_side];
+        CAPTURE(first.x(), first.y(), on_box.x(), on_box.y());
+        // From above the tower the side of the box is out of sight, so the route goes round a corner.
+        REQUIRE(on_side >= 2);
+        // Its first move heads straight for that point on the side, and stops where it meets the box.
+        // The route starts from the last position tracked for the head, which can be a few millimetres
+        // from the head when the tower printed its wall first. That moves the first point by under 1 mm;
+        // a start taken from anywhere else moves it by far more.
+        const Vec2d  to_side = on_box - change.head;
+        const double off_line = std::abs(cross2(to_side, Vec2d(first - change.head))) / to_side.norm();
+        CHECK(off_line < 1.);
+    }
 }

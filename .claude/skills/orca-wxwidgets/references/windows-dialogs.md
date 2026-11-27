@@ -33,7 +33,7 @@ Contents: [Rules](#rules) · [1 Creating and parenting](#1-creating-and-parentin
 8. A `wxEVT_DESTROY` handler on a parent fires for every descendant: compare `GetEventObject()` and `Skip()`. For a top-level window it runs after the derived destructor — do derived cleanup in the destructor. §3
 9. Accessors reachable from teardown-time events return `nullptr` instead of dereferencing a pimpl or child; the real fix is still to stop the events first. §3
 10. Bring a top-level window forward with `if (!w->IsShown()) w->Show(); w->Raise();` — `Raise()` never shows, and a redundant `Show()` is not inert on GTK3. §4
-11. On macOS, after a native modal (file/dir dialog, native message box) or a generic progress dialog opened from a secondary top-level window, re-raise that window with a deferred, liveness-guarded `Raise()`. §4
+11. On macOS, after a native modal (file/dir dialog, native message box) or a generic progress dialog opened from a secondary top-level window, re-raise that window with a deferred, liveness-guarded `Raise()`. A dialog that raises the main window itself and must stay in sight meanwhile is a Cocoa child window of it for that span (`keep_window_above`). §4
 12. Remove style bits with `& ~flag`, never `!flag`. §5
 13. Always pass the style to a `DPIDialog`: the `DPIAware` default is `wxDEFAULT_FRAME_STYLE` (resizable, min/max boxes). §5, §7
 14. A `wxFRAME_FLOAT_ON_PARENT` frame takes a non-null top-level parent (parent to `mainframe`, not to a panel). §5
@@ -463,12 +463,14 @@ ignored (observed; recorded in `GUI_App::window_pos_restore`, not documented by 
 
 **OrcaSlicer geometry persistence.** Orca uses `AppConfig`, not `wxPersistentTLW`:
 `GUI_App::window_pos_save` / `window_pos_restore` / `window_pos_sanitize` / `window_pos_center` (key
-`window_<name>`, a `WindowMetrics` = screen rect + maximized; restore skips `SetPosition` on Wayland), and
-`on_window_geometry(tlw, callback)` (`GUI_Utils.cpp`) to run the callback when geometry is real — MSW
-immediately (no `wxEVT_SHOW` for windows created maximized), Linux on `wxEVT_SHOW` + `CallAfter`, macOS on
-`wxEVT_SHOW`. `GUI_App::persist_window_geometry(window, default_maximized)` saves on
-`wxEVT_CLOSE_WINDOW` (then `Skip()`) but always uses the key `window_mainframe`, whatever the window's
-name — for any other window call `window_pos_save/restore` with its own name.
+`window_<name>`, a `WindowMetrics` = screen rect + maximized; restore skips `SetPosition` on Wayland and,
+on X11, skips `SetSize` when the saved state is maximized; `window_pos_sanitize` returns early for a
+maximized or fullscreen window on X11), and `on_window_geometry(tlw, callback)` (`GUI_Utils.cpp`) to run
+the callback when geometry is real — MSW immediately (no `wxEVT_SHOW` for windows created maximized),
+Linux on `wxEVT_SHOW` + `CallAfter`, macOS on `wxEVT_SHOW`.
+`GUI_App::persist_window_geometry(window, default_maximized)` saves on
+`wxEVT_CLOSE_WINDOW` (then `Skip()`) and restores under the window's own name, so the main frame
+(`"mainframe"`) and the non-modal settings dialog (`"settings_dialog"`) keep separate entries.
 
 **Pitfalls.**
 - **Rule:** When restoring a top-level window (the main frame after hiding a popup or overlay frame, or a
@@ -496,16 +498,30 @@ name — for any other window call `window_pos_save/restore` with its own name.
   through `EndModal`. The `Raise()` is deferred to run after the modal has fully torn down, and guarded
   because the dialog may be destroyed while queued.
   ```cpp
-  void PluginsDialog::restore_z_order()
+  void WebViewHostDialog::restore_z_order()
   {
-      wxGetApp().CallAfter([this, alive = m_alive]() {
-          if (alive->load(std::memory_order_acquire) && IsShown())
+      wxGetApp().CallAfter([this, alive = m_host_alive] {
+          if (alive->load() && IsShown())
               Raise();
       });
   }
   ```
-  Cite: 0a0d59b76b (`PluginsDialog::restore_z_order`; also passed as the `restore` callback of
-  `detail::run_off_thread_with_progress`).
+  A `WebViewHostDialog` subclass calls the inherited `restore_z_order()` after each such modal, on every
+  outcome including Cancel.
+  Cite: 0a0d59b76b (`PluginsDialog`: also passed as the `restore` callback of
+  `detail::run_off_thread_with_progress`); `ActionReplayDialog::open_file`.
+- **Rule:** On macOS, when a secondary dialog raises the main window on purpose (to give it the keyboard
+  focus for work that acts on it) and must stay in sight meanwhile, attach it as a Cocoa child window of the
+  main window for that span — `keep_window_above(GetHandle(), mainframe->GetHandle(), true)`
+  (`slic3r/Utils/MacDarkMode.hpp`) — and detach it with `false` when the work ends.
+  **Why:** the raised main window becomes key and front and buries the dialog, which wx never attaches to
+  its parent on macOS (§5), while an MSW owner or a GTK `transient_for` parent keeps it above by itself. A
+  child window stays directly above its parent without becoming key, so the main window keeps the focus;
+  it also moves with its parent, so attach it only for the span. wx detaches it on `Hide()` and in the
+  window's destructor (`src/osx/cocoa/nonownedwnd.mm:767-768, 990-991`), so closing the dialog midway
+  needs no extra step.
+  Cite: `ActionReplayDialog::run` (a run's progress and Stop button; the dialog takes the focus back with
+  `restore_z_order()` when the run finishes).
 - **Rule:** Never position windows by absolute coordinates on Wayland, and never expect `SetIcon` to show on
   macOS or Wayland.
 

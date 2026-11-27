@@ -49,3 +49,18 @@ test("update control stays hidden when no update is available, even while loadin
 
   assert.equal(button.hidden, true);
 });
+
+test("a permission source's boolean switches reach the draft with their values", () => {
+  const dialog = loadPluginDialog();
+  const draft = { values: {}, edits: {}, additions: {} };
+
+  dialog.MergePermissionSource(draft, { threading: true, tools: false, full_access: false, fs_read: ["/a"] });
+
+  assert.equal(draft.values.threading, true);
+  assert.equal(draft.values.tools, false, "the OrcaSlicer tools switch shows its stored value");
+  assert.deepEqual(Array.from(draft.values.fs_read), ["/a"]);
+  assert.equal(draft.values.full_access, undefined, "full access is its own control, not a permission row");
+
+  dialog.MergePermissionSource(draft, { threading: true, tools: true, fs_read: [] });
+  assert.equal(draft.values.tools, true);
+});

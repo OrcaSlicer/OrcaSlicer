@@ -69,6 +69,10 @@ public:
     void begin_rename(int row);
     // Re-rasterise the icons and re-measure the rows after a DPI or theme change.
     void Rescale();
+    // For automation, which reads the rows and clicks an action icon without a pointer: the rows, and
+    // where a row's action icon is drawn (empty while the row is scrolled out of view).
+    const std::vector<Row>& rows() const { return m_rows; }
+    wxRect                  action_rect(int row, size_t action) const;
 
     std::function<void()>                              on_select;    // the selection changed
     std::function<void()>                              on_activate;  // the selected row was double-clicked
@@ -119,6 +123,7 @@ private:
     Hit                                   m_pressed;           // action cell under the last left press
     wxTextCtrl*                           m_editor{nullptr};   // created on the first rename, then reused
     int                                   m_edit_row{wxNOT_FOUND};
+    wxSize                                m_edit_client_size;  // the client size the editor was placed in
 };
 
 }} // namespace Slic3r::GUI
