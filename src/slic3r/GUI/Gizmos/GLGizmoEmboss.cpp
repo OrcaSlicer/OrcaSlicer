@@ -51,6 +51,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include "libslic3r/Color.hpp"
 #include <algorithm>
+#include <cstdio>
 #include <wx/gdicmn.h>
 #include "libslic3r/Utils.hpp"
 #include <wx/settings.h>
@@ -337,7 +338,8 @@ struct GuiCfg
         std::string alignment;
         std::string char_gap;
         std::string line_gap;
-        std::string arc_radius;
+        std::string curve;
+        std::string radius;
         std::string boldness;
         std::string skew_ration;
         std::string from_surface;
@@ -1357,6 +1359,7 @@ void GLGizmoEmboss::set_volume_by_selection()
     m_text   = tc.text;
     m_volume = volume;
     m_volume_id = volume->id();
+    m_arc_radius_typed.reset();
         
     if (tc.style.prop.per_glyph)
         reinit_text_lines();
@@ -1493,6 +1496,7 @@ bool GLGizmoEmboss::process(bool make_snapshot)
 
 void GLGizmoEmboss::close()
 {
+    m_arc_radius_typed.reset();
     // remove volume when text is empty
     if (m_volume != nullptr && 
         m_volume->text_configuration.has_value() &&
@@ -2719,6 +2723,20 @@ bool GLGizmoEmboss::rev_input_mm(const std::string          &name,
     return false;
 }
 
+const ::Slic3r::Emboss::ArcRadiusLimits &GLGizmoEmboss::arc_radius_limits(const std::shared_ptr<const ::Slic3r::Emboss::FontFile> &font, const FontProp &prop)
+{
+    // the limits do not depend on the radius itself, so bending never lays the text out again
+    FontProp straight = prop;
+    straight.arc_radius.reset();
+    straight.per_glyph = false;
+    const unsigned collection = prop.collection_number.value_or(0); // not compared by FontProp's ==
+    if (!m_arc_fit.has_value() || m_arc_fit->text != m_text || m_arc_fit->font != font ||
+        m_arc_fit->collection != collection || !(m_arc_fit->prop == straight))
+        m_arc_fit = ArcFit{m_text, font, collection, straight,
+                           ::Slic3r::Emboss::arc_radius_limits(font, boost::nowide::widen(m_text), straight)};
+    return m_arc_fit->limits;
+}
+
 bool GLGizmoEmboss::rev_checkbox(const std::string &name,
                                  bool              &value,
                                  const bool        *default_value,
@@ -3021,30 +3039,110 @@ void GLGizmoEmboss::draw_advanced()
         last_change = true;
     m_imgui->disabled_end(); // !is_multiline
 
-    // input radius of the circle the text is laid along, zero means a straight line
+    // the text bent along a circle: Curve in percent of the tightest circle the text fits on, Radius exactly
     bool use_inch = wxGetApp().app_config->get_bool("use_inches");
+    const ::Slic3r::Emboss::ArcRadiusLimits &arc_limits = arc_radius_limits(ff.font_file, current_prop);
+    const double line_height_mm = ::Slic3r::Emboss::get_line_height(*ff.font_file, current_prop) *
+                                  ::Slic3r::Emboss::get_text_shape_scale(current_prop, *ff.font_file);
+    // What the controls produce: at least a line height, so a side with nothing in the way still bends, and 1 % above
+    // the limit, which the job may see a little larger: its glyph cache is not cleared when only the height changes.
+    auto work_min = [&](bool outward) {
+        return static_cast<float>(std::max(outward ? arc_limits.outward : arc_limits.inward, line_height_mm) * 1.01);
+    };
+    auto to_percent = [&](float radius) {
+        if (is_approx(radius, 0.f))
+            return 0.f;
+        return std::clamp(100.f * work_min(radius > 0.f) / std::abs(radius), 0.f, 100.f) * (radius > 0.f ? 1.f : -1.f);
+    };
+    auto from_percent = [&](float percent) {
+        if (std::abs(percent) < .5f)
+            return 0.f;
+        return (percent > 0.f ? 1.f : -1.f) * work_min(percent > 0.f) * 100.f / std::abs(percent);
+    };
+    const std::string per_glyph_tooltip = _u8L("Curve does not apply to letters placed one by one (Per glyph).");
+    auto tooltip_when_disabled = [&]() {
+        if (font_prop.per_glyph && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+            m_imgui->tooltip(per_glyph_tooltip, m_gui_cfg->max_tooltip_width);
+    };
     // letters placed one by one on the model do not follow the circle
     m_imgui->disabled_begin(font_prop.per_glyph);
     const std::optional<float> previous_arc_radius = current_prop.arc_radius;
-    float arc_radius = current_prop.arc_radius.value_or(0.f);
+    float arc_radius = current_prop.arc_radius.value_or(0.f); // [in mm]
     const float stored_arc_radius = stored_style ? stored_style->prop.arc_radius.value_or(0.f) : 0.f;
-    auto draw_arc_radius = [&]() {
-        // shown in the units and at the scale the text's height is shown in
-        const float shown_per_mm = (use_inch ? static_cast<float>(GizmoObjectManipulation::mm_to_in) : 1.f) * m_scale_height.value_or(1.f);
-        float shown = arc_radius * shown_per_mm;
+    auto draw_curve = [&]() {
         ImGui::SameLine(m_gui_cfg->advanced_input_offset);
         ImGui::SetNextItemWidth(m_gui_cfg->input_width);
-        bool changed = ImGui::InputFloat(("##" + tr.arc_radius).c_str(), &shown, use_inch ? 0.1f : 1.f, use_inch ? 1.f : 10.f,
-                                         use_inch ? "%.2f in" : "%.1f mm");
-        m_imgui->request_frames_while_held(); // auto-repeat of the +/- buttons
-        if (ImGui::IsItemHovered())
-            m_imgui->tooltip(_u8L("Lay the text along a circle of this radius. A negative value bends it the other way, zero keeps it straight. The text also stays straight while it does not fit on the circle."),
-                             m_gui_cfg->max_tooltip_width);
-        if (changed)
-            arc_radius = shown / shown_per_mm;
-        return changed;
+        const float shown   = to_percent(arc_radius);
+        float       percent = shown;
+        ImGui::BeginGroup();
+        bool changed = m_imgui->slider_float("##" + tr.curve, &percent, -100.f, 100.f, "%.0f %%", 1.f, true,
+                                             _L("Bend the text along a circle. 0 keeps it straight, 100 closes it into a ring, negative values bend it the other way."));
+        ImGui::EndGroup();
+        tooltip_when_disabled();
+        // a percentage worked out from a radius is rarely whole, and the slider reports it changed whenever its rounding differs
+        if (!changed || std::round(percent) == std::round(shown))
+            return false;
+        arc_radius = from_percent(percent);
+        return true;
     };
-    if (revertible(tr.arc_radius, arc_radius, stored_style ? &stored_arc_radius : nullptr, _u8L("Revert arc radius."), 0.f, draw_arc_radius)) {
+    bool arc_radius_edited = revertible(tr.curve, arc_radius, stored_style ? &stored_arc_radius : nullptr, _u8L("Revert the curve."), 0.f, draw_curve);
+    if (arc_radius_edited)
+        exist_change = true; // one job per changed frame and one undo step when the drag ends, as for the sliders below
+    if (m_imgui->get_last_slider_status().deactivated_after_edit)
+        last_change = true;
+
+    // the radius, shown in the units and at the scale the text's height is shown in
+    const float shown_per_mm = (use_inch ? static_cast<float>(GizmoObjectManipulation::mm_to_in) : 1.f) * m_scale_height.value_or(1.f);
+    ImGui::AlignTextToFramePadding();
+    ImGuiWrapper::text(tr.radius);
+    ImGui::SameLine(m_gui_cfg->advanced_input_offset);
+    const float button_size = ImGui::GetFrameHeight();
+    const float spacing     = ImGui::GetStyle().ItemInnerSpacing.x;
+    ImGui::SetNextItemWidth(m_gui_cfg->input_width - 2.f * (button_size + spacing));
+    float shown_radius = arc_radius * shown_per_mm;
+    if (ImGui::InputFloat(("##" + tr.radius).c_str(), &shown_radius, 0.f, 0.f, use_inch ? "%.2f in" : "%.1f mm"))
+        m_arc_radius_typed = shown_radius;
+    if (ImGui::IsItemHovered() && !font_prop.per_glyph)
+        m_imgui->tooltip(_u8L("The radius of that circle. A negative radius bends the text the other way."), m_gui_cfg->max_tooltip_width);
+    tooltip_when_disabled();
+    std::optional<float> radius_edit; // [in mm]
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        // Escape gives the field back its value but still ends it as an edit
+        if (m_arc_radius_typed.has_value() && !ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
+            float typed = *m_arc_radius_typed / shown_per_mm;
+            // nearer zero than the tightest circle the text fits on becomes that circle
+            if (!std::isnan(typed) && !is_approx(typed, 0.f) && std::abs(typed) < work_min(typed > 0.f))
+                typed = (typed > 0.f ? 1.f : -1.f) * work_min(typed > 0.f);
+            radius_edit = typed;
+        }
+        m_arc_radius_typed.reset();
+    }
+    // a step that would land closer to zero than the tightest circle crosses through straight instead
+    auto step_radius = [&](float step) {
+        const float next = arc_radius + step / shown_per_mm;
+        if (is_approx(arc_radius, 0.f))
+            return (step > 0.f ? 1.f : -1.f) * work_min(step > 0.f);
+        if ((next > 0.f) != (arc_radius > 0.f) || std::abs(next) < work_min(arc_radius > 0.f))
+            return 0.f;
+        return next;
+    };
+    const float step = (use_inch ? 0.1f : 1.f) * (ImGui::GetIO().KeyCtrl ? 10.f : 1.f);
+    ImGui::PushButtonRepeat(true);
+    ImGui::SameLine(0.f, spacing);
+    if (ImGui::Button("-", ImVec2(button_size, button_size)))
+        radius_edit = step_radius(-step);
+    tooltip_when_disabled();
+    ImGui::SameLine(0.f, spacing);
+    if (ImGui::Button("+", ImVec2(button_size, button_size)))
+        radius_edit = step_radius(step);
+    tooltip_when_disabled();
+    ImGui::PopButtonRepeat();
+    if (radius_edit.has_value()) {
+        arc_radius        = *radius_edit;
+        arc_radius_edited = true;
+    }
+
+    if (arc_radius_edited) {
         // the field takes "*1e39" as "times 1e39", and zero times that is not a number
         if (std::isnan(arc_radius))
             arc_radius = 0.f;
@@ -3055,11 +3153,23 @@ void GLGizmoEmboss::draw_advanced()
             current_prop.arc_radius = arc_radius;
         // The volume's radius alone does not tell whether this edit needs a job: one for an earlier keystroke
         // may still be running. Nothing is needed only when the edit leaves the radius as it was and as the volume has it.
-        if (!is_approx(current_prop.arc_radius, previous_arc_radius) ||
-            !is_approx(current_prop.arc_radius, m_volume->text_configuration->style.prop.arc_radius))
+        if (radius_edit.has_value() && (!is_approx(current_prop.arc_radius, previous_arc_radius) ||
+                                        !is_approx(current_prop.arc_radius, m_volume->text_configuration->style.prop.arc_radius)))
             process();
     }
     m_imgui->disabled_end(); // per_glyph
+
+    // the stored radius is kept while the text no longer fits on its circle; the text is straight until it does
+    if (current_prop.arc_radius.has_value() && !font_prop.per_glyph) {
+        const float  radius  = *current_prop.arc_radius;
+        const double fit_min = radius > 0.f ? arc_limits.outward : arc_limits.inward;
+        if (std::abs(radius) <= fit_min) {
+            char value[32];
+            snprintf(value, sizeof(value), use_inch ? "%.2f in" : "%.1f mm", work_min(radius > 0.f) * shown_per_mm);
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_DARK,
+                                       GUI::format(_u8L("The text does not fit on this circle. The smallest radius is %1%."), value));
+        }
+    }
 
     // input boldness
     auto def_boldness = stored_style ?
@@ -3944,8 +4054,11 @@ GuiCfg create_gui_configuration()
     // TRN - Input label. Be short as possible
     tr.line_gap = _u8L("Line gap");
     // TRN - Input label. Be short as possible
-    // Radius of the circle the text is laid along instead of a straight line
-    tr.arc_radius = _u8L("Arc radius");
+    // How far the text is bent along a circle, from straight to a closed ring
+    tr.curve = _u8L("Curve");
+    // TRN - Input label. Be short as possible
+    // Radius of the circle the text is bent along
+    tr.radius = _u8L("Radius");
     // TRN - Input label. Be short as possible
     tr.boldness = _u8L("Boldness");
 
@@ -3978,7 +4091,8 @@ GuiCfg create_gui_configuration()
         ImGui::CalcTextSize(tr.alignment.c_str()).x,
         ImGui::CalcTextSize(tr.char_gap.c_str()).x,
         ImGui::CalcTextSize(tr.line_gap.c_str()).x,
-        ImGui::CalcTextSize(tr.arc_radius.c_str()).x,
+        ImGui::CalcTextSize(tr.curve.c_str()).x,
+        ImGui::CalcTextSize(tr.radius.c_str()).x,
         ImGui::CalcTextSize(tr.boldness.c_str()).x,
         ImGui::CalcTextSize(tr.skew_ration.c_str()).x,
         ImGui::CalcTextSize(tr.from_surface.c_str()).x,
