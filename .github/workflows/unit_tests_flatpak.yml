@@ -62,23 +62,35 @@ jobs:
             org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.llvm21//25.08 || true
           # `flatpak build` uses bwrap (no rofiles-fuse, which this container
           # rejects); bind-mount the build tree so the baked TEST_DATA_DIR resolves.
+          # Only the curve editor's window tests get the display. Other suites skip their
+          # GUI cases without one, and in this container GTK aborts on them: it loads SVG
+          # icons through glycin, whose sandboxed loader cannot start here. The first run
+          # has no display and no xvfb-run, so it leaves the RequiresDisplay cases out.
           flatpak build --die-with-parent --share=network --share=ipc --socket=x11 \
             --env=DISPLAY="$DISPLAY" --env=GDK_BACKEND=x11 \
             --bind-mount=/run/build="$PWD/.flatpak-builder/build" \
             flatpak_app \
-            bash -c 'cd /run/build/OrcaSlicer && scripts/run_unit_tests.sh build_flatpak/tests'
+            bash -c 'cd /run/build/OrcaSlicer && status=0
+              env -u DISPLAY scripts/run_unit_tests.sh build_flatpak/tests || status=$?
+              ctest --test-dir build_flatpak/tests/slic3rutils/curve_editor_gui -L RequiresDisplay \
+                --no-tests=error --output-junit "$(pwd)/ctest_results_display.xml" --output-on-failure || status=1
+              exit "$status"'
       - name: Collect test results
         if: always()
         shell: bash
         run: |
           d=$(ls -d .flatpak-builder/build/OrcaSlicer-* 2>/dev/null | tail -1 || true)
-          [ -n "$d" ] && [ -f "$d/ctest_results.xml" ] && cp "$d/ctest_results.xml" ctest_results.xml || true
+          for f in ctest_results.xml ctest_results_display.xml; do
+            [ -n "$d" ] && [ -f "$d/$f" ] && cp "$d/$f" "$f" || true
+          done
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ inputs.artifact }}
-          path: ctest_results.xml
+          path: |
+            ctest_results.xml
+            ctest_results_display.xml
           retention-days: 5
           if-no-files-found: warn
       - name: Delete Test Asset
