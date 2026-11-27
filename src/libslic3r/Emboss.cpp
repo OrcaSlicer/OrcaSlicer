@@ -1515,18 +1515,37 @@ void Emboss::bend_to_arc(ExPolygonsWithIds &shapes, double radius, double first_
     if (!fits_on_arc(shapes, radius, first_baseline_y, line_height))
         return;
 
-    double baseline_y = first_baseline_y;
+    // Letters are spaced along the edge of their line nearest the center, so they keep their straight spacing
+    // there and never run into each other: the baseline when the center is below, the letters' tops when above.
+    std::vector<double> spacing_y;
+    {
+        double      baseline_y = first_baseline_y;
+        BoundingBox line_bb;
+        auto add_line = [&]() {
+            spacing_y.push_back(radius > 0. || !line_bb.defined ? baseline_y : std::max(baseline_y, static_cast<double>(line_bb.max.y())));
+        };
+        for (const ExPolygonsWithId &letter : shapes) {
+            if (letter.id == ENTER_UNICODE) {
+                add_line();
+                baseline_y -= line_height;
+                line_bb = BoundingBox();
+            } else if (!letter.expoly.empty())
+                line_bb.merge(get_extents(letter.expoly));
+        }
+        add_line();
+    }
+
+    size_t line = 0;
     for (ExPolygonsWithId &letter : shapes) {
         if (letter.id == ENTER_UNICODE) {
-            baseline_y -= line_height;
+            ++line;
             continue;
         }
         if (letter.expoly.empty())
             continue;
 
-        const double line_radius = radius + baseline_y;
         const double center_x = static_cast<double>(get_extents(letter.expoly).center().x());
-        const double angle    = center_x / line_radius;
+        const double angle    = center_x / (radius + spacing_y[line]);
         const double c        = std::cos(angle);
         const double s        = std::sin(angle);
         auto bend = [&](Points &points) {

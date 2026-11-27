@@ -102,17 +102,19 @@ TEST_CASE("A bent letter keeps its shape and sits on the circle", "[Emboss]")
 
 TEST_CASE("A negative radius bends the text the other way", "[Emboss]")
 {
-    const double      radius = -2000. / M_PI;
+    // With the centre above, letters are spaced along their tops: the top's circle is 100 smaller, so this letter
+    // is a quarter of that circle away from the anchor.
+    const double      radius = -(2000. / M_PI + 100.);
     ExPolygonsWithIds shapes{letter('a', square(1000, 0, 100))};
 
     Emboss::bend_to_arc(shapes, radius, 0., 200.);
 
     // The text end rises and the letter's top points at the centre, which is now above the text.
     const BoundingBox bb = get_extents(shapes.front().expoly);
-    CHECK_THAT(static_cast<double>(bb.min.x()), WithinAbs(537., 1.5));
-    CHECK_THAT(static_cast<double>(bb.min.y()), WithinAbs(587., 1.5));
-    CHECK_THAT(static_cast<double>(bb.max.x()), WithinAbs(637., 1.5));
-    CHECK_THAT(static_cast<double>(bb.max.y()), WithinAbs(687., 1.5));
+    CHECK_THAT(static_cast<double>(bb.min.x()), WithinAbs(637., 1.5));
+    CHECK_THAT(static_cast<double>(bb.min.y()), WithinAbs(687., 1.5));
+    CHECK_THAT(static_cast<double>(bb.max.x()), WithinAbs(737., 1.5));
+    CHECK_THAT(static_cast<double>(bb.max.y()), WithinAbs(787., 1.5));
 }
 
 TEST_CASE("Lines of bent text share one centre", "[Emboss]")
@@ -471,4 +473,27 @@ TEST_CASE("Limits in mm are the shape-unit limits times the scale", "[Emboss]")
     const Emboss::ArcRadiusLimits none = Emboss::arc_radius_limits(font.font_file, text, other_face);
     CHECK(none.outward == 0.);
     CHECK(none.inward == 0.);
+}
+
+TEST_CASE("With the tops inward the letters keep their spacing at the top and close the ring", "[Emboss]")
+{
+    // Ten touching squares of 100, standing on baseline 0: the line spans 1000 and its tops are at 100.
+    ExPolygonsWithIds shapes;
+    for (int i = 0; i < 10; ++i)
+        shapes.push_back(letter('a' + i, square(-450 + 100 * i, 0, 100)));
+    const double tightest = Emboss::min_arc_radius(shapes, 0., 200., false);
+    REQUIRE_THAT(tightest, WithinAbs(1000. / (2. * M_PI) + 100., 1.));
+
+    Emboss::bend_to_arc(shapes, -tightest * 1.001, 0., 200.);
+
+    // Neighbours still touch at their tops, as they do straight, to within the chord of a flat top on its circle.
+    for (size_t i = 0; i + 1 < shapes.size(); ++i) {
+        INFO("letters " << i << " and " << i + 1);
+        const Point &right_top = points_of(shapes[i])[2];
+        const Point &left_top  = points_of(shapes[i + 1])[3];
+        CHECK((right_top - left_top).cast<double>().norm() < 6.);
+    }
+    // And the tops go all the way round: the text is a ring.
+    const BoundingBox bb = get_extents(all_points(shapes));
+    CHECK(std::abs(bb.size().x() - bb.size().y()) < 0.1 * bb.size().x());
 }
