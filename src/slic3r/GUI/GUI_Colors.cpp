@@ -17,27 +17,27 @@ const char* GetRenderColName(RenderCol idx)
 {
     switch (idx)
     {
-    case RenderCol_3D_Background: return "3D Background";
-    case RenderCol_Plate_Unselected: return "Plate Unselected";
-    case RenderCol_Plate_Selected: return "Plate Selected";
-    case RenderCol_Plate_Default: return "Plate Default";
-    case RenderCol_Plate_Line_Top: return "Plate Line Top";
-    case RenderCol_Plate_Line_Bottom: return "Plate Line Bottom";
-    case RenderCol_Model_Disable: return "Model Disable";
-    case RenderCol_Model_Unprintable: return "Model Unprintable";
-    case RenderCol_Model_Neutral: return "Model Neutral";
-    case RenderCol_Part: return "Part";
-    case RenderCol_Modifier: return "Modifier";
-    case RenderCol_Negtive_Volume: return "Negtive Volume";
-    case RenderCol_Support_Enforcer: return "Support Enforcer";
-    case RenderCol_Support_Blocker: return "Support Blocker";
-    case RenderCol_Axis_X: return "Axis X";
-    case RenderCol_Axis_Y: return "Axis Y";
-    case RenderCol_Axis_Z: return "Axis Z";
-    case RenderCol_Grabber_X: return "Grabber X";
-    case RenderCol_Grabber_Y: return "Grabber Y";
-    case RenderCol_Grabber_Z: return "Grabber Z";
-    case RenderCol_Flatten_Plane: return "Flatten Plane";
+    case RenderCol_3D_Background:       return "3D Background";
+    case RenderCol_Plate_Unselected:    return "Plate Unselected";
+    case RenderCol_Plate_Selected:      return "Plate Selected";
+    case RenderCol_Plate_Default:       return "Plate Default";
+    case RenderCol_Plate_Line_Top:      return "Plate Line Top";
+    case RenderCol_Plate_Line_Bottom:   return "Plate Line Bottom";
+    case RenderCol_Model_Disable:       return "Model Disable";
+    case RenderCol_Model_Unprintable:   return "Model Unprintable";
+    case RenderCol_Model_Neutral:       return "Model Neutral";
+    case RenderCol_Part:                return "Part";
+    case RenderCol_Modifier:            return "Modifier";
+    case RenderCol_Negtive_Volume:      return "Negtive Volume";
+    case RenderCol_Support_Enforcer:    return "Support Enforcer";
+    case RenderCol_Support_Blocker:     return "Support Blocker";
+    case RenderCol_Axis_X:              return "Axis X";
+    case RenderCol_Axis_Y:              return "Axis Y";
+    case RenderCol_Axis_Z:              return "Axis Z";
+    case RenderCol_Grabber_X:           return "Grabber X";
+    case RenderCol_Grabber_Y:           return "Grabber Y";
+    case RenderCol_Grabber_Z:           return "Grabber Z";
+    case RenderCol_Flatten_Plane:       return "Flatten Plane";
     case RenderCol_Flatten_Plane_Hover: return "Flatten Plane Hover";
     }
     return "Unknown";
@@ -64,17 +64,29 @@ static std::array<UIColors, size_t(UIColorSet::Count)> make_ui_colors()
 {
     std::array<UIColors, size_t(UIColorSet::Count)> sets;
 
-    // Default: the colors as they are without the preference
+    // DEFAULT: the colors as they are without the preference
+    /////////////////////////////////////////////////////////
     UIColors& def = sets[size_t(UIColorSet::Default)];
-    def.axes         = {{ rgb("#FF3C5B"), rgb("#64C818"), rgb("#2F88E9") }}; // what libslic3r/Color.hpp starts with
+    def.axes         = {{ // what libslic3r/Color.hpp starts with
+        rgb("#FF3C5B"), // X
+        rgb("#64C818"), // Y
+        rgb("#2F88E9")  // Z
+    }}; 
     def.enforcer     = rgba("#80FF80");
     def.blocker      = rgba("#FF8080");
     def.overhang     = rgb("#C70000");
-    def.measure_pair = {{ rgba("#40BFBF"), rgba("#BF40BF") }};
-    def.cut_pair     = {{ rgba("#00FFFF"), rgba("#FF00FF") }};
+    def.measure_pair = {{
+        rgba("#40BFBF"), // selected_1st_color
+        rgba("#BF40BF")  // selected_2nd_color
+    }};
+    def.cut_pair     = {{
+        rgba("#00FFFF"), // Upper
+        rgba("#FF00FF")  // Lower
+    }};
     def.ranges       = libvgcode::DEFAULT_RANGES_COLORS;
 
-    // Deutan. Every other set starts as the default one and changes what it needs to.
+    // DEUTAN. Every other set starts as the default one and changes what it needs to.
+    /////////////////////////////////////////////////////////
     // Brushes: yellow green and brick red over a muted purple overhang marking. The model, the overhangs, the two
     // brushes and the two brushes over an overhang then all stay apart with protanopia and deuteranopia, which the
     // default green and red over a red overhang marking do not. The red is much darker than the green as the two
@@ -85,11 +97,18 @@ static std::array<UIColors, size_t(UIColorSet::Count)> make_ui_colors()
     // Ranges: no two of its stops become alike with protanopia, deuteranopia or tritanopia.
     UIColors& deutan = sets[size_t(UIColorSet::Deutan)];
     deutan              = def;
-    deutan.axes         = {{ rgb("#FF5A87"), rgb("#B6FF00"), rgb("#0075FF") }};
+    deutan.axes         = {{
+        rgb("#FF5A87"), // X
+        rgb("#B6FF00"), // Y
+        rgb("#0075FF")  // Z
+    }};
     deutan.enforcer     = rgba("#85FF01");
     deutan.blocker      = rgba("#9C2B00");
     deutan.overhang     = rgb("#6A549D");
-    deutan.measure_pair = {{ rgba("#0070D2"), rgba("#0FAD4E") }};
+    deutan.measure_pair = {{
+        rgba("#0070D2"), // selected_1st_color
+        rgba("#0FAD4E")  // selected_2nd_color
+    }};
     deutan.cut_pair     = deutan.measure_pair;
     deutan.ranges       = palette({
         "#600059", // bluish
