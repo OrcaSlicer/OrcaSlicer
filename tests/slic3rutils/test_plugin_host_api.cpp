@@ -660,6 +660,8 @@ TEST_CASE("Plugin host API exposes TriangleMesh geometry to Python", "[PluginHos
 
 TEST_CASE("a script reads the catalog", "[PluginHost][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::module_ orca = import_orca_module();
     // An operation a plugin offers is among the commands while it is offered.
     Slic3r::PluginOperation op;
@@ -736,6 +738,8 @@ TEST_CASE("every public member of the orca package has documentation and named p
     // with a parameter pybind11 names argN, is one they can only guess at. A constant's documentation is
     // the documentation that names it, and a class's goes on with what its constructors say; an enum's
     // constructor takes one of the values its documentation lists.
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     const py::module_        orca = import_orca_module();
     const py::object         cleandoc = py::module_::import("inspect").attr("cleandoc");
     const std::regex         positional(R"(\barg\d+\b)");
