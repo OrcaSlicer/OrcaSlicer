@@ -2198,7 +2198,7 @@ bool ImGuiWrapper::multi_switch(const char* id, const std::vector<std::string>& 
     const ImGuiStyle& style  = ImGui::GetStyle();
     const float       gap    = style.FrameBorderSize;
     const float       item_h = ImGui::GetTextLineHeight() + style.FramePadding.y;
-    // Room for 5 characters at least: two-character labels, common in Chinese, would make a segment too narrow.
+    // Reserve min width for two-character labels (common in Chinese). would make a segment too narrow.
     const float       min_w  = ImGui::CalcTextSize("0000000").x;
 
     std::vector<float> widths;
