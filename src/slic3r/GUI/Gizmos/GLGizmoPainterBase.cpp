@@ -41,8 +41,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include <vector>
 #include <utility>
-#include <wx/utils.h>
-#include <wx/string.h>
+#include <imgui.h>
 #include <queue>
 #include "libslic3r/Color.hpp"
 #include "libslic3r/ObjectID.hpp"
@@ -1306,7 +1305,8 @@ ColorRGBA TriangleSelectorGUI::blockers_color  = BLOCKERS_COLOR_DEFAULT;
 // does with both buttons, see gizmo_event(). `fixed_color` is for the gizmos that do not paint with the brush colors.
 static ColorRGBA cursor_color(EnforcerBlockerType state, bool brush_colors, const ColorRGBA& fixed_color)
 {
-    if (state == EnforcerBlockerType::NONE || wxGetKeyState(WXK_SHIFT))
+    // Shift as the mouse events report it, which is what gizmo_event() erases by, see ImGuiWrapper::update_mouse_data()
+    if (state == EnforcerBlockerType::NONE || ImGui::GetIO().KeyShift)
         return { 0.0f, 0.0f, 0.6f, 0.25f };
     if (!brush_colors)
         return fixed_color;
