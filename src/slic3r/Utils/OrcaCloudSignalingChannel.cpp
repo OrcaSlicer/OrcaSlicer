@@ -248,6 +248,12 @@ void OrcaCloudSignalingChannel::run()
                 }
             }
         }
+        // The Cloud omits ice_servers when it mints no TURN credentials. A peer
+        // without a STUN server offers only its LAN addresses, which a printer on
+        // another network cannot reach, so fall back to the public STUN servers
+        // the OrcaCloud web client uses in that case.
+        if (ice_servers.empty())
+            ice_servers = {{"stun:stun.cloudflare.com:3478", {}, {}}, {"stun:stun.l.google.com:19302", {}, {}}};
         auto conn = std::make_shared<Connection>();
         conn->ssl_context.set_default_verify_paths();
         Http::add_platform_root_certificates(conn->ssl_context.native_handle());
