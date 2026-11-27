@@ -708,7 +708,7 @@ struct WindowSettling
     bool        limited    = false; // the size was held to the window's minimum or maximum size
     bool        held       = false; // the window held still in the state asked for
     bool        drawn      = false; // and the main window's 3D view drew at its size, or needn't
-    bool        activation = false; // the request restored a minimized window by activating it (Wayland)
+    bool        activation = false; // the request restored a minimized window by activating it (Wayland, GNOME Shell)
     int         seconds    = 3;     // how long the wait for the window lasted at most
     std::string undrawn;            // undrawn_window()'s reason the 3D view isn't drawn, or empty
 };

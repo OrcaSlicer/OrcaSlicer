@@ -178,12 +178,15 @@ def main():
         window = client.call("app_state").get("window", {})
         check("position: app_state reports none on Wayland", "position" not in window, window)
     else:
+        area = sized.get("display", {})
         client.call("window_set", position=[40, 30])
         window = client.call("app_state").get("window", {})
-        check("position: app_state reports it", window.get("position") == [40, 30], window)
+        # A top bar holds windows below it, as GNOME Shell's does at 32, so the window goes no higher than the top
+        # of the work area.
+        check("position: app_state reports it", window.get("position") == [40, max(30, area.get("y", 0))],
+              f"{window} / {area}")
         # The display's work area, given as a place and a size, is taken as it is: a window manager keeps a
         # window that fits it there, and with none the window goes exactly there.
-        area = sized.get("display", {})
         filled = client.call("window_set", position=[area.get("x", 0), area.get("y", 0)],
                              size=[area.get("width", 0), area.get("height", 0)])
         check("position and size: the window fills the display's work area",

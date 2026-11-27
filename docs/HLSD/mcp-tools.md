@@ -330,6 +330,9 @@ whose plugin has unloaded, or loaded again since, is refused.
   minimized from the desktop reads `normal`. `normal` and `raise` bring a minimized window back only while the
   compositor lets OrcaSlicer take the focus; otherwise the reply reads `minimized`, with a note that the person
   restores it from the taskbar, or `active: false`. sway never minimizes a window.
+- **GNOME Shell on X11.** It leaves a minimized window minimized when an app un-minimizes it, and brings it back when
+  the app activates it, so `normal` restores a minimized window as on Wayland: by activating it, which also raises it,
+  and with the same note when GNOME Shell doesn't let OrcaSlicer take the focus.
 - **The camera.** `camera_state`, in `view_set`'s reply as in `app_state.camera`, gives `click_px_per_mm`, the zoom in
   the logical pixels `widget_click` and `mouse_gesture` take; `type`, which says whether `zoom` holds across the whole
   view (orthographic) or only at the depth of `look_at` (perspective); and `elevation` and `azimuth` in `orbit`'s
