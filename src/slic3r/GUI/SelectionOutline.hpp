@@ -12,7 +12,7 @@ namespace GUI {
 struct Camera;
 class GLModel;
 
-// The outline of the selected volumes: a ring around them and lines along their inner edges, found in a mask
+// The outline of the collected volumes: a ring around them and lines along their inner edges, found in a mask
 // of the volumes and drawn over the scene. See docs/HLSD/selection-outline.md.
 class SelectionOutline
 {

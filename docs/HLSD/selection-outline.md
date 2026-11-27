@@ -8,13 +8,31 @@ between faces, the contours where one part of the selection hides another, and t
 neighboring parts. It is a view setting. It changes nothing in the model or the project, and it reaches
 neither the picking pass nor thumbnails.
 
-`SelectionOutline` draws it once per frame for the whole selection, after the object passes of
-`GLCanvas3D::_render_scene()`. Its cost depends on the screen area of the selection, not on its triangle
-count, apart from one extra draw of the selected volumes.
+Preferences > Graphics > Outline provides a Persistent option, off by default, which outlines all
+visible, active volumes except the wipe tower even without selection. The Outline view option in
+the 3D canvas menu controls visibility in both modes: when it is off, no outlines are drawn.
+When it is on, Persistent chooses between all eligible volumes and selected volumes only.
+Selected volumes use the Selection color and persistent outlines of unselected volumes use the Persistent
+color, both configurable and white by default. The Persistent color button is disabled while Persistent
+is off, as it has no effect then. These application preferences are saved
+immediately and redraw the current canvas when Preferences closes; they do not require a restart.
+
+`SelectionOutline` draws it after the object passes of `GLCanvas3D::_render_scene()`. Its cost
+depends on their screen area, not on their triangle count, apart from one extra draw of the outlined
+volumes.
+
+Without Persistent, all selected volumes share one outline, drawn once per frame. With Persistent, each
+object instance gets an outline of its own, drawn from back to front by the view depth of its bounding box
+center, so an object in front of another keeps its full ring over it instead of the thin line that marks
+two parts meeting. The passes below then run once per instance, each within the screen box of that
+instance, so their cost grows with the number of outlined objects and the screen area of their boxes. A
+third composite draw puts the ring of each instance over the outlined volumes around it as well, where the
+depth test lets a nearer volume hide it.
 
 ## Passes
 
-`GLVolumeCollection::render()` collects the selected volumes it draws, when the canvas passes it a list,
+`GLVolumeCollection::render()` collects the selected volumes it draws (all eligible volumes in persistent
+mode), when the canvas passes it a list,
 and sets bit `SelectionOutline::StencilBit` of the canvas stencil wherever one of them passes the depth
 test. The stencil is cleared with the depth buffer at the start of the frame. `SelectionOutline::render()`
 then runs three passes, restricted by the scissor to the screen box of the selection, padded by how far
@@ -24,7 +42,8 @@ each pass reads the one before it.
    passes, into a 16 bit RGBA target with a depth texture of its own. Each texel packs, in two bytes per
    channel, the octahedral encoded view normal turned towards the camera, the part index of its volume,
    and the distances from the texel center to the edge of its triangle along +x, -x,
-   +y and -y. GLModel gives every triangle three vertices of its own, so `gl_VertexID % 3` yields the
+   +y and -y. Selected volumes take part indices above 32768 and unselected ones those below, so the
+   composite tells them apart from the mask alone. GLModel gives every triangle three vertices of its own, so `gl_VertexID % 3` yields the
    barycentrics, and their screen derivatives the distances.
 2. **Edges** (`outline_edges`). For every texel, and each pair it forms with its right and upper neighbor,
    an inner edge is classified and located, and packed as a 4 bit strength and a 4 bit crossing position
@@ -87,7 +106,12 @@ marks.
 
 ## Colors and sizes
 
-The outline is white. Its lines have a width on the model, 0.35 mm for the ring and 0.18 mm for the inner
+The outline uses the solid RGB colors selected in Preferences, without theme remapping: the Selection
+color for selected volumes and the Persistent color for the other persistent outlines. Each pixel takes the
+color of the volume its ring or line belongs to: the covered texel under it, or for the ring outside the
+silhouette, the nearest covered texel. Square color swatch buttons display both colors and open the color
+picker; a disabled one shows its color grayed. The lines have a
+width on the model, 0.35 mm for the ring and 0.18 mm for the inner
 lines, so they grow as the camera closes in, kept between 2.5 and 5 pixels for the ring and 1.2 and 2.4 for
 the inner lines, scaled by the canvas scale. An inner line that would be thinner than 1.2 pixels fades
 instead, down to 40%, so that a far selection does not turn into lines. Inner lines are drawn at 75%

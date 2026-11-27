@@ -19,7 +19,9 @@ world axes, which Prepare draws at the corner of the first plate, move to the co
 plate, where Preview draws them.
 
 An object instance is shown when its footprint, the XY bounding box of the convex hulls of its
-volumes, overlaps the current plate, or when it is selected. The test is made per instance, so the
+parts, overlaps the current plate, or when it is selected. Modifiers, negative volumes and support
+enforcers and blockers are left out of the footprint, as plate membership leaves them out: a large
+modifier reaching over another plate does not put the object on that plate. The test is made per instance, so the
 parts of an object are shown or hidden together, and a wipe tower follows its plate the same way.
 It is geometric rather than the plate membership `PartPlateList` keeps, because an instance stays on
 the plate it was first placed on: an object of another plate that reaches over this one, or one too

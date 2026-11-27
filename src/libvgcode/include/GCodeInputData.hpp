@@ -6,6 +6,7 @@
 #define VGCODE_GCODEINPUTDATA_HPP
 
 #include "PathVertex.hpp"
+#include <cstdint>
 #include <vector>
 #include "Types.hpp"
 
@@ -31,6 +32,16 @@ struct GCodeInputData
     // Palette for color print colors
     //
     PaletteWithAlpha color_print_colors;
+    //
+    // Optional, one entry per layer: whether the layer's infill closes every object printed on
+    // it, so that the end bands of the reduced set may stop there, see
+    // Viewer::get_reduced_detail_whole_layers(). Bit 0: closed as seen from above, for the band
+    // at the top of the range; bit 1: closed as seen from below, for the band at the bottom. An
+    // object's top shells close it from above and its bottom shells from below. Left empty, or
+    // of another size than the layer count, the viewer judges each layer from the roles of the
+    // whole layer instead.
+    //
+    std::vector<uint8_t> layers_closed;
 };
 
 } // namespace libvgcode

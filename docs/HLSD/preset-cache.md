@@ -42,7 +42,7 @@ presets are never serialized — they have their own storage and their own lifec
 | `resources/profiles/` | `<vendor>.opc` alone — the profile and its preset JSONs both pruned | What the app ships with and what installing copies from; read directly for vendors not installed |
 | `<data_dir>/system/` | `<vendor>.opc` alone, or `<vendor>.json` + `<vendor>/` after an update | What the user has installed |
 | `<data_dir>/system/` (dev build) | `<vendor>.json` + `<vendor>/` + `<vendor>.opc` written at runtime | A developer tree caches as it parses |
-| `<data_dir>/cache/wizard_profile_data.json` | The wizard's derived vendor catalog plus the stamps it was built from | Written and read by the setup wizard only; never shipped (see "The wizard's profile-data cache") |
+| `<data_dir>/cache/wizard_profile_data.json` | The wizard's derived vendor catalog plus the stamps it was built from | Written and read by the setup wizard and the commands that list and install printer models (`Ops::printer_profile_data()`); never shipped (see "The wizard's profile-data cache") |
 
 Two forms of the same vendor therefore exist, and the system's central rule is that
 **a vendor's cache is the whole of it**. Where a cache ships or is installed, no profile
@@ -273,7 +273,9 @@ function of the vendor set: each vendor's name and version, in load order. A pro
 change requires a version bump, so name and version determine a vendor's content
 wherever its copy sits; which directory served it is deliberately **not** stamped,
 and installing or removing a copy at an unchanged version leaves the cache valid. So
-the wizard caches the *derived JSON*, not another form of the inputs:
+the wizard caches the *derived JSON*, not another form of the inputs
+(`Ops::printer_profile_data()`, `GUI/Operations/InstallOps.cpp`, which `printer_list_models`,
+`printer_install` and `printer_uninstall` read the catalog through too):
 `<data_dir>/cache/wizard_profile_data.json` holds the stamp list and the catalog. On
 open, the wizard computes the current stamps (one version peek per vendor) and, when
 they match, serves the catalog from the file — no bundle built, no preset installed.
@@ -358,7 +360,8 @@ step, not something a build should do to a working tree by surprise: the Windows
 refuses that target unless given `--prune-source`, and CI passes it.
 
 Generation runs after the build, in the same job, so the caches ship with a build that
-can read them.
+can read them. On Linux it runs while the package tree is staged (`build_linux.sh -P`), so
+the AppImage is packed from a tree that already holds them.
 
 The flatpak differs only in where the script is called from. Nothing outside
 flatpak-builder ever builds it, so there is no packaged tree for the workflow to point

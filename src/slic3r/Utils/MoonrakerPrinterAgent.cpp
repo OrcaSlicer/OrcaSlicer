@@ -1,4 +1,5 @@
 #include "MoonrakerPrinterAgent.hpp"
+#include "MoonrakerFilamentSources.hpp"
 #include "AsioUtils.hpp"
 #include "CrealityCfs.hpp"
 #include "Http.hpp"
@@ -395,12 +396,18 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
 {
     (void) sec_link;
 
-    detect.dev_id   = device_info.dev_id.empty() ? dev_ip : device_info.dev_id;
-    detect.model_id = device_info.model_id.empty() ? device_info.model_name : device_info.model_id;
-    // Prefer fetched hostname, then preset model name, then generic fallback
-    detect.dev_name     = device_info.dev_name.empty() ? dev_ip : device_info.dev_name;
-    detect.model_id     = device_info.model_id;
-    detect.version      = device_info.version;
+    // The binding target is the address the user entered. device_info may still describe the
+    // printer the agent was connected to before, so its identity must not be used for another
+    // address. Split it the way the input dialog stores the print host and port, then derive
+    // the dev_id the same way GUI_App::select_machine does.
+    std::string port;
+    std::string host = Http::get_host_from_url(dev_ip, &port);
+    const std::string dev_id = MachineObject::dev_id_from_address(host, port);
+
+    detect.dev_id       = dev_id;
+    detect.dev_name     = dev_id;
+    detect.model_id.clear();
+    detect.version.clear();
     detect.connect_type = "lan";
     detect.bind_state   = "free";
 
@@ -747,38 +754,35 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
 {
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
+    const auto source = select_moonraker_filament_data(trays, max_lane_index,
+        [this](auto& out, int& index) { return fetch_moonraker_filament_data(out, index); },
+        [this](auto& out, int& index) { return fetch_hh_filament_info(out, index); },
+        [this](auto& out, int& index) { return fetch_creality_cfs_data(out, index); });
 
-    // Try Moonraker filament data (more generic, supports any filament changer
-    // software that reports lane data to Moonraker like AFC and recent Happy
-    // Hare as of Feb 15, 2026)
-    if (fetch_moonraker_filament_data(trays, max_lane_index)) {
+    switch (source) {
+    case MoonrakerFilamentSource::Lanes:
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
                                 << (max_lane_index + 1) << " lanes";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
-        return true;
-    }
-
-    // Attempt Happy Hare first (more widely adopted, supports more filament changers)
-    if (fetch_hh_filament_info(trays, max_lane_index)) {
+        break;
+    case MoonrakerFilamentSource::HappyHare:
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
-                                << (max_lane_index + 1) << " gates";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
-        return true;
-    }
-
-    // Creality Hi exposes CFS slots as a Moonraker box printer object.
-    if (fetch_creality_cfs_data(trays, max_lane_index)) {
+                                << trays.size() << " loaded gates and " << (max_lane_index + 1) << " slots";
+        break;
+    case MoonrakerFilamentSource::CrealityCfs:
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Creality CFS with "
                                 << (max_lane_index + 1) << " slots";
-        build_ams_payload((max_lane_index + 4) / 4, max_lane_index, trays);
-        return true;
+        break;
+    case MoonrakerFilamentSource::EmptyLanes:
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Preserving empty lane_data topology with "
+                                << (max_lane_index + 1) << " lanes";
+        break;
+    case MoonrakerFilamentSource::None:
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected";
+        return false;
     }
 
-    // No MMU detected - this is normal for printers without MMU, not an error.
-    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected";
-    return false;
+    build_ams_payload((max_lane_index + 4) / 4, max_lane_index, trays);
+    return true;
 }
 
 std::string MoonrakerPrinterAgent::trim_and_upper(const std::string& input)
@@ -801,7 +805,11 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
     static const std::map<std::string, std::string> type_to_ofl_family = {
         // PLA variants
         {"PLA", "PLA"},
+        {"PLA+", "PLA"},
+        {"PLA PRO", "PLA"},
         {"PLA-CF", "PLA-CF"},
+        {"PLA MATTE", "PLA Matte"},
+        {"PLA-MATTE", "PLA Matte"},
         {"PLA SILK", "PLA Silk"},
         {"PLA-SILK", "PLA Silk"},
         {"PLA HIGH SPEED", "PLA High Speed"},
@@ -810,11 +818,16 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
 
         // ABS/ASA variants
         {"ABS", "ABS"},
+        {"ABS+", "ABS"},
         {"ASA", "ASA"},
 
         // PETG/PET variants
         {"PETG", "PETG"},
+        {"PETG+", "PETG"},
         {"PET", "PETG"},
+        {"PETG HF", "PETG HF"},
+        {"PETG-HF", "PETG HF"},
+        {"PETG-CF", "PETG-CF"},
         {"PCTG", "PCTG"},
 
         // PA/Nylon variants
@@ -830,7 +843,10 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
 
         // PP/PE variants
         {"PE", "PE"},
+        {"PE-CF", "PE-CF"},
         {"PP", "PP"},
+        {"PP-CF", "PP-CF"},
+        {"PP-GF", "PP-GF"},
 
         // Support materials
         {"PVA", "PVA"},
@@ -888,8 +904,9 @@ bool MoonrakerPrinterAgent::fetch_creality_cfs_data(std::vector<AmsTrayData>& tr
         data.tray_type = slot.material_type;
         data.tray_color = slot.color;
         data.has_filament = true;
-        data.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(data.tray_type)
-                                    : map_filament_type_to_generic_id(data.tray_type);
+        data.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(data.tray_type) : std::string();
+        if (data.tray_info_idx.empty())
+            data.tray_info_idx = map_filament_type_to_generic_id(data.tray_type);
         max_lane_index = std::max(max_lane_index, data.slot_index);
         trays.push_back(std::move(data));
     }
@@ -1049,10 +1066,10 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         // counts: Happy Hare writes Spoolman's numeric filament record id under the same key.
         tray.tray_info_idx = safe_json_string(lane_obj, "filament_id");
         auto* bundle = GUI::wxGetApp().preset_bundle;
+        if (tray.tray_info_idx.empty() && bundle)
+            tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
         if (tray.tray_info_idx.empty())
-            tray.tray_info_idx = bundle
-                ? bundle->filaments.filament_id_by_type(tray.tray_type)
-                : map_filament_type_to_generic_id(tray.tray_type);
+            tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, lane_index);
         trays.push_back(tray);
@@ -1178,9 +1195,9 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
         tray.has_filament = true;
 
         auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        tray.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(tray.tray_type) : std::string();
+        if (tray.tray_info_idx.empty())
+            tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, gate_idx);
         trays.push_back(tray);

@@ -21,7 +21,7 @@
 #include <wx/statline.h>
 #include <wx/translation.h>
 #include "Widgets/Button.hpp"
-#include "Widgets/CheckBox.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/HyperLink.hpp"
 #include "BBLStatusBar.hpp"
@@ -106,7 +106,7 @@ protected:
 	wxBoxSizer *m_dsa_sizer;
 	wxStaticBitmap *logo;
     MsgButtonsHash  m_buttons;
-	CheckBox* m_checkbox_dsa{nullptr};
+	LabeledCheckBox* m_checkbox_dsa{nullptr};
     wxString  m_forward_str;
 };
 

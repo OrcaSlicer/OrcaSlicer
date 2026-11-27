@@ -7,6 +7,7 @@
 #include "GUI_Utils.hpp"
 #include "libslic3r/Format/STEP.hpp"
 #include "Widgets/Button.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
 #include "GeometryImportDialog.hpp"
 class Button;
 class RadioGroup;
@@ -35,19 +36,19 @@ public:
         }
     }
     inline bool get_split_compound_value() {
-        return m_split_compound_checkbox.GetValue();
+        return m_split_compound_checkbox->GetValue();
     }
 private:
     // A non-null context defers all preference writes until the whole import is ready.
     Slic3r::GUI::GeometryImportOptions* m_import_options = nullptr;
-    Slic3r::GUI::ImportCheckBox m_keep_names_checkbox;
-    Slic3r::GUI::ImportCheckBox m_sort_names_checkbox;
+    LabeledCheckBox* m_keep_names_checkbox = nullptr;
+    LabeledCheckBox* m_sort_names_checkbox = nullptr;
     // Item 0 loads as an assembly, item 1 as a single object.
     RadioGroup* m_load_mode = nullptr;
     Slic3r::Step& m_file;
-    Slic3r::GUI::ImportCheckBox m_checkbox;
-    Slic3r::GUI::ImportCheckBox m_split_compound_checkbox;
-    Slic3r::GUI::ImportCheckBox m_save_default_checkbox;
+    LabeledCheckBox* m_checkbox = nullptr;
+    LabeledCheckBox* m_split_compound_checkbox = nullptr;
+    LabeledCheckBox* m_save_default_checkbox = nullptr;
     wxString m_linear_last;
     wxString m_angle_last;
     wxStaticText* mesh_face_number_text;

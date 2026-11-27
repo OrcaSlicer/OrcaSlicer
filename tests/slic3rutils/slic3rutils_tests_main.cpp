@@ -1,16 +1,31 @@
 #include <catch2/catch_all.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_test_run_info.hpp>
 #include <catch2/reporters/catch_reporter_event_listener.hpp>
 #include <catch2/reporters/catch_reporter_registrars.hpp>
 
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 
+#include <boost/nowide/filesystem.hpp>
+
 #include "catch2/interfaces/catch_interfaces_reporter.hpp"
 #include "slic3r/Utils/Http.hpp"
 
 namespace {
+
+// Converts narrow boost paths as UTF-8 for the whole run, as the app does from startup
+// (boost::nowide::nowide_filesystem() in OrcaSlicer.cpp). The plugin and script code relies on
+// it, and without it Windows reads a path in the ANSI code page, which a machine set to UTF-8
+// hides and a non-ASCII path on any other breaks.
+class AppPathConversion final : public Catch::EventListenerBase
+{
+public:
+    using Catch::EventListenerBase::EventListenerBase;
+
+    void testRunStarting(const Catch::TestRunInfo&) override { boost::nowide::nowide_filesystem(); }
+};
 
 // Finalizes the embedded interpreter once, after the last test case, and never between cases.
 // CPython cannot be reinitialized after Py_Finalize (a second init aborts inside _datetime), and
@@ -33,6 +48,7 @@ public:
 
 } // namespace
 
+CATCH_REGISTER_LISTENER(AppPathConversion)
 CATCH_REGISTER_LISTENER(PythonInterpreterRunEnd)
 
 TEST_CASE("Check SSL certificates paths", "[Http][NotWorking]") {

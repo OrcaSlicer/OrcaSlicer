@@ -119,6 +119,7 @@ private:
     std::string dev_name;
     std::string dev_ip;
     std::string access_code;
+    std::string ca_file;
     bool m_access_revoked = false;
 
     // type, time stamp, delay
@@ -234,6 +235,9 @@ public:
     void revoke_access();
     std::string get_access_code() const;
     void set_access_code(std::string code, bool only_refresh = true);
+    // CA certificate the user chose for this LAN printer (see BBLocalMachine::ca_file).
+    std::string get_ca_file() const { return ca_file; }
+    void set_ca_file(std::string path, bool only_refresh = true);
 
     //PRINTER_TYPE printer_type = PRINTER_3DPrinter_UKNOWN;
     std::string printer_type;       /* model_id */
@@ -797,6 +801,9 @@ public:
     int command_set_nozzle_new(int nozzle_id, int temp);
     int command_refresh_nozzle();
     int command_set_chamber(int temp);
+    // Whether the job may be resumed only at the printer, as certain processing tasks (such as laser) are:
+    // check_resume_condition()'s rule, which it tells the person in a dialog.
+    bool resume_only_at_printer() const;
     int check_resume_condition();
     // ams controls
     //int command_ams_switch(int tray_index, int old_temp = 210, int new_temp = 210);

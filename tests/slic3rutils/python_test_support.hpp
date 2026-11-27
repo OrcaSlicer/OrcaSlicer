@@ -8,9 +8,11 @@
 // the app likewise finalizes it only at exit, so nothing here tears it down.
 // slic3rutils_tests_main.cpp finalizes the production interpreter once, after the last test case.
 //
-// This bootstrap is separate from PythonInterpreter's runtime: whichever of the two brings Python
-// up first in a process owns it, and the other cannot initialize it again. ctest runs one case per
-// process, so that only matters if the binary is run directly.
+// Starts PythonInterpreter, the same runtime PluginManager::initialize() uses, or a bare
+// interpreter when there is no bundled runtime.
+//
+// PythonInterpreter releases the GIL once it is up, so callers take py::gil_scoped_acquire after
+// ensure_python_initialized() and before touching any Python object.
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -21,7 +23,12 @@
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 
+#include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
+
+#include <libslic3r/Utils.hpp>
+
+#include "test_utils.hpp"
 
 namespace {
 
@@ -29,6 +36,18 @@ void ensure_python_initialized()
 {
     if (Py_IsInitialized())
         return;
+
+    {
+        // Static, because the interpreter writes {data_dir}/python and {data_dir}/log until the
+        // process exits.
+        static ScopedTemporaryDir python_data_dir{"orca-plugin-python"};
+        const std::string         previous = Slic3r::data_dir();
+        Slic3r::set_data_dir(python_data_dir.path().string());
+        const bool initialized = Slic3r::PythonInterpreter::instance().initialize();
+        Slic3r::set_data_dir(previous);
+        if (initialized || Py_IsInitialized())
+            return;
+    }
 
     static std::unique_ptr<pybind11::scoped_interpreter> interpreter;
 

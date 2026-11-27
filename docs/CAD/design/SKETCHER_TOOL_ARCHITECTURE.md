@@ -300,14 +300,14 @@ failure; so is a tool that eats the press and silently kills orbit.
 A tool that mutates nothing, has no commit, and cannot fail — and therefore has no home in this
 codebase. Current state, verified:
 
-- Offer row `{"measure", "Measure", 6, …}` (`DesignOffer.hpp:120`) has `action == nullptr` and
+- Offer row `{"design_measure", "Measure", 6, …}` (`DesignOffer.hpp:120`) has `action == nullptr` and
   `refusal == nullptr`. The table's own contract (`DesignOffer.hpp:43-48`) is *"nullptr → kernel
   support exists, no GUI path yet (row shows disabled)"*, so the row renders as
   **"Measure (no GUI route)"** and is permanently disabled (`DesignPanel.cpp:6519`). With no
   refusal in the row, it contributes nothing to the family's "why" line either.
-- The maths exists, for MCP callers only: `resolve_ref` + `measure` (`McpControl.cpp:522`, `:546`)
-  — refs `{face|edge|point}`, distance = `|pa - pb|` of **representative points** (face centroid,
-  edge mid-sample), angle = `acos(da·db)` when both refs carry a direction.
+- The maths exists, for MCP callers only: the `design_measure` CAD tool (`cad_measure` in
+  `Mcp/Tools/DesignInspectTools.cpp`) — refs `{face|edge|point}`, distance = `|pa - pb|` of **representative
+  points** (face centroid, edge mid-sample), angle = `acos(da·db)` when both refs carry a direction.
 - The correct OCCT primitive is already linked and already used: `BRepExtrema_DistShapeShape`
   (`GeometryEngine.cpp:31`, `:457`).
 - The Prepare tab ships a full measure gizmo — `GLGizmoMeasure` (`src/slic3r/GUI/Gizmos/`) over
@@ -383,7 +383,7 @@ the same label primitive the dimension chain already draws (`render_dimensioning
 | `Esc` | `TwoRefs→OneRef→Exit` | ladder routes it | — | the ladder already handles "tool armed" |
 | any key | — | swallowed while the field is open | — | a query tool must not steal letters: no tool keys while Measure is armed |
 | `MiddleDrag`/`RightDrag` | — | — | orbit/pan | a 3D measurement is unreadable from one angle; the camera must stay live *inside* the tool, exactly like Select |
-| MCP `measure` | same engine | — | — | the RPC becomes one caller of `measure_refs`, so the agent surface and the GUI cannot disagree |
+| MCP `design_measure` | same engine | — | — | the RPC becomes one caller of `measure_refs`, so the agent surface and the GUI cannot disagree |
 
 ### 9.10 Measure — three friction points, and how the architecture prevents them
 
@@ -409,7 +409,7 @@ lambda happened to be built rather than by anything the user can see.
 
 ### 10.1 The architectural claim: there are two Dimension tools, and they disagree
 
-| | click-to-place (`Mode::Dimension`) | selection-based (the `sk_dimension` row) |
+| | click-to-place (`Mode::Dimension`) | selection-based (the `sketch_dimension` row) |
 |---|---|---|
 | entry | arm the tool, pick in the viewport (`:10651`) | select first, then apply (`DesignCanvas.cpp:1417-1430`) |
 | kinds it can make | Length, Diameter, Radius, Distance, DistanceToLine | **also Angle between two lines** |
@@ -437,14 +437,17 @@ cleared anyway (`:10689-10699`); abort a value field and the placed dimension **
 its measured value (`cancel_dimension_value`, `:2174` — deliberate, but it means a cancelled
 gesture has already added a constraint, and nothing says so).
 
-**`apply_dimension` records a poison value.** Its per-case thresholds move nothing for
-`v <= 0` (Length/Diameter/Radius, `:611-613`) or `v < 0` (Distance/DistanceToLine, `:622`, `:639`) —
-and then `record_dimension_constraint(v)` runs **unconditionally** (`:659`). The file's own sibling
-says it best, at the socket boundary: *"a negative/zero/NaN value that moved nothing would still be
-pushed to the solver as a constraint it must satisfy and cannot, silently corrupting the sketch
-rather than failing. (`apply_dimension` has the same flaw for any other caller; this guard protects
-the socket, not the tool.)"* (`McpControl.cpp:1572-1577`). So the agent surface validates and the GUI
-does not — the GUI is the less safe caller of its own function.
+**`apply_dimension` refuses an out-of-range value before it records anything.** Its per-case
+thresholds move nothing for `v <= 0` (Length/Diameter/Radius, `:611-613`) or `v < 0`
+(Distance/DistanceToLine, `:622`, `:639`), and `record_dimension_constraint(v)` after them runs
+**unconditionally** (`:659`): a negative, zero or NaN value that moved nothing would be pushed to the
+solver as a constraint it must satisfy and cannot, silently corrupting the sketch. So a guard at the
+top of `apply_dimension` refuses a value that is not finite, not above zero for a length, radius or
+diameter, or negative for a distance, and says why on the status line, before it moves or records
+anything. The `sketch_set_value` CAD tool (`Mcp/Tools/DesignSketchTools.cpp`) checks the same rule, and refuses a
+selection with nothing to dimension, before it calls `apply_dimension`, so that its call fails with
+the reason rather than reporting a value the sketch tool refused only on its status line. The GUI
+and the agent surface are equally safe callers of the function.
 
 **`record_dimension_constraint` never dedupes at all.** It `push_back`s unconditionally
 (`:674`, `:684`, `:691`, `:700`), so applying the selection-path dimension twice leaves **two**
@@ -523,11 +526,12 @@ Three rules the type enforces, each closing a defect above:
    contradiction you can see. `drive == Reference` renders `measured` only, and the palette is the
    one already in the tab (green quote = measured, driving colour = driven).
 2. **`apply(value)` returns a `WriteOutcome`** (`Ok | ClampedTo | Refused`, the base-operator type
-   from §0.2) — the same type for the solver path, the geometric path and the socket. The socket
-   guard already written in `McpControl.cpp:1572-1577` moves *into* `apply`, so the GUI cannot be the
-   unsafe caller of its own function any more. `Refused` keeps the field open with the typed text
-   and the reason, which is also what makes the `Coincident`-flip reversible: the dimension keeps
-   its `type` and only its value changes.
+   from §0.2) — the same type for the solver path, the geometric path and the MCP server. The
+   range guard `apply_dimension` runs becomes `apply`'s `Refused`, so every caller learns of a
+   refusal from the result rather than from the status line, and `sketch_set_value` in
+   `Mcp/Tools/DesignSketchTools.cpp` keeps no copy of the check. `Refused` keeps the field open with the typed
+   text and the reason, which is also what makes the `Coincident`-flip reversible: the dimension
+   keeps its `type` and only its value changes.
 3. **One dimension per (type, operand pair) lives in one `std::vector<Dimension>`**, and the
    constraint slot is a *projection* of it (`upsert` semantics from `:1074-1130`, kept). The click
    path and the selection path both become thin callers of one `Dimension` builder, so the operand
@@ -611,7 +615,7 @@ Constrain session on a *committed* sketch reports "sketching", and the panel has
 property of a sketch; the mode is a way of editing one.
 
 Constraints are also the last large block of verbs living outside the offer. The offer has 92 rows
-(`DesignOffer.hpp`) and the whole constraint vocabulary is **one** of them (`sk_constrain`, `:168`);
+(`DesignOffer.hpp`) and the whole constraint vocabulary is **one** of them (`sketch_constrain`);
 the other 20 are toolbar buttons (`DesignPanel.cpp:1516-1539`). Five enum members have no button at
 all: `Distance` comes from the Dimension tool, `LockX`/`LockY` have solver bindings
 (`SketchSolver.cpp:191`, `:240`, `:245`) and only a label (`DesignPanel.cpp:8051`), `PointOnLine` is produced only as
@@ -1018,18 +1022,27 @@ corner drag solves the offset so that the *opposite* corner stays put (`:7690-77
 ### 14.2 Verified current behaviour: the constraint table, read in the right direction
 
 `confirm_transform` (`:8342-8445`) `remove_if`s — **returning true means REMOVED** — over every
-constraint that touches a target (`is_target` checks `ea`, `eb` and `ec`):
+constraint that touches a target (`is_target` checks `ea`, `eb` and `ec`).
+
+A constraint whose every operand is a target moved with them under the one map, so it is kept unless
+it measures against the sketch's fixed frame or, under Scale, a size: `Fix`, `LockX`, `LockY` and
+`SymmetricAboutX/Y` are removed by every map, Horizontal and Vertical by Rotate, `DistanceX/Y` by
+Rotate and Scale, `Distance`, Radius and Diameter by Scale, and a `PointOnLine` with an offset by
+Scale. A rectangle moved, turned or scaled whole keeps its corners joined.
+
+A constraint that reaches past the targets — to an entity left where it was, or to the origin or an
+axis — is judged by its class:
 
 | Mode | Removed | Kept |
 |---|---|---|
-| Move | Coincident, PointOnLine, PointOnObject, Concentric, Symmetric, Midpoint, **Fix, LockX, LockY**, cross-entity `Distance` | Horizontal, Vertical, Parallel, Perpendicular, Angle, EqualLength, Radius, Diameter, Collinear, **self**-`Distance` |
-| Rotate | everything else — Coincident, Concentric, Tangent, Parallel, Perpendicular, Midpoint, Symmetric, PointOnLine/Object, Horizontal, Vertical, Angle, Fix, Lock | EqualLength, Radius, Diameter, self-`Distance` |
+| Move | Coincident, PointOnLine, PointOnObject, Concentric, Symmetric, Midpoint, **Fix, LockX, LockY**, `Distance` | Horizontal, Vertical, Parallel, Perpendicular, Angle, EqualLength, Radius, Diameter, Collinear |
+| Rotate | everything else — Coincident, Concentric, Tangent, Parallel, Perpendicular, Midpoint, Symmetric, PointOnLine/Object, Horizontal, Vertical, Angle, `Distance`, Fix, Lock | EqualLength, Radius, Diameter |
 | Scale | everything except the five orientation types | Horizontal, Vertical, Parallel, Perpendicular, Angle |
 | Array / PolarArray | additive: copies are appended and bound to their source through a ladder — lines get Parallel+EqualLength (linear) or EqualLength alone (polar), arcs/circles a per-copy Radius plus Concentric when the polar pivot *is* the source's centre | the originals are untouched |
 
-Then `resolve_live()`. The rationale in the comment is real — *"Surviving classes are satisfied by
-construction; the re-solve folds in the new placement"* — and the array ladder is the same
-degrade-and-keep-the-first-set pattern as Batch 13's fillet, which is the right instinct.
+Then `resolve_live()`. What is kept holds by construction, so the re-solve moves nothing, and the
+array ladder is the same degrade-and-keep-the-first-set pattern as Batch 13's fillet, which is the
+right instinct.
 
 ### 14.3 The defects
 
@@ -1039,15 +1052,10 @@ degrade-and-keep-the-first-set pattern as Batch 13's fillet, which is the right 
    `reset_tf(); // drop any in-progress transform gizmo` (`:295`). So arming Line with a pending
    fillet keeps the fillet, and arming Line with a pending rotation **throws the rotation away** —
    targets picked, value dialled or typed, ghost visible. Same gesture, opposite outcome, no message.
-2. **The keep/drop table over-removes, silently.** For every mode there are constraint types the map
-   provably preserves that are removed anyway: Move removes Coincident/PointOnLine/PointOnObject even
-   when *all* their operands are targets (a rigid translation of a whole loop preserves them); Rotate
-   removes Coincident, Concentric, Tangent, Parallel, Perpendicular, Midpoint, Symmetric and
-   PointOnObject although a rotation preserves all of them; Scale removes Coincident, Tangent,
-   Midpoint, Symmetric, PointOnLine, PointOnObject and EqualLength although a uniform scale preserves
-   them (and it keeps Horizontal/Vertical, which only a *non-uniform* scale would break — Scale here
-   is uniform, so that half is right). The user sees badges vanish and the DoF readout climb, while the
-   geometry — which *is* correctly mapped — looks fine, so the loss stays invisible until a later edit.
+2. **The class table keeps some relations a move breaks.** For a constraint reaching past the
+   targets, Move keeps Tangent, Collinear, `DistanceX/Y` and `SymmetricAboutX/Y`, although translating one end
+   of them carries it away from the other; the re-solve then pulls the moved geometry back toward
+   the relation, undoing part of the move.
 3. **Move releases an explicit anchor.** `Fix`, `LockX` and `LockY` are removed by a translation. A
    point the user pinned to protect it can be moved, and the protection silently disappears. Either the
    map should obey the anchor (refuse, or carry it) or the release must be reported.
@@ -1135,10 +1143,10 @@ degrade-and-keep-the-first-set pattern as Batch 13's fillet, which is the right 
   none of them these), so the family is reachable only from the offer. Either assign keys from the free
   letters (G I J K N Q U V W Y Z — K is already Constrain) or state that the family is deliberately
   offer-only: `snaporca-fqwu` counts 47 of 86 verbs with no shortcut, and this is a sixth of them.
-- **Batch 14 — derive the keep/drop table, do not maintain it.** `confirm_transform :8357-8387` is a
-  hand-written per-type switch that over-removes in all three mutating modes; for each `(type, map)`
-  pair the answer is a property of the map (does it preserve the relation?), with the genuine
-  exceptions (`Fix`/`Lock`, an absolute `Angle`) named as exceptions.
+- **Batch 14 — derive the keep/drop table, do not maintain it.** For a constraint reaching past the
+  targets, `confirm_transform` is a hand-written per-type switch, and its Move column keeps relations
+  a translation breaks (14.3, 2); whether one end moving away from the other breaks a relation is a
+  property of the map, with the genuine exceptions (`Fix`/`Lock`) named as exceptions.
 - **Phase 2 (3D) needs its batch list written before it starts** — otherwise it will be designed by
   whoever opens the file first.
 
