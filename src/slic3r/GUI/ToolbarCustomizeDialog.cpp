@@ -339,9 +339,9 @@ private:
             const bool    down  = move_toolbar_row(probe, row.model, 1);
             // Button draws its icon the same when disabled, so the icon shows the state.
             row.up->Enable(up);
-            row.up->SetIcon(up ? "toolbar_row_up" : "toolbar_row_up_disabled");
+            row.up->SetIcon(up ? "arrow_up" : "arrow_up_disabled");
             row.down->Enable(down);
-            row.down->SetIcon(down ? "toolbar_row_down" : "toolbar_row_down_disabled");
+            row.down->SetIcon(down ? "arrow_down" : "arrow_down_disabled");
             m_move_up->Enable(up);
             m_move_down->Enable(down);
         }
@@ -707,9 +707,9 @@ private:
             return btn;
         };
         // TRN Tooltip of a row's arrow in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Up".
-        Button* up = add_arrow("toolbar_row_up_disabled", format_wxstr(_L("Move up (%1%)"), from_u8(move_up_key().display())), -1);
+        Button* up = add_arrow("arrow_up_disabled", format_wxstr(_L("Move up (%1%)"), from_u8(move_up_key().display())), -1);
         // TRN Tooltip of a row's arrow in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Down".
-        Button* down = add_arrow("toolbar_row_down_disabled", format_wxstr(_L("Move down (%1%)"), from_u8(move_down_key().display())), 1);
+        Button* down = add_arrow("arrow_down_disabled", format_wxstr(_L("Move down (%1%)"), from_u8(move_down_key().display())), 1);
         row->SetSizer(row_sizer);
 
         const auto on_click = [this, key, row, up](wxMouseEvent& e) {
