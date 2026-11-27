@@ -40,6 +40,7 @@
 #include "libslic3r/Point.hpp"
 
 #include <nlohmann/json.hpp>
+#include <pybind11/gil.h>
 #include <wx/gdicmn.h>
 #include <wx/types.h>
 
@@ -534,7 +535,11 @@ TEST_CASE("opening a project and importing models are two commands", "[Mcp]")
 
 TEST_CASE("the Python API reference covers the orca package with constructors and named instances", "[Mcp][Python]")
 {
-    (void) import_orca_module();
+    ensure_python_initialized();
+    {
+        pybind11::gil_scoped_acquire gil;
+        (void) import_orca_module();
+    }
     const json                  reference = python_api_reference();
     std::map<std::string, json> by_name;
     for (const json& entry : reference)
@@ -584,7 +589,11 @@ TEST_CASE("the Python API reference covers the orca package with constructors an
 
 TEST_CASE("script_list_api lists a module or class at a time and script_describe_api gives one entry", "[Mcp][Python]")
 {
-    (void) import_orca_module();
+    ensure_python_initialized();
+    {
+        pybind11::gil_scoped_acquire gil;
+        (void) import_orca_module();
+    }
     const json reference = python_api_reference();
     const auto names_in  = [&reference](const std::string& within) {
         std::set<std::string> names;

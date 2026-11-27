@@ -36,6 +36,14 @@ struct GuardState
     bool           top_closing = false;
 };
 
+// What UiInvoker::run() throws when the UI thread never ran its closure: the UI thread did not pick it up in time,
+// or the UI was being rebuilt. Its message tells the caller that retrying is safe, which holds for the call only
+// until a step of the call has run.
+struct UiCallNotRun : ToolFailure
+{
+    using ToolFailure::ToolFailure;
+};
+
 // Runs closures on the UI thread for tool handlers, which run on other threads. A closure re-checks
 // the guards on the UI thread before doing anything, because the app can change between posting
 // and running (a modal can open, the app can start closing, the UI can be rebuilt). A caller gives
@@ -58,7 +66,8 @@ public:
     // Runs `fn` on the UI thread under `guard` and returns its value. Throws ToolFailure when a
     // guard refuses, when the UI thread does not pick the closure up within `queue_timeout`
     // (the closure is then abandoned and never runs; the failure names the native dialog holding
-    // the UI thread, if that is why), or on shutdown. `tool` names the caller in busy messages.
+    // the UI thread, if that is why), or on shutdown. That failure, and the one for a closure that
+    // reaches a UI being rebuilt, is a UiCallNotRun. `tool` names the caller in busy messages.
     nlohmann::json run(GuardClass guard, const std::string& tool, const std::function<nlohmann::json()>& fn,
                        std::chrono::milliseconds queue_timeout = std::chrono::seconds(10));
 

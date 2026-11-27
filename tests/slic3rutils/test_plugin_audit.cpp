@@ -1577,6 +1577,38 @@ std::vector<std::string> with_shell_grants(std::vector<std::string> grants,
     return grants;
 }
 
+const fs::path& audit_data_parent()
+{
+    static const ScopedTemporaryDir parent{"orca-plugin-audit-hook"};
+    return parent.path();
+}
+
+// A fresh data_dir() under audit_data_parent() for one AuditHarness.
+struct AuditDataDir
+{
+    fs::path    dir      = audit_data_parent() / fs::unique_path("%%%%-%%%%-%%%%");
+    std::string previous = data_dir();
+
+    AuditDataDir()
+    {
+        fs::create_directories(dir);
+        set_data_dir(dir.string());
+    }
+
+    ~AuditDataDir()
+    {
+        set_data_dir(previous);
+        boost::system::error_code ec;
+        fs::remove_all(dir, ec);
+    }
+
+    AuditDataDir(const AuditDataDir&)            = delete;
+    AuditDataDir& operator=(const AuditDataDir&) = delete;
+
+    // The plugin manager scans {data_dir}/orca_plugins.
+    fs::path plugins_dir() const { return dir / "orca_plugins"; }
+};
+
 // The plugin system with the audit hook installed, and the permission dialog replaced by a
 // recorder that answers with `approve`. Declare it first in a test, so it is destroyed last.
 //
@@ -1584,10 +1616,10 @@ std::vector<std::string> with_shell_grants(std::vector<std::string> grants,
 // PythonInterpreterRunEnd in slic3rutils_tests_main.cpp.
 struct AuditHarness
 {
+    bool python_was_running = PythonInterpreter::instance().is_initialized();
     // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log.
-    // data_dir() is a global allowed root from then on -- the first test to initialize Python in
-    // this process (under ctest, this one) -- so the test files live in `outside`.
-    ScopedDataDir                      data{"plugin-audit-hook"};
+    // The test files live in `outside`, away from every writable root.
+    AuditDataDir                       data;
     bool                               initialized = PluginManager::instance().initialize();
     ScopedTemporaryDir                 outside{"orca-plugin-audit-outside"};
     std::vector<Prompt>                prompts;
@@ -1597,6 +1629,13 @@ struct AuditHarness
     AuditHarness()
     {
         PluginAuditManager& audit = PluginAuditManager::instance();
+        // install_hook() grants only the data_dir() current when Python started, so when another
+        // test case started it, grant the parent of every harness data dir instead.
+        static bool parent_granted = false; // global roots are never removed
+        if (python_was_running && !parent_granted) {
+            audit.add_global_allowed_root(audit_data_parent());
+            parent_granted = true;
+        }
         audit.clear_current_plugin();
         audit.clear_current_capability();
         audit.clear_audit_denial();
