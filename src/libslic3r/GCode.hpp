@@ -242,6 +242,7 @@ public:
         //m_volumetric_speed(0),
         m_last_pos_defined(false),
         m_last_extrusion_role(erNone),
+        m_last_notgapfill_extrusion_role(erNone),
         m_last_width(0.0f),
 #if ENABLE_GCODE_VIEWER_DATA_CHECKING
         m_last_mm3_per_mm(0.0),
