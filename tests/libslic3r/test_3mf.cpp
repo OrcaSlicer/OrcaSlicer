@@ -25,6 +25,7 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include <cstddef>
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Utils.hpp"
