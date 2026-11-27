@@ -37,7 +37,7 @@ static const ConfigOption *option_of(const ConfigBase &config, const char *key)
     return nullptr;
 }
 
-bool prime_tower_is_printed(const ConfigBase &config, int used_filaments, int num_objects, bool has_mixed_filament)
+bool prime_tower_is_printed(const ConfigBase &config, PrintSequence print_sequence, int used_filaments, int num_instances, bool has_mixed_filament)
 {
     const auto *ept = config.option<ConfigOptionBool>("enable_prime_tower");
     if (ept == nullptr || !ept->value)
@@ -54,9 +54,7 @@ bool prime_tower_is_printed(const ConfigBase &config, int used_filaments, int nu
     if (smooth_timelapse || enable_wrapping)
         return true;
 
-    const ConfigOption *sequence = option_of(config, "print_sequence");
-    const bool by_object = sequence != nullptr && sequence->getInt() == int(PrintSequence::ByObject);
-    return !((used_filaments == 1 && !has_mixed_filament) || (by_object && num_objects > 1));
+    return !((used_filaments == 1 && !has_mixed_filament) || (print_sequence == PrintSequence::ByObject && num_instances > 1));
 }
 
 WipeTowerType resolve_wipe_tower_type(const ConfigBase &config)

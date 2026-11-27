@@ -727,7 +727,7 @@ void ImGuiWrapper::record_named_item(const std::string& name, const char* kind, 
     item.window  = window->Name;
     item.x = min.x, item.y = min.y, item.w = max.x - min.x, item.h = max.y - min.y;
     item.flags   = checked_flags(checked);
-    item.clipped = !ImRect(min, max).Overlaps(window->ClipRect);
+    item.clipped = !window->ClipRect.Contains(ImRect(min, max).GetCenter());
     m_frame.items.push_back(std::move(item));
 }
 
@@ -745,8 +745,8 @@ void ImGuiWrapper::record_item_add(unsigned id, float x0, float y0, float x1, fl
     item.window  = window != nullptr ? window : "";
     item.x = x0, item.y = y0, item.w = x1 - x0, item.h = y1 - y0;
     item.clipped = clipped;
-    // A clipped widget returns before it reports its label; the string its id was hashed from is that
-    // label. ImGui's own "#image"-style ids are not labels.
+    // A widget wholly outside the visible part of its window returns before it reports its label; the
+    // string its id was hashed from is that label. ImGui's own "#image"-style ids are not labels.
     if (id == m_last_string_id && !(m_last_string.size() > 1 && m_last_string[0] == '#' && m_last_string[1] != '#'))
         item.label = m_last_string;
     m_frame.items.push_back(std::move(item));
@@ -3879,7 +3879,7 @@ void ImGuiTestEngineHook_ItemAdd(ImGuiContext* ctx, const ImRect& bb, ImGuiID id
     if (Slic3r::GUI::ImGuiWrapper* imgui = recorder(ctx)) {
         ImGuiWindow* window = ctx->CurrentWindow;
         imgui->record_item_add(id, bb.Min.x, bb.Min.y, bb.Max.x, bb.Max.y, window ? window->Name : nullptr,
-                               window != nullptr && !bb.Overlaps(window->ClipRect));
+                               window != nullptr && !window->ClipRect.Contains(bb.GetCenter()));
     }
 }
 

@@ -510,6 +510,64 @@ else()
     #list(APPEND _dep_list "dep_libigl")
 endif()
 
+# ExternalProject unpacks a dependency's source once and later re-runs its PATCH_COMMAND on that
+# same tree whenever the command changes. A patch that was replaced, edited or dropped then fails
+# to apply over its earlier version, or its old change stays in the source. So each patched
+# dependency gets a step before its download step that depends on a record of the patch command
+# and of the patch files' contents: when the record changes, the source is unpacked again and the
+# current patches go onto a clean tree. The record is rewritten only when its contents change, so
+# reconfiguring or switching between branches with the same patches unpacks nothing.
+#
+# The record hashes the files under deps/ that the command names, plus the .patch files beside
+# them, which a patch script such as python3/patch_winapi_audit.cmake reads from its own folder.
+function(orcaslicer_reextract_on_patch_change target)
+    # Recipes pass PATCH_COMMAND with no value on platforms that need no patch, which
+    # ExternalProject_Get_Property() rejects as unset, so read the property it would read.
+    get_property(_command TARGET ${target} PROPERTY _EP_PATCH_COMMAND)
+    if ("${_command}" STREQUAL "")
+        return()
+    endif ()
+
+    set(_files "")
+    foreach (_arg IN LISTS _command)
+        string(FIND "${_arg}" "${CMAKE_CURRENT_SOURCE_DIR}/" _in_deps)
+        if (_in_deps EQUAL 0 AND EXISTS "${_arg}" AND NOT IS_DIRECTORY "${_arg}")
+            get_filename_component(_dir "${_arg}" DIRECTORY)
+            file(GLOB _patches "${_dir}/*.patch")
+            list(APPEND _files "${_arg}" ${_patches})
+        endif ()
+    endforeach ()
+    set(_record "${_command}\n")
+    if (_files)
+        list(REMOVE_DUPLICATES _files)
+        foreach (_file IN LISTS _files)
+            file(SHA256 "${_file}" _hash)
+            string(APPEND _record "${_hash} ${_file}\n")
+        endforeach ()
+    endif ()
+
+    ExternalProject_Get_Property(${target} STAMP_DIR)
+    set(_record_file "${STAMP_DIR}/${target}-patch-record.txt")
+    set(_old_record "")
+    if (EXISTS "${_record_file}")
+        file(READ "${_record_file}" _old_record)
+    endif ()
+    if (NOT _old_record STREQUAL _record)
+        file(WRITE "${_record_file}" "${_record}")
+    endif ()
+
+    ExternalProject_Add_Step(${target} patch_record
+        DEPENDEES mkdir
+        DEPENDERS download
+        DEPENDS "${_record_file}"
+        COMMENT "Patches of '${target}' are new or changed: unpacking its source afresh")
+endfunction()
+
+get_property(_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+foreach (_target IN LISTS _targets)
+    orcaslicer_reextract_on_patch_change(${_target})
+endforeach ()
+
 add_custom_target(deps ALL DEPENDS ${_dep_list})
 
 # Note: I'm not using any of the LOG_xxx options in ExternalProject_Add() commands
