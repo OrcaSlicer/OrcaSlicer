@@ -373,6 +373,7 @@ static const std::unordered_set<std::string> s_jump_liveview_error_codes = { "03
 wxString DeviceErrorDialog::show_error_code(int error_code)
 {
     if (m_error_code == error_code) { return wxEmptyString;}
+    m_error_code = error_code;
     if (wxGetApp().get_hms_query()->is_internal_error(m_obj, error_code)) { return wxEmptyString;}
 
     /* error code str*/

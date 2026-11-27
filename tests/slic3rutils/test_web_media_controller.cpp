@@ -112,12 +112,13 @@ TEST_CASE("Web media controller tears down a snapshot lifecycle", "[WebMediaCont
 
     controller.Stop();
 
-    REQUIRE(view.events.size() == 7);
-    CHECK(view.events[3] == "script");
-    CHECK(view.events[4] == "stop");
-    CHECK(view.events[5] == "page");
-    CHECK(view.events[6] == "history");
-    CHECK(view.script == "if(typeof stopCameraRefresh==='function') stopCameraRefresh();");
+    // The page's stopCameraRefresh() goes to the native backend, which the stub has none of, so the
+    // script never reaches the stub's RunScript().
+    REQUIRE(view.events.size() == 6);
+    CHECK(view.events[3] == "stop");
+    CHECK(view.events[4] == "page");
+    CHECK(view.events[5] == "history");
+    CHECK(view.script.empty());
     CHECK(view.page.empty());
     CHECK(view.page_base == "about:blank");
 

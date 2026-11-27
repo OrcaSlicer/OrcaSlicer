@@ -298,6 +298,9 @@ void MixedFilamentDialog::append_material_row()
     auto* combo = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                wxSize(FromDIP(166), FromDIP(24)), 0, nullptr, wxCB_READONLY);
     combo->SetKeepDropArrow(true);
+    // Named so that automation finds each component's selector (widget_set_value {"target": {"name": "filament_1"}}),
+    // as it finds the gradient controls below.
+    combo->SetName(wxString::Format("filament_%d", (int)(m_combo_filaments.size() + 1)));
     combo->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { on_filament_changed(); });
     row->Add(combo, 1, wxALIGN_CENTER_VERTICAL);
 
@@ -1057,6 +1060,7 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
     m_gradient_sizer = new wxBoxSizer(wxHORIZONTAL);
 
     m_chk_gradient = new LabeledCheckBox(this, _L("Gradient Effect"));
+    m_chk_gradient->SetName("gradient");
     m_chk_gradient->SetValue(m_result.gradient_enabled);
     m_chk_gradient->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) { e.Skip(); on_gradient_toggled(); });
     m_gradient_sizer->Add(m_chk_gradient, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(2));
@@ -1064,6 +1068,8 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
     m_combo_gradient_dir = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                         wxSize(FromDIP(152), FromDIP(24)), 0, nullptr, wxCB_READONLY);
     m_combo_gradient_dir->SetKeepDropArrow(true);
+    // Its items are pictures of the two filaments, the first item the first filament at the bottom.
+    m_combo_gradient_dir->SetName("gradient_direction");
     update_gradient_direction_items();
     m_combo_gradient_dir->SetSelection(m_result.gradient_direction);
     m_combo_gradient_dir->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { on_gradient_direction_changed(); });
@@ -1094,6 +1100,7 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
     m_per_part_gradient_sizer = new wxBoxSizer(wxHORIZONTAL);
 
     m_chk_per_part_gradient = new LabeledCheckBox(this, _L("Enable per-part gradient effect"));
+    m_chk_per_part_gradient->SetName("per_part_gradient");
     m_chk_per_part_gradient->SetValue(m_result.per_part_gradient);
     m_chk_per_part_gradient->Bind(wxEVT_CHECKBOX,
         [this](wxCommandEvent& e) { e.Skip(); on_per_part_gradient_toggled(); });

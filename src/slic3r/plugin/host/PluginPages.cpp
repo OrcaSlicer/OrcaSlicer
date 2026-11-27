@@ -5,6 +5,7 @@
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
@@ -369,8 +370,12 @@ void PluginPages::relayout()
         // In tab order, as in shutdown().
         for (const auto& id : m_order) {
             const int idx = m_parent->FindPage(m_pages.at(id).page);
-            if (idx != wxNOT_FOUND)
+            if (idx != wxNOT_FOUND) {
                 m_parent->RemovePage(idx);
+                // Removing the selected page leaves it shown, and a page that is not
+                // inserted again would stay drawn over the next selected one.
+                m_pages.at(id).page->Hide();
+            }
         }
 
         for (const auto& id : tab_ids) {
@@ -443,7 +448,7 @@ void PluginPages::show_overflow_menu()
         relayout();
         m_parent->SelectPageByName(page_tab_id(*m_swapped_in_id));
     });
-    m_overflow_button->PopupMenu(&menu);
+    GUI::popup_menu(*m_overflow_button, menu);
 }
 
 } // namespace Slic3r

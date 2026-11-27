@@ -397,14 +397,15 @@ TEST_CASE("prime_tower_is_printed answers exactly what normalize_fdm_2 decides",
     // drift, which is what this pins. Every combination the rule looks at, both verdicts compared.
     const int  used_filaments = GENERATE(1, 2, 3);
     const bool has_mixed      = GENERATE(false, true);
-    const int  num_objects    = GENERATE(1, 2);
+    const int  num_instances  = GENERATE(1, 2);
     const bool by_object      = GENERATE(false, true);
     const bool smooth         = GENERATE(false, true);
     const bool wrapping       = GENERATE(false, true);
 
     DynamicPrintConfig config = preset_shaped_defaults();
     config.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
-    config.set_deserialize_strict("print_sequence", by_object ? "by object" : "by layer");
+    // A plate can inherit or override either process preset sequence.
+    config.set_deserialize_strict("print_sequence", GENERATE("by layer", "by object"));
     config.set_deserialize_strict("timelapse_type", smooth ? "1" : "0");
     config.set_key_value("enable_wrapping_detection", new ConfigOptionBool(wrapping));
     config.set_key_value("filament_is_mixed", new ConfigOptionBools(
@@ -412,20 +413,22 @@ TEST_CASE("prime_tower_is_printed answers exactly what normalize_fdm_2 decides",
     REQUIRE(has_any_mixed_filament(config.option<ConfigOptionBools>("filament_is_mixed")->values) == has_mixed);
 
     DynamicPrintConfig normalized = config;
-    normalized.normalize_fdm_2(num_objects, used_filaments);
+    normalized.set_deserialize_strict("print_sequence", by_object ? "by object" : "by layer");
+    normalized.normalize_fdm_2(num_instances, used_filaments);
     const bool slicer_prints_one = normalized.opt_bool("enable_prime_tower");
 
-    CHECK(prime_tower_is_printed(config, used_filaments, num_objects, has_mixed) == slicer_prints_one);
+    const PrintSequence sequence = by_object ? PrintSequence::ByObject : PrintSequence::ByLayer;
+    CHECK(prime_tower_is_printed(config, sequence, used_filaments, num_instances, has_mixed) == slicer_prints_one);
 }
 
 TEST_CASE("prime_tower_is_printed follows the option the user set", "[WipeTowerEstimate]") {
     DynamicPrintConfig config = preset_shaped_defaults();
     config.set_key_value("enable_prime_tower", new ConfigOptionBool(false));
-    CHECK_FALSE(prime_tower_is_printed(config, 2, 1, false));
+    CHECK_FALSE(prime_tower_is_printed(config, PrintSequence::ByLayer, 2, 1, false));
 
     // Below one filament normalize_fdm_2 leaves the option alone, so this does too.
     config.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
-    CHECK(prime_tower_is_printed(config, 0, 1, false));
+    CHECK(prime_tower_is_printed(config, PrintSequence::ByLayer, 0, 1, false));
 }
 
 // A size x size mm footprint anchored at its lower-left corner, on a plate whose anchors may

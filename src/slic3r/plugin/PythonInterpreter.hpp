@@ -62,6 +62,14 @@ public:
     // Bundled uv executable path, or empty when uv is not bundled/found.
     static std::string bundled_uv_path();
 
+    // Run the bundled uv with `args` (everything after the executable), capturing its stderr.
+    // Blocks the calling thread until the child exits or `timeout` elapses.
+    //
+    // `error` is set to an actionable message on failure: a missing bundled uv, a failed wait, a
+    // timeout, a non-zero exit status, or the exception thrown while spawning the child. Arguments
+    // are passed as an array; nothing is routed through a shell.
+    static bool run_uv(const std::vector<std::string>& args, std::chrono::seconds timeout, std::string& error);
+
     // Python ABI tag for the bundled interpreter, e.g. "cp312".
     static std::string python_abi_tag();
 
@@ -81,16 +89,17 @@ public:
     // removed when the final plugin using it is unloaded.
     bool add_plugin_sys_path(const std::string& path, std::string& error);
 
+    // Whether a loaded plugin's records hold the module `name`, so it belongs to that plugin. GIL held.
+    bool plugin_uses_module(const std::string& name) const;
+    // Whether a plugin's module import is under way. A plugin records the modules it imported only after its import
+    // returns, so until then nothing says that a module it took is its. Any thread.
+    bool plugin_import_in_progress() const { return m_plugin_imports.load() > 0; }
+
     // Load a Python module from file path
     PyObject* load_module_from_file(const std::string& file_path,
                                     std::string&       error,
                                     std::vector<std::string>* plugin_paths = nullptr,
                                     std::vector<std::string>* plugin_modules = nullptr);
-    PyObject* load_module_from_whl(const std::string& whl_path,
-                                   const std::string& pkg_name,
-                                   std::string&       error,
-                                   std::vector<std::string>* plugin_paths = nullptr,
-                                   std::vector<std::string>* plugin_modules = nullptr);
     PyObject* load_module_from_directory(const std::string& dir_path,
                                          const std::string& pkg_name,
                                          std::string&       error,
@@ -132,6 +141,7 @@ private:
     std::unordered_map<std::string, bool>        m_plugin_path_owned;
     std::unordered_map<std::string, std::size_t> m_plugin_module_users;
     std::unordered_map<std::string, bool>        m_plugin_module_owned;
+    std::atomic<int>                             m_plugin_imports{0};
 };
 
 class PythonRuntimeLease

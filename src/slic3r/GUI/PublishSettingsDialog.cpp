@@ -3,6 +3,7 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
+#include "SyntheticInput.hpp"
 #include "I18N.hpp"
 #include "Tab.hpp"
 #include "ConfigValueFormatter.hpp"
@@ -400,6 +401,8 @@ std::set<size_t> project_used_filament_slots(const PresetBundle& bundle, const D
     const int glb_internal_solid = print_cfg.opt_int("internal_solid_filament_id");
     const int glb_top_surface    = print_cfg.opt_int("top_surface_filament_id");
     const int glb_bottom_surface = print_cfg.opt_int("bottom_surface_filament_id");
+    const int glb_brim           = print_cfg.opt_int("brim_filament_id");
+    const bool glb_brim_on       = print_cfg.option("brim_type")->getInt() != int(BrimType::btNoBrim);
     const bool glb_support_on    = print_cfg.opt_bool("enable_support") || print_cfg.opt_int("raft_layers") > 0;
 
     for (ModelObject* mo : model.objects) {
@@ -459,6 +462,10 @@ std::set<size_t> project_used_filament_slots(const PresetBundle& bundle, const D
         if (obj_bottom == 0)
             obj_bottom = obj_internal_solid;
         add_1based(obj_bottom != 0 ? obj_bottom : glb_bottom_surface);
+
+        const ConfigOption* brim_type_opt = mo->config.option("brim_type");
+        if (brim_type_opt != nullptr ? brim_type_opt->getInt() != int(BrimType::btNoBrim) : glb_brim_on)
+            add_1based(mo->config.has("brim_filament_id") ? obj_id("brim_filament_id") : glb_brim);
     }
 
     for (const auto& plate_entry : model.plates_custom_gcodes)
@@ -2079,7 +2086,7 @@ void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
         return;
     wxPoint screen_pos = src->ClientToScreen(evt.GetPosition());
     wxPoint local_pos  = ScreenToClient(screen_pos);
-    PopupMenu(&m, local_pos);
+    popup_menu(*this, m, local_pos);
 }
 
 void PublishSettingsDialog::apply_selection(const std::vector<std::string>& published_keys,

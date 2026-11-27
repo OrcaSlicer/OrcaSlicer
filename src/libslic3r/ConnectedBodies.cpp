@@ -24,64 +24,94 @@
 
 namespace Slic3r {
 
+// Whether two islands share some area. What they share lies where their boxes overlap, and each clipped to that box
+// keeps all of it, so only the parts of their outlines there are intersected: a large island, such as a sheet under
+// thousands of small ones, is otherwise intersected whole with each of them.
+static bool islands_overlap(const ExPolygon &a, const BoundingBox &a_box, const ExPolygon &b, const BoundingBox &b_box)
+{
+    const BoundingBox box(a_box.min.cwiseMax(b_box.min), a_box.max.cwiseMin(b_box.max));
+    const Polygons    a_clipped = ClipperUtils::clip_clipper_polygons_with_subject_bbox(a, box);
+    if (a_clipped.empty())
+        return false;
+    const Polygons b_clipped = ClipperUtils::clip_clipper_polygons_with_subject_bbox(b, box);
+    return !b_clipped.empty() && !intersection(a_clipped, b_clipped).empty();
+}
+
 std::vector<std::vector<size_t>> connected_bodies(const std::vector<const ExPolygons *> &layers, size_t &count,
                                                   const std::function<void()> &throw_if_canceled)
 {
-    // Union-find over the islands of all layers, numbered layer after layer.
+    // The islands of all layers, numbered layer after layer.
     std::vector<size_t> first(layers.size() + 1, 0);
     for (size_t l = 0; l < layers.size(); ++l)
         first[l + 1] = first[l] + layers[l]->size();
-    std::vector<size_t> parent(first.back());
-    for (size_t i = 0; i < parent.size(); ++i)
-        parent[i] = i;
-    const auto find = [&parent](size_t i) {
+    const auto find = [](std::vector<size_t> &parent, size_t i) {
         while (parent[i] != i)
             i = parent[i] = parent[parent[i]];
         return i;
     };
 
     std::vector<std::vector<BoundingBox>> boxes(layers.size());
-    for (size_t l = 0; l < layers.size(); ++l)
-        for (const ExPolygon &island : *layers[l])
-            boxes[l].emplace_back(get_extents(island));
-    for (size_t l = 0; l + 1 < layers.size(); ++l) {
-        if (throw_if_canceled)
-            throw_if_canceled();
-        // Index the smaller of the two layers, so that a fragmented layer is not scanned island by island.
-        size_t a_layer = l;
-        size_t b_layer = l + 1;
-        if (layers[a_layer]->size() < layers[b_layer]->size())
-            std::swap(a_layer, b_layer);
-        if (layers[b_layer]->empty())
-            continue;
-        using IslandTree = AABBTreeIndirect::Tree<2, coord_t>;
-        std::vector<AABBTreeIndirect::BoundingBoxWrapper> wrappers;
-        wrappers.reserve(boxes[b_layer].size());
-        for (size_t b = 0; b < boxes[b_layer].size(); ++b)
-            wrappers.emplace_back(b, boxes[b_layer][b]);
-        IslandTree tree;
-        tree.build_modify_input(wrappers);
-        for (size_t a = 0; a < boxes[a_layer].size(); ++a) {
-            const IslandTree::BoundingBox query(boxes[a_layer][a].min, boxes[a_layer][a].max);
-            AABBTreeIndirect::traverse(
-                tree, [&query](const IslandTree::Node &node) { return node.bbox.intersects(query); },
-                [&](const IslandTree::Node &node) {
-                    // The tree's boxes are widened by an epsilon, and islands already joined need no clipping.
-                    const size_t b = node.idx;
-                    if (boxes[a_layer][a].overlap(boxes[b_layer][b]) && find(first[a_layer] + a) != find(first[b_layer] + b) &&
-                        !intersection_ex((*layers[a_layer])[a], (*layers[b_layer])[b]).empty())
-                        parent[find(first[a_layer] + a)] = find(first[b_layer] + b);
-                    return true;
-                });
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()), [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t l = range.begin(); l < range.end(); ++l)
+            for (const ExPolygon &island : *layers[l])
+                boxes[l].emplace_back(get_extents(island));
+    });
+    // The pairs of overlapping islands of each two adjacent layers, found apart, then joined in order.
+    std::vector<std::vector<std::pair<size_t, size_t>>> links(layers.size());
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size() > 1 ? layers.size() - 1 : 0), [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t l = range.begin(); l < range.end(); ++l) {
+            if (throw_if_canceled)
+                throw_if_canceled();
+            // Index the smaller of the two layers, so that a fragmented layer is not scanned island by island.
+            size_t a_layer = l;
+            size_t b_layer = l + 1;
+            if (layers[a_layer]->size() < layers[b_layer]->size())
+                std::swap(a_layer, b_layer);
+            if (layers[b_layer]->empty())
+                continue;
+            using IslandTree = AABBTreeIndirect::Tree<2, coord_t>;
+            std::vector<AABBTreeIndirect::BoundingBoxWrapper> wrappers;
+            wrappers.reserve(boxes[b_layer].size());
+            for (size_t b = 0; b < boxes[b_layer].size(); ++b)
+                wrappers.emplace_back(b, boxes[b_layer][b]);
+            IslandTree tree;
+            tree.build_modify_input(wrappers);
+            // Union-find over the islands of these two layers, those of the indexed layer last: islands already joined
+            // through others of these layers need no clipping.
+            const size_t        a_count = boxes[a_layer].size();
+            std::vector<size_t> parent(a_count + boxes[b_layer].size());
+            for (size_t i = 0; i < parent.size(); ++i)
+                parent[i] = i;
+            for (size_t a = 0; a < a_count; ++a) {
+                const IslandTree::BoundingBox query(boxes[a_layer][a].min, boxes[a_layer][a].max);
+                AABBTreeIndirect::traverse(
+                    tree, [&query](const IslandTree::Node &node) { return node.bbox.intersects(query); },
+                    [&](const IslandTree::Node &node) {
+                        // The tree's boxes are widened by an epsilon, and islands already joined need no clipping.
+                        const size_t b = node.idx;
+                        if (!boxes[a_layer][a].overlap(boxes[b_layer][b]) || find(parent, a) == find(parent, a_count + b) ||
+                            !islands_overlap((*layers[a_layer])[a], boxes[a_layer][a], (*layers[b_layer])[b], boxes[b_layer][b]))
+                            return true;
+                        parent[find(parent, a)] = find(parent, a_count + b);
+                        links[l].emplace_back(first[a_layer] + a, first[b_layer] + b);
+                        return true;
+                    });
+            }
         }
-    }
+    });
 
+    std::vector<size_t> parent(first.back());
+    for (size_t i = 0; i < parent.size(); ++i)
+        parent[i] = i;
+    for (const std::vector<std::pair<size_t, size_t>> &pairs : links)
+        for (const auto &[a, b] : pairs)
+            parent[find(parent, a)] = find(parent, b);
     std::vector<size_t>              body(parent.size(), std::numeric_limits<size_t>::max());
     std::vector<std::vector<size_t>> out(layers.size());
     count = 0;
     for (size_t l = 0; l < layers.size(); ++l)
         for (size_t i = 0; i < layers[l]->size(); ++i) {
-            size_t &b = body[find(first[l] + i)];
+            size_t &b = body[find(parent, first[l] + i)];
             if (b == std::numeric_limits<size_t>::max())
                 b = count++;
             out[l].emplace_back(b);

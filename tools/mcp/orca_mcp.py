@@ -1,0 +1,904 @@
+#!/usr/bin/env python3
+"""Drive OrcaSlicer's MCP server from Python or a shell, for development and tests.
+
+Standard library only. Two halves:
+
+* ``OrcaMcp``: a minimal client for the server's HTTP endpoint (``call(tool, **args)``), which
+  ``OrcaMcp.from_datadir()`` attaches to an OrcaSlicer already running with the server on.
+* A command line that launches OrcaSlicer for an agent or a test and talks to it::
+
+    tools/mcp/orca_mcp.py launch --headless         # fresh datadir on a private headless desktop (Linux), wait until ready
+    tools/mcp/orca_mcp.py launch --xvfb             # on a private Xvfb display, for a Linux machine without a desktop
+    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for its commands (tool_list group Design)
+    tools/mcp/orca_mcp.py launch --unrestricted-scripts  # with Python scripts (script_run) unrestricted
+    tools/mcp/orca_mcp.py call app_state
+    tools/mcp/orca_mcp.py call project_import '{"paths": ["/abs/model.stl"]}'
+    tools/mcp/orca_mcp.py screenshot /tmp/shot.png --target canvas
+    tools/mcp/orca_mcp.py widgets
+    tools/mcp/orca_mcp.py run-replay tools/mcp/smoke_test.json --out /tmp/smoke
+    tools/mcp/orca_mcp.py stop
+
+``launch`` records the instance (port, token, pid, datadir) in a session file
+(``$ORCA_MCP_SESSION`` or ``~/.cache/orca-mcp/session.json``) that the other commands read.
+
+With ``$ORCA_MCP_CALL_LOG`` set to a file, every tool call appends one JSON line to it,
+``{"tool", "ms", "ok"}``, to show where a test spends its time.
+"""
+
+import argparse
+import base64
+import collections
+import json
+import os
+import platform
+import select
+import shlex
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+
+DEFAULT_PORT = 13619
+SESSION_FILE = os.environ.get("ORCA_MCP_SESSION", os.path.expanduser("~/.cache/orca-mcp/session.json"))
+PROTOCOL = "2025-11-25"
+
+# A printer `launch` seeds a fresh datadir with: its vendor, its model and nozzle as the setup wizard picks them, the
+# filament the one slot starts with, and the printer preset selected.
+Printer = collections.namedtuple("Printer", "vendor model nozzle filament preset")
+# A finished setup with one printer, so a fresh datadir opens straight into the main window. The app installs the
+# Custom vendor and the Orca Filament Library on every datadir, so a first start copies no other vendor's profiles.
+DEFAULT_PRINTER = Printer("Custom", "Generic Klipper Printer", "0.4", "Generic PLA @System", "MyKlipper 0.4 nozzle")
+PROFILES = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, "resources", "profiles")
+# A fresh datadir's main window: at the top left of the screen's work area, small enough for a 1920 x 1080
+# screen to show all of it, so instances started side by side stay on screen and a view or screenshot taken in
+# one has the same size in another.
+WINDOW_SIZE = (1600, 900)
+# The private screen --headless and --xvfb start, unless --width and --height size it.
+SCREEN_SIZE = (1600, 1000)
+
+
+def reply_budget_s():
+    """The reply budget, in seconds, of an app started with this process's environment: the commands' 45 s, or
+    less where ORCA_MCP_REPLY_BUDGET_MS caps it, read as McpCore.cpp's reply_budget_cap_from() reads it (digits
+    alone, above 0)."""
+    cap = os.environ.get("ORCA_MCP_REPLY_BUDGET_MS", "")
+    return min(45.0, int(cap) / 1000) if cap.isascii() and cap.isdigit() and int(cap) > 0 else 45.0
+
+
+class McpError(RuntimeError):
+    """A tool returned isError, or the server answered with a JSON-RPC error."""
+
+    def __init__(self, message, payload=None):
+        super().__init__(message)
+        self.payload = payload
+
+
+def default_datadir(exe=None):
+    """The datadir OrcaSlicer uses without --datadir, as McpStdioBridge.cpp's default_datadir() picks it.
+
+    A portable install keeps it in data_dir beside the binary `exe` (beside the .app on macOS), which
+    is looked for only when `exe` is given; otherwise it is the platform's configuration folder. On
+    Linux the binary is located as the app locates itself, through /proc/self/exe, which resolves
+    symlinks, so a symlinked `exe` is resolved too; on Windows by GetModuleFileName, which leaves them.
+    On macOS it follows the stdio bridge, whose _NSGetExecutablePath takes the path as given; whether
+    the app itself resolves a symlinked binary there (its lookup goes through the main bundle) is
+    unverified, which matters only for a symlinked binary."""
+    if exe:
+        exe = os.path.abspath(exe) if sys.platform in ("win32", "darwin") else os.path.realpath(exe)
+        folder = os.path.dirname(exe)
+        if sys.platform == "darwin":  # <folder>/OrcaSlicer.app/Contents/MacOS/<exe>
+            for _ in range(3):
+                folder = os.path.dirname(folder)
+        portable = os.path.join(folder, "data_dir")
+        if os.path.exists(portable):
+            return portable
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA", ".")
+    elif sys.platform == "darwin":
+        base = os.path.join(os.path.expanduser("~"), "Library", "Application Support")
+    else:
+        base = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+    return os.path.join(base, "OrcaSlicer")
+
+
+class OrcaMcp:
+    def __init__(self, port=DEFAULT_PORT, token="", host="127.0.0.1", timeout=120):
+        self.url = f"http://{host}:{port}/mcp"
+        self.port = port
+        self.token = token
+        self.timeout = timeout
+        self._id = 0
+        # True asks every tools/call for its reply's numbers whole: the server rounds them for an agent to read
+        # (4 decimals, or 3 significant digits), which a check computing with them to 1e-9 cannot use.
+        self.exact_numbers = False
+
+    @classmethod
+    def from_datadir(cls, datadir=None, exe=None):
+        """A client of the OrcaSlicer already running on `datadir` (default: default_datadir(exe)).
+
+        Its MCP server writes its port and token to <datadir>/mcp/server.json when it starts. Raises
+        McpError when that file is missing, or when a ping to the port it names fails: nothing listens
+        there any more, or something else does (another server, or an OrcaSlicer with another token),
+        with the failure as the error's cause."""
+        path = os.path.join(datadir or default_datadir(exe), "mcp", "server.json")
+        advice = "start OrcaSlicer with --mcp (or turn on \"MCP server\" under AI features in its Preferences)"
+        try:
+            with open(path, encoding="utf-8") as f:
+                info = json.load(f)
+            port, token = int(info["port"]), info.get("token", "")
+        except FileNotFoundError:
+            raise McpError(f"{path} does not exist, so no OrcaSlicer serves MCP on that datadir; {advice}") from None
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            raise McpError(f"cannot read the port from {path} ({e}); {advice}") from None
+        client = cls(port, token)
+        # A port the file names may since have gone to anything, so whatever way the ping fails (refused,
+        # timed out, an HTTP error, a reply that is not HTTP or not JSON), this datadir's server is not there.
+        try:
+            client.request("ping", timeout=10)
+        except Exception as e:
+            raise McpError(f"OrcaSlicer's MCP server does not answer on port {port}, which {path} names ({e}); "
+                           f"{advice}") from e
+        return client
+
+    def request(self, method, params=None, timeout=None):
+        self._id += 1
+        body = {"jsonrpc": "2.0", "id": self._id, "method": method}
+        if params is not None:
+            body["params"] = params
+        req = urllib.request.Request(
+            self.url,
+            data=json.dumps(body).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+                "Authorization": f"Bearer {self.token}",
+                "MCP-Protocol-Version": PROTOCOL,
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout or self.timeout) as r:
+                reply = json.loads(r.read() or b"{}")
+        except urllib.error.HTTPError as e:
+            raise McpError(f"HTTP {e.code}: {e.read().decode(errors='replace')}") from None
+        if "error" in reply:
+            raise McpError(reply["error"].get("message", "error"), reply["error"])
+        return reply.get("result", {})
+
+    def initialize(self):
+        return self.request("initialize", {"protocolVersion": PROTOCOL, "capabilities": {},
+                                           "clientInfo": {"name": "orca_mcp.py", "version": "1"}})
+
+    def tools(self):
+        return self.request("tools/list")["tools"]
+
+    def call_raw(self, tool, args=None, timeout=None):
+        start, result = time.monotonic(), None
+        try:
+            params = {"name": tool, "arguments": args or {}}
+            if self.exact_numbers:
+                params["_meta"] = {"orcaslicer/exact_numbers": True}
+            result = self.request("tools/call", params, timeout=timeout)
+            return result
+        finally:
+            # Read on each call, so a test can turn the log on after the module is imported.
+            log = os.environ.get("ORCA_MCP_CALL_LOG")
+            if log:
+                ok = result is not None and not result.get("isError")
+                with open(log, "a", encoding="utf-8") as f:
+                    f.write(json.dumps({"tool": tool, "ms": round((time.monotonic() - start) * 1000), "ok": ok}) + "\n")
+
+    def call(self, tool, /, _timeout=None, **args):
+        """Call a tool and return its JSON result; raise McpError when the tool reports an error.
+
+        A call that returns a job envelope (running / blocked_by_dialog) is returned as is. The tool
+        name is positional-only, so an argument named tool (tool_call's) goes to the tool."""
+        return self.call_with_text(tool, _timeout, **args)[0]
+
+    def call_with_text(self, tool, /, _timeout=None, **args):
+        """Like call(), plus the text blocks after the JSON one (widget_list's tree)."""
+        result = self.call_raw(tool, args, timeout=_timeout)
+        texts = [c["text"] for c in result.get("content", []) if c.get("type") == "text"]
+        text = texts[0] if texts else ""
+        if result.get("isError"):
+            raise McpError(text, result)
+        try:
+            data = json.loads(text) if text else {}
+        except json.JSONDecodeError:
+            data = {"text": text}
+        return data, texts[1:]
+
+    def images(self, tool, /, **args):
+        """Call a tool and return (json_result, [png bytes...]) for image content blocks."""
+        result = self.call_raw(tool, args)
+        if result.get("isError"):
+            raise McpError(result["content"][0]["text"], result)
+        data, imgs = {}, []
+        for c in result.get("content", []):
+            if c.get("type") == "text":
+                data = json.loads(c["text"])
+            elif c.get("type") == "image":
+                imgs.append(base64.b64decode(c["data"]))
+        return data, imgs
+
+    def await_job(self, result, timeout=600):
+        """Follow a job envelope until the job finishes and return its result."""
+        deadline = time.time() + timeout
+        while isinstance(result, dict) and result.get("status") in ("running", "blocked_by_dialog") and "job" in result:
+            if time.time() > deadline:
+                raise McpError(f"job {result['job']} did not finish in {timeout} s", result)
+            result = self.call("app_wait", **{"for": "job", "job": result["job"], "timeout_s": 45})
+        return result
+
+    def call_command(self, tool, /, **args):
+        """Call one command, a tool or one the tool list does not show (a Design command), through
+        tool_call and return its reply.
+
+        A running job is followed to its end. A call whose first reply is blocked_by_dialog fails at
+        once, since a script that waited would wait on a dialog nobody answers. A call that first
+        replied running and opens a dialog later is waited on up to await_job's timeout, since app_wait
+        reports only that its job is still running. Every McpError's message starts "<tool>: ", with
+        the original error as its cause. The command's name is positional-only, so its own argument
+        named tool goes to the command."""
+        try:
+            reply = self.call("tool_call", _timeout=600, tool=tool, args=args)
+            if reply.get("status") == "blocked_by_dialog":
+                titles = ", ".join(f"\"{d.get('title', '')}\"" for d in reply.get("dialogs", []))
+                raise McpError(f"blocked by a dialog: {titles} (job {reply.get('job')} goes on once it is answered)", reply)
+            return self.await_job(reply)
+        except McpError as e:
+            raise McpError(f"{tool}: {e}", e.payload) from e
+
+    def ready(self, timeout=120):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                if self.call("app_wait", **{"for": "ready", "timeout_s": 5}).get("satisfied"):
+                    return True
+            except (McpError, OSError):
+                time.sleep(0.5)
+        return False
+
+
+# ---- launching ------------------------------------------------------------------------------
+
+def find_binary(explicit):
+    candidates = [explicit] if explicit else []
+    here = os.path.dirname(os.path.abspath(__file__))
+    repo = os.path.dirname(os.path.dirname(here))
+    exe = ".exe" if os.name == "nt" else ""
+    if sys.platform == "darwin":
+        # The CMake target's bundle, then the one build_release_macos.sh assembles; this machine's
+        # architecture first.
+        arches = sorted(("arm64", "x86_64"), key=lambda a: a != platform.machine()) + ["universal"]
+        for tree in [os.path.join("build", a) for a in arches] + ["build"]:
+            for bundle in (os.path.join("src", "Release", "OrcaSlicer.app"), os.path.join("OrcaSlicer", "OrcaSlicer.app")):
+                candidates.append(os.path.join(repo, tree, bundle, "Contents", "MacOS", "OrcaSlicer"))
+    # build_win.bat names a clang-cl tree build-clang.
+    candidates += [os.path.join(repo, tree, "src", "Release", "orca-slicer" + exe) for tree in ("build", "build-clang")]
+    candidates += [os.path.join(repo, "build", "package", "bin", "orca-slicer"),
+                   shutil.which("orca-slicer") or ""]
+    for c in candidates:
+        if c and os.path.exists(c):
+            return os.path.abspath(c)
+    sys.exit("orca-slicer not found; pass --bin")
+
+
+def write_conf(conf, data):
+    with open(conf, "w") as f:
+        json.dump(data, f, indent=2)
+        # On Windows the loader expects a line after the closing brace, where it keeps a checksum, and
+        # fails to start the app when the file ends at the brace.
+        f.write("\n")
+
+
+def work_area_origin():
+    """The top-left corner of the main display's work area, the part windows may cover: on macOS below the
+    menu bar and right of a Dock on the left, read from AppKit; (0, 0) where that cannot be read and on the
+    other systems, whose taskbar or panel usually sits at the bottom, and whose private displays have none."""
+    if sys.platform != "darwin":
+        return 0, 0
+    # AppKit measures from the bottom left; the first screen is the one with the menu bar.
+    script = ('ObjC.import("AppKit"); var s = $.NSScreen.screens.objectAtIndex(0), f = s.frame, v = s.visibleFrame;'
+              'JSON.stringify([v.origin.x - f.origin.x, f.origin.y + f.size.height - v.origin.y - v.size.height])')
+    try:
+        out = subprocess.run(["osascript", "-l", "JavaScript", "-e", script], capture_output=True, text=True,
+                             timeout=10).stdout
+        x, y = json.loads(out)
+        return round(x), round(y)
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError):
+        return 0, 0
+
+
+def vendor_printer(vendor, model, nozzle, filament=None, profiles=PROFILES):
+    """The Printer of `vendor`'s `model` with `nozzle`, read from the vendor's profiles under `profiles`: its printer
+    preset is the one the vendor's index lists for that model and nozzle, and its filament is `filament`, or the first
+    of the model's default filaments. Exits naming what the profiles lack."""
+    def read(sub_path):
+        with open(os.path.join(profiles, vendor, sub_path), encoding="utf-8") as f:
+            return json.load(f)
+
+    try:
+        with open(os.path.join(profiles, vendor + ".json"), encoding="utf-8") as f:
+            index = json.load(f)
+    except (OSError, ValueError) as e:
+        sys.exit(f"no profiles for the vendor {vendor!r}: {e}")
+    found = [m for m in index.get("machine_model_list", []) if m["name"] == model]
+    if not found:
+        sys.exit(f"{vendor} has no printer model {model!r}")
+    defaults = [f for f in read(found[0]["sub_path"]).get("default_materials", "").split(";") if f]
+    for item in index.get("machine_list", []):
+        preset = read(item["sub_path"])
+        diameter = preset.get("printer_variant") or (preset.get("nozzle_diameter") or [None])[0]
+        if preset.get("instantiation") == "true" and preset.get("printer_model") == model and diameter == nozzle:
+            if not (filament or defaults):
+                sys.exit(f"{model} names no default filament; pass --filament")
+            return Printer(vendor, model, nozzle, filament or defaults[0], preset["name"])
+    sys.exit(f"{vendor} has no printer preset of {model!r} with a {nozzle} nozzle")
+
+
+def seed_datadir(datadir, printer):
+    """Seed a fresh datadir's OrcaSlicer.conf, and return True; a datadir that has one keeps it, and gets False.
+
+    A fresh datadir keeps the Orca Cloud login in its own token file (use_encrypted_token_file), not in the
+    system's secret store, so the instance starts signed out and never reads the person's login: on macOS
+    that read stops a newly built app at a keychain prompt that only a person can answer. Its main window
+    opens WINDOW_SIZE at the top left of the work area: the app trims a saved window to the work area, so one
+    placed over the macOS menu bar would open that much shorter."""
+    os.makedirs(datadir, exist_ok=True)
+    conf = os.path.join(datadir, "OrcaSlicer.conf")
+    if os.path.exists(conf):
+        return False
+    x, y = work_area_origin()
+    width, height = WINDOW_SIZE
+    write_conf(conf, {"firstguide": {"finish": True},
+                      "models": [{"model": printer.model, "nozzle_diameter": printer.nozzle, "vendor": printer.vendor}],
+                      "filaments": [printer.filament],
+                      "presets": {"machine": printer.preset},
+                      "app": {"check_for_updates": False, "show_daily_tips": False, "use_encrypted_token_file": True,
+                              "window_mainframe": f"{x}; {y}; {width}; {height}; 0"}})
+    return True
+
+
+# The preferences a datadir had when launch seeded it, which checks.start() resets every preference to: the file sits
+# in the datadir, and app_state's config_folder names it to a test whatever launched the app.
+BASELINE_FILE = "mcp-baseline.json"
+
+
+def record_baseline(client, datadir):
+    """Write BASELINE_FILE: every preference preferences_get lists, with the value the newly seeded datadir gives it.
+    The values are read from the app rather than written down, since their defaults differ between systems."""
+    items = client.call("preferences_get")["items"]
+    with open(os.path.join(datadir, BASELINE_FILE), "w", encoding="utf-8") as f:
+        json.dump({"preferences": {i["key"]: i["value"] for i in items}}, f, indent=1)
+
+
+def wait_pid_gone(pid, timeout):
+    """On Windows, True once the process `pid` has ended, or when there is none, within `timeout` s. (Elsewhere
+    stop_group() waits for the app's process group.)"""
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    handle = kernel32.OpenProcess(0x00100000, False, pid)  # SYNCHRONIZE
+    if not handle:
+        return True
+    try:
+        return kernel32.WaitForSingleObject(handle, int(timeout * 1000)) == 0  # WAIT_OBJECT_0
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+# The headless compositors --headless tries, in order, by the binary each needs.
+COMPOSITORS = {"kwin": "kwin_wayland", "gnome-shell": "gnome-shell"}
+
+# The settings a private GNOME Shell starts with, in GLib's keyfile format (values in GVariant text): on the desktop,
+# not in the overview, and without the welcome tour, whose dialog would take the input the app's windows wait for, and
+# with a modal dialog where the app puts it, not attached to its parent's top edge.
+GNOME_SHELL_SETTINGS = ("[org/gnome/mutter]\nattach-modal-dialogs=false\n\n"
+                        "[org/gnome/shell]\nstart-in-overview=false\nwelcome-dialog-last-shown-version='999'\n")
+
+
+def start_headless(compositor, width, height, datadir):
+    """Start `compositor` headless with XWayland on a private session bus, and return the variables
+    the app needs to run on it as an X11 client and the process group to stop, or None when it did
+    not come up (its output is in <datadir>/mcp-display.log).
+
+    Unlike on Xvfb, the app draws with the GPU's OpenGL driver, and the compositor is its window
+    manager, so focus and stacking behave as on a desktop and popup lists stay open (start_openbox()
+    gives Xvfb a window manager). The private bus keeps the D-Bus services the app starts, such as
+    the desktop portals, out of the person's session. Only the compositor knows its XWayland display:
+    KWin starts a command that writes its environment to a file, and GNOME Shell, which starts none,
+    has it read from its XWayland's command line (gnome_shell_env()).
+
+    GNOME Shell brings up a whole session's services on its bus (the document portal, online
+    accounts, the calendar's data server). They take their paths from the runtime, configuration and
+    data directories, so on the person's own they would work on the files and mounts of their
+    session's copies: a second document portal there cost the session its own portal's mount. So the
+    shell runs on a directory of its own, as its runtime directory and the home of its
+    configuration, data, cache and state, with the settings GNOME_SHELL_SETTINGS gives;
+    stop_display() removes it. Its XWayland admits only clients that hold its auth file, which
+    allow_local_user() widens to the person's other processes."""
+    env_file = os.path.join(datadir, "mcp-display.env")
+    if os.path.exists(env_file):
+        os.remove(env_file)
+    # A Wayland socket of its own for each start: one process may start several compositors side by side, as
+    # the sweep's runner does for the tests that start their own apps, and a second one on a taken name fails.
+    socket = f"orca-mcp-{os.getpid()}-{os.urandom(4).hex()}"
+    env, home = None, None
+    if compositor == "kwin":
+        keys = ("DISPLAY", "WAYLAND_DISPLAY", "DBUS_SESSION_BUS_ADDRESS", "XAUTHORITY")
+        report = 'printf "%s\\n" ' + " ".join(f'"{k}=${k}"' for k in keys) + ' > "$0.tmp" && mv "$0.tmp" "$0"'
+        # KWin starts the command detached, outside the process group stop() ends, so the command
+        # exits once it has written the file; XWayland stays up without it.
+        cmd = ["kwin_wayland", "--virtual", "--width", str(width), "--height", str(height), "--socket", socket,
+               "--xwayland", shlex.join(["sh", "-c", report, env_file])]
+    else:
+        # In the runtime directory, not the datadir, whose path may be long: a socket's path takes at most 108 bytes.
+        home = tempfile.mkdtemp(prefix="orca-mcp-shell-", dir=os.environ.get("XDG_RUNTIME_DIR"))
+        settings = os.path.join(home, "config", "glib-2.0", "settings")
+        os.makedirs(settings)
+        with open(os.path.join(settings, "keyfile"), "w") as f:
+            f.write(GNOME_SHELL_SETTINGS)
+        dirs = {"XDG_CONFIG_HOME": "config", "XDG_DATA_HOME": "data", "XDG_CACHE_HOME": "cache", "XDG_STATE_HOME": "state"}
+        env = dict(os.environ, XDG_RUNTIME_DIR=home, GSETTINGS_BACKEND="keyfile",
+                   **{k: os.path.join(home, d) for k, d in dirs.items()})
+        cmd = ["gnome-shell", "--headless", "--wayland", "--virtual-monitor", f"{width}x{height}", "--wayland-display",
+               socket]
+    with open(os.path.join(datadir, "mcp-display.log"), "w") as log:
+        proc = subprocess.Popen(["dbus-run-session", "--"] + cmd, stdout=log, stderr=subprocess.STDOUT,
+                                start_new_session=True, env=env)
+
+    def reported():
+        if home:
+            return gnome_shell_env(proc.pid)
+        if not os.path.exists(env_file):
+            return None
+        with open(env_file) as f:
+            found = {k: v or None for k, _, v in (line.partition("=") for line in f.read().splitlines())}
+        os.remove(env_file)
+        return found
+
+    deadline = time.time() + 30
+    found = reported()
+    while found is None and proc.poll() is None and time.time() < deadline:
+        time.sleep(0.1)
+        found = reported()
+    if found and found.get("DISPLAY"):
+        if home:
+            # By its path: the app keeps the person's runtime directory, where the socket's name alone points.
+            found["WAYLAND_DISPLAY"] = os.path.join(home, socket)
+            if found.get("XAUTHORITY"):
+                allow_local_user(found["DISPLAY"], found["XAUTHORITY"])
+        return dict(found, GDK_BACKEND="x11"), proc.pid
+    stop_group(proc.pid)
+    if home:
+        shutil.rmtree(home, ignore_errors=True)
+    return None
+
+
+def allow_local_user(display, xauthority):
+    """Let every process of the person open the X `display`, guarded by the auth file `xauthority`, by its name
+    alone, as they open Xvfb's, which has no access control: only the app is given the auth file, and a test opens
+    the display itself to read the pointer or the stacking. No process of another user gets in."""
+    import pwd  # Linux only, as the displays are
+
+    if not shutil.which("xhost"):
+        print(f"xhost is not installed, so only a process given XAUTHORITY={xauthority} opens the display {display}",
+              file=sys.stderr)
+        return
+    subprocess.run(["xhost", f"+si:localuser:{pwd.getpwuid(os.getuid()).pw_name}"], capture_output=True, timeout=10,
+                   env=dict(os.environ, DISPLAY=display, XAUTHORITY=xauthority))
+
+
+def gnome_shell_env(group):
+    """The variables an X11 client needs to reach the XWayland of the GNOME Shell in process group `group`, or None
+    until that XWayland runs: the display and its auth file from XWayland's command line, the session bus from the
+    shell's environment."""
+    display = auth = bus = None
+    for pid in filter(str.isdigit, os.listdir("/proc")):
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                stat = f.read()
+            # The name is in parentheses and may hold spaces; the process group is the third field after it.
+            name, pgrp = stat[stat.index("(") + 1:stat.rindex(")")], int(stat[stat.rindex(")") + 2:].split()[2])
+            if pgrp != group:
+                continue
+            if name == "Xwayland":
+                with open(f"/proc/{pid}/cmdline", "rb") as f:
+                    argv = f.read().decode().split("\0")
+                display = next((a for a in argv if a.startswith(":")), None)
+                auth = argv[argv.index("-auth") + 1] if "-auth" in argv else None
+            elif name == "gnome-shell":
+                with open(f"/proc/{pid}/environ", "rb") as f:
+                    variables = f.read().decode().split("\0")
+                bus = next((v.partition("=")[2] for v in variables if v.startswith("DBUS_SESSION_BUS_ADDRESS=")), None)
+        except (OSError, ValueError, IndexError):  # ended meanwhile
+            continue
+    if not (display and bus):
+        return None
+    return {"DISPLAY": display, "DBUS_SESSION_BUS_ADDRESS": bus, "XAUTHORITY": auth}
+
+
+def stop_display(server, pid, env):
+    """End the private display start_display() gave as (`server`, `env`, `pid`): its process group, and for GNOME
+    Shell the directory it ran on, which holds its Wayland socket (see start_headless())."""
+    stop_group(pid)
+    if server == "gnome-shell" and env and os.path.isabs(env.get("WAYLAND_DISPLAY") or ""):
+        shutil.rmtree(os.path.dirname(env["WAYLAND_DISPLAY"]), ignore_errors=True)
+
+
+def start_display(args, datadir):
+    """The private display `launch` runs the app on, as (server name, variables for the app, process
+    group to stop), or (None, None, None) for the desktop the harness runs in.
+
+    --headless takes the first headless compositor that is installed and starts, and falls back to
+    Xvfb when none does, as on a machine without a desktop; --xvfb takes Xvfb."""
+    if (args.headless or args.xvfb) and not sys.platform.startswith("linux"):
+        sys.exit("--headless and --xvfb run only on Linux; elsewhere the app opens on the desktop")
+    if args.headless:
+        explicit = args.headless != "auto"
+        for name in [args.headless] if explicit else list(COMPOSITORS):
+            missing = [b for b in (COMPOSITORS[name], "dbus-run-session") if not shutil.which(b)]
+            if missing:
+                if explicit:
+                    sys.exit(f"--headless {name} needs {' and '.join(missing)}, which is not installed")
+                continue
+            started = start_headless(name, args.width, args.height, datadir)
+            if started:
+                return (name,) + started
+            message = f"{COMPOSITORS[name]} did not start; see {os.path.join(datadir, 'mcp-display.log')}"
+            if explicit:
+                sys.exit(message)
+            print(message, file=sys.stderr)
+        print("no headless compositor started, so the app runs on Xvfb: software OpenGL", file=sys.stderr)
+    if args.headless or args.xvfb:
+        if not shutil.which("Xvfb"):
+            sys.exit("Xvfb is not installed")
+        display, pid = start_xvfb(args.width, args.height)
+        start_openbox(display)
+        return "xvfb", {"DISPLAY": display, "GDK_BACKEND": "x11", "WAYLAND_DISPLAY": None}, pid
+    return None, None, None
+
+
+def stop_group(pid, timeout=5, force=True):
+    """End the process group `pid` leads: SIGTERM, then wait up to `timeout` s for it to go, and
+    SIGKILL what is left when `force`."""
+    try:
+        os.killpg(pid, signal.SIGTERM)
+    except OSError:  # already gone
+        return
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            os.waitpid(pid, os.WNOHANG)  # reaps the leader when this process started it
+        except ChildProcessError:
+            pass
+        try:
+            os.killpg(pid, 0)
+        except OSError:
+            return
+        time.sleep(0.1)
+    if force:
+        try:
+            os.killpg(pid, signal.SIGKILL)
+        except OSError:
+            pass
+
+
+def start_xvfb(width, height):
+    """Start Xvfb on the first free display from :90 to :119, and return the display and Xvfb's pid.
+
+    Launches run side by side, as the sweep's jobs do, so a display that looks free may be taken by
+    another launch before this one's Xvfb starts on it. Xvfb takes a display by its lock file, which
+    only one server can hold, and writes the display's number to -displayfd once it accepts clients;
+    one that finds the display taken exits without writing it, and the next display is tried. So each
+    launch gets a display of its own, never one another launch's Xvfb serves."""
+    for display in range(90, 120):
+        if os.path.exists(f"/tmp/.X11-unix/X{display}") or os.path.exists(f"/tmp/.X{display}-lock"):
+            continue
+        ready_r, ready_w = os.pipe()
+        proc = subprocess.Popen(["Xvfb", f":{display}", "-screen", "0", f"{width}x{height}x24", "-nolisten", "tcp",
+                                 "-noreset", "-displayfd", str(ready_w)], pass_fds=(ready_w,),
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        os.close(ready_w)
+        with os.fdopen(ready_r) as ready:
+            named = ready.readline().strip() if select.select([ready], [], [], 10)[0] else ""
+        if named == str(display):
+            park_pointer(f":{display}", width, height)
+            return f":{display}", proc.pid
+        stop_group(proc.pid)
+    sys.exit("no free X display for Xvfb")
+
+
+def start_openbox(display):
+    """Start Openbox as the window manager of the Xvfb `display` and wait until it manages the screen. True when it
+    does. It needs no stopping of its own: like any X client it exits when its display ends.
+
+    With no window manager, GTK focuses a window itself: a popup list that opens takes the keyboard focus from the
+    main window, which then deactivates and closes the list at once. A window manager keeps the focus where a desktop
+    keeps it. Openbox is light and needs no session, and is the one Chromium's tests run under Xvfb. Without it, the
+    app runs with no window manager, as it says."""
+    if not shutil.which("openbox"):
+        print("openbox is not installed, so Xvfb runs no window manager: a popup list closes as soon as it opens",
+              file=sys.stderr)
+        return False
+    # Openbox runs its --startup command once it manages the screen.
+    folder = tempfile.mkdtemp(prefix="orca-mcp-openbox-")
+    ready = os.path.join(folder, "ready")
+    env = {k: v for k, v in os.environ.items() if k != "WAYLAND_DISPLAY"}
+    env["DISPLAY"] = display
+    subprocess.Popen(["openbox", "--sm-disable", "--startup", shlex.join(["touch", ready])], env=env,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    deadline = time.time() + 10
+    while not os.path.exists(ready) and time.time() < deadline:
+        time.sleep(0.1)
+    started = os.path.exists(ready)
+    shutil.rmtree(folder, ignore_errors=True)
+    if not started:
+        print(f"openbox did not start on {display} within 10 s, so the app may run with no window manager",
+              file=sys.stderr)
+    return started
+
+
+def park_pointer(display, width, height):
+    """Move Xvfb's pointer to the bottom-right corner, where it hovers over nothing.
+
+    It starts in the middle of the screen, where it would raise tooltips over whatever opens there
+    and put them in screenshots."""
+    try:
+        import ctypes
+        import ctypes.util
+        x11 = ctypes.cdll.LoadLibrary(ctypes.util.find_library("X11") or "libX11.so.6")
+        x11.XOpenDisplay.restype = ctypes.c_void_p
+        x11.XDefaultRootWindow.restype = ctypes.c_ulong
+        x11.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+        x11.XWarpPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                                     ctypes.c_uint, ctypes.c_uint, ctypes.c_int, ctypes.c_int]
+        x11.XFlush.argtypes = [ctypes.c_void_p]
+        x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+        dpy = None
+        for _ in range(50):  # the socket exists a moment before the server accepts clients
+            dpy = x11.XOpenDisplay(display.encode())
+            if dpy:
+                break
+            time.sleep(0.1)
+        if not dpy:
+            return
+        x11.XWarpPointer(dpy, 0, x11.XDefaultRootWindow(dpy), 0, 0, 0, 0, width - 1, height - 1)
+        x11.XFlush(dpy)
+        x11.XCloseDisplay(dpy)
+    except OSError:
+        pass
+
+
+def app_env(env, datadir, display_env=None):
+    """Adds to `env` what OrcaSlicer needs to start unattended with `datadir`: the variables of the
+    private display start_display() gave (None removes one), the CA bundle on Linux and a WebView2
+    profile of its own on Windows."""
+    for key, value in (display_env or {}).items():
+        if value is None:
+            env.pop(key, None)
+        else:
+            env[key] = value
+    if sys.platform.startswith("linux"):
+        # A static OpenSSL asks at startup which CA bundle to trust unless told.
+        for bundle in ("/etc/ssl/certs/ca-certificates.crt", "/etc/pki/tls/certs/ca-bundle.crt"):
+            if os.path.exists(bundle):
+                env.setdefault("SSL_CERT_FILE", bundle)
+                break
+    if os.name == "nt":
+        # The WebView2 profile otherwise lives in %LOCALAPPDATA%\OrcaSlicer, shared with the user's own OrcaSlicer.
+        env.setdefault("WEBVIEW2_USER_DATA_FOLDER", os.path.join(datadir, "webview2"))
+    return env
+
+
+# The prompts a launch nobody watches answers, by words of their message: the button it presses, and what it reports.
+# The app asks to accept the system certificate store before its window when it has to find a CA bundle itself, and
+# to restore unsaved items when the last app on the datadir was ended with a project unsaved, as a test's app is; a
+# restore would open that project in place of the empty one a launch starts with.
+STARTUP_PROMPTS = (("system certificate", "yes", "answered the prompt to use the system SSL certificate"),
+                   ("Previously unsaved items", "no", "answered No to restoring the unsaved items an earlier app left"))
+
+
+def answer_startup_prompts(client):
+    """Answers each of STARTUP_PROMPTS that is open, and leaves every other dialog to whoever drives the app.
+    True when it pressed a button."""
+    try:
+        dialogs = client.call("app_state").get("dialogs") or []
+    except (McpError, OSError):
+        return False
+    answered = False
+    for dialog in dialogs:
+        for words, button, report in STARTUP_PROMPTS:
+            if words in (dialog.get("message") or ""):
+                try:
+                    client.call("dialog_answer", dialog={"title": dialog.get("title", "")}, button=button)
+                except (McpError, OSError):
+                    return answered
+                print(report, file=sys.stderr)
+                answered = True
+    return answered
+
+
+def wait_ready(client, timeout):
+    """True once the app is ready with no startup prompt open, answering the prompts meanwhile: the certificate
+    prompt opens before the window, so waiting for ready alone would time out with it still up, and the restore
+    prompt is open when the app reports ready."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            ready = client.call("app_wait", **{"for": "ready", "timeout_s": 2}).get("satisfied")
+        except (McpError, OSError):
+            time.sleep(0.5)
+            continue
+        if not answer_startup_prompts(client) and ready:
+            return True
+    return False
+
+
+def launch(args):
+    token = os.environ.get("ORCA_MCP_TOKEN") or base64.b16encode(os.urandom(32)).decode().lower()
+    datadir = os.path.abspath(args.datadir or tempfile.mkdtemp(prefix="orca-mcp-"))
+    printer = DEFAULT_PRINTER._replace(filament=args.filament or DEFAULT_PRINTER.filament)
+    if args.printer:
+        model, _, nozzle = args.printer.partition("@")
+        printer = vendor_printer(args.vendor, model, nozzle or "0.4", args.filament)
+    seeded = seed_datadir(datadir, printer)
+
+    env = dict(os.environ, ORCA_MCP_TOKEN=token)
+    binary = find_binary(args.bin)
+    server, display_env, server_pid = start_display(args, datadir)
+    app_env(env, datadir, display_env)
+    # The two flags hold for this run and never write the datadir's settings.
+    flags = (["--cad"] if args.cad else []) + (["--unrestricted-scripts"] if args.unrestricted_scripts else [])
+    cmd = [binary, "--datadir", datadir, "--mcp", "--mcp-port", str(args.port)] + flags + args.extra
+    log = open(os.path.join(datadir, "mcp-launch.log"), "w")
+    proc = subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+
+    session = {"port": args.port, "token": token, "pid": proc.pid, "datadir": datadir,
+               "display_server": server, "display_server_pid": server_pid, "display_env": display_env,
+               "display": env.get("DISPLAY")}
+    os.makedirs(os.path.dirname(SESSION_FILE), exist_ok=True)
+    with open(SESSION_FILE, "w") as f:
+        json.dump(session, f)
+    os.chmod(SESSION_FILE, 0o600)
+
+    client = OrcaMcp(args.port, token)
+    if not wait_ready(client, args.timeout):
+        sys.exit(f"OrcaSlicer did not become ready in {args.timeout} s; see {log.name}")
+    # A seeded datadir has a finished setup, so the Setup Wizard opens on it only when the printer's profiles are
+    # missing: the app could not copy them, as on Windows below a path too long for them (MAX_PATH).
+    if any(d.get("class", "").endswith("GuideFrame") for d in client.call("app_state").get("dialogs") or []):
+        sys.exit(f"OrcaSlicer opened its Setup Wizard: the datadir's printer profiles are missing. On Windows a datadir "
+                 f"path of more than about 150 characters keeps the app from copying them (this one has {len(datadir)}); "
+                 f"see {log.name}")
+    if seeded:
+        record_baseline(client, datadir)
+    url = f"http://127.0.0.1:{args.port}/mcp"
+    print(json.dumps({**session, "url": url}, indent=2))
+    if args.print_config:
+        print(f"\nclaude mcp add --transport http orcaslicer {url} --header \"Authorization: Bearer {token}\"")
+        print(f"codex mcp add orcaslicer --url {url} --bearer-token-env-var ORCA_MCP_TOKEN   # export ORCA_MCP_TOKEN={token}")
+
+
+def session_client():
+    try:
+        with open(SESSION_FILE) as f:
+            s = json.load(f)
+    except OSError:
+        sys.exit("no session; run launch first (or set ORCA_MCP_SESSION)")
+    return OrcaMcp(s["port"], s["token"]), s
+
+
+STOP_TIMEOUT_S = 30  # how long the app has to end once stopped, before stop gives up (Windows) or kills it
+
+
+def stop(_args):
+    """Ends the session's app and returns once it has ended, so that the next launch on its datadir is the only app
+    there."""
+    _, s = session_client()
+    if os.name == "nt":  # Windows has no process groups to signal; SIGTERM is TerminateProcess
+        try:
+            os.kill(s["pid"], signal.SIGTERM)
+        except OSError:  # already gone
+            pass
+        if not wait_pid_gone(s["pid"], STOP_TIMEOUT_S):
+            print(f"OrcaSlicer (pid {s['pid']}) still runs {STOP_TIMEOUT_S} s after its stop", file=sys.stderr)
+    else:
+        # The app goes first and is given time to close before its display does.
+        stop_group(s["pid"], timeout=STOP_TIMEOUT_S)
+        if s.get("display_server_pid"):
+            stop_display(s.get("display_server"), s["display_server_pid"], s.get("display_env"))
+    os.remove(SESSION_FILE)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    p = sub.add_parser("launch", help="start OrcaSlicer with the MCP server")
+    p.add_argument("--bin")
+    p.add_argument("--datadir", help="data directory (default: a fresh temporary one)")
+    p.add_argument("--port", type=int, default=DEFAULT_PORT)
+    display = p.add_mutually_exclusive_group()
+    display.add_argument("--headless", nargs="?", const="auto", choices=("auto", *COMPOSITORS),
+                         help="run on a private headless desktop with XWayland (Linux): KWin, else GNOME Shell, else "
+                              "Xvfb")
+    display.add_argument("--xvfb", action="store_true",
+                         help="run on a private Xvfb display (Linux), with Openbox as its window manager when it is "
+                              "installed, for a machine without a desktop")
+    p.add_argument("--width", type=int, default=SCREEN_SIZE[0])
+    p.add_argument("--height", type=int, default=SCREEN_SIZE[1])
+    p.add_argument("--printer", help="\"<model>@<nozzle>\" of --vendor for a fresh datadir, e.g. \"Bambu Lab X1 Carbon@0.4\" "
+                                     "(default: the Custom vendor's \"Generic Klipper Printer@0.4\")")
+    p.add_argument("--vendor", default="BBL", help="the vendor of --printer, as its profiles name it (default: %(default)s)")
+    p.add_argument("--filament", help="the filament a fresh datadir's slot starts with (default: Generic PLA @System, or "
+                                      "the first default filament of --printer's model)")
+    p.add_argument("--cad", action="store_true",
+                   help="start the app with --cad: the Design (CAD) tab on for this run, for its commands (tool_list group Design)")
+    p.add_argument("--unrestricted-scripts", action="store_true",
+                   help="start the app with --unrestricted-scripts: Python scripts (script_run) unrestricted for this run")
+    p.add_argument("--timeout", type=int, default=120)
+    p.add_argument("--print-config", action="store_true", help="print client setup commands")
+    p.add_argument("extra", nargs="*", help="extra orca-slicer arguments after --")
+
+    sub.add_parser("stop", help="stop the launched instance")
+
+    p = sub.add_parser("call", help="call a tool and print its JSON result")
+    p.add_argument("tool")
+    p.add_argument("args", nargs="?", default="{}")
+    p.add_argument("--wait", action="store_true", help="follow a returned job to its result")
+
+    sub.add_parser("tools", help="list tools")
+    p = sub.add_parser("widgets", help="print the widget_list tree")
+    p.add_argument("args", nargs="?", help="widget_list arguments as JSON")
+
+    p = sub.add_parser("screenshot", help="save a screenshot")
+    p.add_argument("out")
+    p.add_argument("--target", default="main")
+
+    p = sub.add_parser("run-replay", help="run a replay in the launched instance")
+    p.add_argument("replay")
+    p.add_argument("--out", help="output directory")
+
+    args = ap.parse_args()
+    if args.cmd == "launch":
+        return launch(args)
+    if args.cmd == "stop":
+        return stop(args)
+    client, _ = session_client()
+    try:
+        if args.cmd == "call":
+            result, texts = client.call_with_text(args.tool, **json.loads(args.args))
+            if args.wait:
+                result = client.await_job(result)
+            print(json.dumps(result, indent=2))
+            for t in texts:
+                print(t)
+        elif args.cmd == "tools":
+            for t in client.tools():
+                print(f"{t['name']:20} {t.get('description', '').splitlines()[0][:100]}")
+        elif args.cmd == "widgets":
+            a = json.loads(args.args) if getattr(args, "args", None) else {}
+            data, texts = client.call_with_text("widget_list", **a)
+            print("\n".join(texts) or json.dumps(data, indent=2))
+        elif args.cmd == "screenshot":
+            out = os.path.abspath(args.out)
+            print(json.dumps(client.call("window_screenshot", target=args.target, save_path=out, overwrite=True, include_image=False), indent=2))
+        elif args.cmd == "run-replay":
+            a = {"path": os.path.abspath(args.replay)}
+            if args.out:
+                a["out_dir"] = os.path.abspath(args.out)
+            result = client.await_job(client.call("replay_run", **a), timeout=3600)
+            print(json.dumps(result, indent=2))
+            return 0 if result.get("passed") else 1
+    except McpError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -22,11 +22,17 @@ void ResourceTexturePluginCapability::RegisterBindings(pybind11::module_& module
 
     py::class_<ResourceTexturePluginCapability, PluginCapabilityInterface,
                PyResourceTexturePluginCapabilityTrampoline,
-               std::shared_ptr<ResourceTexturePluginCapability>>(resource_texture,
-                                                                 "ResourceTexturePluginCapabilityBase")
+               std::shared_ptr<ResourceTexturePluginCapability>>(
+        resource_texture, "ResourceTexturePluginCapabilityBase",
+        "Base for a resource texture capability: a pack of height-map images offered in the texture picker of\n"
+        "the texture displacement tool, listed under the capability's name.")
         .def(py::init<>())
-        .def("get_type", &ResourceTexturePluginCapability::get_type)
-        .def("get_texture_dir", &ResourceTexturePluginCapability::get_texture_dir);
+        .def("get_type", &ResourceTexturePluginCapability::get_type, "Return PluginType.ResourceTexture.")
+        .def("get_texture_dir", &ResourceTexturePluginCapability::get_texture_dir,
+             "Required. Return the path of the folder holding the pack's images. Called once when the plugin\n"
+             "loads. The folder must be inside the plugin's own folder; its .png, .jpg, .jpeg and .bmp files are\n"
+             "used, without subfolders and at most 64 of them. An empty string, a folder that fails these\n"
+             "checks or a raised exception leaves the pack without textures.");
 }
 
 } // namespace Slic3r

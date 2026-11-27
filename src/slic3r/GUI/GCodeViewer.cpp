@@ -3,6 +3,7 @@
 
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/calib.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Model.hpp"
@@ -141,44 +142,51 @@ static void add_swatch(ImDrawList* draw_list, const ImVec2& min, const ImVec2& m
     draw_list->AddRectFilled(min, max, ImGuiWrapper::to_ImU32(color));
 }
 
-static std::string get_view_type_string(libvgcode::EViewType view_type)
+// The English name of a view type, marked for translation; empty for a type the preview does not offer.
+static const char* view_type_msgid(libvgcode::EViewType view_type)
 {
     if (view_type == libvgcode::EViewType::Summary)
-        return _u8L("Summary");
+        return L("Summary");
     else if (view_type == libvgcode::EViewType::FeatureType)
-        return _u8L("Line Type");
+        return L("Line Type");
     else if (view_type == libvgcode::EViewType::Height)
-        return _u8L("Layer Height");
+        return L("Layer Height");
     else if (view_type == libvgcode::EViewType::Width)
-        return _u8L("Line Width");
+        return L("Line Width");
     else if (view_type == libvgcode::EViewType::Speed)
-        return _u8L("Speed");
+        return L("Speed");
     else if (view_type == libvgcode::EViewType::ActualSpeed)
-        return _u8L("Actual Speed");
+        return L("Actual Speed");
     else if (view_type == libvgcode::EViewType::Acceleration)
-        return _u8L("Acceleration");
+        return L("Acceleration");
     else if (view_type == libvgcode::EViewType::Jerk)
-        return _u8L("Jerk");
+        return L("Jerk");
     else if (view_type == libvgcode::EViewType::FanSpeed)
-        return _u8L("Fan Speed");
+        return L("Fan Speed");
     else if (view_type == libvgcode::EViewType::Temperature)
-        return _u8L("Temperature");
+        return L("Temperature");
     else if (view_type == libvgcode::EViewType::VolumetricFlowRate)
-        return _u8L("Flow");
+        return L("Flow");
     else if (view_type == libvgcode::EViewType::ActualVolumetricFlowRate)
-        return _u8L("Actual Flow");
+        return L("Actual Flow");
     else if (view_type == libvgcode::EViewType::Tool)
-        return _u8L("Tool");
+        return L("Tool");
     else if (view_type == libvgcode::EViewType::ColorPrint)
-        return _u8L("Filament");
+        return L("Filament");
     else if (view_type == libvgcode::EViewType::LayerTimeLinear)
-        return _u8L("Layer Time");
+        return L("Layer Time");
     else if (view_type == libvgcode::EViewType::LayerTimeLogarithmic)
-        return _u8L("Layer Time (log)");
+        return L("Layer Time (log)");
 // ORCA: Add Pressure Advance visualization support
     else if (view_type == libvgcode::EViewType::PressureAdvance)
-        return _u8L("Pressure Advance");
+        return L("Pressure Advance");
     return "";
+}
+
+static std::string get_view_type_string(libvgcode::EViewType view_type)
+{
+    const char* msgid = view_type_msgid(view_type);
+    return *msgid == '\0' ? std::string() : _u8L(msgid);
 }
 
 // ORCA: Stable, locale independent names used to persist a view type in the application config.
@@ -204,6 +212,22 @@ static const std::vector<std::pair<std::string, libvgcode::EViewType>>& view_typ
         { "pressure_advance",             libvgcode::EViewType::PressureAdvance },
     };
     return map;
+}
+
+// ORCA: the view type showing the value a calibration varies, when the preview has one.
+static std::optional<libvgcode::EViewType> calibration_view_type(CalibMode mode)
+{
+    switch (mode) {
+    case CalibMode::Calib_PA_Line:
+    case CalibMode::Calib_PA_Pattern:
+    case CalibMode::Calib_PA_Tower:        return libvgcode::EViewType::PressureAdvance;
+    case CalibMode::Calib_Temp_Tower:      return libvgcode::EViewType::Temperature;
+    case CalibMode::Calib_Flow_Rate:
+    case CalibMode::Calib_Vol_speed_Tower: return libvgcode::EViewType::VolumetricFlowRate;
+    case CalibMode::Calib_VFA_Tower:       return libvgcode::EViewType::Speed;
+    case CalibMode::Calib_Cornering:       return libvgcode::EViewType::Jerk;
+    default:                               return std::nullopt;
+    }
 }
 
 // Find an index of a value in a sorted vector, which is in <z-eps, z+eps>.
@@ -1268,11 +1292,11 @@ bool GCodeViewer::view_type_from_config_name(const std::string& name, libvgcode:
 std::vector<std::pair<std::string, std::string>> GCodeViewer::default_view_type_choices()
 {
     std::vector<std::pair<std::string, std::string>> choices = {
-        { "auto", _u8L("Automatic") },
-        { "last", _u8L("Last used") },
+        { "auto", L("Automatic") },
+        { "last", L("Last used") },
     };
     for (const auto& [name, type] : view_type_config_map())
-        choices.push_back({ name, get_view_type_string(type) });
+        choices.push_back({ name, view_type_msgid(type) });
     return choices;
 }
 
@@ -1283,17 +1307,65 @@ void GCodeViewer::select_view_type(libvgcode::EViewType type)
     set_view_type(type);
 }
 
+void GCodeViewer::pick_view_type(libvgcode::EViewType type)
+{
+    m_fold = false;
+    select_view_type(type);
+    reset_visible(type);
+    // ORCA: remember the pick so the "Last used" preview default can restore it
+    const std::string view_type_name = view_type_to_config_name(type);
+    if (!view_type_name.empty())
+        wxGetApp().app_config->set("preview_last_view_type", view_type_name);
+    update_moves_slider();
+#if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
+    wxGetApp().imgui()->set_requires_extra_frame();
+#else
+    wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
+    wxGetApp().plater()->get_current_canvas3D()->request_extra_frame();
+#endif
+}
+
+bool GCodeViewer::can_switch_time_mode() const
+{
+    std::vector<std::string> time_strs;
+    for (size_t i = 0; i < m_print_statistics.modes.size(); ++i) {
+        if (m_print_statistics.modes[i].time > 0.0f) {
+            const std::string time_str = short_time(get_time_dhms(m_print_statistics.modes[i].time));
+            const auto it = std::find(time_strs.begin(), time_strs.end(), time_str);
+            if (it == time_strs.end())
+                time_strs.emplace_back(time_str);
+        }
+    }
+    return time_strs.size() > 1;
+}
+
+void GCodeViewer::set_time_mode(libvgcode::ETimeMode mode)
+{
+    m_viewer.set_time_mode(mode);
+#if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
+    wxGetApp().imgui()->set_requires_extra_frame();
+#else
+    wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
+    wxGetApp().plater()->get_current_canvas3D()->request_extra_frame();
+#endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
+}
+
 // ORCA: Pick the view type the preview opens with, following the "preview_default_view_type" preference:
 // a fixed view type, the one the user picked last ("last"), or the automatic choice ("auto", the default)
 // which shows Filament for multi material prints and Line Type for single material ones.
+// A calibration's view, when given, takes precedence over the preference.
 // The default is only (re)applied when it actually changes, so a view type picked by hand survives a reslice.
-void GCodeViewer::apply_default_view_type()
+void GCodeViewer::apply_default_view_type(std::optional<libvgcode::EViewType> calibration_view)
 {
     const std::string preference = wxGetApp().app_config->get("preview_default_view_type");
 
     std::string key = preference;
     libvgcode::EViewType type = libvgcode::EViewType::FeatureType;
-    if (preference == "last") {
+    if (calibration_view) {
+        type = *calibration_view;
+        key  = "calibration_" + view_type_to_config_name(type);
+    }
+    else if (preference == "last") {
         if (!view_type_from_config_name(wxGetApp().app_config->get("preview_last_view_type"), type))
             type = libvgcode::EViewType::FeatureType;
     }
@@ -1765,7 +1837,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
     
     // ORCA: Apply the default view type now that we know how many tools the G-code actually uses.
-    apply_default_view_type();
+    const bool flowrate_calib = print.calib_mode() == CalibMode::Calib_None && wxGetApp().plater()->is_flowrate_calib();
+    apply_default_view_type(calibration_view_type(flowrate_calib ? CalibMode::Calib_Flow_Rate : print.calib_mode()));
 
     // BBS: data for rendering color arrangement recommendation
     m_nozzle_nums = print.config().option<ConfigOptionFloats>("nozzle_diameter")->values.size();
@@ -2869,6 +2942,22 @@ void GCodeViewer::update_sequential_view_current(unsigned int first, unsigned in
 #endif // ENABLE_ACTUAL_SPEED_DEBUG
 }
 
+void GCodeViewer::show_layer_range(std::optional<int> low, int high)
+{
+    if (m_layers_slider == nullptr)
+        return;
+    m_layers_slider->SetHigherValue(high);
+    if (low)
+        m_layers_slider->SetLowerValue(*low);
+    else if (m_layers_slider->is_one_layer())
+        m_layers_slider->SetLowerValue(high);
+    m_layers_slider->set_as_dirty();
+    if (m_moves_slider != nullptr) {
+        m_moves_slider->SetHigherValue(m_moves_slider->GetMaxValue());
+        m_moves_slider->set_as_dirty();
+    }
+}
+
 void GCodeViewer::enable_moves_slider(bool enable) const
 {
     bool render_as_disabled = !enable;
@@ -3801,6 +3890,7 @@ void GCodeViewer::init_solid_model_caps(const std::array<float, 2>& z_range, std
         init_quad(cap, on_plane, reach * u, reach * v);
         cap.count_plane = m_clipping_plane;
         cap.quad_z_range = { z_bottom, z_top };
+        cap.color_index = 2;
     }
 }
 
@@ -3945,17 +4035,18 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     }
 }
 
-// The solid stands in for the toolpaths, so it takes their colours in the view that colours them
-// by something other than the filament: each body the outer wall's, each cap the infill's of the
-// layer it is cut under, sparse if the layer has any, else solid, and the tower its own role's,
-// each from the toolpaths within the body's own footprint, so that objects printed at different
-// grades keep their own. The views that colour by filament leave every body its own colour. The
-// bodies are sampled over the layers the solid stands for and each cap in its own layer, each
-// colour that of the vertex the viewer picks to represent the role there, so a view that grades
-// the toolpaths, by speed or fan, shows the solid in the grade most of that role was printed at.
-// The bodies are sampled once, as the drag begins, and held while a slider drag moves the span:
-// sampled again at every step, the grade would flip with the layers the sample happens to fall
-// on. Each cap follows its own layer.
+// The solid stands in for the toolpaths, so it takes their colours in the view that colours them by
+// something other than the filament: each body the outer wall's, each layer cap the infill's of the
+// layer it is cut under, sparse if the layer has any, else solid, the section view's cap the
+// infill's over all the layers, and the tower its own role's, each from the toolpaths within the
+// body's own footprint, so that objects printed at different grades keep their own. The views that
+// colour by filament leave every body its own colour. The bodies and the section view's cap are
+// sampled over the layers the solid stands for and each layer cap in its own layer, each colour
+// that of the vertex the viewer picks to represent the role there, so a view that grades the
+// toolpaths, by speed or fan, shows the solid in the grade most of that role was printed at. The
+// bodies are sampled once, as the drag begins, and held while a slider drag moves the span: sampled
+// again at every step, the grade would flip with the layers the sample happens to fall on. The
+// section view's cap is held with them; each layer cap follows its own layer.
 void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_layers)
 {
     SolidModelColors& colors = m_solid_model_colors;
@@ -3996,8 +4087,13 @@ void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_lay
         const libvgcode::XYBox box{ { static_cast<float>(footprint.min.x()) - margin, static_cast<float>(footprint.min.y()) - margin },
                                     { static_cast<float>(footprint.max.x()) + margin, static_cast<float>(footprint.max.y()) + margin } };
         SolidModelColors::Body& body = colors.bodies[n];
-        if (!held)
+        if (!held) {
             body.body = sample(whole_layers, tower ? tower_role : walls, box);
+            // the section view's cut may cross any of the layers, so it is sampled over all of them, as the body is
+            body.caps[2] = tower ? std::nullopt : sample(whole_layers, infill, box);
+            if (!body.caps[2].has_value())
+                body.caps[2] = body.body;
+        }
         for (size_t k = 0; k < 2; ++k) {
             body.caps[k] = tower ? std::nullopt : sample({ whole_layers[k], whole_layers[k] }, infill, box);
             if (!body.caps[k].has_value())
@@ -4980,23 +5076,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
         for (int i = 0; i < view_type_items_str.size(); i++) {
             const bool is_selected = (m_view_type_sel == i);
-            if (ImGui::BBLSelectable(view_type_items_str[i].c_str(), is_selected)) {
-                m_fold = false;
-                m_view_type_sel = i;
-                set_view_type(view_type_items[m_view_type_sel]);
-                reset_visible(view_type_items[m_view_type_sel]);
-                // ORCA: remember the pick so the "Last used" preview default can restore it
-                const std::string view_type_name = view_type_to_config_name(view_type_items[m_view_type_sel]);
-                if (!view_type_name.empty())
-                    wxGetApp().app_config->set("preview_last_view_type", view_type_name);
-                update_moves_slider();
-            #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
-                imgui.set_requires_extra_frame();
-            #else
-                wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
-                wxGetApp().plater()->get_current_canvas3D()->request_extra_frame();
-            #endif
-            }
+            if (ImGui::BBLSelectable(view_type_items_str[i].c_str(), is_selected))
+                pick_view_type(view_type_items[i]);
             if (is_selected) {
                 ImGui::SetItemDefaultFocus();
             }
@@ -5325,8 +5406,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             if (full_layout && !count_text.empty())
                 columns_offsets.push_back({ count_text, distance_text.empty() ? offsets[3] : offsets[4] });
             append_item(EItemType::Rect, color, columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type]() {
-                m_viewer.toggle_option_visibility(type);
-                update_moves_slider();
+                toggle_option_visibility(type);
                 });
         };
         const bool visible = m_viewer.is_option_visible(type);
@@ -5382,8 +5462,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             columns_offsets.push_back({used_filaments_weight[i], offsets[4]});
             append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_extrusion_role_color(role)), columns_offsets,
                 true, offsets.back(), visible, [this, role]() {
-                    m_viewer.toggle_extrusion_role_visibility(role);
-                    update_moves_slider();
+                    toggle_extrusion_role_visibility(role);
                 });
         }
 
@@ -5401,8 +5480,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 columns_offsets.push_back({ travel_distance, offsets[3] }); // Usage column
                 columns_offsets.push_back({ travel_moves, offsets[4] });    // Usage column
                 append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, item]() {
-                        m_viewer.toggle_option_visibility(item);
-                        update_moves_slider();
+                        toggle_option_visibility(item);
                     });
             }
         }
@@ -5420,9 +5498,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
-            m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
+            toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
-            update_moves_slider();
             });
         ImGui::PopStyleVar(1);
         break;
@@ -5437,9 +5514,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
-            m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
+            toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
-            update_moves_slider();
             });
         ImGui::PopStyleVar(1);
         break;
@@ -5454,8 +5530,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
-            m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
-            update_moves_slider();
+            toggle_option_visibility(libvgcode::EOptionType::Travels);
             });
         ImGui::PopStyleVar(1);
         break;
@@ -5470,8 +5545,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
-            m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
-            update_moves_slider();
+            toggle_option_visibility(libvgcode::EOptionType::Travels);
             });
         ImGui::PopStyleVar(1);
         break;
@@ -6048,21 +6122,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     // total estimated printing time section
     ImGui::Spacing();
     std::string time_title = m_viewer.get_view_type() == libvgcode::EViewType::FeatureType ? _u8L("Total estimation") : _u8L("Time Estimation");
-    auto can_show_mode_button = [this](libvgcode::ETimeMode mode) {
-        std::vector<std::string> time_strs;
-        for (size_t i = 0; i < m_print_statistics.modes.size(); ++i) {
-            if (m_print_statistics.modes[i].time > 0.0f) {
-                const std::string time_str = short_time(get_time_dhms(m_print_statistics.modes[i].time));
-                const auto it = std::find(time_strs.begin(), time_strs.end(), time_str);
-                if (it == time_strs.end())
-                    time_strs.emplace_back(time_str);
-            }
-        }
-        return time_strs.size() > 1;
-    };
-
     const libvgcode::ETimeMode time_mode_id = m_viewer.get_time_mode();
-    if (can_show_mode_button(time_mode_id)) {
+    if (can_switch_time_mode()) {
         switch (time_mode_id)
         {
         case libvgcode::ETimeMode::Normal: { time_title += " [" + _u8L("Normal mode") + "]"; break; }
@@ -6142,18 +6203,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     ImGui::SameLine(max_len);
     imgui.text(short_time(get_time_dhms(time_mode.time)));
 
-    auto show_mode_button = [this, &imgui, can_show_mode_button](const std::string& label, libvgcode::ETimeMode mode) {
-        if (can_show_mode_button(mode)) {
-            if (imgui.button(label)) {
-                m_viewer.set_time_mode(mode);
-#if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
-                imgui.set_requires_extra_frame();
-#else
-                wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
-                wxGetApp().plater()->get_current_canvas3D()->request_extra_frame();
-#endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
-            }
-        }
+    auto show_mode_button = [this, &imgui](const std::string& label, libvgcode::ETimeMode mode) {
+        if (can_switch_time_mode() && imgui.button(label))
+            set_time_mode(mode);
     };
 
     switch (time_mode_id) {

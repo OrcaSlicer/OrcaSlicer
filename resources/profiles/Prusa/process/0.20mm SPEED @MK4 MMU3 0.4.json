@@ -80,6 +80,7 @@
 	"bottom_shell_thickness": "0.5",
 	"wipe_tower_extra_flow": "250%",
 	"compatible_printers": [
-		"Prusa MK4 MMU3 0.4 nozzle"
+		"Prusa MK4 MMU3 0.4 nozzle",
+		"Prusa MK4S MMU3 0.4 nozzle"
 	]
 }

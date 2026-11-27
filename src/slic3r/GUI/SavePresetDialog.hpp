@@ -6,6 +6,7 @@
 #include "libslic3r/Preset.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "GUI_Utils.hpp"
+#include <optional>
 #include <string>
 #include <wx/anybutton.h>
 #include <wx/sizer.h>
@@ -35,8 +36,16 @@ enum class PresetNameStatus { Valid, Warning, Invalid };
 // ORCA Shared profile name validation for SavePresetDialog and PhysicalPrinterDialog.
 PresetNameStatus check_preset_name(const PresetCollection &presets, const std::string &name, wxString &info_line);
 
+// Where a preset saved under `name` goes when that is not the person's to choose: a preset that exists is
+// saved where it is (true: inside the project), and the dialog locks its choice to that. nullopt for a new
+// name, which can go either way.
+std::optional<bool> locked_save_location(const PresetCollection &presets, const std::string &name);
+
 class SavePresetDialog : public DPIDialog
 {
+public:
+    // What happens to the selected physical printer when a printer preset is saved; the dialog
+    // offers the first three, ChangePreset by default.
     enum ActionType
     {
         ChangePreset,
@@ -45,6 +54,11 @@ class SavePresetDialog : public DPIDialog
         UndefAction
     };
 
+    // Applies `action` to the selected physical printer for the printer preset saved as `preset_name`.
+    // The dialog's OK passes the action chosen; a save made without the dialog passes ChangePreset.
+    static void update_physical_printers(ActionType action, const std::string &preset_name);
+
+private:
     class Item : public wxWindow
     {
     public:
@@ -130,7 +144,6 @@ protected:
 private:
     void build(std::vector<Preset::Type> types, std::string suffix = "");
     void on_select_cancel(wxCommandEvent &event);
-    void update_physical_printers(const std::string &preset_name);
     void accept(wxCommandEvent &event);
 };
 

@@ -11,6 +11,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/Fill/FillCornerSmoothing.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/libslic3r.h"
@@ -259,4 +260,19 @@ TEST_CASE("Corner smoothing keeps within the resolution of its curve", "[FillCor
     };
     // A coarser resolution takes fewer vertices.
     REQUIRE(vertices(0.05) < vertices(0.0125));
+}
+
+TEST_CASE("Corner smoothing splits corners no finer than at 5 microns", "[FillCornerSmoothing]")
+{
+    // Finer turns would round unevenly to the 1 micron steps of the G-code coordinates.
+    auto rounded = [](double resolution) {
+        FillParams params;
+        params.smooth_factor = 1.;
+        params.resolution    = resolution;
+        Polyline smooth      = asymmetric_corner();
+        smooth_polyline_corners(smooth, params.corner_smoothing());
+        return smooth;
+    };
+    REQUIRE(rounded(0.001).points == rounded(0.005).points);
+    REQUIRE(rounded(0.0125).size() < rounded(0.005).size());
 }

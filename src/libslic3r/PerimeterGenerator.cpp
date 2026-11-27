@@ -28,6 +28,7 @@
 #include <limits>
 #include <iterator>
 #include <map>
+#include <memory>
 #include <unordered_map>
 #include <tuple>
 #include <unordered_set>
@@ -253,7 +254,11 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
             paths.emplace_back(std::move(path));
         }
 
-        coll.append(ExtrusionLoop(std::move(paths), loop_role));
+        ExtrusionLoop extrusion_loop(std::move(paths), loop_role);
+        // ORCA: The centerline before fuzzy skin, for an external loop whose points it changed.
+        if (is_external && polygon.points != loop.polygon.points)
+            extrusion_loop.untextured = std::make_shared<const Polygon>(loop.polygon);
+        coll.append(std::move(extrusion_loop));
     }
 
     // Append thin walls to the nearest-neighbor search (only for first iteration)
@@ -421,7 +426,17 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         ExtrusionRole role = is_external ? erExternalPerimeter : erPerimeter;
 
         const bool  is_contour = !extrusion->is_closed || pg_extrusion.is_contour;
+        // ORCA: The centerline before fuzzy skin, for a closed external loop whose points it changes. Copied only where
+        // the layer has fuzzy skin on this kind of loop.
+        Polygon untextured;
+        if (is_external && extrusion->is_closed &&
+            (pg_extrusion.is_contour ? perimeter_generator.has_fuzzy_skin : perimeter_generator.has_fuzzy_hole))
+            for (const Arachne::ExtrusionJunction &junction : extrusion->junctions)
+                untextured.points.push_back(junction.p);
         apply_fuzzy_skin(extrusion, perimeter_generator, is_contour, extrusion->is_closed);
+        const bool textured = !untextured.empty() &&
+            !std::equal(untextured.points.begin(), untextured.points.end(), extrusion->junctions.begin(), extrusion->junctions.end(),
+                        [](const Point &point, const Arachne::ExtrusionJunction &junction) { return point == junction.p; });
 
         ExtrusionPaths paths;
         // detect overhanging/bridging perimeters
@@ -564,6 +579,8 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
                 extrusion_loop.inset_idx = extrusion->inset_idx;
+                if (textured)
+                    extrusion_loop.untextured = std::make_shared<const Polygon>(std::move(untextured));
                 if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) ==
                     (pg_extrusion.is_contour || pg_extrusions.size() == 2))
                     extrusion_loop.make_counter_clockwise();
@@ -639,36 +656,20 @@ static bool top_fill_replaces_inner_walls(const PrintRegionConfig &config)
     return has_top_shell_layers(config) && config.top_surface_density.value > 0 && config.top_surface_expansion.value > 0;
 }
 
-// ORCA: only_one_wall_top - cheap per-vertex classification of a wall against the top surface. Only Partial
-// needs the geometry clipped or measured; a segment crossing the top with no vertex inside is rare enough to ignore.
-enum class TopOverlap { None, Partial, Full };
-
-static bool point_over_top(const Point &p, const ExPolygons &top_region, const BoundingBox &top_region_bbox)
+// ORCA: only_one_wall_top - how much of a wall runs over the top surface, measured along its centerline. The
+// vertices alone do not tell: a wall can cross the top between two vertices that both sit next to a feature
+// that keeps rising, which is what a long straight wall along a wide ledge looks like.
+static double over_top_length(const Polyline &centerline, const ExPolygons &top_region, const BoundingBox &top_region_bbox)
 {
-    if (! top_region_bbox.contains(p))
-        return false;
-    for (const ExPolygon &ex : top_region)
-        if (ex.contains(p, false))
-            return true;
-    return false;
+    if (! get_extents(centerline).overlap(top_region_bbox))
+        return 0.;
+    return total_length(intersection_pl(Polylines{ centerline }, top_region));
 }
 
-static TopOverlap classify_over_top(const Points &pts, const ExPolygons &top_region, const BoundingBox &top_region_bbox)
+// ORCA: the area the top fill takes, the top fills grown by half the outer wall spacing to meet the outer wall.
+static ExPolygons top_fill_area(const ExPolygons &top_fills, const ExPolygons &fill_clip, coord_t ext_perimeter_spacing)
 {
-    size_t inside = 0;
-    for (const Point &p : pts)
-        if (point_over_top(p, top_region, top_region_bbox))
-            ++ inside;
-    return inside == 0 ? TopOverlap::None : inside == pts.size() ? TopOverlap::Full : TopOverlap::Partial;
-}
-
-static TopOverlap classify_over_top(const Arachne::ExtrusionLine &el, const ExPolygons &top_region, const BoundingBox &top_region_bbox)
-{
-    size_t inside = 0;
-    for (const Arachne::ExtrusionJunction &j : el.junctions)
-        if (point_over_top(j.p, top_region, top_region_bbox))
-            ++ inside;
-    return inside == 0 ? TopOverlap::None : inside == el.junctions.size() ? TopOverlap::Full : TopOverlap::Partial;
+    return intersection_ex(fill_clip, offset_ex(top_fills, double(ext_perimeter_spacing / 2)));
 }
 
 // ORCA: only_one_wall_top for Arachne - cut out of the already generated inner walls the parts running over the top
@@ -677,15 +678,18 @@ static TopOverlap classify_over_top(const Arachne::ExtrusionLine &el, const ExPo
 static void clip_inner_walls_over_top(std::vector<Arachne::VariableWidthLines> &inner_perimeters, const ExPolygons &top_region, coord_t perimeter_width, Polygons &kept_over_top)
 {
     const BoundingBox top_region_bbox = get_extents(top_region).inflated(SCALED_EPSILON);
-    auto covered_by = [](const Arachne::ExtrusionLine &el) {
+    auto centerline_of = [](const Arachne::ExtrusionLine &el) {
         Polyline centerline;
         centerline.points.reserve(el.junctions.size());
-        coord_t width = 0;
-        for (const Arachne::ExtrusionJunction &j : el.junctions) {
+        for (const Arachne::ExtrusionJunction &j : el.junctions)
             centerline.points.emplace_back(j.p);
+        return centerline;
+    };
+    auto covered_by = [&centerline_of](const Arachne::ExtrusionLine &el) {
+        coord_t width = 0;
+        for (const Arachne::ExtrusionJunction &j : el.junctions)
             width = std::max(width, j.w);
-        }
-        return offset(centerline, float(width) / 2.f);
+        return offset(centerline_of(el), float(width) / 2.f);
     };
     // Pull the cut back by half a wall width: the clip severs the centerline, but the bead's rounded end
     // extends half a width past its endpoint and would otherwise overlap the top fill.
@@ -703,17 +707,18 @@ static void clip_inner_walls_over_top(std::vector<Arachne::VariableWidthLines> &
         for (Arachne::ExtrusionLine &el : inner_perimeter) {
             if (el.empty())
                 continue;
-            const TopOverlap overlap = classify_over_top(el, top_region, top_region_bbox);
-            if (overlap == TopOverlap::None) {
+            const Polyline centerline = centerline_of(el);
+            const double   over       = over_top_length(centerline, top_region, top_region_bbox);
+            if (over <= 0.) {
                 kept.emplace_back(std::move(el));
                 continue;
             }
-            if (overlap == TopOverlap::Full)
-                continue; // the clip below would return nothing anyway
             ClipperZUtils::ZPath subject;
             subject.reserve(el.size());
             for (const Arachne::ExtrusionJunction &j : el.junctions)
                 subject.emplace_back(j.p.x(), j.p.y(), j.w);
+            if (over >= clipper_z_path_length(subject) - double(SCALED_EPSILON))
+                continue; // the clip below would return nothing anyway
             ClipperZUtils::ZPaths pieces = clip_extrusion(subject, top_paths_z, ctDifference);
 
             // Clipper treats the subject as an open polyline, so it also cuts a closed loop at its (arbitrary)
@@ -1728,8 +1733,9 @@ void PerimeterGenerator::process_classic()
                         ExPolygons non_top_polygons;
                         this->split_top_surfaces(last, top_fills, non_top_polygons, fill_clip);
                         apply_one_wall_top = !top_fills.empty();
+                        // All the top fill covers, see docs/HLSD/only-one-wall-top.md.
                         if (apply_one_wall_top)
-                            one_wall_top_region = diff_ex(last, non_top_polygons);
+                            one_wall_top_region = top_fill_area(top_fills, fill_clip, ext_perimeter_spacing);
                     } else {
                         // Onion the not-top region only, so the remaining walls stop at the top boundary.
                         this->split_top_surfaces(last, top_fills, last, fill_clip);
@@ -1760,12 +1766,15 @@ void PerimeterGenerator::process_classic()
                 Polygons dropped_wall_bands;
                 auto reduce_over_top = [&](PerimeterGeneratorLoops &loops) {
                     loops.erase(std::remove_if(loops.begin(), loops.end(), [&](const PerimeterGeneratorLoop &loop) {
-                        const TopOverlap overlap = classify_over_top(loop.polygon.points, one_wall_top_region, top_region_bbox);
-                        if (overlap == TopOverlap::None)
-                            return false;
-                        // Only a wall straddling the boundary is worth measuring; a wall wholly over the top goes.
-                        if (overlap == TopOverlap::Partial &&
-                            total_length(intersection_pl(Polylines{ loop.polygon.split_at_first_point() }, one_wall_top_region)) < grazing_tolerance) {
+                        if (! get_extents(loop.polygon).overlap(top_region_bbox))
+                            return false; // too far from the top to run over it
+                        const Polyline centerline = loop.polygon.split_at_first_point();
+                        const double   over       = over_top_length(centerline, one_wall_top_region, top_region_bbox);
+                        if (over <= 0.)
+                            return false; // no part of the wall runs over the top
+                        // A wall wholly over the top goes. One that merely grazes it is kept whole, its footprint
+                        // withheld from the top fill instead of slitting the loop open.
+                        if (over < loop.polygon.length() - double(SCALED_EPSILON) && over < grazing_tolerance) {
                             append(one_wall_top_kept_bands, wall_band(loop.polygon));
                             return false;
                         }
@@ -2065,7 +2074,7 @@ void PerimeterGenerator::process_classic()
             float(min_perimeter_infill_spacing / 2.));
         // append infill areas to fill_surfaces
         //if any top_fills, grow them by ext_perimeter_spacing/2 to have the real un-anchored fill
-        ExPolygons top_infill_exp = intersection_ex(fill_clip, offset_ex(top_fills, double(ext_perimeter_spacing / 2)));
+        ExPolygons top_infill_exp = top_fill_area(top_fills, fill_clip, ext_perimeter_spacing);
         // ORCA: only_one_wall_top - route the top fill around the walls kept despite grazing the top.
         if (!one_wall_top_kept_bands.empty())
             top_infill_exp = diff_ex(top_infill_exp, one_wall_top_kept_bands);
