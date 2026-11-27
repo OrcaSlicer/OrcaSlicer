@@ -3,6 +3,7 @@
 #include <regex>
 #include <cstdlib>
 #include <cmath>
+#include <cstdint>
 #include <iterator>
 #include <math.h>
 #include <set>
@@ -53,6 +54,17 @@ namespace Slic3r::FillAdaptive { struct Octree; }
 namespace Slic3r::FillLightning { class Generator; }
 
 namespace Slic3r {
+
+// A value in [0, 1) that depends on the layer alone (one SplitMix64 step), so the random joints
+// repeat from one slice to the next, and the ironing and bridge angles that recompute the infill
+// angle match it.
+static double layer_random(size_t layer_index)
+{
+    uint64_t z = uint64_t(layer_index) + 0x9E3779B97F4A7C15ull;
+    z          = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+    z          = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+    return double((z ^ (z >> 31)) >> 11) * 0x1.0p-53;
+}
 
 // Calculate infill rotation angle (in radians) for a given layer from a rotation template.
 // Grammar subset handled (rotation only):
@@ -236,8 +248,8 @@ double calculate_infill_rotation_angle(const PrintObject* object,
             case 9: negvalue = pow(1 - negvalue, 2); break;                 // u-joint, squared, x2 inverse
             case 10: negvalue = 1. - pow(1. - negvalue, 3); break;          // Q-joint, cubic, x3
             case 11: negvalue = pow(1. - negvalue, 3); break;               // q-joint, cubic, x3 inverse
-            case 12: negvalue = (double) rand() / RAND_MAX; break;          // ~-joint, random, fill the whole angle
-            case 13: negvalue += (double) rand() / RAND_MAX - 0.5; break;   // ^-joint, pseudorandom, disperse at middle line
+            case 12: negvalue = layer_random(layer_id); break;              // ~-joint, random, fill the whole angle
+            case 13: negvalue += layer_random(layer_id) - 0.5; break;       // ^-joint, pseudorandom, disperse at middle line
             case 14: negvalue = 0.5; break;                                 // |-joint, like #-joint but placed at middle angle
             case 15: negvalue = _negative ? 0. : 1.; break;                 // #-joint, vertical at the end angle
             }
