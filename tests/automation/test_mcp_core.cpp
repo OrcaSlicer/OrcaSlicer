@@ -134,6 +134,8 @@ TEST_CASE("a UI call that is never picked up is abandoned and never runs", "[Mcp
     CHECK(error.find("safe to retry") != std::string::npos);
     ui.drain();
     CHECK_FALSE(ran);
+    CHECK_THROWS_AS(invoker.run(GuardClass::Mutate, "t", [] { return json(); }, 100ms), UiCallNotRun);
+    ui.drain();
 }
 
 TEST_CASE("a UI call that times out behind a native dialog names the dialog", "[Mcp]")
@@ -1239,6 +1241,76 @@ TEST_CASE("a closure queued before a UI rebuild does not run after it", "[Mcp]")
     ui.pump_until([&] { return caller.wait_for(0ms) == std::future_status::ready; });
     CHECK(caller.get().find("recreated") != std::string::npos);
     CHECK_FALSE(ran);
+}
+
+TEST_CASE("a call says it was not run only until a step of it has run", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    h.timing.ui_queue_timeout = 200ms;
+    // From here on the UI thread is busy for good, as after a click that hangs the app.
+    const auto hold_ui = [&] {
+        h.ui.post([&] {
+            while (!release)
+                std::this_thread::sleep_for(5ms);
+        });
+    };
+    const auto step = [&] {
+        hold_ui();
+        return json();
+    };
+    h.registry.add(tool("click_then_read", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui(step);
+        return ToolResult::ok(ctx.observe_ui([] { return json("read"); }));
+    }));
+    h.registry.add(tool("read_then_click", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.observe_ui(step);
+        return ToolResult::ok(ctx.run_ui([] { return json("clicked"); }));
+    }));
+    h.registry.add(tool("scroll_then_capture", GuardClass::Inspect, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui(step);
+        return ToolResult::ok(ctx.run_ui([] { return json("captured"); }));
+    }));
+    h.registry.add(tool("noop", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.registry.add(tool("child_then_edit", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.call_child("noop", json::object());
+        hold_ui();
+        return ToolResult::ok(ctx.run_ui([] { return json("edited"); }));
+    }));
+    h.registry.add(tool("edit", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
+        return ToolResult::ok(ctx.run_ui([] { return json("edited"); }));
+    }));
+    h.start();
+
+    SECTION("a closure the UI thread never ran, after a step that ran")
+    {
+        const std::string called =
+            GENERATE(as<std::string>{}, "click_then_read", "read_then_click", "scroll_then_capture", "child_then_edit");
+        CAPTURE(called);
+        const ToolResult r = h.call(called);
+        CHECK(r.is_error);
+        CHECK_THAT(r.message, ContainsSubstring("Part of this call already ran"));
+        CHECK_THAT(r.message, !ContainsSubstring("safe to retry"));
+    }
+    SECTION("the call's first closure, never picked up")
+    {
+        hold_ui();
+        const ToolResult r = h.call("edit");
+        CHECK(r.is_error);
+        CHECK_THAT(r.message, ContainsSubstring("safe to retry"));
+    }
+    SECTION("the call's first closure, refused while the UI is being rebuilt")
+    {
+        {
+            std::lock_guard<std::mutex> lock(h.guards_mutex);
+            h.guards.suspended = true;
+        }
+        const ToolResult r = h.call("edit");
+        CHECK(r.is_error);
+        CHECK_THAT(r.message, ContainsSubstring("being recreated"));
+        CHECK_THAT(r.message, !ContainsSubstring("Part of this call"));
+    }
 }
 
 TEST_CASE("operation admission is checked again when a mutate call reaches the UI thread", "[Mcp]")

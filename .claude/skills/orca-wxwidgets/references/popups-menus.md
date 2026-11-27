@@ -30,7 +30,9 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
 2. Size the popup (`SetSizerAndFit`/`SetSize`) **before** `Position()`, and pass the *anchor's* height as the
    second argument: `Position(anchor->ClientToScreen({0,0}), {0, anchor->GetSize().y})`. (§3)
 3. On macOS, anchor a hover-driven transient popup flush against its opener, with no pixel gap. (§3)
-4. Never call `Popup()` on a popup that is already shown: guard with `if (!popup->IsShown())`. (§2)
+4. Never call `Popup()` on a popup that is already shown: guard with `if (!popup->IsShown())`. On macOS and GTK
+   a repeat hangs a raw `wxPopupTransientWindow`; `PopupWindow::Popup()` ignores it there. On MSW a repeat moves
+   the focus into the popup again, the one case to call it on purpose (`DropDown::mouseReleased`). (§2, §6)
 5. Destroy a popup with one `Destroy()`, typically from `wxEVT_SHOW` when it hides. Never `delete` it or
    call `Destroy()` twice. (§2)
 6. Command events from controls inside a popup stop at the popup (`wxWS_EX_BLOCK_EVENTS`) on MSW and macOS,
@@ -41,7 +43,9 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
    `OnDismiss()`. (§2)
 9. `ProcessLeftDown` is never called on MSW. Keep-open logic needs a per-platform path. (§2, §5)
 10. A control that opens a popup on click must debounce reopening right after a dismissal
-    (`DropDown::HasDismissLongTime`), because the dismissing click reaches the opener on MSW and macOS. (§5)
+    (`DropDown::HasDismissLongTime`), because the dismissing click reaches the opener on MSW and macOS. An
+    opener whose next click closes its `PopupWindow` starts its handler with `if (popup.CloseOnToggle()) return;`,
+    so a click that reaches it while the popup is shown closes the popup instead of reopening it. (§5, §6)
 11. On MSW, a popup that must close when the frame deactivates or minimizes calls `BindUnfocusEvent()`. On
     macOS, nothing dismisses a popup on app deactivation. (§5, §6)
 12. On macOS, re-verify the cursor with `GetClientRect().Contains(ScreenToClient(wxGetMousePosition()))`
@@ -128,11 +132,16 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
   (`src/common/popupcmn.cpp:536-543`, inside `#ifndef __WXMSW__`). `src/msw/popupwin.cpp` has no click
   handler. An override that returns true does not keep the popup open on Windows (§5).
 - **`Popup()` must not run on a shown popup (non-MSW).** `Popup()` pushes `m_handlerPopup` onto `m_child` and
-  `m_handlerFocus` onto the focus window every time (`popupcmn.cpp:308-332`). The "still in use" asserts are
-  compiled out in Orca. A second push links the handler chain into a cycle, and the next event that no handler
+  `m_handlerFocus` onto the focus window every time (`popupcmn.cpp:308-332`). The "still in use" asserts there
+  and `PushEventHandler`'s "shouldn't be part of a wxEvtHandler chain" assert (`src/common/wincmn.cpp:1414-1416`)
+  are compiled out in Orca. A second push links the handler chain into a cycle, and the next event that no handler
   in the cycle consumes loops forever in `wxEvtHandler::DoTryChain` (`src/common/event.cpp:1591-1640`), so the
   app hangs. On MSW, `Popup()` is just `Show()` plus an optional `SetFocus` (`src/msw/popupwin.cpp:184-193`), so
   a repeat is harmless there.
+- **Only `Dismiss()` removes the handlers.** `PopHandlers()` removes them and clears `m_child` and `m_focus`; wx
+  calls it from `Dismiss()` and from the destructor (`popupcmn.cpp:246-284`, 432-436). `Hide()` (`Show(false)`,
+  335-430) leaves them pushed, so a `Hide()` followed by `Popup()` builds the same cycle as a repeated `Popup()`.
+  `PopupWindow::Popup` guards both cases (§6).
 - **`Destroy()` is deferred.** The popup goes into `wxPendingDelete`, and a second `Destroy()` fails a silent
   `wxCHECK` "Shouldn't destroy the popup twice." (`popupcmn.cpp:209-221`). The comment explains why: "The popup
   window can be deleted at any moment, even while some events are still being processed for it".
@@ -170,7 +179,9 @@ A popup created per open is a child of its parent until it is destroyed. Destroy
 **Pitfalls.**
 - **Rule:** Guard every `Popup()` call with `IsShown()`.
   **Why:** On non-MSW ports the second push creates a cycle in the handler chain and the app hangs on the next
-  unconsumed event. MSW is unaffected, which hides the bug from Windows testing.
+  unconsumed event. MSW is unaffected, which hides the bug from Windows testing. `PopupWindow::Popup()` ignores a
+  repeat on macOS and GTK, so a missing guard on a `PopupWindow` no longer hangs, but a raw
+  `wxPopupTransientWindow` (or a `wxTipWindow`) still does, and on MSW the repeat still moves the focus.
   ```cpp
   // Wrong: re-pops on every motion or click
   void on_motion(wxMouseEvent&) { m_popup->Popup(); }
@@ -178,8 +189,8 @@ A popup created per open is a child of its parent until it is destroyed. Destroy
   void on_motion(wxMouseEvent&) { if (!m_popup->IsShown()) m_popup->Popup(); }
   ```
   Cite: `DropDown::mouseMove` (`if (!drop.IsShown()) drop.Popup(&drop)`), `SearchObjectDialog::Popup`
-  (`if (m_is_dismissing || this->IsShown()) return;`). `Button::OnParentMotion` may re-pop its `wxTipWindow` on
-  every move only because `Button::EnableTooltipEvenDisabled` is MSW-only.
+  (`if (m_is_dismissing || this->IsShown()) return;`), `PopupWindow::Popup`. `Button::OnParentMotion` may re-pop
+  its `wxTipWindow` on every move only because `Button::EnableTooltipEvenDisabled` is MSW-only.
 - **Rule:** Veto in `Dismiss()`. In `OnDismiss()`, act only if the popup really closed.
   **Why:** `DismissAndNotify` calls `OnDismiss` unconditionally after `Dismiss`.
   ```cpp
@@ -434,6 +445,21 @@ geometry-based dismissal checks must use focus instead (§8).
   ```
   Cite: `DropDown::HasDismissLongTime` (≥20 ms after `OnDismiss`, used by `ComboBox::mouseDown`),
   `StatusPanel::on_switch_speed` (`speed_dismiss_time`, 200 ms).
+- **Rule:** An opener whose next click closes its popup closes a shown popup with `CloseOnToggle()` before it
+  does anything else.
+  **Why:** A click can reach the opener while the popup is still shown. A person's click never does on macOS or
+  GTK, where the popup's capture or grab takes the click and closes the popup first. A mouse event sent straight
+  to the opener does, such as the MCP server's `widget_click`, and calling `Popup()` from it would re-pop the
+  shown popup. On MSW a person's click does too, before the deferred deactivation closes a
+  `wxPU_CONTAINS_CONTROLS` popup. wx's own combo control toggles the same way: `wxComboCtrlBase::OnButtonClick`
+  hides a shown popup and opens a hidden one (`src/common/combocmn.cpp:2060-2079`).
+  ```cpp
+  // Wrong: a click that arrives while the popup is shown re-pops it
+  void on_opener_click(wxMouseEvent&) { if (!in_debounce()) m_popup.Popup(); }
+  // Right
+  void on_opener_click(wxMouseEvent&) { if (m_popup.CloseOnToggle()) return; if (!in_debounce()) m_popup.Popup(); }
+  ```
+  Cite: `MonitorPanel::on_printer_clicked`, `CalibrationPanel::on_printer_clicked`.
 - **Rule:** Don't rely on `ProcessLeftDown` to keep a popup open on Windows.
   **Why:** MSW never calls it.
   ```cpp
@@ -456,6 +482,8 @@ class PopupWindow : public wxPopupTransientWindow {
 public:
     PopupWindow(wxWindow* parent, int style = wxBORDER_NONE);
     bool Create(wxWindow* parent, int flags = wxBORDER_NONE);
+    void Popup(wxWindow* focus = nullptr) override;                       // macOS/GTK: no-op while shown (§2)
+    bool CloseOnToggle();                                                 // for an opener that toggles it (§5)
 #ifdef __WXGTK__
     bool Show(bool show = true) override;                                 // hides GTK tooltips first on Wayland (§9)
 #endif
@@ -476,6 +504,20 @@ What it adds per platform:
 | macOS | Only with `wxPU_CONTAINS_CONTROLS`: `OnMouseEvent2`, bound on the popup for `LEFT_DOWN/UP/DCLICK`, `MOTION` and `MOUSEWHEEL`, hit-tests the children (static `HitTest`) and re-dispatches the event to the deepest child under the cursor with `ProcessEventLocally`. On `MOTION` it synthesizes `ENTER`/`LEAVE` for the hovered target. This compensates for the capture rerouting in §5. |
 
 Details [source] (`Widgets/PopupWindow.cpp`).
+- `Popup()`: on macOS and GTK it returns at once while `IsShown()`, and when `m_child` or `m_focus` is still set
+  (a `Hide()` without `Dismiss()` left the handlers pushed) it calls `PopHandlers()` before wx's `Popup()` (§2).
+  `m_child`, `m_focus` and `PopHandlers()` are protected members of wx's non-MSW `wxPopupTransientWindow`
+  (`include/wx/popupwin.h:178-193`). The test wx's destructor uses, `m_handlerPopup->GetNextHandler()`, does not
+  compile outside wx: `wxPopupWindowHandler` is only forward-declared there (`include/wx/popupwin.h:154`). On MSW
+  it is wx's `Popup()`, unchanged: a repeat there moves the focus into the popup, which `DropDown::mouseReleased`
+  relies on to focus a sub-list that hovering already showed. An override of `Popup()` keeps the guard only if it
+  ends in `PopupWindow::Popup(focus)`, as `DropDown::Popup` and `SearchDialog::Popup` do.
+- `CloseOnToggle()` returns false while the popup is hidden. While it is shown it returns true, and on macOS and
+  GTK it first closes the popup with `DismissAndNotify()`, so `OnDismiss()` runs as for a click outside. On MSW it
+  only returns true. A person's click that reached the opener also deactivated a `wxPU_CONTAINS_CONTROLS` popup,
+  and wx's deferred `DismissOnDeactivate` calls `DismissAndNotify()` without checking `IsShown()`
+  (`src/msw/popupwin.cpp:200-216`), so closing it here would run `OnDismiss()` twice. A click sent straight to the
+  opener deactivates nothing, so on MSW it leaves the popup open.
 - `GetTopParent(w)` returns the first *strict* ancestor of `w` that is a `wxNonOwnedWindow`, or the root if there
   is none. `Create` starts from `parent`, while `BindUnfocusEvent` and the destructor start from the popup. When
   `parent` is itself a top-level window with a parent (a dialog), `Create` therefore binds the dialog's parent

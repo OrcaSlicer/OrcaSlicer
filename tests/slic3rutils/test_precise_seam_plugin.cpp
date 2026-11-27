@@ -39,7 +39,6 @@ TEST_CASE("Python exposes every seam mode and distinguishes strong weak and ordi
         {"SupportBlocker", ModelVolumeType::SUPPORT_BLOCKER, false, false}
     }};
 
-    // Bootstrap holds the GIL on first initialization; acquire explicitly for an already-running interpreter too.
     ensure_python_initialized();
     py::gil_scoped_acquire gil;
     py::object host = import_orca_module().attr("host");
