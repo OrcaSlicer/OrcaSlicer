@@ -54,7 +54,7 @@ struct UIColors
     std::array<ColorRGBA, 3> axes;         // X, Y, Z
     ColorRGBA                enforcer;     // positive brush
     ColorRGBA                blocker;      // negative brush
-    ColorRGBA                erase_cursor; // painting cursor while erasing
+    ColorRGBA                eraser;       // painting cursor while erasing
     ColorRGB                 overhang;     // overhang highlight
     std::array<ColorRGBA, 2> measure_pair; // 1st and 2nd selection of measure and assembly
     std::array<ColorRGBA, 2> cut_pair;     // upper and lower part of cut

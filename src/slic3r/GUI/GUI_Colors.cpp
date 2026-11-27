@@ -73,7 +73,7 @@ static std::array<UIColors, size_t(UIColorSet::Count)> make_ui_colors()
     }}; 
     def.enforcer     = rgba("#80FF80");
     def.blocker      = rgba("#FF8080");
-    def.erase_cursor = rgba("#00009940");
+    def.eraser       = rgba("#00009940");
     def.overhang     = rgb("#C70000");
     def.measure_pair = {{
         rgba("#40BFBF"), // selected_1st_color

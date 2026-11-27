@@ -1283,7 +1283,7 @@ static ColorRGBA cursor_color(EnforcerBlockerType state, bool brush_colors, cons
 {
     // Shift erases with both buttons, see gizmo_event()
     if (state == EnforcerBlockerType::NONE || ImGui::GetIO().KeyShift)
-        return ui_colors().erase_cursor;
+        return ui_colors().eraser;
     if (!brush_colors)
         return fixed_color;
     ColorRGBA color = state == EnforcerBlockerType::BLOCKER ? ui_colors().blocker : ui_colors().enforcer;
