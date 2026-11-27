@@ -113,10 +113,6 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, WipeT
         return opt != nullptr ? opt->getInt() : fallback;
     };
     auto floats_of = [&config](const char *key) { return dynamic_cast<const ConfigOptionFloats *>(option_of(config, key)); };
-    auto max_of = [&floats_of](const char *key, double fallback) {
-        const auto *opt = floats_of(key);
-        return (opt != nullptr && !opt->values.empty()) ? *std::max_element(opt->values.begin(), opt->values.end()) : fallback;
-    };
     auto float_at = [&floats_of](const char *key, unsigned int id, double fallback) {
         const auto *opt = floats_of(key);
         return (opt != nullptr && !opt->values.empty()) ? opt->get_at(id) : fallback;
@@ -161,15 +157,13 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, WipeT
     // planners give it the idle depth below and nothing more.
     const size_t purge_count = filaments_cnt > 1 ? (dual_nozzle ? filaments_cnt : filaments_cnt - 1) : 0;
 
-    // Type2 purges one volume per tool change. Type1 plans per filament below; here the volume
-    // only decides whether a tower exists.
-    double volume = prime_volume * double(purge_count);
-    if (dual_nozzle) {
-        // Dual-nozzle printers also purge the filament change length on the tower.
-        const double length   = max_of("filament_change_length", 0.);
-        const double diameter = max_of("filament_diameter", 1.75);
-        volume += length * PI * diameter * diameter / 4. * double(filaments_cnt / 2);
-    }
+    // Type2 purges one volume per tool change, at least the filament's minimal purge, and nothing
+    // for the filament change length: only Type1 rams that, and Type1 sizes itself from the
+    // per-filament plan below.
+    double purge_volume = prime_volume;
+    for (const unsigned int id : filament_ids)
+        purge_volume = std::max(purge_volume, float_at("filament_minimal_purge_on_wipe_tower", id, 0.));
+    double volume = purge_volume * double(purge_count);
     // Single-extruder multi-material purges the flush matrix instead of the prime volume.
     const bool semm_flush = opt_bool("purge_in_prime_tower") && opt_bool("single_extruder_multi_material");
     if (semm_flush)
