@@ -23,11 +23,6 @@ permissions:
   # Needed to delete outdated bot comments through the issues/comments endpoint.
   issues: write
 
-# One handler at a time per source branch, so two wakes cannot race delete-and-post.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
-  cancel-in-progress: false
-
 jobs:
   post_comment:
     name: Post the comparison comment
@@ -35,6 +30,11 @@ jobs:
     timeout-minutes: 10
     # A label workflow run for any other label is skipped and has nothing to wake.
     if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'skipped' }}
+    # One handler at a time per source branch, so two wakes cannot race post-and-delete. On the
+    # job, not the workflow, so the skipped wakes of other labels never take a pending place.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: false
     steps:
       - name: Checkout the scripts from the default branch
         uses: actions/checkout@v7
@@ -46,7 +46,7 @@ jobs:
           persist-credentials: false
 
       - name: Update the comment
-        # A failure would leave a red check on the pull request, which blocks pr-merge-bot.
+        # The comparison is not a check; a failure is reported in the log and the next wake retries.
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}

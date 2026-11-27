@@ -383,7 +383,7 @@ jobs:
                 // A label added with the workflow token starts no workflow, so without the app
                 // token the comment waits for a build to finish.
                 const when = process.env.STARTS_WORKFLOWS === 'true'
-                  ? 'is posted when the build of the latest commit finishes, or shortly if it already has'
+                  ? 'is posted when the build of the latest commit finishes, or shortly if it already has (with a note saying why if there is none); a maintainer may first have to approve the run'
                   : 'is posted when the running build finishes, or after the next push that builds; a PR that changes no built file gets none';
                 try {
                   await github.rest.issues.createComment({
