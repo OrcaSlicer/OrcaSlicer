@@ -645,3 +645,174 @@ TEST_CASE("a combo with an empty label and its unlabelled options are named on t
     CHECK(object[0].kind == "option");
     CHECK(object[0].label.empty()); // the Selectable's own record, so a click on it picks it
 }
+
+namespace {
+
+// The middle of a recorded item, where a click lands on it.
+ImVec2 center(const ImGuiWrapper::RecordedItem& item)
+{
+    return ImVec2(item.x + item.w / 2, item.y + item.h / 2);
+}
+
+// A left click at pos, over the frames it takes: the pointer arrives, presses, lets go, and one more
+// frame shows the result.
+template<class Draw> void click(RecordedFrames& f, const ImVec2& pos, Draw draw)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    io.MousePos = pos;
+    f.frame(draw);
+    io.MouseDown[0] = true;
+    f.frame(draw);
+    io.MouseDown[0] = false;
+    f.frame(draw);
+    f.frame(draw);
+}
+
+bool checked(const ImGuiWrapper::RecordedItem& item)
+{
+    return (item.flags & ImGuiItemStatusFlags_Checked) != 0;
+}
+
+const std::vector<std::string> switch_labels = {"Free", "Vertical", "Horizontal"};
+
+} // namespace
+
+TEST_CASE("a multi switch selects the segment that is clicked and reports the change once", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    int            selected = 0, changes = 0;
+    const auto     draw     = [&] { changes += f.imgui.multi_switch("##mode", switch_labels, selected) ? 1 : 0; };
+    f.frame(draw);
+    REQUIRE(f.named("Horizontal").size() == 1);
+    click(f, center(f.named("Horizontal")[0]), draw);
+    CHECK(selected == 2);
+    CHECK(changes == 1);
+}
+
+TEST_CASE("a click on the selected segment of a multi switch reports no change", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    int            selected = 1, changes = 0;
+    const auto     draw     = [&] { changes += f.imgui.multi_switch("##mode", switch_labels, selected) ? 1 : 0; };
+    f.frame(draw);
+    REQUIRE(f.named("Vertical").size() == 1);
+    click(f, center(f.named("Vertical")[0]), draw);
+    CHECK(selected == 1);
+    CHECK(changes == 0);
+}
+
+TEST_CASE("a disabled multi switch ignores a click", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    int            selected = 0;
+    const auto     draw     = [&] {
+        f.imgui.disabled_begin(true);
+        f.imgui.multi_switch("##mode", switch_labels, selected);
+        f.imgui.disabled_end();
+    };
+    f.frame(draw);
+    REQUIRE(f.named("Vertical").size() == 1);
+    click(f, center(f.named("Vertical")[0]), draw);
+    CHECK(selected == 0);
+}
+
+TEST_CASE("a window lying over a multi switch takes the click", "[ImGuiWrapper][Regression]")
+{
+    RecordedFrames f;
+    int            selected = 0;
+    // The cover stands for a dropdown that opens over the switch: a click on one of its entries is
+    // not a click on the segment under it.
+    const auto draw = [&] {
+        f.imgui.multi_switch("##mode", switch_labels, selected);
+        ImGui::SetNextWindowPos(ImVec2(0.f, 0.f));
+        ImGui::SetNextWindowSize(ImVec2(400.f, 300.f));
+        ImGui::SetNextWindowFocus();
+        ImGui::Begin("cover");
+        ImGui::End();
+    };
+    f.frame(draw);
+    REQUIRE(f.named("Vertical").size() == 1);
+    click(f, center(f.named("Vertical")[0]), draw);
+    CHECK(selected == 0);
+}
+
+TEST_CASE("a multi switch records each segment under its label, and only the selected one as on", "[ImGuiWrapper]")
+{
+    // The selection moves to a later segment, then to an earlier one: the segments are drawn in
+    // order, so one way a frame could show two of them on, the other way none.
+    const bool     to_later = GENERATE(true, false);
+    const int      from = to_later ? 0 : 2, to = to_later ? 2 : 0;
+    RecordedFrames f;
+    int            selected = from;
+    const auto     draw     = [&] { f.imgui.multi_switch("##mode", switch_labels, selected); };
+    const auto exactly_one_on = [&] {
+        int on = 0;
+        for (const std::string& label : switch_labels) {
+            const auto segment = f.named(label);
+            REQUIRE(segment.size() == 1);
+            CHECK(segment[0].kind == "toggle");
+            CHECK((segment[0].flags & ImGuiItemStatusFlags_Checkable) != 0);
+            on += checked(segment[0]) ? 1 : 0;
+        }
+        CHECK(on == 1);
+    };
+    f.frame(draw);
+    exactly_one_on();
+    CHECK(checked(f.named(switch_labels[from])[0]));
+    CHECK(f.listable() == 3);
+
+    ImGui::GetIO().MousePos = center(f.named(switch_labels[to])[0]);
+    const bool button_down[] = {false, true, false, false}; // arrive, press, let go, settle
+    for (const bool down : button_down) {
+        ImGui::GetIO().MouseDown[0] = down;
+        f.frame(draw);
+        exactly_one_on();
+    }
+    CHECK(selected == to);
+    CHECK(checked(f.named(switch_labels[to])[0]));
+}
+
+TEST_CASE("a multi switch segment is as wide as its label, and never narrower than seven digits", "[ImGuiWrapper]")
+{
+    RecordedFrames                 f;
+    const std::vector<std::string> labels   = {"AB", "A label wider than seven digits"};
+    int                            selected = 0;
+    float                          digits = 0.f, wide = 0.f, padding = 0.f;
+    f.frame([&] {
+        digits  = ImGui::CalcTextSize("0000000").x;
+        wide    = ImGui::CalcTextSize(labels[1].c_str()).x;
+        padding = ImGui::GetStyle().FramePadding.x * 2.f;
+        f.imgui.multi_switch("##mode", labels, selected);
+    });
+    REQUIRE(f.named(labels[0]).size() == 1);
+    REQUIRE(f.named(labels[1]).size() == 1);
+    REQUIRE(wide > digits);
+    CHECK_THAT(f.named(labels[0])[0].w, WithinAbs(digits + padding, 0.01));
+    CHECK_THAT(f.named(labels[1])[0].w, WithinAbs(wide + padding, 0.01));
+}
+
+TEST_CASE("a multi switch is one item to the layout, as large as its track", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    int            selected = 0;
+    const float    gap      = 2.f; // the frame border size is the gap around and between the segments
+    ImVec2         item_min, item_max, next;
+    f.frame([&] {
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, gap);
+        f.imgui.multi_switch("##mode", switch_labels, selected);
+        ImGui::PopStyleVar();
+        item_min = ImGui::GetItemRectMin();
+        item_max = ImGui::GetItemRectMax();
+        next     = ImGui::GetCursorScreenPos();
+    });
+    const auto first = f.named("Free"), last = f.named("Horizontal");
+    REQUIRE(first.size() == 1);
+    REQUIRE(last.size() == 1);
+    // The track reaches a gap beyond the first and the last segment on every side, and the next
+    // item starts under it, so a tooltip or SameLine() after the switch applies to all of it.
+    CHECK_THAT(item_min.x, WithinAbs(first[0].x - gap, 0.01));
+    CHECK_THAT(item_min.y, WithinAbs(first[0].y - gap, 0.01));
+    CHECK_THAT(item_max.x, WithinAbs(last[0].x + last[0].w + gap, 0.01));
+    CHECK_THAT(item_max.y, WithinAbs(last[0].y + last[0].h + gap, 0.01));
+    CHECK(next.y >= item_max.y);
+}

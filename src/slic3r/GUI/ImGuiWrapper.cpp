@@ -2225,6 +2225,8 @@ bool ImGuiWrapper::multi_switch(const char* id, const std::vector<std::string>& 
         ImGui::PushID(i);
         if (ImGui::InvisibleButton("##segment", size))
             selected = i;
+        // Automation finds a segment by the label it shows, as it finds a labelled button, and reads which one is on.
+        record_named_item(labels[i], "toggle", i == shown ? 1 : 0);
         ImGui::PopID();
 
         if (i == shown)
