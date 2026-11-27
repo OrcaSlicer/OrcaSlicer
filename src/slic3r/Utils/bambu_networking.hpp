@@ -288,6 +288,10 @@ struct PrintParams_0203 {
 struct PrintParams {
     /* basic info */
     std::string     dev_id;
+    // Qidi Box: false makes the agent send SAVE_VARIABLE enable_box 0 before the print
+    bool            task_enable_box = true;
+    // false => the Qidi extras (box toggle handling, slot scripts) are off - "Standard" sync profile
+    bool            task_qidi_enhanced = true;
     std::string     task_name;
     std::string     project_name;
     std::string     preset_name;
