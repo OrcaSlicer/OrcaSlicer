@@ -3,6 +3,7 @@
 #include "core/Result.hpp"
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Format/ProjectStrategy.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PrintConfig.hpp"
