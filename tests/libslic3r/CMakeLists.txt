@@ -33,6 +33,7 @@ add_executable(${_TEST_NAME}_tests
     test_cut.cpp
     test_config.cpp
     test_config_variant_expansion.cpp
+    test_fuzzy_skin.cpp
     test_locales_utils.cpp
     test_drc.cpp
     test_gcodereader.cpp
