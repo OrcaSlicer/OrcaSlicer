@@ -157,7 +157,10 @@ existing behavior is vendor-specific or has no portable implementation:
 
 The methods remain on the common interface so an agent that supports them can override them explicitly.
 `sequence_id` remains part of the command contract because `DeviceManager` creates and tracks it as
-the command ID.
+the command ID. Device-layer commands and the Orca agent's connect requests draw it from one
+process-wide counter, `PrinterSequenceIds`, inside the 20000-29999 band that marks a reply as an answer
+to this app. The counter starts at a random point in the band at each launch and wraps inside it, so a
+printer that remembers recent ids does not take a new launch's commands for repeats.
 
 ## Device ownership and stale responses
 

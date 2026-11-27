@@ -5,6 +5,7 @@
 #include <slic3r/Utils/IPrinterAgent.hpp>
 #include <slic3r/Utils/OrcaCloudServiceAgent.hpp>
 #include <slic3r/Utils/OrcaPrinterAgent.hpp>
+#include <slic3r/Utils/PrinterSequenceIds.hpp>
 
 #include "catch2/matchers/catch_matchers.hpp"
 #include "orca_mqtt_mock_broker.hpp"
@@ -12,6 +13,8 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <nlohmann/json.hpp>
+#include <set>
 #include <slic3r/Utils/bambu_networking.hpp>
 #include <string>
 #include <thread>
@@ -504,6 +507,30 @@ TEST_CASE("post-connect sequence is subscribe then 4 requests in order", "[OrcaP
     for (auto& c : probe.calls)
         if (auto pos = c.find("sequence_id"); pos != std::string::npos)
             CHECK(c.substr(pos).find("\"2") != std::string::npos);
+}
+
+TEST_CASE("each connection's requests get new sequence ids from the shared counter", "[OrcaPrinterAgent]") {
+    struct IdProbe : OrcaPrinterAgent {
+        using OrcaPrinterAgent::OrcaPrinterAgent;
+        std::vector<std::string> ids;
+        void emit_connect_sequence(const std::string& dev_id,
+            std::function<void(const std::string&)> /*sub*/,
+            std::function<void(const std::string&)> /*req*/) override {
+            OrcaPrinterAgent::emit_connect_sequence(dev_id, [](const std::string&) {},
+                [&](const std::string& body) {
+                    const nlohmann::json message = nlohmann::json::parse(body);
+                    for (const auto& [ns, request] : message.items())
+                        ids.push_back(request.at("sequence_id").get<std::string>());
+                });
+        }
+    } probe("/tmp");
+    probe.run_connect_sequence_for_test("dev-1");
+    probe.run_connect_sequence_for_test("dev-1");
+    REQUIRE(probe.ids.size() == 8);
+    const std::set<std::string> unique(probe.ids.begin(), probe.ids.end());
+    CHECK(unique.size() == probe.ids.size());
+    for (const std::string& id : probe.ids)
+        CHECK(Slic3r::PrinterSequenceIds::in_band(std::stoi(id)));
 }
 
 // Hidden: spawns the connect worker and attempts a real (failing) connect.

@@ -210,7 +210,7 @@ protected:
     virtual void emit_connect_sequence(const std::string& dev_id,
                                        std::function<void(const std::string&)> subscribe,
                                        std::function<void(const std::string&)> request);
-    static std::string seq(int n); // decimal string in the OrcaSlicer 20000..29999 band
+    static std::string next_sequence_id(); // drawn from PrinterSequenceIds::shared()
     static std::string build_pushing_start(const std::string& sequence_id);
     static std::string build_pushing_stop(const std::string& sequence_id);
     static std::string build_pushall(const std::string& sequence_id);
