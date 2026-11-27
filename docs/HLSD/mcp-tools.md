@@ -256,7 +256,7 @@ suits it, so the switch lands on one of them.
 |---|---|---|
 | `filament_list` | The filament list as the sidebar shows it: each slot's colour and preset, or a mixed filament's filaments, ratios, gradient and whether it is broken; the flushing volumes, multiplier and purge mode |  |
 | `filament_add` | Add a filament slot, as the + button above the filament list does |  |
-| `filament_delete` | Delete a slot, or merge it into another, as its Delete and Merge with items do | `filament_slot`, `merge_into`, `break_mix` |
+| `filament_delete` | Delete a slot, or merge it into another, as its Delete and Merge with items do | `filament_slot`, `merge_into`, `break_mix`, `confirm_shift` |
 | `filament_add_mixed` | Add a mixed filament, which prints physical slots in turn, layer by layer, in given ratios | `components`, `ratios` |
 | `filament_edit_mixed` | Change a mixed filament's filaments and ratios, as the Edit Mixed Filament dialog's OK does | `filament_slot`, `components`, `ratios` |
 | `filament_set_colour` | Set a physical slot's colour, as its colour button does | `filament_slot`, `colour` |
@@ -330,6 +330,9 @@ whose plugin has unloaded, or loaded again since, is refused.
   minimized from the desktop reads `normal`. `normal` and `raise` bring a minimized window back only while the
   compositor lets OrcaSlicer take the focus; otherwise the reply reads `minimized`, with a note that the person
   restores it from the taskbar, or `active: false`. sway never minimizes a window.
+- **GNOME Shell on X11.** It leaves a minimized window minimized when an app un-minimizes it, and brings it back when
+  the app activates it, so `normal` restores a minimized window as on Wayland: by activating it, which also raises it,
+  and with the same note when GNOME Shell doesn't let OrcaSlicer take the focus.
 - **The camera.** `camera_state`, in `view_set`'s reply as in `app_state.camera`, gives `click_px_per_mm`, the zoom in
   the logical pixels `widget_click` and `mouse_gesture` take; `type`, which says whether `zoom` holds across the whole
   view (orthographic) or only at the depth of `look_at` (perspective); and `elevation` and `azimuth` in `orbit`'s
@@ -648,6 +651,7 @@ and opens nothing.** A command's own action is `{}`.
 | `filament_add_mixed {}` | the Add Mixed Filament dialog, where a gradient is set | `components` and `ratios` |
 | `filament_edit_mixed {filament_slot}` | the Edit Mixed Filament dialog on that mix, where a gradient is set | `components` and `ratios` |
 | `filament_delete {filament_slot, merge_into}` into a mixed filament that mixes the slot | Merge with's question | `break_mix` |
+| `filament_delete {filament_slot, merge_into}` before a later slot on a non-Bambu Lab printer with more than one nozzle and without `single_extruder_multi_material` | Delete's and Merge with's question about the later tool numbers | `confirm_shift` |
 | `recording_start {}` | the Start Recording dialog | any argument, or `silent: true` |
 | `window_open {window}`, `app_open_web_page {page}` | nothing: opening is the job | the same call |
 
