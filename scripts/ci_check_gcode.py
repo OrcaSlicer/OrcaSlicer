@@ -7,6 +7,10 @@ The Slice check job of build_all.yml fingerprints the G-code of every shipped pr
 pull request's base commit, and writes report.txt into the same artifact. Pushes and the
 nightly build are the baselines; they upload only fingerprints.tsv and made_with.txt.
 
+`comment` runs from check_gcode_comment.yml with a token that can write, so it treats the
+artifact as hostile: it reads it in memory, posts its text only inside a fence, and never
+prints it.
+
 Environment: GH_TOKEN, and optionally GITHUB_API_URL.
 """
 
@@ -46,6 +50,15 @@ BASELINE_LINE = "Baseline: "
 # A comment holds at most 65,536 characters; the report inside it is cut well before.
 FENCE_LIMIT = 50000
 FENCE = "````"
+LABEL = "check-gcode"
+MARKER = "<!-- check-gcode-comment -->"
+HEADING = "## Sliced G-code comparison"
+BOT_LOGIN = "github-actions[bot]"
+REPORT_LIMIT = 256 * 1024
+NO_BUILD = ("This commit has no `Build all` run, so there is nothing to compare. Either the pull request "
+            "changes no file that is built, or its base branch is not `main` or a `release/` branch.")
+NO_COMPARISON = ("The build of this commit made no comparison: its slice check failed or did not run, "
+                 "the build predates the comparison, or its artifact expired.")
 # Only these are bounded by a capped read; bzip2 and LZMA decompress a whole block at once.
 READABLE_COMPRESSION = (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED)
 
@@ -76,6 +89,10 @@ class Api:
     def get(self, path, **params):
         with urllib.request.urlopen(self._request("GET", path, params), timeout=30) as response:
             return json.load(response)
+
+    def send(self, method, path, body=None):
+        with urllib.request.urlopen(self._request(method, path, body=body), timeout=30) as response:
+            response.read()
 
     def get_bytes(self, path, limit):
         """The body of a download, read up to `limit` bytes. The redirect to storage is followed
@@ -249,6 +266,94 @@ def report_main(args, api):
     return build_report(baseline, base_rows, head_rows, base_made_with, head_made_with, args.branch)
 
 
+def _stable(body):
+    """The part of a comment that a new commit or a new baseline with the same result leaves alone:
+    all but the last line, without the baseline paragraph inside the fence."""
+    kept, skipping = [], False
+    for line in body.splitlines()[:-1]:
+        if line.startswith(BASELINE_LINE):
+            skipping = True
+        elif line == FENCE:
+            skipping = False
+        if not skipping:
+            kept.append(line)
+    return kept
+
+
+def _bot_comments(api, repo, number):
+    found, page = [], 1
+    while True:
+        batch = api.get(f"repos/{repo}/issues/{number}/comments", per_page=100, page=page)
+        found += [c for c in batch if c["user"]["login"] == BOT_LOGIN and c["body"].startswith(MARKER)]
+        if len(batch) < 100:
+            return found
+        page += 1
+
+
+def post_comment(api, repo, number, body):
+    """Keeps an identical comment, edits one whose result is the same, else replaces them all."""
+    old = _bot_comments(api, repo, number)
+    if len(old) == 1 and old[0]["body"] == body:
+        return
+    if len(old) == 1 and _stable(old[0]["body"]) == _stable(body):
+        api.send("PATCH", f"repos/{repo}/issues/comments/{old[0]['id']}", {"body": body})
+        return
+    for c in old:
+        api.send("DELETE", f"repos/{repo}/issues/comments/{c['id']}")
+    api.send("POST", f"repos/{repo}/issues/{number}/comments", {"body": body})
+
+
+def comment_body(sha, report=None, note=None):
+    middle = (f"Made by this pull request's own build, so a change to the workflow or the scripts "
+              f"changes the report too.\n\n{fence(report)}" if report is not None else f"{note}\n")
+    return f"{MARKER}\n{HEADING}\n\n{middle}\n<sub>For commit {sha}.</sub>\n"
+
+
+def find_report(api, repo, pr):
+    """The report of the pull request's newest finished build, NO_BUILD or NO_COMPARISON as a note,
+    or None while its newest build is not finished (that build's completion comes back here)."""
+    head = pr["head"]
+    runs = api.get(f"repos/{repo}/actions/workflows/{WORKFLOW}/runs", event="pull_request",
+                   head_sha=head["sha"], per_page=100)["workflow_runs"]
+    # The head commit alone proves nothing: another fork can open a pull request at the same commit.
+    runs = sorted((r for r in runs if r["head_repository"] and r["head_repository"]["full_name"] == head["repo"]["full_name"]
+                   and r["head_branch"] == head["ref"]), key=lambda r: r["id"], reverse=True)
+    if not runs:
+        return None, NO_BUILD
+    if runs[0]["status"] != "completed" or runs[0]["conclusion"] == "action_required":
+        return None, None
+    for run in runs:
+        if run["status"] != "completed":
+            continue
+        art = find_artifact(api, repo, run["id"])
+        if not art:
+            continue
+        files = read_artifact(api, repo, art, ["pr_number.txt", "report.txt"], REPORT_LIMIT)
+        if files.get("pr_number.txt", b"").strip() == str(pr["number"]).encode() and "report.txt" in files:
+            return files["report.txt"], None
+    return None, NO_COMPARISON
+
+
+def comment(api, repo, head_repo, head_branch):
+    owner = head_repo.split("/")[0]
+    pulls = api.get(f"repos/{repo}/pulls", state="open", head=f"{owner}:{head_branch}", per_page=100)
+    for pr in pulls:
+        if not pr["head"]["repo"] or pr["head"]["repo"]["full_name"] != head_repo:
+            continue
+        if LABEL not in {label["name"] for label in pr["labels"]}:
+            continue
+        base = pr["base"]["ref"]
+        if base == "main" or base.startswith("release/"):
+            report, note = find_report(api, repo, pr)
+        else:
+            report, note = None, NO_BUILD
+        if report is None and note is None:
+            print(f"#{pr['number']}: its newest build has not finished.")
+            continue
+        post_comment(api, repo, pr["number"], comment_body(pr["head"]["sha"], report, note))
+        print(f"#{pr['number']}: comment up to date.")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     commands = parser.add_subparsers(dest="command", required=True)
@@ -261,6 +366,10 @@ def main(argv=None):
     report.add_argument("--head-dir", required=True)
     report.add_argument("--out", required=True)
     report.add_argument("--summary", help="a job summary file to append the report to")
+    post = commands.add_parser("comment", help="post the report on the pull requests from a branch")
+    post.add_argument("--repo", required=True)
+    post.add_argument("--head-repo", required=True)
+    post.add_argument("--head-branch", required=True)
     args = parser.parse_args(argv)
 
     if args.command == "made-with":
@@ -270,6 +379,14 @@ def main(argv=None):
         return 0
 
     api = Api(os.environ.get("GH_TOKEN", ""), os.environ.get("GITHUB_API_URL", "https://api.github.com"))
+    if args.command == "comment":
+        try:
+            comment(api, args.repo, args.head_repo, args.head_branch)
+        except Exception as error:  # noqa: BLE001 - a failure must not leave a red check
+            # The type and HTTP status only: the message can hold the artifact's text.
+            status = f", HTTP {error.code}" if isinstance(error, urllib.error.HTTPError) else ""
+            print(f"Could not update the comment ({type(error).__name__}{status}).")
+        return 0
     try:
         text = report_main(args, api)
     except (ArtifactError, urllib.error.URLError, OSError, ValueError, KeyError, TypeError) as error:

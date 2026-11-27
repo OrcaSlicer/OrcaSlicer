@@ -10,6 +10,7 @@ import os
 import sys
 import tempfile
 import unittest
+import urllib.error
 import zipfile
 from unittest import mock
 
@@ -249,6 +250,150 @@ class BuildReportTest(unittest.TestCase):
         text = cc.build_report(None, None, rows(A__x="1"), None, MADE_WITH, "release/2.5")
         self.assertIn("No build of release/2.5", text)
         self.assertIn("nothing was compared", text)
+
+
+HEAD_REPO = "someone/repo"
+SHA = "d" * 40
+BOT = {"login": "github-actions[bot]"}
+
+
+def pull(number=5, labels=(cc.LABEL,), base="main", head_repo=HEAD_REPO, sha=SHA):
+    return {"number": number, "labels": [{"name": name} for name in labels], "base": {"ref": base},
+            "head": {"sha": sha, "ref": "fix", "repo": {"full_name": head_repo}}}
+
+
+def pr_run(run_id, status="completed", conclusion="success", head_repo=HEAD_REPO, branch="fix"):
+    return {"id": run_id, "status": status, "conclusion": conclusion, "head_branch": branch,
+            "head_repository": {"full_name": head_repo}}
+
+
+class CommentFake(FakeApi):
+    """A repository with pull requests, Build all runs, artifacts and the pull request's comments."""
+
+    def __init__(self, pulls, runs=(), artifacts=None, comments=()):
+        super().__init__()
+        self.comments = [dict(c) for c in comments]
+        self.sent = []
+        self.gets[f"repos/{REPO}/pulls"] = list(pulls)
+        self.gets[f"repos/{REPO}/actions/workflows/build_all.yml/runs"] = {"workflow_runs": list(runs)}
+        for run_id, (members, size) in (artifacts or {}).items():
+            self.gets[f"repos/{REPO}/actions/runs/{run_id}/artifacts"] = {"artifacts": [artifact(run_id * 10, size)]}
+            self.blobs[f"repos/{REPO}/actions/artifacts/{run_id * 10}/zip"] = make_zip(members)
+        for run in runs:
+            self.gets.setdefault(f"repos/{REPO}/actions/runs/{run['id']}/artifacts", {"artifacts": []})
+        self.gets[f"repos/{REPO}/issues/5/comments"] = lambda params: (
+            self.comments if params.get("page", 1) == 1 else [])
+
+    def send(self, method, path, body=None):
+        self.sent.append((method, path, body))
+
+
+def report_artifact(report="G-code changed for 1 of 2 compared slices\n", number="5\n"):
+    return ({"report.txt": report, "pr_number.txt": number}, 500)
+
+
+def comment(comment_id, body):
+    return {"id": comment_id, "user": BOT, "body": body}
+
+
+class CommentTest(unittest.TestCase):
+    def run_comment(self, api, head_repo=HEAD_REPO):
+        cc.comment(api, REPO, head_repo, "fix")
+        return api.sent
+
+    def posted(self, sent):
+        self.assertEqual(len(sent), 1)
+        method, path, body = sent[0]
+        self.assertEqual((method, path), ("POST", f"repos/{REPO}/issues/5/comments"))
+        return body["body"]
+
+    def test_no_open_pull_request_from_the_branch_does_nothing(self):
+        self.assertEqual(self.run_comment(CommentFake([])), [])
+
+    def test_a_pull_request_from_another_repository_with_the_same_branch_name_is_ignored(self):
+        api = CommentFake([pull(head_repo="other/repo")], [pr_run(1)], {1: report_artifact()})
+        self.assertEqual(self.run_comment(api), [])
+
+    def test_a_pull_request_without_the_label_gets_no_comment(self):
+        api = CommentFake([pull(labels=("bug-fix",))], [pr_run(1)], {1: report_artifact()})
+        self.assertEqual(self.run_comment(api), [])
+
+    def test_a_pull_request_into_another_branch_is_told_why_there_is_no_report(self):
+        body = self.posted(self.run_comment(CommentFake([pull(base="feature/x")])))
+        self.assertIn("no `Build all` run", body)
+
+    def test_a_commit_without_a_build_is_told_why(self):
+        body = self.posted(self.run_comment(CommentFake([pull()])))
+        self.assertIn("no `Build all` run", body)
+        self.assertTrue(body.startswith(cc.MARKER))
+
+    def test_a_build_still_running_waits_for_its_own_completion(self):
+        api = CommentFake([pull()], [pr_run(2, status="in_progress"), pr_run(1)], {1: report_artifact()})
+        self.assertEqual(self.run_comment(api), [])
+
+    def test_a_build_waiting_for_approval_is_not_finished(self):
+        api = CommentFake([pull()], [pr_run(2, conclusion="action_required")], {})
+        self.assertEqual(self.run_comment(api), [])
+
+    def test_a_build_without_the_artifact_is_told_why(self):
+        body = self.posted(self.run_comment(CommentFake([pull()], [pr_run(1)], {})))
+        self.assertIn("made no comparison", body)
+
+    def test_a_run_from_another_repository_at_the_same_commit_is_not_used(self):
+        api = CommentFake([pull()], [pr_run(2, head_repo="other/repo")], {2: report_artifact("forged\n")})
+        body = self.posted(self.run_comment(api))
+        self.assertNotIn("forged", body)
+        self.assertIn("no `Build all` run", body)
+
+    def test_an_artifact_naming_another_pull_request_is_not_used(self):
+        api = CommentFake([pull()], [pr_run(1)], {1: report_artifact(number="6\n")})
+        self.assertIn("made no comparison", self.posted(self.run_comment(api)))
+
+    def test_the_report_is_posted_in_a_fence_for_the_current_head(self):
+        body = self.posted(self.run_comment(CommentFake([pull()], [pr_run(1)], {1: report_artifact()})))
+        self.assertIn(cc.HEADING, body)
+        self.assertIn("own build", body)
+        self.assertIn("````\nG-code changed for 1 of 2 compared slices\n````", body)
+        self.assertTrue(body.rstrip().endswith(f"<sub>For commit {SHA}.</sub>"))
+
+    def test_each_pull_request_from_the_branch_is_handled(self):
+        api = CommentFake([pull(base="main"), pull(base="release/2.5")], [pr_run(1)], {1: report_artifact()})
+        self.assertEqual(len(self.run_comment(api)), 2)
+
+    def body_for(self, report, sha=SHA):
+        api = CommentFake([pull(sha=sha)], [pr_run(1)], {1: report_artifact(report)})
+        return self.posted(self.run_comment(api))
+
+    def test_the_same_comment_is_kept(self):
+        old = self.body_for("same\n")
+        api = CommentFake([pull()], [pr_run(1)], {1: report_artifact("same\n")}, [comment(9, old)])
+        self.assertEqual(self.run_comment(api), [])
+
+    def test_a_new_commit_or_baseline_with_the_same_result_edits_in_place(self):
+        old = self.body_for("same\nBaseline: compared with aaaa\n", sha="e" * 40)
+        api = CommentFake([pull()], [pr_run(1)], {1: report_artifact("same\nBaseline: compared with bbbb\n")},
+                          [comment(9, old)])
+        sent = self.run_comment(api)
+        self.assertEqual([(m, p) for m, p, _ in sent], [("PATCH", f"repos/{REPO}/issues/comments/9")])
+
+    def test_a_changed_result_replaces_the_comment(self):
+        old = self.body_for("before\n")
+        api = CommentFake([pull()], [pr_run(1)], {1: report_artifact("after\n")},
+                          [comment(9, old), {"id": 8, "user": {"login": "someone"}, "body": cc.MARKER}])
+        sent = self.run_comment(api)
+        self.assertEqual([(m, p) for m, p, _ in sent],
+                         [("DELETE", f"repos/{REPO}/issues/comments/9"), ("POST", f"repos/{REPO}/issues/5/comments")])
+
+
+class CommentCommandTest(unittest.TestCase):
+    def test_an_error_prints_its_type_and_status_only_and_exits_zero(self):
+        error = urllib.error.HTTPError("https://x", 502, "line from the artifact", {}, None)
+        stdout = io.StringIO()
+        with mock.patch.object(cc, "comment", side_effect=error), contextlib.redirect_stdout(stdout):
+            code = cc.main(["comment", "--repo", REPO, "--head-repo", HEAD_REPO, "--head-branch", "fix"])
+        self.assertEqual(code, 0)
+        self.assertNotIn("line from the artifact", stdout.getvalue())
+        self.assertIn("502", stdout.getvalue())
 
 
 class ReportCommandTest(unittest.TestCase):
