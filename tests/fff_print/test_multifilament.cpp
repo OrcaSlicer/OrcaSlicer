@@ -2164,6 +2164,33 @@ TEST_CASE("The prime tower follows an object switching filaments within one appl
     }
 }
 
+TEST_CASE("The prime tower follows the number of printable copies in a sequential print", "[MultiFilament][Regression]")
+{
+    auto config = multifilament_config(2, {
+        { "print_sequence", "by object" }, { "enable_prime_tower", 1 }, { "outer_wall_filament_id", 2 },
+        { "timelapse_type", 0 }, { "enable_wrapping_detection", 0 }
+    });
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{cube(10)}, print, model, config, nullptr, true, 2);
+    REQUIRE(print.objects().size() == 1);
+    REQUIRE(print.num_object_instances() == 2);
+    REQUIRE(print.extruders().size() == 2);
+    CHECK_FALSE(print.has_wipe_tower());
+
+    ModelInstance *copy = model.objects.front()->instances.back();
+    copy->printable = false;
+    print.apply(model, config);
+    REQUIRE(print.num_object_instances() == 1);
+    CHECK(print.has_wipe_tower());
+
+    copy->printable = true;
+    config.set_deserialize_strict("print_sequence", "by layer");
+    print.apply(model, config);
+    REQUIRE(print.num_object_instances() == 2);
+    CHECK(print.has_wipe_tower());
+}
+
 // The tower turns independent_support_layer_height off, which rounds the raft gap up to a whole layer
 // and lifts the objects. Objects sliced before the move have to be sliced again.
 TEST_CASE("Objects above a raft are re-sliced when a filament switch turns the prime tower on", "[MultiFilament]")
