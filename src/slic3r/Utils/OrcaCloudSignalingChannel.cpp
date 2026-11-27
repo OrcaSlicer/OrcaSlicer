@@ -12,6 +12,7 @@
 #include <boost/asio/ssl/verify_mode.hpp>
 #include <boost/asio/ssl/host_name_verification.hpp>
 #include <boost/asio/ssl/stream_base.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/core/stream_traits.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
@@ -27,15 +28,24 @@
 #include <openssl/ssl.h>
 
 #include <cctype>
+#include <chrono>
 #include <iomanip>
 #include <openssl/tls1.h>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 namespace Slic3r {
+
+// The Cloud closes a camera viewer socket that sends nothing for 180 s, and the
+// signalling socket is otherwise silent once ICE has finished, so the channel
+// sends the OPCP keepalive at the browsers' cadence. The Cloud matches the
+// text byte for byte.
+static constexpr std::chrono::seconds KEEPALIVE_INTERVAL{30};
+static constexpr std::string_view KEEPALIVE_MESSAGE = R"({"type":"ping"})";
 
 OrcaCloudSignalingChannel::OrcaCloudSignalingChannel(OrcaCloudServiceAgent* cloud, std::string dev_id)
     : m_cloud(cloud)
@@ -72,9 +82,11 @@ void OrcaCloudSignalingChannel::close()
     if (request)
         request->cancel();
     if (conn) {
-        // Established session: close the socket on the io_context's own thread so
-        // the pending async_read completes and io_context.run() unwinds.
+        // Established session: stop the keepalive and close the socket on the
+        // io_context's own thread so the pending waits complete and
+        // io_context.run() unwinds.
         boost::asio::post(conn->io_context, [conn] {
+            conn->keepalive.cancel();
             boost::system::error_code ec;
             boost::beast::get_lowest_layer(conn->websocket).cancel(ec);
             boost::beast::get_lowest_layer(conn->websocket).close(ec);
@@ -263,10 +275,15 @@ void OrcaCloudSignalingChannel::run()
 
         if (on_ready)
             on_ready(std::move(ice_servers));
-        send_json(nlohmann::json{{"type", "camera.mode"}, {"mode", "webrtc"}}.dump());
-        // Async read loop, driven by the connection's own io_context. run()
-        // returns once close() has shut the socket down, giving a bounded,
-        // deadlock-free teardown from any thread.
+        // No camera.mode is sent. For a viewer that never declares "webrtc",
+        // the Cloud closes its peer on the printer when the socket closes; this
+        // client ends its peer with the socket and never reattaches to a
+        // running one, so that is the behaviour it needs.
+        //
+        // Async read loop and keepalive, driven by the connection's own
+        // io_context. run() returns once close() has shut both down, giving a
+        // bounded, deadlock-free teardown from any thread.
+        schedule_keepalive(conn);
         do_read(conn);
         conn->io_context.run();
     } catch (const std::exception& e) {
@@ -289,6 +306,7 @@ void OrcaCloudSignalingChannel::do_read(std::shared_ptr<Connection> conn)
             if (ec) {
                 if (!m_stop.load())
                     unavailable(CameraUnavailableReason::Closed, ec.message());
+                conn->keepalive.cancel();
                 return; // do not re-arm; io_context.run() unwinds
             }
             const std::string raw = boost::beast::buffers_to_string(buffer->data());
@@ -303,6 +321,24 @@ void OrcaCloudSignalingChannel::do_read(std::shared_ptr<Connection> conn)
             if (!m_stop.load())
                 do_read(conn);
         });
+}
+
+void OrcaCloudSignalingChannel::schedule_keepalive(std::shared_ptr<Connection> conn)
+{
+    conn->keepalive.expires_after(KEEPALIVE_INTERVAL);
+    conn->keepalive.async_wait([this, conn](boost::system::error_code ec) {
+        if (ec || m_stop.load())
+            return; // cancelled by close() or a failed read; io_context.run() unwinds
+        // The handler runs on the io_context thread, like send_json's writes.
+        boost::system::error_code write_ec;
+        conn->websocket.write(boost::asio::buffer(KEEPALIVE_MESSAGE.data(), KEEPALIVE_MESSAGE.size()), write_ec);
+        if (write_ec) {
+            if (!m_stop.load())
+                unavailable(CameraUnavailableReason::Closed, write_ec.message());
+            return;
+        }
+        schedule_keepalive(conn);
+    });
 }
 
 // Returns the string at key, or "" if absent or not a string (JSON null included).
@@ -348,6 +384,8 @@ static nlohmann::json signaling_record(const std::string& dev_id, const nlohmann
 void OrcaCloudSignalingChannel::dispatch_message(const nlohmann::json& message, const std::string& raw)
 {
     const std::string type = json_string(message, "type");
+    if (type == "pong")
+        return; // the keepalive's reply, every 30 s; nothing to act on or log
     BOOST_LOG_TRIVIAL(info) << "signaling: recv type=" << type << " raw=" << raw.substr(0, 256);
     PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("video", "signaling_recv", signaling_record(m_dev_id, message)));
     if (type == "webrtc.answer") {

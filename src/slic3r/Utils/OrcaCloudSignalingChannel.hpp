@@ -6,6 +6,7 @@
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/ssl/context.hpp>
 #include <boost/beast/ssl.hpp>
@@ -44,11 +45,13 @@ private:
     struct Connection {
         boost::asio::io_context io_context;
         boost::asio::ssl::context ssl_context{boost::asio::ssl::context::tls_client};
+        boost::asio::steady_timer keepalive{io_context};
         WebSocket websocket{io_context, ssl_context};
     };
 
     void run();
     void do_read(std::shared_ptr<Connection> conn);
+    void schedule_keepalive(std::shared_ptr<Connection> conn);
     void dispatch_message(const nlohmann::json& message, const std::string& raw);
     void send_json(const std::string& message);
     void unavailable(CameraUnavailableReason reason, std::string detail);
