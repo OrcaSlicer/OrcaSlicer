@@ -1345,7 +1345,7 @@ TEST_CASE("Repeated loads of a user preset directory produce the same presets", 
     CHECK(names_per_run[2] == names_per_run[0]);
 }
 
-TEST_CASE("An unreadable user preset is counted and removed while the rest still load", "[Preset][Bundle]")
+TEST_CASE("An unreadable user preset is counted and preserved while the rest still load", "[Preset][Bundle]")
 {
     ScopedTemporaryDir   temp_dir;
     RenameTestCollection coll;
@@ -1355,7 +1355,10 @@ TEST_CASE("An unreadable user preset is counted and removed while the rest still
         write_preset_with_inherits(coll.default_preset().config, dir / ("Good " + std::to_string(i) + ".json"),
                                    "Good " + std::to_string(i), std::string());
     fs::create_directories(dir);
-    std::ofstream((dir / "Broken.json").string()) << "{not-json";
+    const fs::path broken_json = dir / "Broken.json";
+    const fs::path broken_info = dir / "Broken.info";
+    std::ofstream(broken_json.string(), std::ios::binary) << "{not-json";
+    std::ofstream(broken_info.string(), std::ios::binary) << "sync_info = update\n";
 
     PresetsConfigSubstitutions substitutions;
     coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
@@ -1363,7 +1366,12 @@ TEST_CASE("An unreadable user preset is counted and removed while the rest still
 
     CHECK(coll.error_count() == 1);
     CHECK(coll.find_preset("Broken") == nullptr);
-    CHECK_FALSE(fs::exists(dir / "Broken.json"));
+    auto read_bytes = [](const fs::path &path) {
+        std::ifstream in(path.string(), std::ios::binary);
+        return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+    };
+    CHECK(read_bytes(broken_json) == "{not-json");
+    CHECK(read_bytes(broken_info) == "sync_info = update\n");
     for (int i = 0; i < 20; ++ i)
         CHECK(coll.find_preset("Good " + std::to_string(i)) != nullptr);
 }
@@ -8741,7 +8749,7 @@ TEST_CASE("Without the instance lock a user preset loads but its file is not wri
 
 #ifndef _WIN32
 // File permissions stop reading only on POSIX.
-TEST_CASE("A user preset that cannot be read under the instance lock is counted and removed", "[Preset][Bundle][InstanceLock]")
+TEST_CASE("A user preset that cannot be read under the instance lock is counted and preserved", "[Preset][Bundle][InstanceLock]")
 {
     if (::geteuid() == 0)
         SKIP("file permissions do not stop root");
@@ -8761,13 +8769,13 @@ TEST_CASE("A user preset that cannot be read under the instance lock is counted 
 
     CHECK(coll.error_count() == 1);
     CHECK(coll.find_preset("Unreadable") == nullptr);
-    CHECK_FALSE(fs::exists(file));
+    CHECK(fs::exists(file));
 }
 #endif
 
 #ifndef _WIN32
 // Creating a symlink needs no privilege only on POSIX.
-TEST_CASE("A user preset that is a symlink to itself is counted and removed while the rest still load", "[Preset][Bundle][InstanceLock]")
+TEST_CASE("A user preset that is a symlink to itself is counted and preserved while the rest still load", "[Preset][Bundle][InstanceLock]")
 {
     ScopedTemporaryDir   temp_dir;
     ScopedDataDir        data_dir_scope(temp_dir.path());
@@ -8790,7 +8798,7 @@ TEST_CASE("A user preset that is a symlink to itself is counted and removed whil
     CHECK(coll.find_preset("Good B") != nullptr);
     CHECK(coll.find_preset("Loop") == nullptr);
     boost::system::error_code ec;
-    CHECK(fs::symlink_status(loop, ec).type() == fs::file_not_found);
+    CHECK(fs::symlink_status(loop, ec).type() == fs::symlink_file);
 }
 #endif
 

@@ -989,8 +989,6 @@ private:
         // A filament preset that named no compatible printer and was given one from
         // its name, which commit writes back to its file.
         bool        save_compatible_printers { false };
-        // Unreadable, so commit removes it and its .info file.
-        bool        discard_file { false };
         // The .info file read beside the preset, which commit logs.
         std::string info_file;
         // Both files as they were before the preset was read from them. Resolve runs
