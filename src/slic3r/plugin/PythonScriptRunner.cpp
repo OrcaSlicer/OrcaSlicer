@@ -385,7 +385,8 @@ def take_exits(run_id):
     """Host bookkeeping: the run's atexit functions, for call_exits(). Taken once, as Python's exit takes them, so one
     registered while they run is not called."""
     return _run_exits.pop(run_id, [])
-
+)CAPTURE" // a gap for eliminating C2026 error in MSVC
+R"CAPTURE(
 # A folder's teardown, in two steps. _take_folder is host bookkeeping, which the runner calls where no interrupt reaches
 # and which runs none of the script's code: it takes everything the folder holds, evicts its modules and lists the
 # pools they made, so a run that enters the folder while the second step runs (that step's code may let it in) imports
