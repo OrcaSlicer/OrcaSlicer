@@ -374,7 +374,7 @@ private:
     std::atomic<bool>    m_restart_sync_pending {false};
     std::atomic<bool>    m_sync_user_preset_dlg_active {false}; // a manual "Sync Presets" progress dialog is on screen (see restart_sync_user_preset)
     std::atomic<bool>    m_sync_user_presets_now {false}; // request the sync loop to push user presets on its next tick
-    std::atomic<bool>    m_subscriptions_fetch_requested {false}; // the user came back to the main window or left the cloud pane: the sync loop fetches the subscribed bundles
+    std::atomic<bool>    m_subscriptions_fetch_requested {false}; // focus, the cloud pane or an unsubscribe asked the sync loop to fetch the subscribed bundles
     bool                 m_user_preset_pull_pending {false}; // set when a sync thread starts, cleared once its pull is applied; a failed pull or a stopped sync leaves it set
     bool                 m_legacy_filament_check_due {false}; // the startup check waits for that pull
     bool                 m_legacy_filament_check_running {false}; // a check is in progress, its dialog may be open

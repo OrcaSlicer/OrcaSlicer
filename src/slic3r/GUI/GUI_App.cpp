@@ -8055,7 +8055,12 @@ void GUI_App::check_bundle_updates()
 bool GUI_App::unsubscribe_bundle(const std::string& id)
 {
     auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());
-    return orca_agent->unsubscribe_bundle(id);
+    if (!orca_agent->unsubscribe_bundle(id))
+        return false;
+    // The local copy is removed by the sync loop's next subscriptions fetch, which nothing else asks for while the
+    // Preset Bundle dialog is open.
+    request_subscriptions_fetch();
+    return true;
 }
 
 void GUI_App::start_sync_user_preset(bool with_progress_dlg)

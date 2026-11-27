@@ -338,8 +338,8 @@ public:
     int get_subscribed_bundles(std::vector<std::pair<std::string, std::string>>* bundles,std::vector<std::string>& notfound, std::vector<std::string>& unauthorized);
     // Whether the preset sync loop fetches the subscribed bundles now. It always fetches on its first pass (no
     // last_fetch), which covers startup, sign-in and Sync Presets. After that it fetches when asked (the main window
-    // gained focus, or the user left the cloud pane), at most once a minute, and every 30 minutes for a user who has
-    // subscribed bundles. has_subscribed_bundles is only called when the 30 minutes are up.
+    // gained focus, the user left the cloud pane, or a bundle was unsubscribed), at most once a minute, and every 30
+    // minutes for a user who has subscribed bundles. has_subscribed_bundles is only called when the 30 minutes are up.
     static bool subscriptions_fetch_due(std::optional<std::chrono::steady_clock::time_point> last_fetch,
                                         std::chrono::steady_clock::time_point                now,
                                         bool                                                 fetch_requested,
