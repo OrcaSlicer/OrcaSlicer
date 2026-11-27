@@ -1,4 +1,5 @@
 #include "DevPrintOptions.h"
+#include "slic3r/Utils/OpcpCommands.hpp"
 #include "DevUtil.h"
 
 #include <boost/log/trivial.hpp>
@@ -314,55 +315,32 @@ void DevPrintOptions::parse_filament_tangle_detect_status(int flag)
 
 int DevPrintOptions::command_xcam_control(std::string module_name, bool on_off , MachineObject *obj, std::string lvl)
 {
-    json j;
-    j["xcam"]["command"]     = "xcam_control_set";
-    j["xcam"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["xcam"]["module_name"] = module_name;
-    j["xcam"]["control"]     = on_off;
-    j["xcam"]["enable"]      = on_off; // old protocol
-    j["xcam"]["print_halt"]  = true;   // old protocol
-    if (!lvl.empty()) { j["xcam"]["halt_print_sensitivity"] = lvl; }
+    json j = opcp::xcam::xcam_control_set(MachineObject::m_sequence_id++, module_name, on_off, lvl);
     BOOST_LOG_TRIVIAL(info) << "command:xcam_control_set" << ", module_name:" << module_name << ", control:" << on_off << ", halt_print_sensitivity:" << lvl;
     return obj->publish_json(j);
 }
 
 int DevPrintOptions::command_set_against_continued_heating_mode(bool on_off)
 {
-    json j;
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["command"]     = "set_against_continued_heating_mode";
-    j["print"]["enable"]      = on_off;
+    json j = opcp::print::set_against_continued_heating_mode(MachineObject::m_sequence_id++, on_off);
     return m_obj->publish_json(j);
 }
 
 int DevPrintOptions::command_set_printing_option(bool auto_recovery, MachineObject *obj)
 {
-    json j;
-    j["print"]["command"]       = "print_option";
-    j["print"]["sequence_id"]   = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["option"]        = (int) auto_recovery;
-    j["print"]["auto_recovery"] = auto_recovery;
-
+    json j = opcp::print::print_option_auto_recovery(MachineObject::m_sequence_id++, static_cast<int>(auto_recovery), auto_recovery);
     return obj->publish_json(j);
 }
 
 int DevPrintOptions::command_set_prompt_sound(bool prompt_sound, MachineObject *obj)
 {
-    json j;
-    j["print"]["command"]      = "print_option";
-    j["print"]["sequence_id"]  = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["sound_enable"] = prompt_sound;
-
+    json j = opcp::print::print_option(MachineObject::m_sequence_id++, "sound_enable", prompt_sound);
     return obj->publish_json(j);
 }
 
 int DevPrintOptions::command_set_filament_tangle_detect(bool filament_tangle_detect, MachineObject *obj)
 {
-    json j;
-    j["print"]["command"]                = "print_option";
-    j["print"]["sequence_id"]            = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["filament_tangle_detect"] = filament_tangle_detect;
-
+    json j = opcp::print::print_option(MachineObject::m_sequence_id++, "filament_tangle_detect", filament_tangle_detect);
     return obj->publish_json(j);
 }
 
@@ -396,16 +374,15 @@ int DevPrintOptions::command_xcam_control_purify_air_at_print_end(int on_off)
 
 int DevPrintOptions::command_set_purify_air_at_print_end(PurifyAirAtPrintEndState state, MachineObject *obj)
 {
-    json j;
-    j["print"]["command"]     = "print_option";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    int air_purification = 0;
     switch (state)
     {
-        case PurifyAirAtPrintEndState::PurifyAirDisable:   j["print"]["air_purification"] = 0; break;
-        case PurifyAirAtPrintEndState::PurifyAirByInside:  j["print"]["air_purification"] = 1; break;
-        case PurifyAirAtPrintEndState::PurifyAirByOutside: j["print"]["air_purification"] = 2; break;
-        default: assert(0);
+        case PurifyAirAtPrintEndState::PurifyAirDisable:   air_purification = 0; break;
+        case PurifyAirAtPrintEndState::PurifyAirByInside:  air_purification = 1; break;
+        case PurifyAirAtPrintEndState::PurifyAirByOutside: air_purification = 2; break;
+        default: assert(0); return -1;
     }
+    json j = opcp::print::print_option(MachineObject::m_sequence_id++, "air_purification", air_purification);
     return obj->publish_json(j);
 }
 
@@ -418,19 +395,13 @@ int DevPrintOptions::command_snapshot_control(int on_off)
 
 int DevPrintOptions::command_set_snapshot_control(int on_off, MachineObject *obj)
 {
-    json j;
-    j["camera"]["command"]     = "ipcam_cap_pic_set";
-    j["camera"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["camera"]["control"]     = on_off ? "enable" : "disable";
+    json j = opcp::camera::ipcam_cap_pic_set(MachineObject::m_sequence_id++, on_off != 0);
     return obj->publish_json(j);
 }
 
 int DevPrintOptions::command_smart_nozzle_blob_detect_mode(int mode)
 {
-    json j;
-    j["print"]["command"]               = "print_option";
-    j["print"]["sequence_id"]           = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["nozzle_blob_detect_v2"] = mode;  // int: 0=off, 1=on, 2=auto
+    json j = opcp::print::print_option(MachineObject::m_sequence_id++, "nozzle_blob_detect_v2", mode);
     m_smart_nozzle_blob_detection.current_detect_value = mode;
     m_smart_nozzle_blob_detection.detect_hold_start    = time(nullptr);
     return m_obj->publish_json(j);

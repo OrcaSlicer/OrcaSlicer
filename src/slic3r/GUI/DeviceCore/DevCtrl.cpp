@@ -5,6 +5,7 @@
 
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/Utils/OpcpCommands.hpp"
 
 using namespace nlohmann;
 
@@ -59,10 +60,7 @@ bool DevCtrlInfo::CheckCanUpdateData(const nlohmann::json& jj)
 
     int DevCtrl::command_select_extruder(int id)
     {
-        json j;
-        j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-        j["print"]["command"] = "select_extruder";
-        j["print"]["extruder_index"] = id;
+        json j = opcp::print::select_extruder(MachineObject::m_sequence_id++, id);
         int rtn = m_obj->publish_json(j, 1);
         if (rtn == 0)
         {

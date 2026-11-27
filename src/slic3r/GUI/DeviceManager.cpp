@@ -1,6 +1,7 @@
 #include "PrinterNetworkTypes.hpp"
 #include <nlohmann/json.hpp>
 #include "DeviceManager.hpp"
+#include "slic3r/Utils/OpcpCommands.hpp"
 #include "slic3r/Utils/PrinterSequenceIds.hpp"
 #include "HMS.hpp"
 #include "I18N.hpp"
@@ -1508,9 +1509,7 @@ bool MachineObject::canEnableTimelapse(wxString &error_message) const
 int MachineObject::command_get_version(bool with_retry)
 {
     BOOST_LOG_TRIVIAL(info) << "command_get_version";
-    json j;
-    j["info"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["info"]["command"] = "get_version";
+    json j = opcp::info::get_version(MachineObject::m_sequence_id++);
     if (with_retry)
         get_version_retry = GET_VERSION_RETRYS;
     return this->publish_json(j, 1);
@@ -1518,10 +1517,7 @@ int MachineObject::command_get_version(bool with_retry)
 
 int MachineObject::command_get_access_code() {
     BOOST_LOG_TRIVIAL(info) << "command_get_access_code";
-    json j;
-    j["system"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["system"]["command"] = "get_access_code";
-
+    json j = opcp::system::get_access_code(MachineObject::m_sequence_id++);
     return this->publish_json(j);
 }
 
@@ -1544,11 +1540,7 @@ int MachineObject::command_request_push_all(bool request_now)
         last_request_push = std::chrono::system_clock::now();
     }
 
-    json j;
-    j["pushing"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["pushing"]["command"]     = "pushall";
-    j["pushing"]["version"]     =  1;
-    j["pushing"]["push_target"] =  1;
+    json j = opcp::pushing::pushall(MachineObject::m_sequence_id++);
     return this->publish_json(j);
 }
 
@@ -1566,9 +1558,7 @@ int MachineObject::command_pushing(std::string cmd)
     }
 
     if (cmd == "start" || cmd == "stop") {
-        json j;
-        j["pushing"]["command"] = cmd;
-        j["pushing"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+        json j = opcp::pushing::pushing(MachineObject::m_sequence_id++, cmd);
         return this->publish_json(j);
     }
     return -1;
@@ -1577,29 +1567,13 @@ int MachineObject::command_pushing(std::string cmd)
 int MachineObject::command_clean_print_error(std::string subtask_id, int print_error)
 {
     BOOST_LOG_TRIVIAL(info) << "command_clean_print_error, id = " << subtask_id;
-    json j;
-    j["print"]["command"] = "clean_print_error";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["subtask_id"] = subtask_id;
-    j["print"]["print_error"] = print_error;
-
+    json j = opcp::print::clean_print_error(MachineObject::m_sequence_id++, subtask_id, print_error);
     return this->publish_json(j);
 }
 
 int MachineObject::command_clean_print_error_uiop(int print_error)
 {
-    json j;
-    j["system"]["command"] = "uiop";
-    j["system"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["system"]["name"] = "print_error";
-    j["system"]["action"] = "close";
-    j["system"]["source"] = 1;// 0-Mushu 1-Studio
-    j["system"]["type"] = "dialog";
-
-    // the error to be cleaned
-    char buf[32];
-    ::sprintf(buf, "%08X", print_error);
-    j["system"]["err"] = std::string(buf);
+    json j = opcp::system::close_print_error_dialog(MachineObject::m_sequence_id++, print_error);
 
     return this->publish_json(j);
 }
@@ -1607,49 +1581,27 @@ int MachineObject::command_clean_print_error_uiop(int print_error)
 int MachineObject::command_upgrade_confirm()
 {
     BOOST_LOG_TRIVIAL(info) << "command_upgrade_confirm";
-    json j;
-    j["upgrade"]["command"] = "upgrade_confirm";
-    j["upgrade"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["upgrade"]["src_id"] = 1; // 1 for slicer
+    json j = opcp::upgrade::upgrade_confirm(MachineObject::m_sequence_id++);
     return this->publish_json(j);
 }
 
 int MachineObject::command_consistency_upgrade_confirm()
 {
     BOOST_LOG_TRIVIAL(info) << "command_consistency_upgrade_confirm";
-    json j;
-    j["upgrade"]["command"] = "consistency_confirm";
-    j["upgrade"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["upgrade"]["src_id"] = 1; // 1 for slicer
+    json j = opcp::upgrade::consistency_confirm(MachineObject::m_sequence_id++);
     return this->publish_json(j);
 }
 
 int MachineObject::command_upgrade_firmware(FirmwareInfo info)
 {
-    std::string version     = info.version;
-    std::string dst_url     = info.url;
-    std::string module_name = info.module_type;
-
-    json j;
-    j["upgrade"]["command"]     = "start";
-    j["upgrade"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["upgrade"]["url"]         = info.url;
-    j["upgrade"]["module"]      = info.module_type;
-    j["upgrade"]["version"]     = info.version;
-    j["upgrade"]["src_id"]      = 1;
+    json j = opcp::upgrade::start(MachineObject::m_sequence_id++, info.url, info.module_type, info.version);
 
     return this->publish_json(j);
 }
 
 int MachineObject::command_upgrade_module(std::string url, std::string module_type, std::string version)
 {
-    json j;
-    j["upgrade"]["command"] = "start";
-    j["upgrade"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["upgrade"]["url"] = url;
-    j["upgrade"]["module"] = module_type;
-    j["upgrade"]["version"] = version;
-    j["upgrade"]["src_id"] = 1;
+    json j = opcp::upgrade::start(MachineObject::m_sequence_id++, url, module_type, version);
 
     return this->publish_json(j);
 }
@@ -1675,10 +1627,7 @@ int MachineObject::command_go_home()
 int MachineObject::command_task_partskip(std::vector<int> part_ids)
 {
     BOOST_LOG_TRIVIAL(trace) << "command_task_partskip: ";
-    json j;
-    j["print"]["command"] = "skip_objects";
-    j["print"]["obj_list"] = part_ids;
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    json j = opcp::print::skip_objects(MachineObject::m_sequence_id++, part_ids);
 
     return this->publish_json(j, 1);
 }
@@ -1686,10 +1635,7 @@ int MachineObject::command_task_partskip(std::vector<int> part_ids)
 int MachineObject::command_task_abort()
 {
     BOOST_LOG_TRIVIAL(trace) << "command_task_abort: ";
-    json j;
-    j["print"]["command"] = "stop";
-    j["print"]["param"] = "";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    json j = opcp::print::stop(MachineObject::m_sequence_id++);
 
     return this->publish_json(j, 1);
 }
@@ -1697,21 +1643,14 @@ int MachineObject::command_task_abort()
 int MachineObject::command_task_cancel(std::string job_id)
 {
     BOOST_LOG_TRIVIAL(trace) << "command_task_cancel: " << job_id;
-    json j;
-    j["print"]["command"] = "stop";
-    j["print"]["param"] = "";
-    j["print"]["job_id"] = job_id;
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    json j = opcp::print::stop_job(MachineObject::m_sequence_id++, job_id);
 
     return this->publish_json(j, 1);
 }
 
 int MachineObject::command_task_pause()
 {
-    json j;
-    j["print"]["command"] = "pause";
-    j["print"]["param"] = "";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    json j = opcp::print::pause(MachineObject::m_sequence_id++);
 
     return this->publish_json(j, 1);
 }
@@ -1720,10 +1659,7 @@ int MachineObject::command_task_resume()
 {
     if(check_resume_condition()) return 0;
 
-    json j;
-    j["print"]["command"] = "resume";
-    j["print"]["param"] = "";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    json j = opcp::print::resume(MachineObject::m_sequence_id++);
 
     return this->publish_json(j, 1);
 }
@@ -1732,11 +1668,7 @@ int MachineObject::command_hms_idle_ignore(const std::string &error_str, int typ
 {
     if(check_resume_condition()) return 0;
 
-    json j;
-    j["print"]["command"]     = "idle_ignore";
-    j["print"]["err"]         = error_str;
-    j["print"]["type"]        = type;
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    json j = opcp::print::idle_ignore(MachineObject::m_sequence_id++, error_str, type);
     return this->publish_json(j, 1);
 }
 
@@ -1744,13 +1676,7 @@ int MachineObject::command_hms_resume(const std::string& error_str, const std::s
 {
     if(check_resume_condition()) return 0;
 
-    json j;
-    j["print"]["command"] = "resume";
-    j["print"]["err"] = error_str;
-    j["print"]["param"] = "reserve";
-    j["print"]["job_id"] = job_id;
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-
+    json j = opcp::print::hms_action(MachineObject::m_sequence_id++, "resume", error_str, job_id);
     return this->publish_json(j, 1);
 }
 
@@ -1758,33 +1684,18 @@ int MachineObject::command_hms_ignore(const std::string& error_str, const std::s
 {
     if(check_resume_condition()) return 0;
 
-    json j;
-    j["print"]["command"] = "ignore";
-    j["print"]["err"] = error_str;
-    j["print"]["param"] = "reserve";
-    j["print"]["job_id"] = job_id;
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-
+    json j = opcp::print::hms_action(MachineObject::m_sequence_id++, "ignore", error_str, job_id);
     return this->publish_json(j, 1);
 }
 
 int MachineObject::command_hms_stop(const std::string &error_str, const std::string &job_id) {
-    json j;
-    j["print"]["command"]     = "stop";
-    j["print"]["err"]         = error_str;
-    j["print"]["param"]       = "reserve";
-    j["print"]["job_id"]      = job_id;
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-
+    json j = opcp::print::hms_action(MachineObject::m_sequence_id++, "stop", error_str, job_id);
     return this->publish_json(j, 1);
 }
 
 int MachineObject::command_stop_buzzer()
 {
-    json j;
-    j["print"]["command"] = "buzzer_ctrl";
-    j["print"]["mode"] = 0;
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    json j = opcp::print::stop_buzzer(MachineObject::m_sequence_id++);
 
     return this->publish_json(j, 1);
 }
@@ -1805,29 +1716,20 @@ int MachineObject::command_set_nozzle_new(int nozzle_id, int temp)
 {
     BOOST_LOG_TRIVIAL(info) << "set_nozzle_temp";
 
-    json j;
-    j["print"]["sequence_id"]    = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["command"]        = "set_nozzle_temp";
-    j["print"]["extruder_index"] = nozzle_id;
-    j["print"]["target_temp"]    = temp;
+    json j = opcp::print::set_nozzle_temp(MachineObject::m_sequence_id++, nozzle_id, temp);
 
     return this->publish_json(j, 1);
 }
 
 int MachineObject::command_refresh_nozzle(){
-    json j;
-    j["print"]["sequence_id"]    = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["command"]        = "refresh_nozzle";
+    json j = opcp::print::refresh_nozzle(MachineObject::m_sequence_id++);
 
     return this->publish_json(j, 1);
 }
 
 int MachineObject::command_set_chamber(int temp)
 {
-    json j;
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["command"] = "set_ctt";
-    j["print"]["ctt_val"] = temp;
+    json j = opcp::print::set_chamber_temp(MachineObject::m_sequence_id++, temp);
 
     return this->publish_json(j, 1);
 }
@@ -1903,14 +1805,7 @@ int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read
         BOOST_LOG_TRIVIAL(warning) << "command_ams_user_settings: printer agent does not support the command";
         return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
     }
-    json j;
-    j["print"]["command"] = "ams_user_setting";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["ams_id"] = -1; // all ams
-    j["print"]["startup_read_option"]   = start_read_opt;
-    j["print"]["tray_read_option"]      = tray_read_opt;
-    j["print"]["calibrate_remain_flag"] = remain_flag;
-
+    json j = opcp::print::ams_user_setting(MachineObject::m_sequence_id++, start_read_opt, tray_read_opt, remain_flag);
     const int rc = this->publish_json(j);
     if (rc == 0) {
         m_fila_system->GetAmsSystemSetting().SetDetectOnInsertEnabled(tray_read_opt);
@@ -2037,10 +1932,7 @@ int MachineObject::command_ams_control(std::string action)
 
     //valid actions
     if (action == "resume" || action == "reset" || action == "pause" || action == "done" || action == "abort") {
-        json j;
-        j["print"]["command"] = "ams_control";
-        j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-        j["print"]["param"] = action;
+        json j = opcp::print::ams_control(MachineObject::m_sequence_id++, action);
         return this->publish_json(j);
     }
     return -1;
@@ -2052,9 +1944,7 @@ int MachineObject::command_ams_drying_stop()
         BOOST_LOG_TRIVIAL(warning) << "command_ams_drying_stop: printer agent does not support the command";
         return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
     }
-    json j;
-    j["print"]["command"] = "auto_stop_ams_dry";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    json j = opcp::print::auto_stop_ams_dry(MachineObject::m_sequence_id++);
     return this->publish_json(j);
 }
 
@@ -2112,10 +2002,7 @@ int MachineObject::command_extrusion_cali_set(int tray_index, std::string settin
 
 int MachineObject::command_set_printing_speed(DevPrintingSpeedLevel lvl)
 {
-    json j;
-    j["print"]["command"] = "print_speed";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["param"] = std::to_string((int)lvl);
+    json j = opcp::print::print_speed(MachineObject::m_sequence_id++, static_cast<int>(lvl));
 
     return this->publish_json(j);
 }
@@ -2123,51 +2010,32 @@ int MachineObject::command_set_printing_speed(DevPrintingSpeedLevel lvl)
 int MachineObject::command_set_printing_option(bool auto_recovery)
 {
     int print_option = (int)auto_recovery << (int)PRINT_OP_AUTO_RECOVERY;
-    json j;
-    j["print"]["command"]       = "print_option";
-    j["print"]["sequence_id"]   = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["option"]        = print_option;
-    j["print"]["auto_recovery"] = auto_recovery;
+    json j = opcp::print::print_option_auto_recovery(MachineObject::m_sequence_id++, print_option, auto_recovery);
 
     return this->publish_json(j);
 }
 
 int MachineObject::command_nozzle_blob_detect(bool nozzle_blob_detect)
 {
-    json j;
-    j["print"]["command"] = "print_option";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["nozzle_blob_detect"] = nozzle_blob_detect;
+    json j = opcp::print::print_option(MachineObject::m_sequence_id++, "nozzle_blob_detect", nozzle_blob_detect);
     nozzle_blob_detection_enabled = nozzle_blob_detect;
     nozzle_blob_detection_hold_start = time(nullptr);
     return this->publish_json(j);
 }
 
 int MachineObject::command_set_prompt_sound(bool prompt_sound){
-    json j;
-    j["print"]["command"] = "print_option";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["sound_enable"] = prompt_sound;
-
+    json j = opcp::print::print_option(MachineObject::m_sequence_id++, "sound_enable", prompt_sound);
     return this->publish_json(j);
 }
 
 int MachineObject::command_set_filament_tangle_detect(bool filament_tangle_detect) {
-    json j;
-    j["print"]["command"] = "print_option";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["filament_tangle_detect"] = filament_tangle_detect;
-
+    json j = opcp::print::print_option(MachineObject::m_sequence_id++, "filament_tangle_detect", filament_tangle_detect);
     return this->publish_json(j);
 }
 
 int MachineObject::command_ams_switch_filament(bool switch_filament)
 {
-    json j;
-    j["print"]["command"] = "print_option";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["auto_switch_filament"] = switch_filament;
-
+    json j = opcp::print::print_option(MachineObject::m_sequence_id++, "auto_switch_filament", switch_filament);
     m_fila_system->GetAmsSystemSetting().SetAutoRefillEnabled(switch_filament);
     BOOST_LOG_TRIVIAL(trace) << "command_ams_filament_settings:" << switch_filament;
     ams_switch_filament_start = time(nullptr);
@@ -2177,11 +2045,7 @@ int MachineObject::command_ams_switch_filament(bool switch_filament)
 
 int MachineObject::command_ams_air_print_detect(bool air_print_detect)
 {
-    json j;
-    j["print"]["command"] = "print_option";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["air_print_detect"] = air_print_detect;
-
+    json j = opcp::print::print_option(MachineObject::m_sequence_id++, "air_print_detect", air_print_detect);
     ams_air_print_status = air_print_detect;
     BOOST_LOG_TRIVIAL(trace) << "command_ams_air_print_detect:" << air_print_detect;
 
@@ -2199,11 +2063,7 @@ int MachineObject::command_axis_control(std::string axis, double unit, double in
 
 int MachineObject::command_extruder_control(int nozzle_id, double val)
 {
-    json j;
-    j["print"]["command"]     = "set_extrusion_length";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["extruder_index"] = nozzle_id;
-    j["print"]["length"] = (int)val;
+    json j = opcp::print::set_extrusion_length(MachineObject::m_sequence_id++, nozzle_id, static_cast<int>(val));
     return this->publish_json(j);
 }
 
@@ -2442,10 +2302,7 @@ int MachineObject::command_get_flow_ratio_calibration_result(float nozzle_diamet
 int MachineObject::command_ipcam_record(bool on_off)
 {
     BOOST_LOG_TRIVIAL(info) << "command_ipcam_record = " << on_off;
-    json j;
-    j["camera"]["command"] = "ipcam_record_set";
-    j["camera"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["camera"]["control"] = on_off ? "enable" : "disable";
+    json j = opcp::camera::ipcam_record_set(MachineObject::m_sequence_id++, on_off);
     camera_recording_ctl_start          = time(nullptr);
     this->camera_recording_when_printing = on_off;
     return this->publish_json(j);
@@ -2454,10 +2311,7 @@ int MachineObject::command_ipcam_record(bool on_off)
 int MachineObject::command_ipcam_timelapse(bool on_off)
 {
     BOOST_LOG_TRIVIAL(info) << "command_ipcam_timelapse " << on_off;
-    json j;
-    j["camera"]["command"] = "ipcam_timelapse";
-    j["camera"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["camera"]["control"] = on_off ? "enable" : "disable";
+    json j = opcp::camera::ipcam_timelapse(MachineObject::m_sequence_id++, on_off);
     camera_timelapse_hold_count = HOLD_COUNT_CAMERA;
     this->camera_timelapse = on_off;
     return this->publish_json(j);
@@ -2466,10 +2320,7 @@ int MachineObject::command_ipcam_timelapse(bool on_off)
 int MachineObject::command_ipcam_resolution_set(std::string resolution)
 {
     BOOST_LOG_TRIVIAL(info) << "command:ipcam_resolution_set" << ", resolution:" << resolution;
-    json j;
-    j["camera"]["command"] = "ipcam_resolution_set";
-    j["camera"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["camera"]["resolution"] = resolution;
+    json j = opcp::camera::ipcam_resolution_set(MachineObject::m_sequence_id++, resolution);
     camera_resolution_hold_count = HOLD_COUNT_CAMERA;
     camera_recording_ctl_start = time(nullptr);
     this->camera_resolution = resolution;
@@ -2478,16 +2329,7 @@ int MachineObject::command_ipcam_resolution_set(std::string resolution)
 
 int MachineObject::command_xcam_control(std::string module_name, bool on_off, std::string lvl)
 {
-    json j;
-    j["xcam"]["command"] = "xcam_control_set";
-    j["xcam"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["xcam"]["module_name"] = module_name;
-    j["xcam"]["control"] = on_off;
-    j["xcam"]["enable"] = on_off;       //old protocol
-    j["xcam"]["print_halt"]  = true;    //old protocol
-    if (!lvl.empty()) {
-        j["xcam"]["halt_print_sensitivity"] = lvl;
-    }
+    json j = opcp::xcam::xcam_control_set(MachineObject::m_sequence_id++, module_name, on_off, lvl);
 
    // int           cfg = 123;
    // get_flag_bits(cfg, 11, 2);
@@ -2527,30 +2369,19 @@ bool MachineObject::is_timelapse_storage_low(const std::string& storage) const
 
 int MachineObject::command_ipcam_check_timelapse_storage(const std::string& storage, int total_layer)
 {
-    json j;
-    j["camera"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["camera"]["command"] = "ipcam_get_media_info";
-    j["camera"]["sub_command"] = "is_timelapse_storage_enough";
-    j["camera"]["storage"] = storage;
-    j["camera"]["total_layer"] = total_layer;
+    json j = opcp::camera::timelapse_storage_check(MachineObject::m_sequence_id++, storage, total_layer);
     return this->publish_json(j);
 }
 
 int MachineObject::command_ipcam_delete_oldest_timelapse(const std::string& storage, int total_layer)
 {
-    json j;
-    j["camera"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["camera"]["command"] = "ipcam_delete_oldest_timelapse";
-    j["camera"]["storage"] = storage;
-    j["camera"]["total_layer"] = total_layer;
+    json j = opcp::camera::delete_oldest_timelapse(MachineObject::m_sequence_id++, storage, total_layer);
     return this->publish_json(j);
 }
 
 int MachineObject::command_purification_disable()
 {
-    json j;
-    j["print"]["command"] = "close_air_filt";
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    json j = opcp::print::close_air_filter(MachineObject::m_sequence_id++);
 
     return this->publish_json(j, 1);
 }
@@ -6375,16 +6206,15 @@ void MachineObject::check_ams_filament_valid()
 
 void MachineObject::command_set_door_open_check(DoorOpenCheckState state)
 {
-    json j;
-    j["system"]["command"]       = "set_door_stat";
-    j["system"]["sequence_id"]   = std::to_string(MachineObject::m_sequence_id++);
+    int config = 0;
     switch (state)
     {
-         case Slic3r::MachineObject::DOOR_OPEN_CHECK_DISABLE:            j["system"]["config"] = 0; break;
-         case Slic3r::MachineObject::DOOR_OPEN_CHECK_ENABLE_WARNING:     j["system"]["config"] = 1; break;
-         case Slic3r::MachineObject::DOOR_OPEN_CHECK_ENABLE_PAUSE_PRINT: j["system"]["config"] = 2; break;
+         case Slic3r::MachineObject::DOOR_OPEN_CHECK_DISABLE:            config = 0; break;
+         case Slic3r::MachineObject::DOOR_OPEN_CHECK_ENABLE_WARNING:     config = 1; break;
+         case Slic3r::MachineObject::DOOR_OPEN_CHECK_ENABLE_PAUSE_PRINT: config = 2; break;
          default: assert(0); return;
     }
+    json j = opcp::system::set_door_stat(MachineObject::m_sequence_id++, config);
 
     if (publish_json(j) == 0)
     {
@@ -6398,10 +6228,7 @@ void MachineObject::command_set_save_remote_print_file_to_storage(bool save)
 {
     if (get_save_remote_print_file_to_storage() != save)
     {
-        json j;
-        j["system"]["command"] = "print_cache_set";
-        j["system"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-        j["system"]["config"] = save ? true : false;
+        json j = opcp::system::print_cache_set(MachineObject::m_sequence_id++, save);
 
         if (publish_json(j) == 0)
         {

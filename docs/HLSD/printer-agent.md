@@ -162,6 +162,12 @@ process-wide counter, `PrinterSequenceIds`, inside the 20000-29999 band that mar
 to this app. The counter starts at a random point in the band at each launch and wraps inside it, so a
 printer that remembers recent ids does not take a new launch's commands for repeats.
 
+The JSON commands the device layer sends are built in one place, `Utils/OpcpCommands`, with one
+builder per wire message grouped by the message's top-level namespace. `MachineObject` and the
+`DeviceCore` controls call the builders and keep their own gating and state updates; the builders hold
+the field names and types, which are the contract every agent translates. A test pins the exact text
+each command hands its agent, so moving a builder cannot change what a printer receives.
+
 ## Device ownership and stale responses
 
 Printer-agent ownership is represented by `printer_agent_id` on device records and `MachineObject`

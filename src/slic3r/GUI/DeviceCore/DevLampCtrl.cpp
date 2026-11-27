@@ -4,6 +4,7 @@
 
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/Utils/OpcpCommands.hpp"
 
 using namespace nlohmann;
 
@@ -36,29 +37,13 @@ void DevLamp::CtrlSetChamberLight(LIGHT_EFFECT effect)
 
 int DevLamp::command_set_chamber_light(LIGHT_EFFECT effect, int on_time, int off_time, int loops, int interval)
 {
-    json j;
-    j["system"]["command"] = "ledctrl";
-    j["system"]["led_node"] = "chamber_light";
-    j["system"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["system"]["led_mode"] = _light_effect_str(effect);
-    j["system"]["led_on_time"] = on_time;
-    j["system"]["led_off_time"] = off_time;
-    j["system"]["loop_times"] = loops;
-    j["system"]["interval_time"] = interval;
+    json j = opcp::system::ledctrl(MachineObject::m_sequence_id++, "chamber_light", _light_effect_str(effect), on_time, off_time, loops, interval);
     return m_owner->publish_json(j);
 }
 
 int DevLamp::command_set_chamber_light2(LIGHT_EFFECT effect, int on_time, int off_time, int loops, int interval)
 {
-    json j;
-    j["system"]["command"] = "ledctrl";
-    j["system"]["led_node"] = "chamber_light2";
-    j["system"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["system"]["led_mode"] = _light_effect_str(effect);
-    j["system"]["led_on_time"] = on_time;
-    j["system"]["led_off_time"] = off_time;
-    j["system"]["loop_times"] = loops;
-    j["system"]["interval_time"] = interval;
+    json j = opcp::system::ledctrl(MachineObject::m_sequence_id++, "chamber_light2", _light_effect_str(effect), on_time, off_time, loops, interval);
     return m_owner->publish_json(j);
 }
 
