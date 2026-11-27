@@ -214,6 +214,17 @@ void set_maximized_hint(GdkWindow* gdk, bool maximized)
                     int(atoms.size()));
     XFlush(dpy);
 }
+
+// Whether the X11 window manager is GNOME Shell, which leaves a minimized window minimized when the app
+// un-minimizes it and brings it back when the app activates it, as a Wayland compositor does.
+bool x11_restores_by_activation()
+{
+    GdkDisplay* display = gdk_display_get_default();
+    if (display == nullptr || !GDK_IS_X11_DISPLAY(display))
+        return false;
+    const char* name = gdk_x11_screen_get_window_manager_name(gdk_display_get_default_screen(display));
+    return name != nullptr && std::string(name) == "GNOME Shell";
+}
 #endif // wxHAVE_GDK_X11
 
 #endif // __WXGTK__
@@ -341,7 +352,7 @@ bool restore_window(wxTopLevelWindow& window)
     // answers it with the window's current size, which replaces a size asked for right after.
     if (std::string(window_state(window)) == "minimized") {
         // Wayland gives an app no request to un-minimize a window, only to activate it, which brings it
-        // back when the compositor allows the app the focus.
+        // back when the compositor allows the app the focus; GNOME Shell on X11 takes the same way back.
         if (restore_needs_activation()) {
             window.Raise();
         } else {
@@ -395,7 +406,9 @@ void raise_window(wxTopLevelWindow& window)
 
 bool restore_needs_activation()
 {
-#if defined(__WXGTK__)
+#if defined(__WXGTK__) && defined(wxHAVE_GDK_X11)
+    return is_running_on_wayland() || x11_restores_by_activation();
+#elif defined(__WXGTK__)
     return is_running_on_wayland();
 #else
     return false;

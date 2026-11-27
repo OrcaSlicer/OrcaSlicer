@@ -700,9 +700,9 @@ void add_window_notes(const json& args, const WindowSettling& settling, json& re
     std::string note = settling.limited ? "size is held to the window's minimum or maximum size" : "";
     const auto  add  = [&note](const std::string& why) { note += (note.empty() ? "" : "; ") + why; };
     if (!settling.held && settling.activation)
-        add("the compositor did not bring the window back: Wayland lets an app restore its minimized window only by "
-            "activating it, which the compositor allows only while the app may take the focus, so the person restores it "
-            "from the taskbar");
+        add("the window system did not bring the window back: Wayland, and GNOME Shell on X11, let an app restore its "
+            "minimized window only by activating it, which they allow only while the app may take the focus, so the "
+            "person restores it from the taskbar or the dock");
     else if (!settling.held)
         add("the window manager did not apply the request within " + std::to_string(settling.seconds) + " s");
     else if (!settling.drawn)
