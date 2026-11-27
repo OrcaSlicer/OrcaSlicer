@@ -63,7 +63,6 @@ list(APPEND SLIC3R_GUI_SOURCES
     GUI/DeviceCore/DevUtilBackend.cpp
     GUI/DeviceCore/DevAxis.h
     GUI/DeviceCore/DevAxis.cpp
-    GUI/DeviceCore/DevAxisCtrl.cpp
     GUI/DeviceCore/DevCalib.h
     GUI/DeviceCore/DevCalib.cpp
     GUI/DeviceCore/DevChamber.h

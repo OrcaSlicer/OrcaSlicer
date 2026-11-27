@@ -173,7 +173,7 @@ public:
     ~MachineObject();
 
     void set_agent(NetworkAgent* agent) { m_agent = agent; }
-    NetworkAgent* get_agent() const { return m_agent; } // Orca: needed by DeviceCore modules (DevAxisCtrl)
+    NetworkAgent* get_agent() const { return m_agent; } // Orca: needed by DeviceCore modules
 
     // Orca: these DeviceCore module accessors are unwired on the read side — axis/chamber/status
     // are fed every MQTT push but no GUI consumer reads them yet, and for calib/upgrade the inline

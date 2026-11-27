@@ -23,9 +23,6 @@ public:
 public:
     void ParseAxis(const nlohmann::json &print_json);
 
-    int Ctrl_GoHome();
-    int Ctrl_Axis(std::string axis, double unit = 1.0f, double input_val = 1.0f, int speed = 3000); // xyz e
-
 protected:
     DevAxis(MachineObject *obj) noexcept : m_owner(obj) {}
 

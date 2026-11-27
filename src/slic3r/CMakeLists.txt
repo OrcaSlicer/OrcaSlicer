@@ -925,6 +925,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/OrcaCloudServiceAgent.hpp
     Utils/OrcaMqttConnection.cpp
     Utils/OrcaMqttConnection.hpp
+    Utils/OpcpCommands.cpp
+    Utils/OpcpCommands.hpp
     Utils/OrcaPrinterAgent.cpp
     Utils/OrcaPrinterAgent.hpp
     Utils/PrinterSequenceIds.cpp
