@@ -331,6 +331,12 @@ modules:
         commit: 443f6934d9007eb7076ab7825ba330f355fcbead
         dest: external-packages/DataChannel
 
+      # async_mqtt 10.3.1 (header-only)
+      - type: file
+        url: https://github.com/redboltz/async_mqtt/archive/refs/tags/10.3.1.tar.gz
+        sha256: 0d4796534d1db9fcf948393d46aae9aa636aab3a2eb44843868358623363ae1c
+        dest: external-packages/AsyncMqtt
+
       # ---------------------------------------------------------------
       # Fallback archives for deps normally provided by the GNOME SDK.
       # These are only used if find_package() fails to locate them.
