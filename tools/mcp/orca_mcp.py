@@ -391,7 +391,13 @@ def wait_pid_gone(pid, timeout):
 
 
 # The headless compositors --headless tries, in order, by the binary each needs.
-COMPOSITORS = {"kwin": "kwin_wayland", "mutter": "mutter"}
+COMPOSITORS = {"kwin": "kwin_wayland", "gnome-shell": "gnome-shell"}
+
+# The settings a private GNOME Shell starts with, in GLib's keyfile format (values in GVariant text): on the desktop,
+# not in the overview, and without the welcome tour, whose dialog would take the input the app's windows wait for, and
+# with a modal dialog where the app puts it, not attached to its parent's top edge.
+GNOME_SHELL_SETTINGS = ("[org/gnome/mutter]\nattach-modal-dialogs=false\n\n"
+                        "[org/gnome/shell]\nstart-in-overview=false\nwelcome-dialog-last-shown-version='999'\n")
 
 
 def start_headless(compositor, width, height, datadir):
@@ -402,42 +408,125 @@ def start_headless(compositor, width, height, datadir):
     Unlike on Xvfb, the app draws with the GPU's OpenGL driver, and the compositor is its window
     manager, so focus and stacking behave as on a desktop and popup lists stay open (start_openbox()
     gives Xvfb a window manager). The private bus keeps the D-Bus services the app starts, such as
-    the desktop portals, out of the person's session. Only the compositor knows its XWayland display,
-    so it starts a command that writes its environment to a file.
+    the desktop portals, out of the person's session. Only the compositor knows its XWayland display:
+    KWin starts a command that writes its environment to a file, and GNOME Shell, which starts none,
+    has it read from its XWayland's command line (gnome_shell_env()).
 
-    Headless mutter is not tested yet: its command line and whether it renders on the GPU still need
-    checking on a GNOME machine."""
+    GNOME Shell brings up a whole session's services on its bus (the document portal, online
+    accounts, the calendar's data server). They take their paths from the runtime, configuration and
+    data directories, so on the person's own they would work on the files and mounts of their
+    session's copies: a second document portal there cost the session its own portal's mount. So the
+    shell runs on a directory of its own, as its runtime directory and the home of its
+    configuration, data, cache and state, with the settings GNOME_SHELL_SETTINGS gives;
+    stop_display() removes it. Its XWayland admits only clients that hold its auth file, which
+    allow_local_user() widens to the person's other processes."""
     env_file = os.path.join(datadir, "mcp-display.env")
     if os.path.exists(env_file):
         os.remove(env_file)
-    keys = ("DISPLAY", "WAYLAND_DISPLAY", "DBUS_SESSION_BUS_ADDRESS", "XAUTHORITY")
-    report = 'printf "%s\\n" ' + " ".join(f'"{k}=${k}"' for k in keys) + ' > "$0.tmp" && mv "$0.tmp" "$0"'
     # A Wayland socket of its own for each start: one process may start several compositors side by side, as
     # the sweep's runner does for the tests that start their own apps, and a second one on a taken name fails.
     socket = f"orca-mcp-{os.getpid()}-{os.urandom(4).hex()}"
+    env, home = None, None
     if compositor == "kwin":
+        keys = ("DISPLAY", "WAYLAND_DISPLAY", "DBUS_SESSION_BUS_ADDRESS", "XAUTHORITY")
+        report = 'printf "%s\\n" ' + " ".join(f'"{k}=${k}"' for k in keys) + ' > "$0.tmp" && mv "$0.tmp" "$0"'
         # KWin starts the command detached, outside the process group stop() ends, so the command
         # exits once it has written the file; XWayland stays up without it.
         cmd = ["kwin_wayland", "--virtual", "--width", str(width), "--height", str(height), "--socket", socket,
                "--xwayland", shlex.join(["sh", "-c", report, env_file])]
     else:
-        # mutter quits when its command exits, so the command stays, in mutter's process group.
-        cmd = ["mutter", "--headless", "--wayland", "--virtual-monitor", f"{width}x{height}", "--wayland-display", socket,
-               "--", "sh", "-c", report + "; exec sleep infinity", env_file]
+        # In the runtime directory, not the datadir, whose path may be long: a socket's path takes at most 108 bytes.
+        home = tempfile.mkdtemp(prefix="orca-mcp-shell-", dir=os.environ.get("XDG_RUNTIME_DIR"))
+        settings = os.path.join(home, "config", "glib-2.0", "settings")
+        os.makedirs(settings)
+        with open(os.path.join(settings, "keyfile"), "w") as f:
+            f.write(GNOME_SHELL_SETTINGS)
+        dirs = {"XDG_CONFIG_HOME": "config", "XDG_DATA_HOME": "data", "XDG_CACHE_HOME": "cache", "XDG_STATE_HOME": "state"}
+        env = dict(os.environ, XDG_RUNTIME_DIR=home, GSETTINGS_BACKEND="keyfile",
+                   **{k: os.path.join(home, d) for k, d in dirs.items()})
+        cmd = ["gnome-shell", "--headless", "--wayland", "--virtual-monitor", f"{width}x{height}", "--wayland-display",
+               socket]
     with open(os.path.join(datadir, "mcp-display.log"), "w") as log:
         proc = subprocess.Popen(["dbus-run-session", "--"] + cmd, stdout=log, stderr=subprocess.STDOUT,
-                                start_new_session=True)
-    deadline = time.time() + 30
-    while not os.path.exists(env_file) and proc.poll() is None and time.time() < deadline:
-        time.sleep(0.1)
-    if os.path.exists(env_file):
+                                start_new_session=True, env=env)
+
+    def reported():
+        if home:
+            return gnome_shell_env(proc.pid)
+        if not os.path.exists(env_file):
+            return None
         with open(env_file) as f:
-            env = {k: v or None for k, _, v in (line.partition("=") for line in f.read().splitlines())}
+            found = {k: v or None for k, _, v in (line.partition("=") for line in f.read().splitlines())}
         os.remove(env_file)
-        if env.get("DISPLAY"):
-            return dict(env, GDK_BACKEND="x11"), proc.pid
+        return found
+
+    deadline = time.time() + 30
+    found = reported()
+    while found is None and proc.poll() is None and time.time() < deadline:
+        time.sleep(0.1)
+        found = reported()
+    if found and found.get("DISPLAY"):
+        if home:
+            # By its path: the app keeps the person's runtime directory, where the socket's name alone points.
+            found["WAYLAND_DISPLAY"] = os.path.join(home, socket)
+            if found.get("XAUTHORITY"):
+                allow_local_user(found["DISPLAY"], found["XAUTHORITY"])
+        return dict(found, GDK_BACKEND="x11"), proc.pid
     stop_group(proc.pid)
+    if home:
+        shutil.rmtree(home, ignore_errors=True)
     return None
+
+
+def allow_local_user(display, xauthority):
+    """Let every process of the person open the X `display`, guarded by the auth file `xauthority`, by its name
+    alone, as they open Xvfb's, which has no access control: only the app is given the auth file, and a test opens
+    the display itself to read the pointer or the stacking. No process of another user gets in."""
+    import pwd  # Linux only, as the displays are
+
+    if not shutil.which("xhost"):
+        print(f"xhost is not installed, so only a process given XAUTHORITY={xauthority} opens the display {display}",
+              file=sys.stderr)
+        return
+    subprocess.run(["xhost", f"+si:localuser:{pwd.getpwuid(os.getuid()).pw_name}"], capture_output=True, timeout=10,
+                   env=dict(os.environ, DISPLAY=display, XAUTHORITY=xauthority))
+
+
+def gnome_shell_env(group):
+    """The variables an X11 client needs to reach the XWayland of the GNOME Shell in process group `group`, or None
+    until that XWayland runs: the display and its auth file from XWayland's command line, the session bus from the
+    shell's environment."""
+    display = auth = bus = None
+    for pid in filter(str.isdigit, os.listdir("/proc")):
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                stat = f.read()
+            # The name is in parentheses and may hold spaces; the process group is the third field after it.
+            name, pgrp = stat[stat.index("(") + 1:stat.rindex(")")], int(stat[stat.rindex(")") + 2:].split()[2])
+            if pgrp != group:
+                continue
+            if name == "Xwayland":
+                with open(f"/proc/{pid}/cmdline", "rb") as f:
+                    argv = f.read().decode().split("\0")
+                display = next((a for a in argv if a.startswith(":")), None)
+                auth = argv[argv.index("-auth") + 1] if "-auth" in argv else None
+            elif name == "gnome-shell":
+                with open(f"/proc/{pid}/environ", "rb") as f:
+                    variables = f.read().decode().split("\0")
+                bus = next((v.partition("=")[2] for v in variables if v.startswith("DBUS_SESSION_BUS_ADDRESS=")), None)
+        except (OSError, ValueError, IndexError):  # ended meanwhile
+            continue
+    if not (display and bus):
+        return None
+    return {"DISPLAY": display, "DBUS_SESSION_BUS_ADDRESS": bus, "XAUTHORITY": auth}
+
+
+def stop_display(server, pid, env):
+    """End the private display start_display() gave as (`server`, `env`, `pid`): its process group, and for GNOME
+    Shell the directory it ran on, which holds its Wayland socket (see start_headless())."""
+    stop_group(pid)
+    if server == "gnome-shell" and env and os.path.isabs(env.get("WAYLAND_DISPLAY") or ""):
+        shutil.rmtree(os.path.dirname(env["WAYLAND_DISPLAY"]), ignore_errors=True)
 
 
 def start_display(args, datadir):
@@ -456,9 +545,6 @@ def start_display(args, datadir):
                 if explicit:
                     sys.exit(f"--headless {name} needs {' and '.join(missing)}, which is not installed")
                 continue
-            if name == "mutter":
-                print("headless mutter is not tested yet (test required): check the window, input, screenshots "
-                      "and that app_log reports the GPU's OpenGL driver", file=sys.stderr)
             started = start_headless(name, args.width, args.height, datadir)
             if started:
                 return (name,) + started
@@ -724,7 +810,7 @@ def stop(_args):
         # The app goes first and is given time to close before its display does.
         stop_group(s["pid"], timeout=STOP_TIMEOUT_S)
         if s.get("display_server_pid"):
-            stop_group(s["display_server_pid"])
+            stop_display(s.get("display_server"), s["display_server_pid"], s.get("display_env"))
     os.remove(SESSION_FILE)
 
 
@@ -738,8 +824,8 @@ def main():
     p.add_argument("--port", type=int, default=DEFAULT_PORT)
     display = p.add_mutually_exclusive_group()
     display.add_argument("--headless", nargs="?", const="auto", choices=("auto", *COMPOSITORS),
-                         help="run on a private headless desktop with XWayland (Linux): KWin, else mutter (not tested "
-                              "yet), else Xvfb")
+                         help="run on a private headless desktop with XWayland (Linux): KWin, else GNOME Shell, else "
+                              "Xvfb")
     display.add_argument("--xvfb", action="store_true",
                          help="run on a private Xvfb display (Linux), with Openbox as its window manager when it is "
                               "installed, for a machine without a desktop")

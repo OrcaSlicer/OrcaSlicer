@@ -8,7 +8,7 @@ Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the 
 
 | Command | What it does |
 |---|---|
-| `launch [--headless [kwin\|mutter] \| --xvfb] [--cad] [--unrestricted-scripts] [--printer "<model>@<nozzle>"] [--vendor V] [--filament F] [--datadir DIR] [--port N] [--bin PATH] [--print-config] [-- app args]` | Start OrcaSlicer with `--mcp`, wait until it is ready, print the session |
+| `launch [--headless [kwin\|gnome-shell] \| --xvfb] [--cad] [--unrestricted-scripts] [--printer "<model>@<nozzle>"] [--vendor V] [--filament F] [--datadir DIR] [--port N] [--bin PATH] [--print-config] [-- app args]` | Start OrcaSlicer with `--mcp`, wait until it is ready, print the session |
 | `call TOOL ['<json args>'] [--wait]` | Call a tool and print its JSON result; `--wait` follows a returned job to its result |
 | `tools` | List the tools, with the first line of each description |
 | `widgets ['<json args>']` | Print the `widget_list` tree |
@@ -51,11 +51,18 @@ its own and runs the app on that compositor's XWayland. The app draws with the G
 as on your desktop, and the compositor is a window manager, so focus, stacking and popup lists
 behave as they do there; dialogs show in screenshots and recordings, and the private bus keeps the
 D-Bus services the app starts, such as the desktop portals, out of your session. It takes KWin
-(`kwin_wayland --virtual`), else mutter (`mutter --headless`; test required: not yet run on a GNOME
-machine, so check the window, input, screenshots and the OpenGL driver the app's log reports before
-relying on it); `--headless kwin` or `--headless mutter` names one. The compositor's output goes to
-`<datadir>/mcp-display.log`. When neither is installed or starts, `--headless` says so and falls
-back to Xvfb. `--xvfb` is for a machine without a desktop, such as a CI runner or a server. It
+(`kwin_wayland --virtual`), else GNOME Shell (`gnome-shell --headless`, which every GNOME desktop
+has); `--headless kwin` or `--headless gnome-shell` names one. On another desktop, such as Xfce or
+LXQt, install KWin to draw with the GPU. GNOME Shell starts a whole session's services on its bus,
+so it runs on a directory of its own in your runtime directory, as its runtime, configuration,
+data, cache and state directories, and its services never touch your session's files or mounts;
+stopping it removes the directory. It starts on the desktop, without the overview or the welcome
+tour, and your other processes open its display by name, as they open Xvfb's. Unlike KWin, it
+keeps windows below its top bar, and it brings a minimized window back only when the app activates
+it, so `window_set` restores one there as on Wayland, which also raises it. The
+compositor's output goes to `<datadir>/mcp-display.log`. When neither is installed or starts,
+`--headless` says so and falls back to Xvfb. `--xvfb` is for a machine without a desktop, such as a
+CI runner or a server. It
 starts Xvfb on a free display between `:90` and `:119`, one of its own even when other launches
 start at the same moment, as a sweep's jobs do. Xvfb draws OpenGL in software, and runs Openbox
 as its window manager when Openbox is installed, as Chromium's tests do under Xvfb. Without a window
@@ -69,7 +76,7 @@ they would show in screenshots. The app's output goes to `<datadir>/mcp-launch.l
 
 `launch` writes `{port, token, pid, datadir, display_server, display_server_pid, display_env,
 display}` to `$ORCA_MCP_SESSION`, or to `~/.cache/orca-mcp/session.json` if that is unset.
-`display_server` is `kwin`, `mutter`, `xvfb` or null (your desktop), and `display_env` holds the
+`display_server` is `kwin`, `gnome-shell`, `xvfb` or null (your desktop), and `display_env` holds the
 variables the app was started with to reach it (null for one removed), which `app_env()` applies to
 another process. The file is mode 0600, and every other command
 reads it. To run several instances at once, give each its own `ORCA_MCP_SESSION` and `--port`.
@@ -294,7 +301,7 @@ moved, or a minimized one brought back, is reported SKIP and does not fail its t
 them on a private compositor instead, as `orca_mcp.py launch --headless` does, which is what a machine
 without a desktop needs. `--xvfb` runs each job's app on a private Xvfb display of its own, with
 Openbox as its window manager, as `orca_mcp.py launch --xvfb` does. OpenGL is drawn in software, so
-`--headless` is the better pick wherever KWin is installed; without Openbox, the tests that open a
+`--headless` is the better pick wherever KWin or GNOME Shell is installed; without Openbox, the tests that open a
 popup list, `test_gui_tools.py` and `test_filaments.py`, fail under `--xvfb`. Each flag is Linux-only,
 and only one of the three can be given. Without any of them the run needs an X display, and `--wayland` needs a Wayland session;
 `--list` needs none.
