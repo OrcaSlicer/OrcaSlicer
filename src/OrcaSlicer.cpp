@@ -168,7 +168,10 @@ using json = nlohmann::json;
 #endif
 
 #ifdef SLIC3R_GUI
+    #include "slic3r/GUI/CommandCatalog.hpp"
     #include "slic3r/GUI/GUI_Init.hpp"
+    #include "slic3r/GUI/Mcp/McpStdioBridge.hpp"
+    #include "slic3r/GUI/NativeCommands.hpp"
     // BBLPrinterAgent::from_orca_filament_id(); the map and its lookups live in libslic3r_gui,
     // which only a SLIC3R_GUI build links (see target_link_libraries(OrcaSlicer libslic3r_gui)
     // in CMakeLists).
@@ -1218,6 +1221,15 @@ int CLI::run(int argc, char **argv)
     // Save the thread ID of the main thread.
     save_main_thread_id();
 
+#ifdef SLIC3R_GUI
+    // The stdio bridge is a plain pipe to a running GUI instance; it needs none of the setup below.
+    for (int i = 1; i < argc; ++i)
+        if (std::strcmp(argv[i], "--mcp-stdio") == 0)
+            return Slic3r::GUI::Mcp::run_stdio_bridge(argc, argv, []() -> const Slic3r::GUI::CommandCatalog& {
+                return Slic3r::GUI::NativeCommands::instance();
+            });
+#endif
+
 #ifdef __WXGTK__
     // ------------------------------------------------------------------
     // Linux backend selection — runtime, based on GDK_BACKEND env var.
@@ -1499,6 +1511,14 @@ int CLI::run(int argc, char **argv)
     }
 
     bool start_gui = m_actions.empty() && !downward_check;
+    // --run runs its file in the GUI, so it is refused where no GUI starts rather than left unrun.
+    if (!start_gui && m_given_option_keys.count("run") > 0) {
+        std::string flag = m_actions.empty() ? std::string("downward_check") : m_actions.front();
+        std::replace(flag.begin(), flag.end(), '_', '-');
+        boost::nowide::cerr << "--run cannot be combined with --" << flag << std::endl;
+        record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+        flush_and_exit(CLI_INVALID_PARAMS);
+    }
     if (start_gui) {
         BOOST_LOG_TRIVIAL(info) << "no action, start gui directly" << std::endl;
 #ifdef SLIC3R_GUI
@@ -1541,6 +1561,22 @@ int CLI::run(int argc, char **argv)
         }
         //BBS: remove GCodeViewer as separate APP logic
         //params.start_as_gcodeviewer = start_as_gcodeviewer;
+
+        // --mcp-port opens the endpoint as --mcp does, whatever its value. Every option has a value after setup(),
+        // so whether it was given is read from the options the command line named.
+        if (const auto *opt = m_config.opt<ConfigOptionBool>("mcp"))
+            params.mcp.enable = opt->value;
+        if (m_given_option_keys.count("mcp_port") > 0)
+            params.mcp.enable = true;
+        if (const auto *opt = m_config.opt<ConfigOptionInt>("mcp_port"))
+            params.mcp.port = opt->value;
+        // Resolved now: the GUI moves the working directory to <data_dir>/log before the replay or script runs.
+        if (m_given_option_keys.count("run") > 0) {
+            params.mcp.run_file = resolve_cli_input_path(m_config.opt_string("run"));
+            params.mcp.run_out  = resolve_cli_input_path(m_config.opt_string("outputdir"));
+        }
+        params.unrestricted_scripts = m_config.opt_bool("unrestricted_scripts");
+        params.cad                  = m_config.opt_bool("cad");
 
         BOOST_LOG_TRIVIAL(info) << "begin to launch OrcaSlicer GUI soon";
         return Slic3r::GUI::GUI_Run(params);
@@ -4757,6 +4793,12 @@ int CLI::run(int argc, char **argv)
     };
     if (plate_data_src.size() > 0)
     {
+        // Assign objects to plates on the bed the project was saved with, because the new bed's shape on the
+        // old plate grid does not match the plates the objects were placed on.
+        const bool retarget_bed = (translate_old || shrink_to_new_bed > 0) && old_printable_area.size() >= 4;
+        if (retarget_bed)
+            partplate_list.set_shapes(make_counter_clockwise(old_printable_area), old_exclude_area, {}, {}, {}, bed_texture,
+                                      height_to_lid, height_to_rod);
         partplate_list.load_from_3mf_structure(plate_data_src);
 
         int plate_count = partplate_list.get_plate_count();
@@ -4770,6 +4812,11 @@ int CLI::run(int argc, char **argv)
         }
 
         translate_models(partplate_list, m_print_config);
+        if (retarget_bed) {
+            partplate_list.set_shapes(make_counter_clockwise(current_printable_area), current_exclude_area, current_wrapping_exclude_area,
+                                      current_extruder_areas, current_extruder_print_heights, bed_texture, height_to_lid, height_to_rod);
+            partplate_list.reload_all_objects();
+        }
     }
 
     /*for (ModelObject *model_object : m_models[0].objects)

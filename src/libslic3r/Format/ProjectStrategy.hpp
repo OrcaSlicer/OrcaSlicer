@@ -21,6 +21,9 @@ enum class LoadStrategy
     // Geometry-import policies are opt-in; opening existing projects retains its defaults.
     KeepOriginalNames = 128,
     AssembleParts = 256,
+    // One of Orca's own models, such as a calibration test, loads as written: the geometry-import choices and
+    // their dialogs are for a person's files, and a calibration reads values from its objects' names.
+    BundledModel = 512,
 
     Restore = 0x10000 | LoadModel | LoadConfig | LoadAuxiliary | Silence,
 };

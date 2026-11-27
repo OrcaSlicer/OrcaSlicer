@@ -22,7 +22,7 @@ if (DEFINED ENV{git_commit_hash} AND NOT "$ENV{git_commit_hash}" STREQUAL "")
         string(SUBSTRING "$ENV{git_commit_hash}" 0 7 HASH)
     endif ()
 elseif (GIT_FOUND AND EXISTS "${SOURCE_DIR}/.git")
-    execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
         WORKING_DIRECTORY ${SOURCE_DIR} OUTPUT_VARIABLE HASH OUTPUT_STRIP_TRAILING_WHITESPACE)
     execute_process(COMMAND ${GIT_EXECUTABLE} diff --quiet HEAD
         WORKING_DIRECTORY ${SOURCE_DIR} RESULT_VARIABLE DIRTY ERROR_QUIET)

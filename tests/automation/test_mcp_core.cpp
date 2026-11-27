@@ -1,0 +1,2236 @@
+#include <catch2/catch_message.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+
+#include "automation_test_utils.hpp"
+
+#include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
+#include "slic3r/GUI/Mcp/FollowedThreads.hpp"
+#include "slic3r/GUI/Mcp/JobRegistry.hpp"
+#include "slic3r/GUI/Mcp/McpCore.hpp"
+#include "slic3r/GUI/Mcp/McpJournal.hpp"
+#include "slic3r/GUI/Mcp/McpProtocol.hpp"
+#include "slic3r/GUI/Mcp/UiInvoker.hpp"
+
+#include <nlohmann/json.hpp>
+
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstddef>
+#include <cstdint>
+#include <deque>
+#include <functional>
+#include <map>
+#include <memory>
+#include <new>
+#include <optional>
+#include <set>
+#include <stdexcept>
+#include <utility>
+#include <vector>
+#include <future>
+#include <mutex>
+#include <string>
+#include <thread>
+
+using namespace Slic3r::GUI;
+using namespace Slic3r::GUI::Mcp;
+using nlohmann::json;
+using Catch::Matchers::ContainsSubstring;
+using Slic3r::GUI::CommandCatalog;
+using Slic3r::GUI::CommandFn;
+using Slic3r::GUI::NativeCommand;
+using Slic3r::GUI::Mcp::Test::Harness;
+using namespace std::chrono_literals;
+
+namespace {
+
+// Plays the UI thread: closures queue up until the test drains them on its own thread.
+class ManualDispatcher final : public UiDispatcher
+{
+public:
+    void post(std::function<void()> fn) override
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_queue.push_back(std::move(fn));
+    }
+
+    // Runs queued closures (including ones queued while running) until the queue is empty.
+    void drain()
+    {
+        for (;;) {
+            std::function<void()> fn;
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                if (m_queue.empty())
+                    return;
+                fn = std::move(m_queue.front());
+                m_queue.pop_front();
+            }
+            fn();
+        }
+    }
+
+    // Keeps draining until `done` returns true or `timeout` passes, like an event loop.
+    bool pump_until(const std::function<bool()>& done, std::chrono::milliseconds timeout = 5000ms)
+    {
+        const auto end = std::chrono::steady_clock::now() + timeout;
+        while (!done()) {
+            if (std::chrono::steady_clock::now() > end)
+                return false;
+            drain();
+            std::this_thread::sleep_for(5ms);
+        }
+        return true;
+    }
+
+private:
+    std::mutex                        m_mutex;
+    std::deque<std::function<void()>> m_queue;
+};
+
+// A file picker as ModalTracker describes it: native, and untitled on macOS.
+const json kNativePicker = json::array({{{"title", ""}, {"message", "Choose one or more files"}, {"native", true}}});
+
+// Sets `flag` when the test leaves, failed assertions included, so a closure holding the fake UI
+// thread lets go before the harness joins that thread. Declare the flag before the harness and this
+// after it: the flag must outlive that join, and be set before it starts.
+struct SetOnExit
+{
+    std::atomic<bool>& flag;
+    ~SetOnExit() { flag = true; }
+};
+
+NativeCommand tool(const std::string& name, GuardClass guard, CommandFn handler)
+{
+    NativeCommand d;
+    d.key     = name;
+    d.guard   = guard;
+    d.run     = std::move(handler);
+    return d;
+}
+
+// Arguments whose serialized size is just over `mib` MiB.
+json args_of_mib(std::size_t mib) { return {{"s", std::string(mib << 20, 'x')}}; }
+
+} // namespace
+
+TEST_CASE("a UI call that is never picked up is abandoned and never runs", "[Mcp]")
+{
+    ManualDispatcher ui;
+    UiInvoker        invoker(ui, [] { return GuardState{}; });
+    bool             ran = false;
+    std::string      error;
+    try {
+        invoker.run(GuardClass::Mutate, "t", [&] { ran = true; return json(); }, 100ms);
+    } catch (const ToolFailure& f) {
+        error = f.what();
+    }
+    CHECK(error.find("safe to retry") != std::string::npos);
+    ui.drain();
+    CHECK_FALSE(ran);
+    CHECK_THROWS_AS(invoker.run(GuardClass::Mutate, "t", [] { return json(); }, 100ms), UiCallNotRun);
+    ui.drain();
+}
+
+TEST_CASE("a UI call that times out behind a native dialog names the dialog", "[Mcp]")
+{
+    ManualDispatcher ui;
+    UiInvoker        invoker(ui, [] { return GuardState{}; }, {}, [] { return kNativePicker; });
+    bool             ran = false;
+    std::string      error;
+    json             details;
+    try {
+        invoker.run(GuardClass::Inspect, "app_state", [&] { ran = true; return json(); }, 100ms);
+    } catch (const ToolFailure& f) {
+        error   = f.what();
+        details = f.details;
+    }
+    CHECK(error.find("native dialog") != std::string::npos);
+    CHECK(details.value("dialogs", json()) == kNativePicker);
+    ui.drain();
+    CHECK_FALSE(ran);
+}
+
+TEST_CASE("a UI call that times out behind a wx dialog keeps the busy message", "[Mcp]")
+{
+    ManualDispatcher ui;
+    // The topmost dialog has no "native" field, as Orca's own dialogs in these tests don't.
+    const json dialogs = json::array({kNativePicker[0], {{"title", "Preferences"}}});
+    UiInvoker  invoker(ui, [] { return GuardState{}; }, {}, [&] { return dialogs; });
+    std::string error;
+    try {
+        invoker.run(GuardClass::Inspect, "app_state", [] { return json(); }, 100ms);
+    } catch (const ToolFailure& f) {
+        error = f.what();
+    }
+    CHECK(error.find("safe to retry") != std::string::npos);
+    ui.drain();
+}
+
+TEST_CASE("a UI call returns the closure's value", "[Mcp]")
+{
+    ManualDispatcher ui;
+    UiInvoker        invoker(ui, [] { return GuardState{}; });
+    auto fut = std::async(std::launch::async, [&] { return invoker.run(GuardClass::Inspect, "t", [] { return json(42); }); });
+    ui.pump_until([&] { return fut.wait_for(0ms) == std::future_status::ready; });
+    CHECK(fut.get() == json(42));
+}
+
+TEST_CASE("shutdown wakes waiting callers and later closures do nothing", "[Mcp]")
+{
+    ManualDispatcher ui;
+    UiInvoker        invoker(ui, [] { return GuardState{}; });
+    std::atomic<bool> ran{false};
+    auto fut = std::async(std::launch::async, [&]() -> std::string {
+        try {
+            invoker.run(GuardClass::Mutate, "t", [&] { ran = true; return json(); });
+        } catch (const ToolFailure& f) {
+            return f.what();
+        }
+        return "returned";
+    });
+    std::this_thread::sleep_for(50ms);
+    invoker.shutdown();
+    CHECK(fut.get().find("shutting down") != std::string::npos);
+    ui.drain();
+    CHECK_FALSE(ran);
+}
+
+TEST_CASE("guards refuse mutate calls behind a modal, while closing and while suspended", "[Mcp]")
+{
+    ManualDispatcher ui;
+    GuardState       guards;
+    UiInvoker        invoker(ui, [&] { return guards; });
+    auto attempt = [&](GuardClass g) -> std::string {
+        auto fut = std::async(std::launch::async, [&]() -> std::string {
+            try {
+                invoker.run(g, "t", [] { return json(); });
+                return "ok";
+            } catch (const ToolFailure& f) {
+                return f.what();
+            }
+        });
+        ui.pump_until([&] { return fut.wait_for(0ms) == std::future_status::ready; });
+        return fut.get();
+    };
+    guards.modal = true;
+    CHECK(attempt(GuardClass::Mutate).find("modal dialog") != std::string::npos);
+    CHECK(attempt(GuardClass::Inspect) == "ok");
+    CHECK(attempt(GuardClass::Recover) == "ok");
+    guards       = {};
+    guards.suspended = true;
+    CHECK(attempt(GuardClass::Inspect).find("recreated") != std::string::npos);
+    guards           = {};
+    guards.closing   = true;
+    CHECK(attempt(GuardClass::Inspect).find("shutting down") != std::string::npos);
+}
+
+TEST_CASE("a mutate call is refused inside another call's nested loop but inspect runs", "[Mcp]")
+{
+    ManualDispatcher ui;
+    UiInvoker        invoker(ui, [] { return GuardState{}; });
+    std::string      nested_mutate, nested_inspect;
+    std::atomic<bool> release{false};
+
+    auto outer = std::async(std::launch::async, [&] {
+        return invoker.run(GuardClass::Mutate, "outer", [&] {
+            // A nested event loop: other closures run while this one is still on the stack.
+            auto m = std::async(std::launch::async, [&]() -> std::string {
+                try {
+                    invoker.run(GuardClass::Mutate, "inner", [] { return json(); });
+                    return "ok";
+                } catch (const ToolFailure& f) {
+                    return f.what();
+                }
+            });
+            auto i = std::async(std::launch::async, [&] { return invoker.run(GuardClass::Inspect, "look", [] { return json("seen"); }); });
+            ui.pump_until([&] { return m.wait_for(0ms) == std::future_status::ready && i.wait_for(0ms) == std::future_status::ready; });
+            nested_mutate  = m.get();
+            nested_inspect = i.get().get<std::string>();
+            return json();
+        });
+    });
+    ui.pump_until([&] { return outer.wait_for(0ms) == std::future_status::ready; });
+    (void) outer.get();
+    CHECK(nested_mutate.find("Busy: outer") != std::string::npos);
+    CHECK(nested_inspect == "seen");
+}
+
+TEST_CASE("a recover call that targets outside the dialog applies the mutate guard itself", "[Mcp]")
+{
+    ManualDispatcher ui;
+    GuardState       guards;
+    UiInvoker        invoker(ui, [&] { return guards; });
+    auto attempt = [&]() -> std::string {
+        auto fut = std::async(std::launch::async, [&]() -> std::string {
+            try {
+                invoker.run(GuardClass::Recover, "widget_click", [&] {
+                    invoker.require_mutate();
+                    return json();
+                });
+                return "ok";
+            } catch (const ToolFailure& f) {
+                return f.what();
+            }
+        });
+        ui.pump_until([&] { return fut.wait_for(0ms) == std::future_status::ready; });
+        return fut.get();
+    };
+    CHECK(attempt() == "ok");
+    guards.modal = true;
+    CHECK(attempt().find("modal dialog") != std::string::npos);
+    guards = {};
+
+    // Inside another call's nested loop it is busy, as a mutate call would be.
+    std::string nested;
+    auto outer = std::async(std::launch::async, [&] {
+        return invoker.run(GuardClass::Mutate, "outer", [&] {
+            auto m = std::async(std::launch::async, [&]() -> std::string {
+                try {
+                    invoker.run(GuardClass::Recover, "widget_click", [&] {
+                        invoker.require_mutate();
+                        return json();
+                    });
+                    return "ok";
+                } catch (const ToolFailure& f) {
+                    return f.what();
+                }
+            });
+            ui.pump_until([&] { return m.wait_for(0ms) == std::future_status::ready; });
+            nested = m.get();
+            return json();
+        });
+    });
+    ui.pump_until([&] { return outer.wait_for(0ms) == std::future_status::ready; });
+    (void) outer.get();
+    CHECK(nested.find("Busy: outer") != std::string::npos);
+}
+
+TEST_CASE("a job outlives its reply and wait() returns its result", "[Mcp]")
+{
+    Harness h;
+    NativeCommand slow = tool("slow", GuardClass::Mutate, [](const json&, ToolContext&) {
+        std::this_thread::sleep_for(600ms);
+        return ToolResult::ok({{"done", true}});
+    });
+    slow.budget_ms = 200;
+    h.registry.add(slow);
+    h.start();
+
+    const ToolResult envelope = h.call("slow");
+    REQUIRE_FALSE(envelope.is_error);
+    CHECK(envelope.data["status"] == "running");
+    const std::string job = envelope.data["job"];
+    auto result = h.jobs.wait(job, 3000ms);
+    REQUIRE(result.has_value());
+    CHECK(result->data["done"] == true);
+}
+
+TEST_CASE("reply_budget_cap_from reads a positive whole number of milliseconds and nothing else", "[Mcp]")
+{
+    CHECK(reply_budget_cap_from("2000") == 2000ms);
+    for (const char* junk : {static_cast<const char*>(nullptr), "", "0", "-5", "12x", "abc", "1.5", " 2000",
+                             "99999999999999999999"}) {
+        INFO((junk ? junk : "nullptr"));
+        CHECK(reply_budget_cap_from(junk) == 0ms);
+    }
+}
+
+TEST_CASE("a capped reply budget replies with the running job once the cap is spent", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         release_on_exit{release};
+    h.timing.reply_budget_cap = 1000ms;
+    const auto held = [&](const json&, ToolContext&) {
+        while (!release)
+            std::this_thread::sleep_for(5ms);
+        return ToolResult::ok({{"done", true}});
+    };
+    h.registry.add(tool("long", GuardClass::Mutate, held)); // the default 45 s budget
+    NativeCommand at_once = tool("at_once", GuardClass::Mutate, held);
+    at_once.budget_ms     = 0;
+    h.registry.add(at_once);
+    h.start();
+
+    auto start = std::chrono::steady_clock::now();
+    const ToolResult capped = h.call("long");
+    CHECK(std::chrono::steady_clock::now() - start < 5s);
+    CHECK(capped.data["status"] == "running");
+    REQUIRE(capped.data.contains("job"));
+    release = true;
+    REQUIRE(h.jobs.wait(capped.data["job"], 3000ms).has_value());
+
+    // A budget under the cap is the command's own.
+    release = false;
+    start   = std::chrono::steady_clock::now();
+    const ToolResult own = h.call("at_once");
+    CHECK(std::chrono::steady_clock::now() - start < 500ms);
+    CHECK(own.data["status"] == "running");
+    release = true;
+    CHECK(h.jobs.wait(own.data["job"], 3000ms).has_value());
+}
+
+TEST_CASE("blocked_by_dialog is reported after the soft budget when the probe sees a modal", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> release{false};
+    h.registry.add(tool("open_modal", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.modal_loop(release, json::array({{{"title", "Unsaved changes"}}}));
+            return json();
+        });
+        return ToolResult::ok({{"closed", true}});
+    }));
+    h.start();
+
+    const ToolResult envelope = h.call("open_modal");
+    CHECK(envelope.data["status"] == "blocked_by_dialog");
+    CHECK(envelope.data["dialogs"][0]["title"] == "Unsaved changes");
+    // A command without silent is told to give the dialog's answer as an argument next time.
+    CHECK_THAT(envelope.data["note"].get<std::string>(), ContainsSubstring("Next time, give the dialog's answer as an argument"));
+    release = true;
+    auto result = h.jobs.wait(envelope.data["job"], 3000ms);
+    REQUIRE(result.has_value());
+    CHECK(result->data["closed"] == true);
+}
+
+TEST_CASE("a blocked call of a command that takes silent is told to pass it next time", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> release{false};
+    NativeCommand     asks = tool("asks", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.modal_loop(release, json::array({{{"title", "Primitive size"}}}));
+            return json();
+        });
+        return ToolResult::ok({{"closed", true}});
+    });
+    asks.input_schema = {{"type", "object"}, {"properties", {{"silent", {{"type", "boolean"}, {"enum", {true}}}}}}};
+    h.registry.add(std::move(asks));
+    h.start();
+
+    const ToolResult asked = h.call("asks");
+    REQUIRE(asked.data["status"] == "blocked_by_dialog");
+    CHECK_THAT(asked.data["note"].get<std::string>(), ContainsSubstring("Next time, `silent: true` runs it without asking."));
+    release = true;
+    REQUIRE(h.jobs.wait(asked.data["job"], 3000ms).has_value());
+
+    // A call that gave silent and still asks is of a command whose dialog always opens: no advice.
+    release                 = false;
+    const ToolResult always = h.call("asks", {{"silent", true}});
+    REQUIRE(always.data["status"] == "blocked_by_dialog");
+    CHECK(always.data["note"].get<std::string>().find("Next time") == std::string::npos);
+    release = true;
+    REQUIRE(h.jobs.wait(always.data["job"], 3000ms).has_value());
+}
+
+TEST_CASE("a dialog whose answer was queued as it opened does not hold the call", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("answered_modal", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            // Past the 100 ms soft budget the first probe is queued behind this closure. The dialog then
+            // opens and queues its answer behind that probe, as an auto-answer rule queues its press.
+            std::this_thread::sleep_for(250ms);
+            std::atomic<bool> answered{false};
+            h.ui.post([&] { answered = true; });
+            h.modal_loop(answered, json::array({{{"title", "Orca Slicer info"}}}));
+            return json();
+        });
+        return ToolResult::ok({{"closed", true}});
+    }));
+    h.start();
+
+    const ToolResult r = h.call("answered_modal");
+    CHECK(r.data.value("status", "") != "blocked_by_dialog");
+    CHECK(r.data.value("closed", false) == true);
+}
+
+TEST_CASE("a call working in the topmost dialog is blocked only by another dialog on top", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("page_call", GuardClass::Recover, [&](const json&, ToolContext& ctx) {
+        ctx.works_in_dialog(7);
+        std::this_thread::sleep_for(400ms);
+        return ToolResult::ok({{"done", true}});
+    }));
+    h.start();
+    auto top = [&](std::uint64_t serial, json dialogs) {
+        std::lock_guard<std::mutex> lock(h.guards_mutex);
+        h.guards.modal      = true;
+        h.guards.dialogs    = std::move(dialogs);
+        h.guards.top_dialog = serial;
+    };
+
+    // Its own dialog on top: past the soft budget it is still running, and its result comes back.
+    top(7, json::array({{{"title", "Web dialog"}}}));
+    CHECK(h.call("page_call").data["done"] == true);
+
+    // Another dialog on top, at any depth (here the same one: its own closed and another opened).
+    top(8, json::array({{{"title", "Another"}}}));
+    const ToolResult blocked = h.call("page_call");
+    CHECK(blocked.data["status"] == "blocked_by_dialog");
+    REQUIRE(h.jobs.wait(blocked.data["job"], 3000ms).has_value());
+}
+
+TEST_CASE("a dialog its button ended does not hold the call while its modal loop returns", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("after_answer", GuardClass::Mutate, [&](const json&, ToolContext&) {
+        std::this_thread::sleep_for(400ms);
+        return ToolResult::ok({{"done", true}});
+    }));
+    h.start();
+    {
+        std::lock_guard<std::mutex> lock(h.guards_mutex);
+        h.guards.modal       = true;
+        h.guards.dialogs     = json::array({{{"title", "Spiral mode"}}});
+        h.guards.top_dialog  = 3;
+        h.guards.top_closing = true;
+    }
+    // Every probe past the soft budget finds the dialog on top, ended: the call runs to its result.
+    const ToolResult r = h.call("after_answer");
+    CHECK(r.data.value("status", "") != "blocked_by_dialog");
+    CHECK(r.data.value("done", false) == true);
+}
+
+TEST_CASE("blocked_by_dialog is reported from the snapshot when a native dialog holds the UI thread", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    h.registry.add(tool("pick_file", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.hold_ui(release, kNativePicker);
+            return json();
+        });
+        return ToolResult::ok({{"closed", true}});
+    }));
+    h.start();
+
+    const ToolResult envelope = h.call("pick_file");
+    release                   = true;
+    REQUIRE(envelope.data["status"] == "blocked_by_dialog");
+    CHECK(envelope.data["dialogs"] == kNativePicker);
+    const std::string note = envelope.data.value("note", "");
+    CHECK(note.find("only a person") != std::string::npos);
+    CHECK(note.find("tools that need the UI thread fail") != std::string::npos);
+    CHECK(note.find("Answer the dialog") == std::string::npos);
+    auto result = h.jobs.wait(envelope.data["job"], 3000ms);
+    REQUIRE(result.has_value());
+    CHECK(result->data["closed"] == true);
+}
+
+TEST_CASE("a held UI thread under a wx dialog is not reported as blocked_by_dialog", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    NativeCommand           hold = tool("hold", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.hold_ui(release, json::array({kNativePicker[0], {{"title", "Preferences"}}}));
+            return json();
+        });
+        return ToolResult::ok();
+    });
+    hold.budget_ms = 1000;
+    h.registry.add(hold);
+    h.start();
+
+    const ToolResult envelope = h.call("hold");
+    release                   = true;
+    CHECK(envelope.data["status"] == "running");
+    CHECK(h.jobs.wait(envelope.data["job"], 3000ms).has_value());
+}
+
+TEST_CASE("shutdown during an unanswered probe replies shutting down", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    h.registry.add(tool("pick_file", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.hold_ui(release, kNativePicker);
+            return json();
+        });
+        return ToolResult::ok();
+    }));
+    h.start();
+
+    // 300 ms lands inside the probe window: past the 100 ms soft budget, before the 500 ms probe
+    // gives up. A stop that lands earlier gets the same reply from the check before the probe.
+    auto reply = std::async(std::launch::async, [&] { return h.call("pick_file"); });
+    std::this_thread::sleep_for(300ms);
+    h.invoker.shutdown();
+    const ToolResult r = reply.get();
+    release            = true;
+    CHECK(r.is_error);
+    CHECK(r.message.find("shutting down") != std::string::npos);
+}
+
+TEST_CASE("a native dialog that the probe sees gets the native note", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    h.registry.add(tool("pick_file", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.modal_loop(release, kNativePicker);
+            return json();
+        });
+        return ToolResult::ok();
+    }));
+    h.start();
+
+    const ToolResult envelope = h.call("pick_file");
+    release                   = true;
+    REQUIRE(envelope.data["status"] == "blocked_by_dialog");
+    const std::string note = envelope.data.value("note", "");
+    CHECK(note.find("only a person") != std::string::npos);
+    CHECK(note.find("tools that need the UI thread fail") == std::string::npos);
+    CHECK(h.jobs.wait(envelope.data["job"], 3000ms).has_value());
+}
+
+TEST_CASE("a native message box with buttons gets the dialog_answer note", "[Mcp]")
+{
+    // As ModalTracker describes a message box whose buttons can be pressed (Windows, Linux).
+    const json box = json::array({{{"title", "Plugin permission request"},
+                                   {"message", "Plugin \"Fixture\" is requesting permission to create a thread."},
+                                   {"native", true},
+                                   {"buttons", json::array({{{"id", 5103}, {"label", "Yes"}}, {{"id", 5104}, {"label", "No"}}})}}});
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    h.registry.add(tool("ask", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.modal_loop(release, box);
+            return json();
+        });
+        return ToolResult::ok();
+    }));
+    h.start();
+
+    const ToolResult envelope = h.call("ask");
+    release                   = true;
+    REQUIRE(envelope.data["status"] == "blocked_by_dialog");
+    CHECK(envelope.data["dialogs"] == box);
+    const std::string note = envelope.data.value("note", "");
+    CHECK(note.find("dialog_answer") != std::string::npos);
+    CHECK(note.find("only a person") == std::string::npos);
+    CHECK(h.jobs.wait(envelope.data["job"], 3000ms).has_value());
+}
+
+TEST_CASE("inspect tools run inline and recover tools run as jobs while another job is blocked", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> release{false};
+    h.registry.add(tool("open_modal", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.modal_loop(release);
+            return json();
+        });
+        return ToolResult::ok();
+    }));
+    NativeCommand look = tool("look", GuardClass::Inspect, [](const json&, ToolContext& ctx) {
+        return ToolResult::ok({{"job", ctx.job_id()}, {"ui", ctx.run_ui([] { return json("ok"); })}});
+    });
+    look.inline_call = true;
+    h.registry.add(look);
+    h.registry.add(tool("answer", GuardClass::Recover, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] { release = true; return json(); });
+        return ToolResult::ok({{"job", ctx.job_id()}});
+    }));
+    h.start();
+
+    const ToolResult blocked = h.call("open_modal");
+    REQUIRE(blocked.data["status"] == "blocked_by_dialog");
+    const ToolResult seen = h.call("look");
+    CHECK(seen.data["job"] == "");
+    CHECK(seen.data["ui"] == "ok");
+    const ToolResult answered = h.call("answer");
+    CHECK_FALSE(answered.is_error);
+    CHECK(answered.data["job"].get<std::string>().rfind("j", 0) == 0);
+    CHECK(h.jobs.wait(blocked.data["job"], 3000ms).has_value());
+}
+
+TEST_CASE("a recover call that opens another modal returns blocked_by_dialog", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> release{false};
+    h.registry.add(tool("click_edit", GuardClass::Recover, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.modal_loop(release);
+            return json();
+        });
+        return ToolResult::ok();
+    }));
+    h.start();
+    const ToolResult r = h.call("click_edit");
+    CHECK(r.data["status"] == "blocked_by_dialog");
+    release = true;
+    CHECK(h.jobs.wait(r.data["job"], 3000ms).has_value());
+}
+
+TEST_CASE("every mutate call is refused while a slice job runs, but job_cancel and recover tools run", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> release{false};
+    NativeCommand slice = tool("plate_slice", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.begin_operation();
+        while (!release)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok();
+    });
+    slice.budget_ms = 100;
+    h.registry.add(slice);
+    h.registry.add(tool("project_new", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    NativeCommand cancel = tool("job_cancel", GuardClass::Mutate, [&](const json&, ToolContext&) {
+        release = true;
+        return ToolResult::ok();
+    });
+    cancel.allowed_during_operation = true;
+    h.registry.add(cancel);
+    h.registry.add(tool("answer", GuardClass::Recover, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.start();
+
+    const ToolResult running = h.call("plate_slice");
+    REQUIRE(running.data["status"] == "running");
+    const ToolResult refused = h.call("project_new");
+    CHECK(refused.is_error);
+    CHECK(refused.message.find("wait for it or stop it with job_cancel") != std::string::npos);
+    CHECK_FALSE(h.call("answer").is_error);
+    CHECK_FALSE(h.call("job_cancel").is_error);
+    CHECK(h.jobs.wait(running.data["job"], 3000ms).has_value());
+    CHECK_FALSE(h.call("project_new").is_error);
+}
+
+TEST_CASE("a submitted call returns its job at once and runs on a job's thread", "[Mcp]")
+{
+    // Before the harness: the job's thread may still use them until the harness has joined it.
+    std::atomic<bool>        open{false};
+    std::promise<ToolResult> ended;
+    std::mutex               seen_mutex;
+    std::thread::id          ran_on;
+    Harness                  h;
+    SetOnExit                let_go{open};
+    h.registry.add(tool("work", GuardClass::Mutate, [&](const json& args, ToolContext&) {
+        {
+            std::lock_guard<std::mutex> lock(seen_mutex);
+            ran_on = std::this_thread::get_id();
+        }
+        while (!open)
+            std::this_thread::sleep_for(5ms);
+        return ToolResult::ok({{"n", args.value("n", 0)}});
+    }));
+    h.start();
+
+    std::future<ToolResult> result = ended.get_future();
+    const std::string       job    = h.core->submit(*h.registry.find("work"), {{"n", 7}}, [&ended](const ToolResult& r) { ended.set_value(r); });
+    CHECK_FALSE(job.empty());
+    // It returned while the call is still held.
+    CHECK(result.wait_for(0ms) == std::future_status::timeout);
+    open = true;
+    REQUIRE(result.wait_for(3000ms) == std::future_status::ready);
+    const ToolResult r = result.get();
+    CHECK_FALSE(r.is_error);
+    CHECK(r.data["n"] == 7);
+    {
+        std::lock_guard<std::mutex> lock(seen_mutex);
+        CHECK(ran_on != std::this_thread::get_id());
+    }
+    // The job is registered as a client's would be, and the call is not journaled.
+    CHECK(h.jobs.wait(job, 3000ms).has_value());
+    CHECK(h.journal.to_replay("r")["steps"].empty());
+}
+
+TEST_CASE("a submitted change is refused as a client's is while an operation runs, and none starts after shutdown", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         let_go{release};
+    NativeCommand     slice = tool("plate_slice", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.begin_operation();
+        while (!release)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok();
+    });
+    slice.budget_ms = 100;
+    h.registry.add(slice);
+    h.registry.add(tool("project_new", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.start();
+
+    const ToolResult running = h.call("plate_slice");
+    REQUIRE(running.data["status"] == "running");
+    const ToolResult client = h.call("project_new");
+    REQUIRE(client.is_error);
+    // No job starts, and the refusal comes at once, on the calling thread.
+    std::optional<ToolResult> refusal;
+    CHECK(h.core->submit(*h.registry.find("project_new"), json::object(), [&refusal](const ToolResult& r) { refusal = r; }).empty());
+    REQUIRE(refusal.has_value());
+    CHECK(refusal->is_error);
+    CHECK(refusal->message == client.message);
+
+    release = true;
+    CHECK(h.jobs.wait(running.data["job"], 3000ms).has_value());
+    h.core->shutdown();
+    bool called = false;
+    CHECK(h.core->submit(*h.registry.find("project_new"), json::object(), [&called](const ToolResult&) { called = true; }).empty());
+    CHECK_FALSE(called);
+}
+
+TEST_CASE("a person's call marks its job, a client's call of the same command does not", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("work", GuardClass::Mutate, [&h](const json&, ToolContext& ctx) {
+        return ToolResult::ok({{"person", h.jobs.person_in(ctx.lineage())}});
+    }));
+    h.start();
+
+    const ToolResult person = h.core->call_person(*h.registry.find("work"), json::object());
+    REQUIRE_FALSE(person.is_error);
+    CHECK(person.data.value("person", false));
+    const ToolResult client = h.call("work");
+    REQUIRE_FALSE(client.is_error);
+    CHECK_FALSE(client.data.value("person", true));
+
+    // A person's pick of a long command is a person's call too.
+    std::promise<ToolResult> ended;
+    std::future<ToolResult>  result = ended.get_future();
+    const std::string        job    = h.core->submit(*h.registry.find("work"), json::object(), [&ended](const ToolResult& r) { ended.set_value(r); });
+    REQUIRE_FALSE(job.empty());
+    REQUIRE(result.wait_for(3000ms) == std::future_status::ready);
+    const ToolResult submitted = result.get();
+    REQUIRE_FALSE(submitted.is_error);
+    CHECK(submitted.data.value("person", false));
+    REQUIRE(h.jobs.wait(job, 3000ms).has_value());
+}
+
+TEST_CASE("an agent's call right after a person's run is not a person's", "[Mcp]")
+{
+    // Before the harness: the person's job thread may still read them until the harness has joined it.
+    std::atomic<bool> release{false};
+    Harness           h;
+    // A person's run that outlives its reply, then an agent's call of the same command once it has ended.
+    NativeCommand work = tool("work", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        const bool person = h.jobs.person_in(ctx.lineage());
+        while (!release)
+            std::this_thread::sleep_for(5ms);
+        return ToolResult::ok({{"person", person}});
+    });
+    work.budget_ms = 50;
+    h.registry.add(work);
+    h.start();
+    SetOnExit release_on_exit{release};
+
+    const ToolResult envelope = h.core->call_person(*h.registry.find("work"), json::object());
+    REQUIRE(envelope.data.value("status", "") == "running");
+    const std::string job = envelope.data["job"];
+    CHECK(h.jobs.person_in({job}));
+    release = true;
+    const std::optional<ToolResult> person = h.jobs.wait(job, 3000ms);
+    REQUIRE(person.has_value());
+    CHECK(person->data.value("person", false));
+    CHECK_FALSE(h.jobs.person_in({job}));
+
+    // The command's 50 ms budget is the agent's too: a reply past it is the envelope, and the result is its job's.
+    std::optional<ToolResult> agent = h.call("work");
+    if (!agent->is_error && agent->data.value("status", "") == "running")
+        agent = h.jobs.wait(agent->data["job"], 3000ms);
+    REQUIRE(agent.has_value());
+    REQUIRE_FALSE(agent->is_error);
+    CHECK_FALSE(agent->data.value("person", true));
+}
+
+TEST_CASE("a submitted call whose done throws still ends its job", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("work", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.start();
+
+    // done runs on the job's thread: what it throws must not end the process, nor keep the job from finishing.
+    const std::string job = h.core->submit(*h.registry.find("work"), json::object(),
+                                           [](const ToolResult&) { throw std::runtime_error("the caller's own failure"); });
+    REQUIRE_FALSE(job.empty());
+    CHECK(h.jobs.wait(job, 3000ms).has_value());
+}
+
+// What a recording's CallObserver hears, in order.
+struct HeardCalls final : CallObserver
+{
+    std::mutex               mutex;
+    std::vector<std::string> events;
+    void call_started(uint64_t, const NativeCommand& def, const json&, const std::string& parent, const std::string&, const json&) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        events.push_back("start " + def.key + (parent.empty() ? "" : " in a job"));
+    }
+    void call_args(uint64_t, const json& args) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        events.push_back("args " + args.dump());
+    }
+    void call_ended(uint64_t, const ToolResult& result) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        events.push_back(std::string("end ") + (result.is_error ? "error" : "ok"));
+    }
+    std::vector<std::string> take()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return std::exchange(events, {});
+    }
+};
+
+TEST_CASE("the call observer hears inline, job and child calls, and not calls refused before they run", "[Mcp]")
+{
+    Harness    h;
+    HeardCalls heard;
+    NativeCommand    look = tool("look", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok(); });
+    look.inline_call = true;
+    h.registry.add(look);
+    h.registry.add(tool("widget_click", GuardClass::Recover, [](const json&, ToolContext& ctx) {
+        // A ref resolved to its locator, as the GUI tools record it.
+        ctx.set_journal_args({{"target", {{"label", "Slice"}}}});
+        return ToolResult::error("gone");
+    }));
+    h.registry.add(tool("replay", GuardClass::Mutate, [](const json&, ToolContext& ctx) { return ctx.call_child("widget_click", json::object()); }));
+    std::atomic<bool> release{false};
+    NativeCommand           slice = tool("plate_slice", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.begin_operation();
+        while (!release)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok();
+    });
+    slice.budget_ms = 100;
+    h.registry.add(slice);
+    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{}, std::vector<CallObserver*>{&heard});
+
+    CHECK_FALSE(h.call("look").is_error);
+    CHECK(heard.take() == std::vector<std::string>{"start look", "end ok"});
+    CHECK(h.call("widget_click").is_error);
+    CHECK(heard.take() == std::vector<std::string>{"start widget_click", R"(args {"target":{"label":"Slice"}})", "end error"});
+    h.call("replay");
+    CHECK(heard.take() ==
+          std::vector<std::string>{"start replay", "start widget_click in a job", R"(args {"target":{"label":"Slice"}})", "end error", "end error"});
+
+    const ToolResult running = h.call("plate_slice");
+    REQUIRE(running.data["status"] == "running");
+    CHECK(heard.take() == std::vector<std::string>{"start plate_slice"});
+    CHECK(h.call("replay").is_error); // refused by admission: it never ran
+    CHECK(heard.take().empty());
+    release = true;
+    REQUIRE(h.jobs.wait(running.data["job"], 3000ms).has_value());
+    CHECK(heard.take() == std::vector<std::string>{"end ok"});
+}
+
+// What the activity list hears of each call: its tool, its parent's job, its own job and its origin, in order.
+struct HeardOrigins final : CallObserver
+{
+    struct Heard
+    {
+        std::string tool, parent, job;
+        json        origin;
+    };
+    std::mutex               mutex;
+    std::vector<Heard>       heard;
+    std::vector<std::string> queued; // "queued <job>" and "ended <call>" as they come, for the order
+    std::map<uint64_t, std::string> jobs_of; // call -> its job, as queued
+    void call_queued(uint64_t call, const std::string& job, const std::string&, const json&) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        queued.push_back("queued " + job);
+        jobs_of[call] = job;
+    }
+    void call_started(uint64_t, const NativeCommand& def, const json&, const std::string& parent, const std::string& job,
+                      const json& origin) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        heard.push_back({def.key, parent, job, origin});
+        queued.push_back("started " + job);
+    }
+    void call_args(uint64_t, const json&) override {}
+    void call_ended(uint64_t call, const ToolResult&) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (const auto it = jobs_of.find(call); it != jobs_of.end())
+            queued.push_back("ended " + it->second);
+    }
+    std::vector<Heard> take()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return std::exchange(heard, {});
+    }
+};
+
+TEST_CASE("every observer hears a call's job and origin, and a child call's parent job without an origin", "[Mcp]")
+{
+    Harness       h;
+    HeardOrigins  first, second;
+    NativeCommand look = tool("look", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok(); });
+    look.inline_call   = true;
+    h.registry.add(look);
+    h.registry.add(tool("act", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.registry.add(tool("replay", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
+        ctx.call_child("look", json::object());
+        return ctx.call_child("act", json::object());
+    }));
+    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{},
+                                       std::vector<CallObserver*>{&first, &second});
+
+    const json agent{{"source", "agent"}, {"client", "Claude Code"}, {"request", {{"method", "tools/call"}, {"id", 7}}}};
+    CHECK_FALSE(h.core->call(*h.registry.find("look"), json::object(), agent).is_error);
+    std::vector<HeardOrigins::Heard> heard = first.take();
+    REQUIRE(heard.size() == 1);
+    CHECK(heard[0].tool == "look");
+    CHECK(heard[0].job.empty()); // inline: no job of its own
+    CHECK(heard[0].parent.empty());
+    CHECK(heard[0].origin == agent);
+
+    CHECK_FALSE(h.core->call(*h.registry.find("replay"), json::object(), {{"source", "action_replay"}}).is_error);
+    heard = first.take();
+    REQUIRE(heard.size() == 3);
+    CHECK(heard[0].tool == "replay");
+    CHECK_FALSE(heard[0].job.empty());
+    CHECK(heard[0].origin == json{{"source", "action_replay"}});
+    CHECK(heard[1].tool == "look");
+    CHECK(heard[1].parent == heard[0].job);
+    CHECK(heard[1].job.empty());
+    CHECK(heard[1].origin.is_null());
+    CHECK(heard[2].tool == "act");
+    CHECK(heard[2].parent == heard[0].job);
+    CHECK_FALSE(heard[2].job.empty());
+    CHECK(heard[2].origin.is_null());
+
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("act"), json::object(), "measure").is_error);
+    heard = first.take();
+    REQUIRE(heard.size() == 1);
+    CHECK_FALSE(heard[0].job.empty());
+    CHECK(heard[0].origin == json{{"source", "plugin"}, {"plugin", "measure"}});
+
+    std::promise<ToolResult> ended;
+    REQUIRE_FALSE(h.core->submit(*h.registry.find("act"), json::object(), [&ended](const ToolResult& r) { ended.set_value(r); }).empty());
+    CHECK_FALSE(ended.get_future().get().is_error);
+    heard = first.take();
+    REQUIRE(heard.size() == 1);
+    CHECK(heard[0].origin == json{{"source", "person"}});
+
+    CHECK(second.take().size() == 6); // the second observer heard every call too
+
+    // A job call is queued, on the calling thread, before its thread starts it; an inline call is not queued.
+    const std::vector<std::string> order = [&] {
+        std::lock_guard<std::mutex> lock(first.mutex);
+        return first.queued;
+    }();
+    REQUIRE_FALSE(order.empty());
+    for (std::size_t i = 0; i < order.size(); ++i)
+        if (order[i].rfind("started ", 0) == 0 && order[i] != "started ") {
+            const std::string job = order[i].substr(8);
+            const auto        at  = std::find(order.begin(), order.end(), "queued " + job);
+            CHECK(at != order.end());
+            CHECK(at - order.begin() < std::ptrdiff_t(i));
+        }
+}
+
+TEST_CASE("a child call whose arguments its schema refuses carries the tool_describe hint", "[Mcp]")
+{
+    Harness       h;
+    NativeCommand echo = tool("echo", GuardClass::Inspect, [](const json& args, ToolContext&) { return ToolResult::ok(args); });
+    echo.inline_call   = true;
+    echo.input_schema  = {{"type", "object"},
+                          {"properties", {{"text", {{"type", "string"}}}}},
+                          {"required", {"text"}},
+                          {"additionalProperties", false}};
+    h.registry.add(echo);
+    NativeCommand parent = tool("replay", GuardClass::Inspect, [](const json&, ToolContext& ctx) { return ctx.call_child("echo", {{"txt", "hi"}}); });
+    parent.inline_call   = true;
+    h.registry.add(parent);
+    h.start();
+
+    const ToolResult r = h.call("replay");
+    REQUIRE(r.is_error);
+    CHECK(r.message.rfind("Invalid arguments for echo: unknown argument txt", 0) == 0);
+    CHECK(r.data == json{{"code", "invalid_argument"}, {"hint", "tool_describe {tool: \"echo\"} gives its parameters"}});
+}
+
+TEST_CASE("an observer that throws fails no call", "[Mcp]")
+{
+    struct Throwing final : CallObserver
+    {
+        void call_started(uint64_t, const NativeCommand&, const json&, const std::string&, const std::string&, const json&) override
+        {
+            throw std::runtime_error("started");
+        }
+        void call_args(uint64_t, const json&) override { throw std::bad_alloc(); }
+        void call_ended(uint64_t, const ToolResult&) override { throw std::runtime_error("ended"); }
+    } throwing;
+    Harness h;
+    NativeCommand look = tool("look", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok({{"seen", true}}); });
+    look.inline_call = true;
+    h.registry.add(look);
+    h.registry.add(tool("act", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
+        ctx.set_journal_args({{"x", 1}});
+        return ToolResult::ok({{"done", true}});
+    }));
+    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{}, std::vector<CallObserver*>{&throwing});
+    const ToolResult looked = h.call("look");
+    CHECK_FALSE(looked.is_error);
+    CHECK(looked.data["seen"] == true);
+    const ToolResult acted = h.call("act");
+    CHECK_FALSE(acted.is_error);
+    CHECK(acted.data["done"] == true);
+}
+
+TEST_CASE("the journal records a call without the id arguments that stand beside their indices", "[Mcp]")
+{
+    Harness       h;
+    NativeCommand move = tool("move", GuardClass::Mutate, [](const json& args, ToolContext& ctx) {
+        // A handler that replaces what the journal records, as the GUI tools record locators for refs.
+        if (args.contains("rewrite"))
+            ctx.set_journal_args({{"object", 2}, {"object_id", 5}});
+        return ToolResult::ok();
+    });
+    move.id_args = {"object_id"};
+    h.registry.add(move);
+    // A command without id_args keeps an argument of that name: it is its own.
+    h.registry.add(tool("measure", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.start();
+
+    REQUIRE_FALSE(h.call("move", {{"object", 1}, {"object_id", 9}}).is_error);
+    REQUIRE_FALSE(h.call("move", {{"rewrite", true}, {"object_id", 9}}).is_error);
+    REQUIRE_FALSE(h.call("measure", {{"object_id", 4}}).is_error);
+    // An id given alone names the target until the command records its index, so it stays.
+    REQUIRE_FALSE(h.call("move", {{"object_id", 7}}).is_error);
+    const json steps = h.journal.to_replay("s")["steps"];
+    REQUIRE(steps.size() == 4);
+    CHECK(steps[0]["args"] == json{{"object", 1}});
+    CHECK(steps[1]["args"] == json{{"object", 2}});
+    CHECK(steps[2]["args"] == json{{"object_id", 4}});
+    CHECK(steps[3]["args"] == json{{"object_id", 7}});
+}
+
+TEST_CASE("without a blocking slot a job call returns its envelope at once and an inline call returns pending", "[Mcp]")
+{
+    Harness h;
+    h.timing.blocking_slots = 1;
+    std::atomic<bool> release{false};
+    NativeCommand hold = tool("hold", GuardClass::Inspect, [&](const json&, ToolContext&) {
+        while (!release)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok();
+    });
+    hold.inline_call = true;
+    h.registry.add(hold);
+    h.registry.add(tool("work", GuardClass::Mutate, [](const json&, ToolContext&) {
+        std::this_thread::sleep_for(50ms);
+        return ToolResult::ok();
+    }));
+    h.start();
+
+    auto holder = std::async(std::launch::async, [&] { return h.core->call(*h.registry.find("hold"), json::object()); });
+    std::this_thread::sleep_for(100ms);
+    const auto start = std::chrono::steady_clock::now();
+    const ToolResult job = h.core->call(*h.registry.find("work"), json::object());
+    CHECK(job.data["status"] == "running");
+    const ToolResult pending = h.core->call(*h.registry.find("hold"), json::object());
+    CHECK(pending.data["status"] == "pending");
+    CHECK(std::chrono::steady_clock::now() - start < 500ms);
+    release = true;
+    (void) holder.get();
+    CHECK(h.jobs.wait(job.data["job"], 3000ms).has_value());
+}
+
+TEST_CASE("idle ignores the caller and its ancestors", "[Mcp]")
+{
+    JobRegistry jobs;
+    const std::string replay_job = jobs.create("replay_run", "");
+    const std::string step   = jobs.create("plate_slice", replay_job);
+    const std::string other  = jobs.create("project_import", "");
+    CHECK(jobs.lineage(step) == std::set<std::string>{step, replay_job});
+    CHECK(jobs.any_running_except(jobs.lineage(step)));
+    jobs.finish(other, ToolResult::ok());
+    CHECK_FALSE(jobs.any_running_except(jobs.lineage(step)));
+    jobs.begin_operation(step);
+    CHECK(jobs.running_operations() == std::vector<std::string>{step});
+}
+
+TEST_CASE("idle skips a job set idle, but not the calls it makes", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string run = jobs.create("script_run", "");
+    jobs.set_idle(run);
+    const std::string child = jobs.create("plate_slice", run);
+    CHECK(jobs.any_running_except({}));
+    bool listed_idle = false;
+    for (const nlohmann::json& job : jobs.list())
+        if (job["id"] == run)
+            listed_idle = job.value("idle", false);
+    CHECK(listed_idle);
+    jobs.finish(child, ToolResult::ok());
+    CHECK_FALSE(jobs.any_running_except({}));
+}
+
+TEST_CASE("the job registry caps running jobs and forgets old finished ones", "[Mcp]")
+{
+    JobRegistry jobs;
+    std::vector<std::string> ids;
+    for (std::size_t i = 0; i < JobRegistry::kMaxRunning; ++i)
+        ids.push_back(jobs.create("t", ""));
+    CHECK_THROWS_AS(jobs.create("t", ""), ToolFailure);
+    for (const std::string& id : ids)
+        jobs.finish(id, ToolResult::ok());
+    for (std::size_t i = 0; i < JobRegistry::kKeepFinished; ++i)
+        jobs.finish(jobs.create("t", ""), ToolResult::ok());
+    CHECK_THROWS_AS(jobs.wait(ids.front(), 0ms), ToolFailure);
+}
+
+TEST_CASE("a caller waits for its running UI closure even through shutdown", "[Mcp]")
+{
+    ManualDispatcher  ui;
+    UiInvoker         invoker(ui, [] { return GuardState{}; });
+    std::atomic<bool> inside{false}, release{false}, finished{false};
+    auto caller = std::async(std::launch::async, [&]() -> std::string {
+        try {
+            invoker.run(GuardClass::Inspect, "look", [&] {
+                inside = true;
+                ui.pump_until([&] { return release.load(); }); // a nested event loop
+                finished = true;
+                return json();
+            });
+            return "ok";
+        } catch (const ToolFailure& f) {
+            return f.what();
+        }
+    });
+    std::thread ui_thread([&] { ui.pump_until([&] { return finished.load(); }, 5000ms); });
+    while (!inside)
+        std::this_thread::sleep_for(5ms);
+    invoker.shutdown();
+    // The closure still uses the caller's stack, so the caller must not have returned.
+    CHECK(caller.wait_for(200ms) == std::future_status::timeout);
+    release = true;
+    ui_thread.join();
+    CHECK(caller.get() == "ok");
+}
+
+TEST_CASE("a closure queued before a UI rebuild does not run after it", "[Mcp]")
+{
+    ManualDispatcher      ui;
+    std::atomic<uint64_t> generation{1};
+    UiInvoker             invoker(ui, [] { return GuardState{}; }, [&] { return generation.load(); });
+    std::atomic<bool>     ran{false};
+    auto caller = std::async(std::launch::async, [&]() -> std::string {
+        try {
+            invoker.run(GuardClass::Mutate, "widget_click", [&] {
+                ran = true;
+                return json();
+            });
+            return "ok";
+        } catch (const ToolFailure& f) {
+            return f.what();
+        }
+    });
+    std::this_thread::sleep_for(50ms);
+    generation = 2; // a language change rebuilt the UI while the closure waited
+    ui.pump_until([&] { return caller.wait_for(0ms) == std::future_status::ready; });
+    CHECK(caller.get().find("recreated") != std::string::npos);
+    CHECK_FALSE(ran);
+}
+
+TEST_CASE("a call says it was not run only until a step of it has run", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    h.timing.ui_queue_timeout = 200ms;
+    // From here on the UI thread is busy for good, as after a click that hangs the app.
+    const auto hold_ui = [&] {
+        h.ui.post([&] {
+            while (!release)
+                std::this_thread::sleep_for(5ms);
+        });
+    };
+    const auto step = [&] {
+        hold_ui();
+        return json();
+    };
+    h.registry.add(tool("click_then_read", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui(step);
+        return ToolResult::ok(ctx.observe_ui([] { return json("read"); }));
+    }));
+    h.registry.add(tool("read_then_click", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.observe_ui(step);
+        return ToolResult::ok(ctx.run_ui([] { return json("clicked"); }));
+    }));
+    h.registry.add(tool("scroll_then_capture", GuardClass::Inspect, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui(step);
+        return ToolResult::ok(ctx.run_ui([] { return json("captured"); }));
+    }));
+    h.registry.add(tool("noop", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.registry.add(tool("child_then_edit", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.call_child("noop", json::object());
+        hold_ui();
+        return ToolResult::ok(ctx.run_ui([] { return json("edited"); }));
+    }));
+    h.registry.add(tool("edit", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
+        return ToolResult::ok(ctx.run_ui([] { return json("edited"); }));
+    }));
+    h.start();
+
+    SECTION("a closure the UI thread never ran, after a step that ran")
+    {
+        const std::string called =
+            GENERATE(as<std::string>{}, "click_then_read", "read_then_click", "scroll_then_capture", "child_then_edit");
+        CAPTURE(called);
+        const ToolResult r = h.call(called);
+        CHECK(r.is_error);
+        CHECK_THAT(r.message, ContainsSubstring("Part of this call already ran"));
+        CHECK_THAT(r.message, !ContainsSubstring("safe to retry"));
+    }
+    SECTION("the call's first closure, never picked up")
+    {
+        hold_ui();
+        const ToolResult r = h.call("edit");
+        CHECK(r.is_error);
+        CHECK_THAT(r.message, ContainsSubstring("safe to retry"));
+    }
+    SECTION("the call's first closure, refused while the UI is being rebuilt")
+    {
+        {
+            std::lock_guard<std::mutex> lock(h.guards_mutex);
+            h.guards.suspended = true;
+        }
+        const ToolResult r = h.call("edit");
+        CHECK(r.is_error);
+        CHECK_THAT(r.message, ContainsSubstring("being recreated"));
+        CHECK_THAT(r.message, !ContainsSubstring("Part of this call"));
+    }
+}
+
+TEST_CASE("operation admission is checked again when a mutate call reaches the UI thread", "[Mcp]")
+{
+    Harness h;
+    std::atomic<bool> release{false};
+    h.registry.add(tool("edit", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
+        return ToolResult::ok(ctx.run_ui([] { return json("edited"); }));
+    }));
+    NativeCommand slice = tool("plate_slice", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            ctx.begin_operation();
+            return json();
+        });
+        while (!release)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok();
+    });
+    h.registry.add(slice);
+    h.start();
+    // The UI thread is held, so both calls are admitted before either runs; the slice runs first.
+    std::atomic<bool> hold{true};
+    h.ui.post([&] {
+        while (hold)
+            std::this_thread::sleep_for(5ms);
+    });
+    auto s = std::async(std::launch::async, [&] { return h.call("plate_slice"); });
+    std::this_thread::sleep_for(100ms);
+    auto e = std::async(std::launch::async, [&] { return h.call("edit"); });
+    std::this_thread::sleep_for(100ms);
+    hold = false;
+    const ToolResult edited = e.get();
+    CHECK(edited.is_error);
+    CHECK(edited.message.find("Busy: job") != std::string::npos);
+    release = true;
+    (void) s.get();
+}
+
+TEST_CASE("only one operation runs at a time", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string a = jobs.create("plate_slice", "");
+    const std::string b = jobs.create("project_export", "");
+    CHECK(jobs.begin_operation(a).empty());
+    CHECK(jobs.begin_operation(b) == a);
+    jobs.finish(a, ToolResult::ok());
+    CHECK(jobs.begin_operation(b).empty());
+}
+
+TEST_CASE("ancestry lists the job chain nearest first", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string outer = jobs.create("replay_run", "");
+    const std::string inner = jobs.create("replay_run", outer);
+    const std::string step  = jobs.create("dialog_auto_answer", inner);
+    CHECK(jobs.ancestry(step) == std::vector<std::string>{step, inner, outer});
+}
+
+TEST_CASE("a stop asked for a job reaches its descendants and no other job", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string replay_job = jobs.create("replay_run", "");
+    const std::string step   = jobs.create("plate_slice", replay_job);
+    const std::string other  = jobs.create("project_import", "");
+    CHECK_FALSE(jobs.stop_requested(step));
+    jobs.request_stop(replay_job);
+    CHECK(jobs.stop_requested(replay_job));
+    CHECK(jobs.stop_requested(step));
+    CHECK_FALSE(jobs.stop_requested(other));
+    CHECK_FALSE(jobs.stop_requested(""));
+}
+
+TEST_CASE("a job created as a person's is a person's until it finishes", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string person = jobs.create("work", "", "", true);
+    const std::string child  = jobs.create("work", person);
+    const std::string other  = jobs.create("work", "");
+    CHECK(jobs.person_in({person}));
+    // A call under the person's run runs as the person's, with no mark of its own.
+    CHECK(jobs.person_in(jobs.lineage(child)));
+    CHECK_FALSE(jobs.person_in({child}));
+    CHECK_FALSE(jobs.person_in({other}));
+    jobs.finish(person, ToolResult::ok());
+    CHECK_FALSE(jobs.person_in({person}));
+    CHECK_FALSE(jobs.person_in(jobs.lineage(child)));
+}
+
+TEST_CASE("a job allowed to discard is so until it finishes", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string run   = jobs.create("replay_run", "");
+    const std::string step  = jobs.create("open_project", run);
+    const std::string other = jobs.create("open_project", "");
+    CHECK_FALSE(jobs.discard_allowed_in({run}));
+    jobs.allow_discard(run);
+    CHECK(jobs.discard_allowed_in({run}));
+    CHECK(jobs.discard_allowed_in(jobs.lineage(step)));
+    CHECK_FALSE(jobs.discard_allowed_in({step}));
+    CHECK_FALSE(jobs.discard_allowed_in({other}));
+    CHECK_NOTHROW(jobs.allow_discard("j999"));
+    CHECK_FALSE(jobs.discard_allowed_in({"j999"}));
+    jobs.finish(run, ToolResult::ok());
+    CHECK_FALSE(jobs.discard_allowed_in({run}));
+    CHECK_FALSE(jobs.discard_allowed_in(jobs.lineage(step)));
+    // A finished job is not allowed it afterwards.
+    jobs.allow_discard(run);
+    CHECK_FALSE(jobs.discard_allowed_in({run}));
+}
+
+TEST_CASE("a job wait with a stop check looks once at zero timeout and ends when stopped", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string done = jobs.create("plate_slice", "");
+    jobs.finish(done, ToolResult::ok({{"done", true}}));
+    const std::string running = jobs.create("plate_slice", "");
+    const auto        never   = [] { return false; };
+
+    const auto finished = jobs.wait(done, 0ms, never);
+    REQUIRE(finished.has_value());
+    CHECK(finished->data["done"] == true);
+    CHECK_FALSE(jobs.wait(running, 0ms, never).has_value());
+    CHECK_THROWS_AS(jobs.wait("j999", 0ms, never), ToolFailure);
+
+    const auto start = std::chrono::steady_clock::now();
+    CHECK_FALSE(jobs.wait(running, 5000ms, [] { return true; }).has_value());
+    CHECK(std::chrono::steady_clock::now() - start < 2s);
+}
+
+TEST_CASE("a call made by a stopped job sees itself cancelled", "[Mcp]")
+{
+    Harness h;
+    // An inline call that polls for cancellation, as app_wait does.
+    NativeCommand spin = tool("spin", GuardClass::Inspect, [](const json&, ToolContext& ctx) {
+        const auto end = std::chrono::steady_clock::now() + 5s;
+        while (!ctx.cancelled() && std::chrono::steady_clock::now() < end)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok({{"cancelled", ctx.cancelled()}});
+    });
+    spin.inline_call = true;
+    h.registry.add(spin);
+    NativeCommand replay = tool("replay", GuardClass::Mutate, [](const json&, ToolContext& ctx) { return ctx.call_child("spin", json::object()); });
+    replay.budget_ms = 50;
+    h.registry.add(replay);
+    h.start();
+
+    const ToolResult envelope = h.call("replay");
+    REQUIRE(envelope.data["status"] == "running");
+    const auto asked = std::chrono::steady_clock::now();
+    h.jobs.request_stop(envelope.data["job"]);
+    const auto result = h.jobs.wait(envelope.data["job"], 3000ms);
+    REQUIRE(result.has_value());
+    CHECK(result->data["cancelled"] == true);
+    CHECK(std::chrono::steady_clock::now() - asked < 2s);
+}
+
+TEST_CASE("a live descendant keeps its lineage after its ancestors are evicted", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string root  = jobs.create("replay_run", "");
+    const std::string inner = jobs.create("replay_run", root);
+    const std::string leaf  = jobs.create("app_wait", inner);
+    jobs.finish(inner, ToolResult::ok());
+    jobs.finish(root, ToolResult::ok());
+    for (int i = 0; i < 70; ++i)
+        jobs.finish(jobs.create("t", ""), ToolResult::ok());
+    CHECK_THROWS_AS(jobs.wait(inner, 0ms), ToolFailure); // evicted
+    const std::set<std::string> lineage = jobs.lineage(leaf);
+    CHECK(lineage.count(root) == 1);
+    CHECK(lineage.count(inner) == 1);
+    CHECK(jobs.ancestry(leaf) == std::vector<std::string>{leaf, inner, root});
+}
+
+TEST_CASE("a finished job stays while its parent replay runs", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string replay_job = jobs.create("replay_run", "");
+    const std::string saved  = jobs.create("action_run", replay_job);
+    jobs.finish(saved, ToolResult::ok({{"x", 1}}));
+    for (std::size_t i = 0; i < JobRegistry::kKeepFinished + 5; ++i)
+        jobs.finish(jobs.create("t", ""), ToolResult::ok());
+    CHECK(jobs.wait(saved, 0ms).has_value());
+    jobs.finish(replay_job, ToolResult::ok());
+    for (std::size_t i = 0; i < JobRegistry::kKeepFinished + 5; ++i)
+        jobs.finish(jobs.create("t", ""), ToolResult::ok());
+    CHECK_THROWS_AS(jobs.wait(saved, 0ms), ToolFailure);
+}
+
+TEST_CASE("finished jobs stay bounded while their parent replay runs", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string replay_job = jobs.create("replay_run", "");
+    const std::string first  = jobs.create("t", replay_job);
+    jobs.finish(first, ToolResult::ok());
+    for (std::size_t i = 0; i < JobRegistry::kKeepFinishedMax; ++i)
+        jobs.finish(jobs.create("t", replay_job), ToolResult::ok());
+    CHECK_THROWS_AS(jobs.wait(first, 0ms), ToolFailure);
+    const std::string recent = jobs.create("t", replay_job);
+    jobs.finish(recent, ToolResult::ok());
+    CHECK(jobs.wait(recent, 0ms).has_value());
+}
+
+TEST_CASE("the journal keeps a call waiting for its reply when it drops old calls", "[Mcp]")
+{
+    Journal        journal;
+    const uint64_t waiting = journal.begin("plate_slice", json::object());
+    for (int i = 0; i < 6000; ++i)
+        journal.end(journal.begin("settings_set", {{"values", {{"wall_loops", i}}}}), ToolResult::ok());
+    journal.end(waiting, ToolResult::ok());
+    const json steps = journal.to_replay("s")["steps"];
+    REQUIRE_FALSE(steps.empty());
+    CHECK(steps[0]["tool"] == "plate_slice");
+    CHECK(steps.size() == 5000);
+}
+
+TEST_CASE("the journal keeps at most 64 MiB of arguments", "[Mcp]")
+{
+    Journal    journal;
+    const json big = args_of_mib(1);
+    for (int i = 0; i < 100; ++i)
+        journal.end(journal.begin("settings_set", big), ToolResult::ok());
+    const json steps = journal.to_replay("s")["steps"];
+    CHECK(steps.size() < 64);
+    CHECK(steps.size() > 56);
+}
+
+TEST_CASE("calls waiting for their reply outlast the byte cap and go once they finish", "[Mcp]")
+{
+    Journal               journal;
+    const json            big = args_of_mib(1);
+    std::vector<uint64_t> waiting;
+    for (int i = 0; i < 70; ++i)
+        waiting.push_back(journal.begin("settings_set", big));
+    json left;
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    CHECK(left.size() == 70);
+    // Each reply trims on its own, with no later begin or set_args.
+    for (const uint64_t seq : waiting)
+        journal.end(seq, ToolResult::ok());
+    CHECK(journal.to_replay("s", &left)["steps"].size() < 64);
+    CHECK(left.empty());
+}
+
+TEST_CASE("a job's call over the byte cap stays until its job ends", "[Mcp]")
+{
+    Journal    journal;
+    const json huge = args_of_mib(65);
+    json       left;
+
+    // The reply comes first, as the job's envelope; the job ends later.
+    const uint64_t seq = journal.begin("thread", huge);
+    journal.job_started(seq, "j");
+    journal.end(seq, ToolResult::ok({{"status", "running"}, {"job", "j"}}));
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    REQUIRE(left.size() == 1);
+    CHECK(left[0] == json{{"tool", "thread"}, {"job", "j"}});
+    journal.job_ended(seq, ToolResult::ok());
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    CHECK(left.empty());
+
+    // The job ends before its reply.
+    const uint64_t seq2 = journal.begin("thread", huge);
+    journal.job_started(seq2, "k");
+    journal.job_ended(seq2, ToolResult::ok());
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    CHECK(left.empty());
+    journal.end(seq2, ToolResult::ok());
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    CHECK(left.empty());
+}
+
+TEST_CASE("replacing a call's arguments moves the journal's byte total", "[Mcp]")
+{
+    Journal    journal;
+    const json fifteen = args_of_mib(15);
+    json       left;
+    for (int i = 0; i < 4; ++i)
+        journal.end(journal.begin("settings_set", fifteen), ToolResult::ok());
+    // 60 MiB, then 70 MiB once the small call's arguments grow: the first 15 MiB call goes at once,
+    // while the grown call still waits for its reply.
+    const uint64_t b = journal.begin("settings_set", {{"values", {{"wall_loops", 3}}}});
+    journal.set_args(b, args_of_mib(10));
+    CHECK(journal.to_replay("s", &left)["steps"].size() == 3);
+    CHECK(left.size() == 1);
+    journal.end(b, ToolResult::ok());
+    CHECK(journal.to_replay("s")["steps"].size() == 4);
+    // Shrinking them back leaves 45 MiB, room for one more 15 MiB call.
+    journal.set_args(b, {{"values", {{"wall_loops", 3}}}});
+    journal.end(journal.begin("settings_set", fifteen), ToolResult::ok());
+    CHECK(journal.to_replay("s")["steps"].size() == 5);
+}
+
+TEST_CASE("clearing the journal resets its byte total", "[Mcp]")
+{
+    Journal    journal;
+    const json fifteen = args_of_mib(15);
+    for (int i = 0; i < 4; ++i)
+        journal.end(journal.begin("settings_set", fifteen), ToolResult::ok());
+    journal.clear();
+    // Were the cleared calls' 60 MiB still counted, this 15 MiB call would go once it replied.
+    journal.end(journal.begin("settings_set", fifteen), ToolResult::ok());
+    journal.end(journal.begin("settings_set", {{"values", {{"wall_loops", 3}}}}), ToolResult::ok());
+    CHECK(journal.to_replay("s")["steps"].size() == 2);
+}
+
+TEST_CASE("one call bigger than the cap is dropped once it has replied", "[Mcp]")
+{
+    Journal        journal;
+    json           left;
+    const uint64_t seq = journal.begin("thread", args_of_mib(65));
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    REQUIRE(left.size() == 1);
+    CHECK(left[0] == json{{"tool", "thread"}});
+    journal.end(seq, ToolResult::ok());
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    CHECK(left.empty());
+    // The total is back to what the remaining calls hold, so a small call stays.
+    journal.end(journal.begin("settings_set", {{"values", {{"wall_loops", 3}}}}), ToolResult::ok());
+    CHECK(journal.to_replay("s")["steps"].size() == 1);
+}
+
+TEST_CASE("a job refused at shutdown after it registered ends its journal entry", "[Mcp]")
+{
+    ManualDispatcher ui;
+    McpCore*         core_ptr = nullptr;
+    // A recover call's journal entry reads the open dialogs between the core's two shutdown checks:
+    // shutting down there lets the call register its job, then refuses it.
+    UiInvoker    invoker(ui, [] { return GuardState{}; }, {}, [&core_ptr] {
+        core_ptr->shutdown();
+        return json::array();
+    });
+    JobRegistry  jobs;
+    Journal      journal;
+    CommandCatalog registry;
+    registry.add(tool("dialog_answer", GuardClass::Recover, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    McpCore core(registry, invoker, jobs, &journal, CoreTiming{});
+    core_ptr = &core;
+
+    const ToolResult r = core.call(*registry.find("dialog_answer"), args_of_mib(65));
+    REQUIRE(r.is_error);
+    CHECK(r.message == "OrcaSlicer is shutting down");
+    // An entry left running would hold its 65 MiB against the cap, so the next call, not it, would go.
+    journal.end(journal.begin("settings_set", {{"values", {{"wall_loops", 3}}}}), ToolResult::ok());
+    CHECK(journal.to_replay("s")["steps"].size() == 1);
+}
+
+TEST_CASE("drain reports a job thread that has not returned", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> release{false};
+    h.registry.add(tool("stuck", GuardClass::Mutate, [&](const json&, ToolContext&) {
+        while (!release)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok();
+    }));
+    h.timing.soft_budget = 50ms;
+    h.start();
+    auto call = std::async(std::launch::async, [&] { return h.call("stuck"); });
+    std::this_thread::sleep_for(100ms);
+    h.core->shutdown();
+    CHECK_FALSE(h.core->drain(200ms));
+    release = true;
+    (void) call.get();
+    CHECK(h.core->drain(2000ms));
+}
+
+TEST_CASE("destroying a core waits for a job thread still inside it", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> release{false};
+    std::atomic<bool> returned{false};
+    h.registry.add(tool("stuck", GuardClass::Mutate, [&](const json&, ToolContext&) {
+        while (!release)
+            std::this_thread::sleep_for(10ms);
+        std::this_thread::sleep_for(50ms);
+        returned = true;
+        return ToolResult::ok();
+    }));
+    h.timing.soft_budget = 50ms;
+    h.start();
+    auto call = std::async(std::launch::async, [&] { return h.call("stuck"); });
+    std::this_thread::sleep_for(100ms);
+    h.core->shutdown();
+    auto destroy = std::async(std::launch::async, [&] { h.core.reset(); });
+    CHECK(destroy.wait_for(300ms) == std::future_status::timeout);
+    release = true;
+    destroy.get();
+    CHECK(returned);
+    (void) call.get();
+}
+
+TEST_CASE("the journal records client calls in order and replays jobs with await false", "[Mcp]")
+{
+    Journal journal;
+    const uint64_t a = journal.begin("action_run", {{"id", "orca_command:open_preferences:orca"}});
+    journal.job_started(a, "j7");
+    journal.end(a, ToolResult::ok({{"status", "blocked_by_dialog"}, {"job", "j7"}}));
+    const uint64_t b = journal.begin("dialog_answer", {{"button", "close"}});
+    journal.end(b, ToolResult::ok());
+    const uint64_t c = journal.begin("app_wait", {{"for", "job"}, {"job", "j7"}});
+    journal.end(c, ToolResult::ok());
+    const uint64_t d = journal.begin("window_screenshot", {{"target", "canvas"}, {"save_path", "/tmp/x/after.png"}});
+    journal.end(d, ToolResult::ok());
+    const uint64_t e = journal.begin("settings_set", {{"values", {{"wall_loops", 3}}}});
+    journal.end(e, ToolResult::error("no"));
+
+    const json exported = journal.to_replay("repro");
+    REQUIRE(exported["steps"].size() == 4);
+    CHECK(exported["steps"][0]["await"] == false);
+    CHECK(exported["steps"][0]["save_as"] == "job1");
+    CHECK(exported["steps"][1]["tool"] == "dialog_answer");
+    CHECK(exported["steps"][2]["args"]["job"] == "${jobs.job1}");
+    CHECK(exported["steps"][3]["args"]["save_path"] == "${out_dir}/after.png");
+}
+
+TEST_CASE("only client calls of journaled tools reach the journal", "[Mcp]")
+{
+    Harness h;
+    NativeCommand look = tool("app_state", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok(); });
+    look.inline_call = true;
+    look.journal     = false;
+    h.registry.add(look);
+    NativeCommand wait = tool("app_wait", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok(); });
+    wait.inline_call = true;
+    h.registry.add(wait);
+    h.registry.add(tool("settings_set", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
+        ctx.set_journal_args({{"values", {{"wall_loops", 3}}}, {"type", "process"}});
+        return ToolResult::ok();
+    }));
+    h.start();
+    h.call("app_state");
+    h.call("app_wait", {{"for", "idle"}});
+    h.call("settings_set", {{"values", {{"wall_loops", 3}}}});
+    const json steps = h.journal.to_replay("x")["steps"];
+    REQUIRE(steps.size() == 2);
+    CHECK(steps[0]["tool"] == "app_wait");
+    CHECK(steps[1]["args"]["type"] == "process");
+}
+
+TEST_CASE("a plugin's call runs as the plugin's own job and never reaches the journal", "[Mcp]")
+{
+    Harness h;
+    std::string seen, child_seen;
+    h.registry.add(tool("app_state", GuardClass::Inspect, [&child_seen](const json&, ToolContext& ctx) {
+        child_seen = ctx.caller_plugin();
+        return ToolResult::ok();
+    }));
+    h.registry.add(tool("settings_set", GuardClass::Mutate, [&seen](const json&, ToolContext& ctx) {
+        seen = ctx.caller_plugin();
+        // A call it makes, as a replay step does, is the plugin's too.
+        ctx.call_child("app_state", json::object());
+        return ToolResult::ok({{"job", ctx.job_id()}});
+    }));
+    h.start();
+    const ToolResult r = h.core->call_plugin(*h.registry.find("settings_set"), json::object(), "measure-plugin");
+    REQUIRE_FALSE(r.is_error);
+    CHECK(seen == "measure-plugin");
+    CHECK(child_seen == "measure-plugin");
+    CHECK(h.jobs.owner(r.data["job"].get<std::string>()) == "measure-plugin");
+    CHECK(h.journal.to_replay("x")["steps"].empty());
+
+    // A client's call has no plugin.
+    h.call("settings_set");
+    CHECK(seen.empty());
+    CHECK(h.journal.to_replay("x")["steps"].size() == 1);
+}
+
+TEST_CASE("tool_call is journaled as the tool it calls", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("settings_set", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    NativeCommand api = tool("tool_call", GuardClass::Mutate, [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); });
+    api.input_schema = {{"type", "object"}, {"properties", {{"tool", {{"type", "string"}}}, {"args", {{"type", "object"}}}}}};
+    h.registry.add(api);
+    h.start();
+    McpProtocol protocol(h.registry, *h.core, ServerInfo{"orcaslicer", "OrcaSlicer", "9.9.9", ""});
+    const PostReply reply = protocol.handle_post(PostRequest{json{{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"},
+        {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "settings_set"}, {"args", {{"values", {{"wall_loops", 3}}}}}}}}}}.dump()});
+    CHECK(json::parse(reply.body)["result"].value("isError", false) == false);
+    const json steps = h.journal.to_replay("x")["steps"];
+    REQUIRE(steps.size() == 1);
+    CHECK(steps[0]["tool"] == "settings_set");
+    CHECK(steps[0]["args"]["values"]["wall_loops"] == 3);
+}
+
+TEST_CASE("a plugin's session tools act only on the jobs of its own calls", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("make", GuardClass::Mutate, [](const json&, ToolContext& ctx) { return ToolResult::ok({{"job", ctx.job_id()}}); }));
+    h.registry.add(tool("peek", GuardClass::Mutate, [&h](const json& args, ToolContext& ctx) {
+        require_own_job(ctx, h.jobs, args.value("job", std::string()), "waits for");
+        return ToolResult::ok();
+    }));
+    h.start();
+    const std::string clients = h.call("make").data["job"].get<std::string>();
+    const std::string plugins = h.core->call_plugin(*h.registry.find("make"), json::object(), "measure").data["job"].get<std::string>();
+
+    const ToolResult foreign = h.core->call_plugin(*h.registry.find("peek"), json{{"job", clients}}, "measure");
+    CHECK(foreign.is_error);
+    CHECK(foreign.message.find("only the jobs of its own calls") != std::string::npos);
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("peek"), json{{"job", plugins}}, "measure").is_error);
+    // A client's call is not a plugin's, whoever's job it names.
+    CHECK_FALSE(h.call("peek", json{{"job", plugins}}).is_error);
+}
+
+TEST_CASE("an unloaded plugin's calls start no job, nor do the children of one already running", "[Mcp]")
+{
+    Harness h;
+    std::atomic<bool> started{false};
+    std::atomic<bool> release{false};
+    ToolResult        child;
+    h.registry.add(tool("make", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.registry.add(tool("slow", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        started = true;
+        while (!release)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        child = ctx.call_child("make", json::object());
+        return ToolResult::ok();
+    }));
+    h.timing.soft_budget = std::chrono::milliseconds(10000);
+    h.start();
+    // A call that was admitted before the unload and is still running when it comes. Its job is listed before its
+    // admission ends, and a block between the two refuses the call itself, so the test waits for its handler.
+    std::thread running([&] { h.core->call_plugin(*h.registry.find("slow"), json::object(), "measure"); });
+    while (!started)
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+    h.jobs.block_owner("measure");
+    const ToolResult late = h.core->call_plugin(*h.registry.find("make"), json::object(), "measure");
+    CHECK(late.is_error);
+    CHECK(late.message.find("unloaded") != std::string::npos);
+    release = true;
+    running.join();
+    CHECK(child.is_error);
+
+    // Another plugin's calls and a client's are not affected; a load lifts the block.
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("make"), json::object(), "other").is_error);
+    CHECK_FALSE(h.call("make").is_error);
+    h.jobs.unblock_owner("measure");
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("make"), json::object(), "measure").is_error);
+}
+
+TEST_CASE("a plugin's calls are refused once it unloads, before the block comes, inline calls included", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> loaded{true};
+    std::atomic<bool> started{false};
+    std::atomic<bool> release{false};
+    std::atomic<int>  looks{0};
+    ToolResult        inline_child;
+    ToolResult        job_child;
+    // The plugin manager's state, which changes as the plugin unloads; end_plugin_scope()'s block comes later.
+    h.jobs.set_owner_liveness([&](const std::string& plugin) { return plugin != "measure" || loaded; });
+    NativeCommand look = tool("look", GuardClass::Inspect, [&](const json&, ToolContext&) { ++looks; return ToolResult::ok(); });
+    look.inline_call = true;
+    h.registry.add(look);
+    h.registry.add(tool("make", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.registry.add(tool("slow", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        started = true;
+        while (!release)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        inline_child = ctx.call_child("look", json::object());
+        job_child    = ctx.call_child("make", json::object());
+        return ToolResult::ok();
+    }));
+    h.timing.soft_budget = std::chrono::milliseconds(10000);
+    h.start();
+    // A call that is running when the plugin unloads. Its job is listed before its handler starts, and an unload
+    // between the two refuses the call itself, so the test waits for its handler.
+    std::thread running([&] { h.core->call_plugin(*h.registry.find("slow"), json::object(), "measure"); });
+    while (!started)
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+    loaded = false;
+    const ToolResult inline_call = h.core->call_plugin(*h.registry.find("look"), json::object(), "measure");
+    CHECK(inline_call.is_error);
+    CHECK(inline_call.message.find("unloaded") != std::string::npos);
+    CHECK(h.core->call_plugin(*h.registry.find("make"), json::object(), "measure").is_error);
+    release = true;
+    running.join();
+    CHECK(inline_child.is_error);
+    CHECK(job_child.is_error);
+    CHECK(looks == 0);
+
+    // Another plugin's calls and a client's still run, and so do the plugin's once it is loaded again.
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("look"), json::object(), "other").is_error);
+    CHECK_FALSE(h.call("look").is_error);
+    loaded = true;
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("look"), json::object(), "measure").is_error);
+    CHECK(looks == 3);
+}
+
+TEST_CASE("a plugin's calls and its jobs' child calls are refused while it may not call the tools", "[Mcp]")
+{
+    // What the handlers use, declared before the harness, so it outlives the core's threads, which the harness's
+    // destructor shuts down: also when the case fails while the job still runs.
+    std::atomic<bool> allowed{true};
+    std::atomic<bool> started{false};
+    std::atomic<bool> release{false};
+    std::atomic<int>  ran{0};
+    std::atomic<bool> handled{false}; // set once the handler has written both children's results
+    ToolResult        inline_child;
+    ToolResult        job_child;
+    Harness           h;
+    // The plugin's install state, read for every call; the Plugins dialog's switch changes it.
+    h.jobs.set_owner_permission([&](const std::string& plugin) { return plugin != "measure" || allowed; });
+    NativeCommand look = tool("look", GuardClass::Inspect, [&](const json&, ToolContext&) { ++ran; return ToolResult::ok(); });
+    look.inline_call = true;
+    h.registry.add(look);
+    h.registry.add(tool("make", GuardClass::Mutate, [&](const json&, ToolContext&) { ++ran; return ToolResult::ok(); }));
+    h.registry.add(tool("slow", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        started = true;
+        while (!release)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        inline_child = ctx.call_child("look", json::object());
+        job_child    = ctx.call_child("make", json::object());
+        handled      = true;
+        return ToolResult::ok();
+    }));
+    h.timing.soft_budget = std::chrono::milliseconds(10000);
+    h.start();
+    // A job of the plugin, as a script it ran, whose handler calls on after the permission is withdrawn.
+    std::thread running([&] { h.core->call_plugin(*h.registry.find("slow"), json::object(), "measure"); });
+    for (int i = 0; i < 2000 && !started; ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    // Read once: a handler starting late must not pass the check below after its thread was joined here.
+    const bool handler_started = started;
+    if (!handler_started) { // the granted call was refused, or never reached its handler: end it before failing
+        release = true;
+        running.join();
+    }
+    REQUIRE(handler_started);
+
+    allowed = false;
+    const ToolResult inline_call = h.core->call_plugin(*h.registry.find("look"), json::object(), "measure");
+    CHECK(inline_call.is_error);
+    CHECK(inline_call.message.find("not allowed to call OrcaSlicer's tools") != std::string::npos);
+    CHECK(inline_call.data.value("code", "") == "tools_not_allowed");
+    const ToolResult job_call = h.core->call_plugin(*h.registry.find("make"), json::object(), "measure");
+    CHECK(job_call.is_error);
+    CHECK(job_call.data.value("code", "") == "tools_not_allowed");
+    release = true;
+    running.join();
+    // The call may have answered "running" before its handler ended: its results are read once the handler wrote them.
+    for (int i = 0; i < 2000 && !handled; ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    REQUIRE(handled);
+    CHECK(inline_child.is_error);
+    CHECK(inline_child.data.value("code", "") == "tools_not_allowed");
+    CHECK(job_child.is_error);
+    CHECK(job_child.data.value("code", "") == "tools_not_allowed");
+    CHECK(ran == 0);
+
+    // Another plugin's calls and a client's still run, and the plugin's do once it may call the tools again.
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("look"), json::object(), "other").is_error);
+    CHECK_FALSE(h.call("look").is_error);
+    allowed = true;
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("look"), json::object(), "measure").is_error);
+    CHECK(ran == 3);
+}
+
+TEST_CASE("a plugin's job never starts once the plugin unloads, as it registers or right before its handler", "[Mcp]")
+{
+    // The liveness hook is asked as the call comes in, once its job is registered, and on the job's thread right
+    // before its handler starts: the plugin unloads just before the asking given here.
+    const int        unload_at = GENERATE(1, 2, 3);
+    Harness          h;
+    std::atomic<int> asked{0};
+    std::atomic<int> ran{0};
+    std::atomic<bool> loaded{true};
+    h.jobs.set_owner_liveness([&](const std::string&) {
+        if (++asked == unload_at)
+            loaded = false;
+        return loaded.load();
+    });
+    h.registry.add(tool("make", GuardClass::Mutate, [&](const json&, ToolContext&) { ++ran; return ToolResult::ok(); }));
+    h.timing.soft_budget = std::chrono::milliseconds(10000);
+    h.start();
+    HeardOrigins heard;
+    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{},
+                                       std::vector<CallObserver*>{&heard});
+    const ToolResult r = h.core->call_plugin(*h.registry.find("make"), json::object(), "measure");
+    CHECK(r.is_error);
+    CHECK(r.message.find("unloaded") != std::string::npos);
+    CHECK(ran == 0);
+    CHECK(h.jobs.running_owned_by("measure").empty());
+    // A call queued and never started is ended all the same; one refused before its job registered is never queued.
+    std::lock_guard<std::mutex> lock(heard.mutex);
+    if (unload_at == 3) {
+        REQUIRE(heard.queued.size() == 2);
+        CHECK(heard.queued[0].rfind("queued ", 0) == 0);
+        CHECK(heard.queued[1].rfind("ended ", 0) == 0);
+    } else
+        CHECK(heard.queued.empty());
+    CHECK(heard.heard.empty());
+}
+
+TEST_CASE("a plugin's running call is cancelled the moment the plugin unloads", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> loaded{true};
+    std::atomic<bool> started{false};
+    h.jobs.set_owner_liveness([&](const std::string&) { return loaded.load(); });
+    h.registry.add(tool("spin", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        started = true;
+        const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        while (!ctx.cancelled() && std::chrono::steady_clock::now() < end)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        return ToolResult::ok({{"cancelled", ctx.cancelled()}});
+    }));
+    h.timing.soft_budget = std::chrono::milliseconds(10000);
+    h.start();
+    // No block and no stop request: only the plugin manager's state changes.
+    std::thread unload([&] {
+        while (!started)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        loaded = false;
+    });
+    const ToolResult r = h.core->call_plugin(*h.registry.find("spin"), json::object(), "measure");
+    unload.join();
+    CHECK_FALSE(r.is_error);
+    CHECK(r.data.value("cancelled", false));
+}
+
+TEST_CASE("a call under a lineage node sees a stop asked for the node, inline calls included, and a renewed node's calls run", "[Mcp]")
+{
+    Harness h;
+    // Polls for cancellation for up to `for_ms`, as app_wait does.
+    const auto poll = [](const json& args, ToolContext& ctx) {
+        const auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(args.value("for_ms", 5000));
+        while (!ctx.cancelled() && std::chrono::steady_clock::now() < end)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok({{"cancelled", ctx.cancelled()}});
+    };
+    NativeCommand inline_poll     = tool("inline_poll", GuardClass::Inspect, poll);
+    inline_poll.inline_call = true;
+    h.registry.add(inline_poll);
+    h.registry.add(tool("job_poll", GuardClass::Mutate, poll));
+    h.timing.soft_budget = 10000ms;
+    h.start();
+
+    const std::string session = h.jobs.create("script_run", "");
+    h.jobs.set_idle(session);
+    LineageNode node(h.jobs, "script_run", session);
+    const auto  call = [&](const char* tool, int for_ms) {
+        return std::async(std::launch::async, [&h, &node, tool, for_ms] {
+            return h.core->call_child_named(tool, {{"for_ms", for_ms}}, node.id());
+        });
+    };
+    auto inline_call = call("inline_poll", 5000);
+    auto job_call    = call("job_poll", 5000);
+    std::this_thread::sleep_for(300ms);
+    const auto asked = std::chrono::steady_clock::now();
+    h.jobs.request_stop(node.id());
+    const ToolResult stopped_inline = inline_call.get();
+    const ToolResult stopped_job    = job_call.get();
+    CHECK(std::chrono::steady_clock::now() - asked < 1s);
+    CHECK(stopped_inline.data.value("cancelled", false));
+    CHECK(stopped_job.data.value("cancelled", false));
+
+    node.renew();
+    auto ran_inline = call("inline_poll", 300);
+    auto ran_job    = call("job_poll", 300);
+    CHECK(ran_inline.get().data["cancelled"] == false);
+    CHECK(ran_job.get().data["cancelled"] == false);
+    CHECK_FALSE(h.jobs.stop_requested(session));
+    h.jobs.finish(session, ToolResult::ok());
+}
+
+TEST_CASE("lineage nodes leave no running job behind", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string session  = jobs.create("script_run", "");
+    const auto        running_nodes = [&] {
+        int count = 0;
+        for (const json& job : jobs.list())
+            if (job["tool"] == "script_run" && job.value("parent", std::string()) == session && job["state"] == "running")
+                ++count;
+        return count;
+    };
+    {
+        LineageNode node(jobs, "script_run", session);
+        CHECK(running_nodes() == 1);
+    }
+    for (int round = 0; round < 10; ++round) {
+        LineageNode node(jobs, "script_run", session);
+        for (int renewal = 0; renewal < 3; ++renewal)
+            node.renew();
+        CHECK(running_nodes() == 1);
+    }
+    CHECK(running_nodes() == 0);
+    jobs.finish(session, ToolResult::ok());
+}
+
+namespace {
+
+// Where works wait until the test opens it.
+class Gate
+{
+public:
+    void open()
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_open = true;
+        }
+        m_cv.notify_all();
+    }
+    void wait()
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_cv.wait(lock, [this] { return m_open; });
+    }
+
+private:
+    std::mutex              m_mutex;
+    std::condition_variable m_cv;
+    bool                    m_open = false;
+};
+
+// Opens `gate` when the test leaves, failed assertions included, so the threads' destructor joins works that return.
+// Declare the gate, then the threads, then this.
+struct OpenOnExit
+{
+    Gate& gate;
+    ~OpenOnExit() { gate.open(); }
+};
+
+// Held by a work: what a work holds goes after FollowedThreads counts it as returned, so once this is gone the next
+// start() finds the work returned.
+struct Released
+{
+    std::promise<void> gone;
+    ~Released() { gone.set_value(); }
+};
+
+} // namespace
+
+TEST_CASE("a followed thread whose work returned is joined by the next start", "[Mcp]")
+{
+    Gate            gate;
+    FollowedThreads threads;
+    OpenOnExit      open_on_exit{gate};
+
+    auto              held       = std::make_shared<Released>();
+    std::future<void> first_gone = held->gone.get_future();
+    REQUIRE(threads.start([held = std::move(held)] {}));
+    REQUIRE(first_gone.wait_for(5s) == std::future_status::ready);
+    REQUIRE(threads.start([&gate] { gate.wait(); }));
+    CHECK(threads.size() == 1);
+    gate.open();
+    threads.join_all();
+    CHECK(threads.size() == 0);
+}
+
+TEST_CASE("stopping the followed threads reaches only the works still running", "[Mcp]")
+{
+    Gate             gate;
+    std::atomic<int> first_stops{0};
+    std::atomic<int> second_stops{0};
+    FollowedThreads  threads;
+    OpenOnExit       open_on_exit{gate};
+
+    auto              held       = std::make_shared<Released>();
+    std::future<void> first_gone = held->gone.get_future();
+    REQUIRE(threads.start([held = std::move(held)] {}, [&first_stops] { ++first_stops; }));
+    REQUIRE(first_gone.wait_for(5s) == std::future_status::ready);
+    REQUIRE(threads.start([&gate] { gate.wait(); }, [&] {
+        ++second_stops;
+        gate.open();
+    }));
+    threads.stop_all();
+    // A missed stop fails here rather than hang the join below; the gate opens as the case leaves.
+    REQUIRE(second_stops == 1);
+    CHECK(first_stops == 0);
+    // The second's stop let it return.
+    threads.join_all();
+    CHECK(threads.size() == 0);
+}
+
+TEST_CASE("no followed thread starts after the join", "[Mcp]")
+{
+    {
+        FollowedThreads   threads;
+        std::atomic<bool> ran{false};
+        threads.join_all();
+        CHECK_FALSE(threads.start([&ran] { ran = true; }));
+        CHECK(threads.size() == 0);
+        CHECK_FALSE(ran);
+    }
+
+    // A join that waits for a work refuses starts from its beginning, not once it is done: a start that comes
+    // before it begins is joined with the rest, and none is left.
+    Gate             gate;
+    std::atomic<int> late_ran{0};
+    FollowedThreads  threads;
+    OpenOnExit       open_on_exit{gate};
+    REQUIRE(threads.start([&gate] { gate.wait(); }));
+    std::promise<void> joined;
+    std::future<void>  join_returned = joined.get_future();
+    std::thread        joiner([&] {
+        threads.join_all();
+        joined.set_value();
+    });
+    // Only a join that never refuses keeps the loop going this long; it then ends, unrefused, and fails below.
+    const auto give_up  = std::chrono::steady_clock::now() + 30s;
+    int        accepted = 0;
+    bool       refused  = false;
+    while (!refused && std::chrono::steady_clock::now() < give_up) {
+        if (threads.start([&late_ran] { ++late_ran; }))
+            ++accepted;
+        else
+            refused = true;
+    }
+    CHECK(refused);
+    // Refused while the join still waits for the first work.
+    CHECK(join_returned.wait_for(0ms) == std::future_status::timeout);
+    gate.open();
+    joiner.join();
+    CHECK(join_returned.wait_for(0ms) == std::future_status::ready);
+    CHECK(late_ran == accepted);
+    CHECK(threads.size() == 0);
+}

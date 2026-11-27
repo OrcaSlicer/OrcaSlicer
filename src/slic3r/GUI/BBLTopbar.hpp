@@ -65,6 +65,7 @@ public:
     wxAuiToolBarItem* FindToolByCurrentPosition();
 	
     void SetFileMenu(wxMenu* file_menu);
+    wxMenu* GetFileMenu() { return m_file_menu; }
     void AddDropDownSubMenu(wxMenu* sub_menu, const wxString& title);
     void AddDropDownMenuItem(wxMenuItem* menu_item);
     wxMenu *GetTopMenu();

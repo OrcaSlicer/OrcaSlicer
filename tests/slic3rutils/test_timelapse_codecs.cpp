@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <thread>
 #include <vector>
+#include <wx/app.h>
 #include <wx/bitmap.h>
 #include <wx/gdicmn.h>
 #include <wx/image.h>
@@ -24,6 +25,9 @@ TEST_CASE("JPEG texture decoding coexists with thumbnails and video frames", "[T
     if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
         SKIP("This integration test needs a display (for example, xvfb-run).");
 #endif
+    // Without an app object, wx creates the GUI_App this binary links, whose destructor shuts down
+    // plugins and Python for every later test case.
+    wxApp::SetInstance(new wxApp);
     wxInitializer init;
     REQUIRE(init.IsOk());
     wxInitAllImageHandlers();

@@ -1,10 +1,28 @@
+// McpTools.hpp reaches wx's MSW headers through GLCanvas3D.hpp after OCCT has hidden the USER and GDI
+// declarations they need; the Windows headers first keep them, as in test_mcp_tools.cpp.
+#ifdef WIN32
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <Windows.h>
+    #include <CommCtrl.h>
+#endif
+
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
+#include <slic3r/GUI/Mcp/McpTools.hpp>
+#include <slic3r/GUI/Operations/Outcome.hpp>
+#include <slic3r/GUI/Operations/PrinterOps.hpp>
 #include <libslic3r/AppConfig.hpp>
+#include "catch2/catch_message.hpp"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include <slic3r/Utils/NetworkAgent.hpp>
@@ -16,6 +34,7 @@
 
 #include <memory>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -56,7 +75,7 @@ public:
     {
         published_device = std::move(dev_id);
         published_message = json::parse(json_str);
-        return 0;
+        return reply;
     }
 
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override
@@ -79,6 +98,7 @@ public:
     std::string published_device;
     json published_message;
     std::string connected_ca_file;
+    int reply = 0; // what a send returns: 0 when the printer took the message
     int selections{0};
 
 private:
@@ -191,6 +211,99 @@ TEST_CASE("Device manager filters and rehomes devices by printer-agent ownership
     CHECK(object->printer_agent_id == "integration-agent-b");
     CHECK(manager.get_my_machine_list("integration-agent-a").empty());
     CHECK(manager.get_my_machine_list("integration-agent-b").count(machine.dev_id) == 1);
+}
+
+TEST_CASE("A non-Bambu device without a model is not given Bambu's C11 model", "[DeviceManager][integration]")
+{
+    const std::string agent_id = GENERATE(std::string(MOONRAKER_PRINTER_AGENT_ID),
+                                          std::string(QIDI_PRINTER_AGENT_ID),
+                                          std::string(SNAPMAKER_PRINTER_AGENT_ID),
+                                          std::string(CREALITYPRINT_PRINTER_AGENT_ID),
+                                          std::string("integration-agent"));
+    CAPTURE(agent_id);
+
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>(agent_id);
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id   = "moonraker-device";
+    machine.dev_name = "Moonraker printer";
+    machine.dev_ip   = "192.0.2.20";
+
+    MachineObject* object = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(object != nullptr);
+    CHECK(object->printer_agent_id == agent_id);
+    CHECK(object->printer_type.empty());
+}
+
+TEST_CASE("A Bambu device without a model still gets the C11 fallback", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>(BBL_PRINTER_AGENT_ID);
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id   = "bambu-device";
+    machine.dev_name = "Bambu printer";
+    machine.dev_ip   = "192.0.2.21";
+
+    MachineObject* object = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(object != nullptr);
+    CHECK(object->printer_type == "C11");
+}
+
+TEST_CASE("A known model survives a non-Bambu rebind that does not name one", "[DeviceManager][integration]")
+{
+    const std::string agent_id = GENERATE(std::string(MOONRAKER_PRINTER_AGENT_ID),
+                                          std::string(QIDI_PRINTER_AGENT_ID),
+                                          std::string(SNAPMAKER_PRINTER_AGENT_ID),
+                                          std::string(CREALITYPRINT_PRINTER_AGENT_ID),
+                                          std::string("integration-agent"));
+    CAPTURE(agent_id);
+
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>(agent_id);
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "known-model-device";
+    machine.dev_name     = "Known model printer";
+    machine.dev_ip       = "192.0.2.22";
+    machine.printer_type = "test_model";
+
+    MachineObject* object = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(object != nullptr);
+    REQUIRE(object->printer_type == "test_model");
+
+    machine.printer_type.clear();
+    REQUIRE(manager.insert_local_device(machine, "lan", "free", "", "access-code") == object);
+    CHECK(object->printer_type == "test_model");
+}
+
+TEST_CASE("A Bambu rebind without a model keeps the C11 fallback", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>(BBL_PRINTER_AGENT_ID);
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "known-model-device";
+    machine.dev_name     = "Known model printer";
+    machine.dev_ip       = "192.0.2.22";
+    machine.printer_type = "BL-P001";
+
+    MachineObject* object = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(object != nullptr);
+    REQUIRE(object->printer_type == "BL-P001");
+
+    machine.printer_type.clear();
+    REQUIRE(manager.insert_local_device(machine, "lan", "free", "", "access-code") == object);
+    CHECK(object->printer_type == "C11");
 }
 
 TEST_CASE("Device manager remembers the last selected machine per printer agent", "[DeviceManager][integration]")
@@ -419,4 +532,140 @@ TEST_CASE("AMS filament settings default a supplied single-color list to type tw
     const json& payload = agent->published_message.at("print");
     CHECK(payload.at("cols").get<std::vector<std::string>>() == colors);
     CHECK(payload.at("ctype") == 2);
+}
+
+namespace {
+
+// A printer in `state`, connected through the printer agent double, whose serial number (dev_id) is SERIAL-0123.
+struct ConnectedPrinter
+{
+    ScopedAppConfig                   app_config;
+    std::shared_ptr<TestPrinterAgent> agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent                      network{nullptr, agent};
+    DeviceManager                     manager{&network, false, &app_config.config};
+    MachineObject                     printer{&manager, &network, "Test printer", "SERIAL-0123", "192.0.2.10"};
+
+    explicit ConnectedPrinter(const std::string& state)
+    {
+        printer.print_status        = state;
+        printer.dev_connection_type = "lan";
+    }
+};
+
+// The code of the refusal of `command` to `printer`, or "" for none.
+std::string refusal_code(MachineObject* printer, GUI::Ops::JobCommand command)
+{
+    const std::optional<GUI::Ops::Refusal> refusal = GUI::Ops::job_command_refusal(printer, command);
+    return refusal ? refusal->code : "";
+}
+
+} // namespace
+
+TEST_CASE("A job command is refused unless the printer's state allows it", "[DeviceManager][Printer]")
+{
+    using GUI::Ops::JobCommand;
+    CHECK(refusal_code(nullptr, JobCommand::Pause) == "no_printer_connected");
+    CHECK(refusal_code(nullptr, JobCommand::Resume) == "no_printer_connected");
+    CHECK(refusal_code(nullptr, JobCommand::Stop) == "no_printer_connected");
+
+    // Pause, Resume and Stop, as the Device tab enables its buttons: can_pause(), can_resume(), can_abort().
+    const auto [state, pause, resume, stop] = GENERATE(table<std::string, std::string, std::string, std::string>({
+        {"RUNNING", "", "printer_state", ""},
+        {"PAUSE", "printer_state", "", ""},
+        {"IDLE", "printer_state", "printer_state", "printer_state"},
+    }));
+    INFO(state);
+    ConnectedPrinter p(state);
+    CHECK(refusal_code(&p.printer, JobCommand::Pause) == pause);
+    CHECK(refusal_code(&p.printer, JobCommand::Resume) == resume);
+    CHECK(refusal_code(&p.printer, JobCommand::Stop) == stop);
+    // A refusal by the state names it.
+    if (const std::optional<GUI::Ops::Refusal> refusal = GUI::Ops::job_command_refusal(&p.printer, JobCommand::Resume))
+        CHECK(refusal->args == std::vector<std::string>{state});
+}
+
+TEST_CASE("Resume is refused where the job resumes only at the printer, and nothing is published", "[DeviceManager][Printer]")
+{
+    ConnectedPrinter p("PAUSE");
+    // A processing task such as laser, which check_resume_condition() tells the person to resume at the printer.
+    p.printer.jobState_ = 2;
+    REQUIRE(p.printer.resume_only_at_printer());
+    const GUI::Ops::Outcome<GUI::Ops::JobCommandSent> sent = GUI::Ops::send_job_command(&p.printer, GUI::Ops::JobCommand::Resume);
+    REQUIRE_FALSE(sent);
+    CHECK(std::string(sent.refusal().code) == "resume_at_printer");
+    CHECK(p.agent->published_message.is_null());
+}
+
+TEST_CASE("Pause, resume and stop publish the printer's command", "[DeviceManager][Printer]")
+{
+    using GUI::Ops::JobCommand;
+    const auto [state, command, published] = GENERATE(table<std::string, JobCommand, std::string>({
+        {"RUNNING", JobCommand::Pause, "pause"},
+        {"PAUSE", JobCommand::Resume, "resume"},
+        {"PAUSE", JobCommand::Stop, "stop"},
+    }));
+    INFO(published);
+    ConnectedPrinter p(state);
+    const GUI::Ops::Outcome<GUI::Ops::JobCommandSent> sent = GUI::Ops::send_job_command(&p.printer, command);
+    REQUIRE(sent);
+    CHECK(sent.value().printer == "Test printer");
+    CHECK(sent.value().state == state);
+    CHECK(p.agent->published_device == "SERIAL-0123");
+    CHECK(p.agent->published_message.at("print").at("command") == published);
+}
+
+TEST_CASE("A job command the printer did not take is not reported sent", "[DeviceManager][Printer]")
+{
+    ConnectedPrinter p("RUNNING");
+    p.agent->reply = -1;
+    const GUI::Ops::Outcome<GUI::Ops::JobCommandSent> sent = GUI::Ops::send_job_command(&p.printer, GUI::Ops::JobCommand::Pause);
+    REQUIRE_FALSE(sent);
+    CHECK(std::string(sent.refusal().code) == "not_sent");
+    CHECK(sent.refusal().args == std::vector<std::string>{"-1"});
+}
+
+TEST_CASE("A command the printer's agent cannot send is named unsupported", "[DeviceManager][Printer]")
+{
+    CHECK(std::string(GUI::Ops::job_command_failure(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED).code) == "command_not_supported");
+    CHECK(std::string(GUI::Ops::job_command_failure(ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE).code) == "command_not_supported");
+    CHECK(std::string(GUI::Ops::job_command_failure(-1).code) == "not_sent");
+}
+
+TEST_CASE("The printer's status is read from the machine, publishes nothing and leaves out its serial number", "[DeviceManager][Printer]")
+{
+    CHECK(GUI::Mcp::printer_status_reply(GUI::Ops::printer_status(nullptr)) == json{{"connected", false}});
+
+    ConnectedPrinter p("RUNNING");
+    p.printer.printer_type     = "test-model";
+    p.printer.mc_print_stage   = 2;
+    p.printer.mc_print_percent = 42;
+    p.printer.mc_left_time     = 600;
+    p.printer.curr_layer       = 3;
+    p.printer.total_layers     = 100;
+    p.printer.subtask_name     = "cube";
+    p.printer.print_error      = 0;
+    const json reply = GUI::Mcp::printer_status_reply(GUI::Ops::printer_status(&p.printer));
+    INFO(reply.dump());
+    CHECK(reply.at("connected") == true);
+    CHECK(reply.at("name") == "Test printer");
+    CHECK(reply.at("printer_type") == "test-model");
+    // No preset bundle and no printer file names the model, so it is unknown.
+    CHECK(reply.at("model").is_null());
+    CHECK(reply.at("state") == "RUNNING");
+    CHECK(reply.at("stage") == 2);
+    CHECK(reply.at("percent") == 42);
+    CHECK(reply.at("remaining_seconds") == 600);
+    CHECK(reply.at("layer") == 3);
+    CHECK(reply.at("total_layers") == 100);
+    CHECK(reply.at("file") == "cube");
+    CHECK(reply.at("error_code") == 0);
+    CHECK(reply.at("temperatures").at("nozzles").is_array());
+    CHECK(reply.at("temperatures").contains("bed"));
+    CHECK(reply.at("temperatures").contains("chamber"));
+    CHECK(reply.dump().find("SERIAL-0123") == std::string::npos);
+    CHECK(p.agent->published_message.is_null());
+
+    // A model the tab names without a bundle.
+    p.printer.printer_type = "orcasonar";
+    CHECK(GUI::Ops::printer_model_name(p.printer, nullptr) == "OrcaSonar Printer");
 }
