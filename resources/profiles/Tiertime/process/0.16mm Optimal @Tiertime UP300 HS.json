@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "deEyVahMnJBIUh5W",
 	"name": "0.16mm Optimal @Tiertime UP300 HS",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_tiertime_HS_common",
+	"from": "system",
+	"setting_id": "deEyVahMnJBIUh5W",
+	"instantiation": "true",
 	"layer_height": "0.16",
 	"elefant_foot_compensation": "0.15",
 	"bottom_shell_layers": "4",

@@ -21,6 +21,9 @@
         "-0.0092"
     ],
     "fan_min_speed": [
+        "25",
+        "25",
+        "25",
         "25"
     ],
     "filament_cooling_before_tower": [

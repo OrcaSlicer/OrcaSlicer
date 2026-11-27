@@ -15,9 +15,13 @@
         "40"
     ],
     "fan_max_speed": [
+        "50",
+        "50",
         "50"
     ],
     "fan_min_speed": [
+        "10",
+        "10",
         "10"
     ],
     "filament_cooling_before_tower": [

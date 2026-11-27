@@ -3,6 +3,7 @@
 
 #include "Point.hpp"
 #include "Model.hpp"
+#include <vector>
 
 namespace Slic3r {
 

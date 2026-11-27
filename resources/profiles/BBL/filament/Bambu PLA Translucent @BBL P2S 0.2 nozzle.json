@@ -6,6 +6,7 @@
     "setting_id": "GFSA17_24",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "100",
         "100"
     ],
     "eng_plate_temp": [
@@ -66,6 +67,7 @@
         "240"
     ],
     "nozzle_temperature_range_low": [
+        "200",
         "200"
     ],
     "retraction_distances_when_ec": [

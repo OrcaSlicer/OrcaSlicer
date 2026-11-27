@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Anker 0.25 nozzle",
-	"inherits": "Generic ASA @Anker base",
 	"renamed_from": "Anker Generic ASA 0.25 nozzle",
+	"inherits": "Generic ASA @Anker base",
 	"from": "system",
 	"setting_id": "FU4BiMydEyo7zxq5",
 	"instantiation": "true",

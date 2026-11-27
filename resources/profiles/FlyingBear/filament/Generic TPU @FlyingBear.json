@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @FlyingBear",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "FlyingBear Generic TPU",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "Xdx2FIIQiqSz7DpN",
 	"filament_id": "OFgbpcy9",

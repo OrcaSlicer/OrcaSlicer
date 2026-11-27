@@ -2,9 +2,12 @@
 #define slic3r_GUI_Factories_hpp_
 
 #include <map>
+#include <memory>
+#include <string>
 #include <vector>
 #include <array>
 #include <cstddef>
+#include <functional>
 
 #include <wx/bitmap.h>
 
@@ -40,6 +43,12 @@ struct SettingsFactory
     static wxBitmap                             get_category_bitmap(const std::string& category_name, bool menu_bmp = true);
     static Bundle                               get_bundle(const DynamicPrintConfig* config, bool is_object_settings, bool is_layer_settings = false);
     static std::vector<std::string>             get_options(bool is_part);
+    // get_options() for an FFF printer, which reads no printer: the region settings for a part or modifier, and the
+    // object settings too for an object.
+    static std::vector<std::string>             get_fff_options(bool is_part);
+    // Options of this category are not offered to objects (is_object_settings) or to parts and
+    // modifiers: internal options without a category, and per-feature filaments with one filament.
+    static bool                                 is_improper_category(const std::string& category, int filaments_cnt, bool is_object_settings = true);
     //BBS: add api to get options for catogary
     static std::vector<SimpleSettingData> get_visible_options(const std::string& category, const bool is_part);
     static std::map<std::string, std::vector<SimpleSettingData>> get_all_visible_options(const bool is_part);
@@ -87,6 +96,7 @@ public:
     wxMenu* part_menu();
     wxMenu* text_part_menu();
     wxMenu* svg_part_menu();
+    wxMenu* painted_modifier_menu();
     wxMenu* instance_menu();
     wxMenu* layer_menu();
     wxMenu* multi_selection_menu();
@@ -98,6 +108,10 @@ public:
 
     wxMenu *filament_action_menu(int active_filament_menu_id);
 
+    // Hands over a menu that layer_menu(), multi_selection_menu() or an assemble_*_menu() built
+    // for one popup, so whoever shows it frees it afterwards; null for a menu MenuFactory keeps.
+    std::unique_ptr<wxMenu> take_transient(wxMenu* menu);
+
 private:
     enum MenuType {
         mtObjectFFF = 0,
@@ -108,18 +122,33 @@ private:
     wxWindow* m_parent {nullptr};
 
     MenuWithSeparators m_object_menu;
+    wxMenu*            m_object_transform_menu;
+    size_t             m_object_geometry_pos;
+    int                m_object_props_marker;
     MenuWithSeparators m_part_menu;
+    wxMenu*            m_part_transform_menu;
+    int                m_part_props_marker;
+    int                m_part_project_marker;
     MenuWithSeparators m_text_part_menu;
+    int                m_text_props_marker;
+    int                m_text_project_marker;
     MenuWithSeparators m_svg_part_menu;
+    int                m_svg_props_marker;
+    int                m_svg_project_marker;
+    MenuWithSeparators m_painted_modifier_menu;
     MenuWithSeparators m_sla_object_menu;
     MenuWithSeparators m_default_menu;
     MenuWithSeparators m_instance_menu;
     //BBS: add part plate related logic
     MenuWithSeparators m_plate_menu;
+    size_t             m_plate_mods_pos;
     MenuWithSeparators m_assemble_object_menu;
     MenuWithSeparators m_assemble_part_menu;
 
     wxMenu m_filament_action_menu;
+    // Menus built afresh for one popup, held until take_transient() hands them over.
+    std::vector<std::unique_ptr<wxMenu>> m_transient_menus;
+    wxMenu* transient(wxMenu* menu);
    
 
     // Removed/Prepended Items according to the view mode
@@ -127,11 +156,12 @@ private:
     std::array<wxMenuItem*, mtCount> items_decrease;
     std::array<wxMenuItem*, mtCount> items_set_number_of_copies;
 
+    size_t      FindPositionById(wxMenu* menu, int id);
+
     void        create_default_menu();
     void        create_common_object_menu(wxMenu *menu);
     void        create_object_menu();
     void        create_sla_object_menu();
-    void        create_part_menu();
     void        create_text_part_menu();
     void        create_svg_part_menu();
     //BBS: add part plate related logic
@@ -139,6 +169,7 @@ private:
     //BBS: add bbl object menu
     void        create_extra_object_menu();
     void        create_bbl_part_menu();
+    void        create_painted_modifier_menu();
     void        create_bbl_assemble_object_menu();
     void        create_bbl_assemble_part_menu();
 
@@ -151,6 +182,7 @@ private:
     void        append_menu_item_add_svg(wxMenu *menu, ModelVolumeType type, bool is_submenu_item = true);    
     void        append_menu_items_add_volume(wxMenu* menu);
     wxMenuItem* append_menu_item_layers_editing(wxMenu* menu);
+    wxMenuItem* append_menu_item_add_painted_modifier(wxMenu* menu, std::function<bool()> enable_condition);
     wxMenuItem* append_menu_item_settings(wxMenu* menu);
     wxMenuItem* append_menu_item_change_type(wxMenu* menu);
     wxMenuItem* append_menu_item_instance_to_object(wxMenu* menu);
@@ -169,14 +201,14 @@ private:
     void        append_menu_item_delete(wxMenu* menu);
     void        append_menu_item_scale_selection_to_fit_print_volume(wxMenu* menu);
     void        append_menu_items_convert_unit(wxMenu* menu); // Add "Conver/Revert..." menu items (from/to inches/meters) after "Reload From Disk"
-    void        append_menu_items_flush_options(wxMenu* menu);
+    void        append_menu_items_flush_options(wxMenu* menu, size_t pos = -1);
     void        append_menu_item_merge_to_multipart_object(wxMenu *menu);
     void        append_menu_item_merge_to_single_object(wxMenu* menu);
-    void        append_menu_item_merge_parts_to_single_part(wxMenu *menu);
-    void        append_menu_items_mirror(wxMenu *menu);
-    void        append_menu_item_invalidate_cut_info(wxMenu *menu);
-    void        append_menu_item_edit_text(wxMenu *menu);
-    void        append_menu_item_edit_svg(wxMenu *menu);
+    void        append_menu_item_align_distribute(wxMenu *menu);
+    void        append_menu_item_precise_seam_submenu(wxMenu* menu);
+    void        append_menu_item_invalidate_cut_info(wxMenu *menu, size_t pos = -1);
+    void        append_menu_item_edit_text(wxMenu *menu, size_t pos = -1);
+    void        append_menu_item_edit_svg(wxMenu *menu, size_t pos = -1);
 
     void        append_menu_items_instance_manipulation(wxMenu *menu);
     //void        update_menu_items_instance_manipulation(MenuType type);
@@ -187,13 +219,17 @@ private:
     void        append_menu_item_center(wxMenu* menu);
     void        append_menu_item_drop(wxMenu* menu);
     void        append_menu_item_per_object_process(wxMenu* menu);
-    void        append_menu_item_per_object_settings(wxMenu* menu);
-    void        append_menu_item_change_filament(wxMenu* menu);
+    void        append_menu_item_per_object_settings(wxMenu* menu, size_t pos = -1);
+    void        append_menu_item_change_filament(wxMenu* menu, size_t pos = -1);
     void        append_menu_item_set_printable(wxMenu* menu);
     void        append_menu_item_set_auto_drop(wxMenu* menu);
-    void        append_menu_item_locked(wxMenu* menu);
+    void        append_menu_item_locked(wxMenu* menu, size_t pos = -1);
     void        append_menu_item_fill_bed(wxMenu *menu);
-    void        append_menu_item_plate_name(wxMenu *menu);
+    void        append_menu_item_plate_name(wxMenu *menu, size_t pos = -1);
+    void        append_menu_item_plate_delete(wxMenu *menu, size_t pos = -1);
+    wxMenu*     append_menu_item_transform(wxMenu* menu, bool multi_selection, bool show_mirror, bool is_scalable);
+    wxMenu*     append_menu_item_modify(   wxMenu* menu, bool multi_selection, bool splittable, bool is_mesh, bool mesh_boolean);
+    wxMenu*     append_menu_item_more(     wxMenu* menu, bool multi_selection, bool disk_op, bool export_op);
 };
 
 }}

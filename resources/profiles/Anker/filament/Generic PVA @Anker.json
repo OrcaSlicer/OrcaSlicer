@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PVA @Anker",
-	"inherits": "Generic PVA @Anker base",
 	"renamed_from": "Anker Generic PVA",
+	"inherits": "Generic PVA @Anker base",
 	"from": "system",
 	"setting_id": "HXERDaP3AgzWtmiu",
 	"instantiation": "true",

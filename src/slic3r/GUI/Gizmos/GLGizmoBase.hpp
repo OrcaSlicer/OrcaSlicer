@@ -10,9 +10,16 @@
 #include "slic3r/GUI/SceneRaycaster.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 
+#include <array>
+#include <cassert>
 #include <cereal/archives/binary.hpp>
+#include <cstdint>
+#include <memory>
+#include <cstddef>
 #include <optional>
 
+#include <string>
+#include <vector>
 #include <wx/event.h>
 
 #define ENABLE_FIXED_GRABBER 1
@@ -227,6 +234,9 @@ public:
 
     virtual bool is_in_editing_mode() const { return false; }
     virtual bool is_selection_rectangle_dragging() const { return false; }
+    // Whether work the gizmo started in the background has yet to show its latest result, for
+    // automation waiting for the app to settle.
+    virtual bool is_busy() const { return false; }
 
 protected:
     float last_input_window_width = 0;

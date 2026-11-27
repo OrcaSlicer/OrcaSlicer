@@ -1,23 +1,42 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/nowide/convert.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <ios>
 #include <libslic3r/LifecycleEvents.hpp>
 #include <libslic3r/Utils.hpp>
+#include <memory>
+#include <slic3r/Utils/Http.hpp>
+#include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include "plugin_test_utils.hpp"
+#include "test_utils.hpp"
 
 #include <boost/filesystem.hpp>
+#include <pybind11/cast.h>
+#include <pybind11/eval.h>
+#include <pybind11/gil.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <fstream>
 #include <mutex>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r;
@@ -27,28 +46,30 @@ namespace fs = boost::filesystem;
 // -> unload.
 //
 // Each Catch2 test case runs in its own process (catch_discover_tests), so the PluginManager and
-// interpreter singletons are brought up at most once per test.
+// interpreter singletons are brought up at most once per test. Running the binary directly runs
+// every case in one process: the interpreter is then initialized once and finalized after the
+// last case (see PythonInterpreterRunEnd in slic3rutils_tests_main.cpp).
 
 namespace {
 
-// Brings the plugin system up, and tears it down explicitly at the end of the test.
+// Brings the plugin system up, and tears the manager down at the end of the test.
 //
-// Shutting the interpreter down here, rather than leaving it to PythonInterpreter's static
-// destructor, mirrors what the app does (GUI_App finalizes it before exit). Left to static
-// destruction, shutdown()'s logging runs after boost::log has torn down its thread-local storage
-// and throws, aborting the process after the tests have already passed.
+// The interpreter itself is not finalized here: it is process-wide. CPython cannot be
+// reinitialized after Py_Finalize (a second init aborts inside _datetime), and the app likewise
+// finalizes it only at exit (GUI_App). slic3rutils_tests_main.cpp finalizes it once, after the
+// last test case and before static destruction, where shutdown()'s logging is still ahead of
+// boost::log's teardown.
 //
 // Declare this FIRST in a test so it is destroyed last.
 struct ScopedPluginManager
 {
+    // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log,
+    // which would otherwise land in the working directory.
+    ScopedDataDir python_data_dir{"plugin-python"};
     bool initialized = false;
 
     ScopedPluginManager() { initialized = PluginManager::instance().initialize(); }
-    ~ScopedPluginManager()
-    {
-        PluginManager::instance().shutdown();
-        PythonInterpreter::instance().shutdown();
-    }
+    ~ScopedPluginManager() { PluginManager::instance().shutdown(); }
 };
 
 // A minimal script plugin exposing exactly one capability, "Echo".
@@ -77,6 +98,112 @@ class EchoPackage(orca.base):
         orca.register_capability(Echo)
 )PY";
 
+// A plugin whose registration always fails after the module imported. The failure is ordinary:
+// neither cancellation nor unload, so its queued runtime prompts stay actionable for a retry.
+const char* const BROKEN_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Broken Plugin"
+# description = "Plugin whose registration always fails."
+# author = "tests"
+# version = "1.0"
+# type = "script"
+# ///
+import orca
+
+@orca.plugin
+class BrokenPackage(orca.base):
+    def register_capabilities(self):
+        raise RuntimeError("registration failed")
+)PY";
+
+// A minimal printer-agent plugin exposing exactly one PrinterConnection capability.
+const char* const PRINTER_AGENT_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+#
+# [tool.orcaslicer.plugin]
+# name = "Lifecycle Test Agent"
+# description = "Minimal printer-agent plugin for the lifecycle test."
+# author = "tests"
+# version = "1.0.0"
+# type = "printer-connection"
+# ///
+import orca
+
+
+class LifecycleTestAgentCapability(orca.printer_agent.PrinterAgentBase):
+    def get_name(self):
+        return "Lifecycle Test Agent"
+
+    def get_agent_info(self):
+        return orca.printer_agent.AgentInfo(
+            id="lifecycle-test-agent",
+            name="Lifecycle Test Agent",
+            version="1.0.0",
+            description="Lifecycle test printer agent",
+        )
+
+
+@orca.plugin
+class LifecycleTestPlugin(orca.base):
+    def register_capabilities(self):
+        orca.register_capability(LifecycleTestAgentCapability)
+)PY";
+
+// In production GUI_App::init_plugin_gui_wiring subscribes the agent-registry
+// callbacks. The test binary has no GUI, so it installs the same unload-side wiring
+// to exercise the production deregister-on-unload path.
+// PluginManager::shutdown() drops every subscription, so each test installs it again.
+//
+// The load-side (register) wiring is deliberately not installed: duplicate-id
+// coverage registers agents manually in a deterministic order instead.
+void install_agent_registry_wiring()
+{
+    PluginManager& manager = PluginManager::instance();
+    manager.subscribe_on_unload_callback(NetworkAgentFactory::deregister_python_plugin);
+    manager.subscribe_on_capability_unload_callback([](const PluginCapabilityId& capability) {
+        if (capability.type == PluginCapabilityType::PrinterConnection)
+            NetworkAgentFactory::deregister_python_printer_agent(capability.plugin_key, capability.name);
+    });
+}
+
+// Duplicate-id coverage needs two distinct plugins with different package keys
+// and classes while both return the same AgentInfo.id.
+std::string make_agent_plugin_source(const std::string& suffix,
+                                     const std::string& display_name,
+                                     const std::string& agent_id)
+{
+    return std::string{}
+        + "# /// script\n"
+        + "# requires-python = \">=3.12\"\n"
+        + "# dependencies = []\n"
+        + "#\n"
+        + "# [tool.orcaslicer.plugin]\n"
+        + "# name = \"" + display_name + "\"\n"
+        + "# description = \"Duplicate-id fake printer-agent plugin.\"\n"
+        + "# author = \"tests\"\n"
+        + "# version = \"1.0.0\"\n"
+        + "# type = \"printer-connection\"\n"
+        + "# ///\n"
+        + "import orca\n"
+        + "\n\n"
+        + "class Cap" + suffix + "(orca.printer_agent.PrinterAgentBase):\n"
+        + "    def get_name(self):\n"
+        + "        return \"" + display_name + "\"\n"
+        + "\n"
+        + "    def get_agent_info(self):\n"
+        + "        return orca.printer_agent.AgentInfo(\n"
+        + "            id=\"" + agent_id + "\", name=\"" + display_name + "\",\n"
+        + "            version=\"1.0.0\", description=\"duplicate id test\")\n"
+        + "\n\n"
+        + "@orca.plugin\n"
+        + "class Plugin" + suffix + "(orca.base):\n"
+        + "    def register_capabilities(self):\n"
+        + "        orca.register_capability(Cap" + suffix + ")\n";
+}
+
 // Writes {data_dir}/orca_plugins/<stem>/<stem>.py and returns the plugin directory.
 fs::path write_plugin(const ScopedDataDir& data_dir_guard, const std::string& stem, const std::string& source)
 {
@@ -88,6 +215,84 @@ fs::path write_plugin(const ScopedDataDir& data_dir_guard, const std::string& st
     out.close();
 
     return plugin_dir;
+}
+
+// Path forms for a tree past the legacy Windows MAX_PATH (260): the extended-length form reaches
+// it and is the identity elsewhere, while the UTF-8 spelling is what the interpreter's filesystem
+// encoding and boost::nowide expect on Windows.
+fs::path long_path(const fs::path& path)
+{
+    return extended_path(path);
+}
+
+std::string path_utf8(const fs::path& path)
+{
+#ifdef _WIN32
+    return boost::nowide::narrow(path.wstring());
+#else
+    return path.string();
+#endif
+}
+
+// Writes <package_dir>/__init__.py, creating the tree through the extended-length form so the
+// fixture is buildable past MAX_PATH on Windows.
+void write_long_path_package(const fs::path& package_dir)
+{
+    boost::system::error_code ec;
+    fs::create_directories(long_path(package_dir), ec);
+    REQUIRE_FALSE(ec);
+
+    boost::nowide::ofstream init(path_utf8(long_path(package_dir) / "__init__.py"));
+    init << "VALUE = \"long\"\n";
+    REQUIRE(init.good());
+}
+
+// Loads the package the way the wheel loader does and checks that its body ran, that the recorded
+// sys.path entry is exactly the one on sys.path, and that unloading removes it again.
+void check_package_import(const fs::path& package_parent, const std::string& pkg_name)
+{
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    // The plain path goes in: reaching the files is the loader's job, not the caller's.
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(package_parent), pkg_name, error, &paths, &modules);
+    INFO("module load error: " << error);
+    REQUIRE(module != nullptr);
+    REQUIRE(error.empty());
+    REQUIRE(paths.size() == 1);
+
+    {
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObjectPtr value(PyObject_GetAttrString(module, "VALUE"));
+        REQUIRE(value);
+        REQUIRE(PyUnicode_Check(value.get()));
+        CHECK(std::string(PyUnicode_AsUTF8(value.get())) == "long");
+
+        PyObject* sys_path = PySys_GetObject("path");
+        REQUIRE(sys_path != nullptr);
+        PyObjectPtr entry(PyUnicode_DecodeFSDefault(paths.front().c_str()));
+        REQUIRE(entry);
+        CHECK(PySequence_Contains(sys_path, entry.get()) == 1);
+    }
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = pkg_name;
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+
+    {
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObject* sys_path = PySys_GetObject("path");
+        REQUIRE(sys_path != nullptr);
+        PyObjectPtr entry(PyUnicode_DecodeFSDefault(paths.front().c_str()));
+        REQUIRE(entry);
+        CHECK(PySequence_Contains(sys_path, entry.get()) == 0);
+    }
 }
 
 // Loads a plugin and blocks until the detached worker thread is done with it.
@@ -222,6 +427,215 @@ TEST_CASE("A discovered script plugin loads and materializes its capability", "[
     manager.unload_plugin("Echo_Plugin");
 }
 
+TEST_CASE("Permissions can be edited while a plugin is loaded", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("permission-edit-while-loaded");
+    const fs::path plugin_dir = write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginInstallState initial;
+    initial.installed_from    = "local";
+    initial.installed_version = "1.0";
+    initial.plugin_name       = "Echo Plugin";
+    REQUIRE(write_install_state(plugin_dir, initial));
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    INFO("load error: " << error);
+    REQUIRE(manager.is_plugin_loaded("Echo_Plugin"));
+
+    // A running plugin no longer locks its own permissions: the next audited operation re-reads
+    // the sidecar, so an edit and the full-access toggle both take effect without a reload.
+    PluginPermissionMutation while_loaded;
+    while_loaded.add         = {{PluginPermissionCategory::FsRead, "/while/loaded"}};
+    while_loaded.full_access = true;
+    REQUIRE(manager.mutate_plugin_permissions("Echo_Plugin", while_loaded));
+
+    PluginInstallState stored;
+    REQUIRE(manager.get_install_state("Echo_Plugin", stored));
+    CHECK(stored.permissions.fs_read == std::vector<std::string>{"/while/loaded"});
+    CHECK(stored.permissions.full_access);
+
+    // A second granular mutation also applies while the plugin stays loaded, and leaves the
+    // earlier edit's other grants alone.
+    PluginPermissionMutation mutation;
+    mutation.add       = {{PluginPermissionCategory::NetworkHttp, "https://while-loaded.example"}};
+    mutation.remove    = {{PluginPermissionCategory::FsRead, "/while/loaded"}};
+    mutation.threading = true;
+    PluginPermissions applied;
+    REQUIRE(manager.mutate_plugin_permissions("Echo_Plugin", mutation, &applied));
+    CHECK(applied.fs_read.empty());
+    CHECK(applied.network_http == std::vector<std::string>{"https://while-loaded.example"});
+    CHECK(applied.threading);
+    CHECK(applied.full_access);
+
+    REQUIRE(manager.get_install_state("Echo_Plugin", stored));
+    CHECK(stored.permissions.fs_read.empty());
+    CHECK(stored.permissions.network_http == applied.network_http);
+    CHECK(stored.permissions.threading);
+    CHECK(stored.permissions.full_access);
+    CHECK(manager.is_plugin_loaded("Echo_Plugin"));
+
+    manager.unload_plugin("Echo_Plugin");
+}
+
+TEST_CASE("A printer-agent plugin registers and deregisters with its lifecycle", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("printer-agent-load");
+    write_plugin(data_dir_guard, "LifecycleTestAgent", PRINTER_AGENT_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    install_agent_registry_wiring();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_valid_plugin_descriptor("LifecycleTestAgent", descriptor));
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "LifecycleTestAgent", error));
+    INFO("load error: " << error);
+
+    const auto capabilities = manager.get_plugin_capabilities(
+        "LifecycleTestAgent", PluginCapabilityType::PrinterConnection);
+    REQUIRE(capabilities.size() == 1);
+    NetworkAgentFactory::register_python_printer_agent("LifecycleTestAgent", capabilities.front()->name());
+
+    CHECK(NetworkAgentFactory::is_printer_agent_registered("lifecycle-test-agent"));
+    REQUIRE(manager.unload_plugin("LifecycleTestAgent"));
+    CHECK_FALSE(NetworkAgentFactory::is_printer_agent_registered("lifecycle-test-agent"));
+}
+
+TEST_CASE("A duplicate printer-agent id is rejected without clobbering its owner", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string key_a  = "DuplicateIdAgentA";
+    const std::string key_b  = "DuplicateIdAgentB";
+    const std::string dup_id = "duplicate-id-agent";
+
+    ScopedDataDir data_dir_guard("printer-agent-duplicate");
+    write_plugin(data_dir_guard, key_a, make_agent_plugin_source("A", "Duplicate Id Agent A", dup_id));
+    write_plugin(data_dir_guard, key_b, make_agent_plugin_source("B", "Duplicate Id Agent B", dup_id));
+
+    PluginManager& manager = PluginManager::instance();
+    install_agent_registry_wiring();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    PluginDescriptor descriptor_a;
+    PluginDescriptor descriptor_b;
+    REQUIRE(manager.try_get_valid_plugin_descriptor(key_a, descriptor_a));
+    REQUIRE(manager.try_get_valid_plugin_descriptor(key_b, descriptor_b));
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, key_a, error));
+    REQUIRE(load_and_wait(manager, key_b, error));
+
+    const auto capabilities_a = manager.get_plugin_capabilities(key_a, PluginCapabilityType::PrinterConnection);
+    const auto capabilities_b = manager.get_plugin_capabilities(key_b, PluginCapabilityType::PrinterConnection);
+    REQUIRE(capabilities_a.size() == 1);
+    REQUIRE(capabilities_b.size() == 1);
+
+    NetworkAgentFactory::register_python_printer_agent(key_a, capabilities_a.front()->name());
+    NetworkAgentFactory::register_python_printer_agent(key_b, capabilities_b.front()->name());
+
+    CHECK(NetworkAgentFactory::is_printer_agent_registered(dup_id));
+    const PrinterAgentInfo* info = NetworkAgentFactory::get_printer_agent_info(dup_id);
+    REQUIRE(info != nullptr);
+    CHECK(info->plugin_identifier.find(key_a) != std::string::npos);
+    CHECK(info->plugin_identifier.find(key_b) == std::string::npos);
+
+    REQUIRE(manager.unload_plugin(key_a));
+    CHECK_FALSE(NetworkAgentFactory::is_printer_agent_registered(dup_id));
+    manager.unload_plugin(key_b);
+}
+
+TEST_CASE("A printer-agent plugin cannot claim a built-in agent id", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    NetworkAgentFactory::register_all_agents();
+    REQUIRE(NetworkAgentFactory::is_printer_agent_registered(BBL_PRINTER_AGENT_ID));
+
+    const std::string plugin_key = "BuiltinClashAgent";
+    ScopedDataDir data_dir_guard("printer-agent-builtin-clash");
+    write_plugin(data_dir_guard, plugin_key,
+                 make_agent_plugin_source("Clash", "Builtin Clash", BBL_PRINTER_AGENT_ID));
+
+    PluginManager& manager = PluginManager::instance();
+    install_agent_registry_wiring();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_valid_plugin_descriptor(plugin_key, descriptor));
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, plugin_key, error));
+    const auto capabilities = manager.get_plugin_capabilities(plugin_key, PluginCapabilityType::PrinterConnection);
+    REQUIRE(capabilities.size() == 1);
+    NetworkAgentFactory::register_python_printer_agent(plugin_key, capabilities.front()->name());
+
+    const PrinterAgentInfo* info = NetworkAgentFactory::get_printer_agent_info(BBL_PRINTER_AGENT_ID);
+    REQUIRE(info != nullptr);
+    CHECK_FALSE(info->is_plugin());
+    CHECK(info->plugin_identifier.find(plugin_key) == std::string::npos);
+
+    manager.unload_plugin(plugin_key);
+}
+
+TEST_CASE("Re-registering a printer-agent capability preserves its registration", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "ReRegisterAgent";
+    const std::string agent_id   = "re-register-agent";
+
+    ScopedDataDir data_dir_guard("printer-agent-reregister");
+    write_plugin(data_dir_guard, plugin_key,
+                 make_agent_plugin_source("Re", "Re Register", agent_id));
+
+    PluginManager& manager = PluginManager::instance();
+    install_agent_registry_wiring();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_valid_plugin_descriptor(plugin_key, descriptor));
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, plugin_key, error));
+    const auto capabilities = manager.get_plugin_capabilities(plugin_key, PluginCapabilityType::PrinterConnection);
+    REQUIRE(capabilities.size() == 1);
+
+    NetworkAgentFactory::register_python_printer_agent(plugin_key, capabilities.front()->name());
+    REQUIRE(NetworkAgentFactory::is_printer_agent_registered(agent_id));
+    const PrinterAgentInfo* first = NetworkAgentFactory::get_printer_agent_info(agent_id);
+    REQUIRE(first != nullptr);
+    const std::string owner = first->plugin_identifier;
+
+    NetworkAgentFactory::register_python_printer_agent(plugin_key, capabilities.front()->name());
+    CHECK(NetworkAgentFactory::is_printer_agent_registered(agent_id));
+    const PrinterAgentInfo* second = NetworkAgentFactory::get_printer_agent_info(agent_id);
+    REQUIRE(second != nullptr);
+    CHECK(second->plugin_identifier == owner);
+
+    manager.unload_plugin(plugin_key);
+}
+
 TEST_CASE("Plugin manager can initialize again after shutdown", "[PluginLifecycle][Python]")
 {
     ScopedPluginManager plugin_system;
@@ -266,6 +680,40 @@ TEST_CASE("Duplicate discovered plugin keys are reported", "[PluginLifecycle][Py
     REQUIRE(manager.try_get_plugin_descriptor("Shared", descriptor));
     CHECK(descriptor.has_error());
     CHECK(descriptor.normalized_error().find("Duplicate plugin key") != std::string::npos);
+}
+
+TEST_CASE("A script plugin loads with the version and dependencies its entry file declares", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-edited");
+    write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    REQUIRE(descriptor_of(manager, "Echo_Plugin").version == "1.0");
+
+    // The entry file is edited after the scan, to a new version and a new dependency.
+    std::string       edited  = ECHO_PLUGIN_SOURCE;
+    const std::string version = "# version = \"1.0\"";
+    edited.replace(edited.find(version), version.size(), "# version = \"2.0\"");
+    edited.insert(edited.find("# [tool.orcaslicer.plugin]"), "# dependencies = [\"echo-dependency\"]\n");
+    write_plugin(data_dir_guard, "Echo_Plugin", edited);
+
+    // skip_deps: the dependency is read from the file, not installed.
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    INFO("load error: " << error);
+    CHECK(error.empty());
+
+    const PluginDescriptor loaded = descriptor_of(manager, "Echo_Plugin");
+    CHECK(loaded.version == "2.0");
+    CHECK(loaded.installed_version == "2.0");
+    CHECK(loaded.dependencies == std::vector<std::string>{"echo-dependency"});
+
+    manager.unload_plugin("Echo_Plugin");
 }
 
 TEST_CASE("Unloading a plugin drops the package and its capabilities", "[PluginLifecycle][Python]")
@@ -363,8 +811,22 @@ TEST_CASE("Python module release removes package submodules and owned sys.path",
 
     // Ensure the next import executes the new submodule rather than reusing a stale package child.
     write_package("'new'");
-    boost::system::error_code ec;
-    fs::remove_all(package_root / "__pycache__", ec);
+    {
+        // The rewrite can keep the old mtime and size, so drop the bytecode wherever the
+        // interpreter caches it.
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObjectPtr util(PyImport_ImportModule("importlib.util"));
+        REQUIRE(util);
+        for (const char* file : {"__init__.py", "sub.py"}) {
+            PyObjectPtr source(PyUnicode_DecodeFSDefault((package_root / file).string().c_str()));
+            REQUIRE(source);
+            PyObjectPtr cached(PyObject_CallMethod(util.get(), "cache_from_source", "O", source.get()));
+            REQUIRE(cached);
+            boost::system::error_code ec;
+            fs::remove(fs::path(PyUnicode_AsUTF8(cached.get())), ec);
+        }
+    }
 
     paths.clear();
     modules.clear();
@@ -383,6 +845,184 @@ TEST_CASE("Python module release removes package submodules and owned sys.path",
 
     loaded.module           = module;
     loaded.module_name      = "reload_package";
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+}
+
+TEST_CASE("A package imports from a plugin directory longer than MAX_PATH", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("long-path-import-dir");
+
+    // The sys.path entry itself — the wheel cache — is past the legacy Windows MAX_PATH, so it can
+    // be neither probed nor imported from through the plain spelling. Components stay short enough
+    // for NAME_MAX on every platform, so the same tree is valid off Windows.
+    fs::path package_parent = dir.path();
+    while (path_utf8(package_parent).size() < 280)
+        package_parent /= "deep_plugin_directory_component";
+    REQUIRE(path_utf8(package_parent).size() > 260);
+
+    write_long_path_package(package_parent / "long_path_package");
+    check_package_import(package_parent, "long_path_package");
+
+    // Only the extended-length form can remove the deep tree on Windows; the guard then removes
+    // the shallow remainder.
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(long_path(package_parent), cleanup_ec);
+}
+
+TEST_CASE("A package imports when only its files pass MAX_PATH", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("long-path-import-files");
+
+    // The sys.path entry stays below the limit, so a directory probe alone would accept it, but the
+    // package file below it does not. The finder reads the unreachable __init__.py as absent and
+    // accepts the directory as a namespace package, so the loader has to check the entry file
+    // instead of the directory.
+    fs::path package_parent = dir.path();
+    const std::size_t base_len = path_utf8(package_parent).size() + 1; // the separator before padding
+    const std::size_t target_len = 250;
+    if (base_len >= target_len)
+        SKIP("Temporary directory is too long for a below-MAX_PATH parent");
+    package_parent /= std::string(target_len - base_len, 'd');
+    REQUIRE(path_utf8(package_parent).size() == target_len);
+
+    const fs::path package_dir = package_parent / "long_path_package";
+    REQUIRE(path_utf8(package_dir / "__init__.py").size() > 260);
+
+    write_long_path_package(package_dir);
+    check_package_import(package_parent, "long_path_package");
+
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(long_path(package_parent), cleanup_ec);
+}
+
+TEST_CASE("A namespace package imports through its plain directory path", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("plain-import-namespace");
+    const fs::path      package_parent = dir.path();
+    const std::string   pkg_name       = "orca_test_namespace_package";
+    fs::create_directories(package_parent / pkg_name);
+    {
+        std::ofstream submodule((package_parent / pkg_name / "submodule.py").string(), std::ios::binary);
+        submodule << "VALUE = \"namespace\"\n";
+        REQUIRE(submodule.good());
+    }
+
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(package_parent), pkg_name, error, &paths, &modules);
+    INFO("module load error: " << error);
+    REQUIRE(module != nullptr);
+    REQUIRE(paths.size() == 1);
+
+    // The directory is short enough for the plain Win32 APIs, and a namespace package has no
+    // __init__.py to probe, so the spelling the caller passed must be the one recorded rather than
+    // an extended-length path.
+    CHECK(paths.front() == path_utf8(package_parent));
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = pkg_name;
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+}
+
+TEST_CASE("A compiled-only package keeps its plain directory path", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("plain-import-compiled");
+    const fs::path      package_parent = dir.path();
+    const std::string   pkg_name       = "orca_test_compiled_package";
+    fs::create_directories(package_parent / pkg_name);
+    // A package with no .py entry at all: only a compiled initializer the finder probes by name.
+    // The fixture is not a loadable extension module, so the import itself fails; the recorded
+    // sys.path entry is what this test protects. A short directory must not gain the extended-length
+    // prefix just because there is no .py file to probe.
+#ifdef _WIN32
+    const fs::path compiled_init = package_parent / pkg_name / "__init__.pyd";
+#else
+    const fs::path compiled_init = package_parent / pkg_name / "__init__.so";
+#endif
+    {
+        std::ofstream compiled(compiled_init.string(), std::ios::binary);
+        compiled << "not a real extension module\n";
+        REQUIRE(compiled.good());
+    }
+
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(package_parent), pkg_name, error, &paths, &modules);
+    CHECK(module == nullptr);
+    CHECK_FALSE(error.empty());
+    REQUIRE(paths.size() == 1);
+    CHECK(paths.front() == path_utf8(package_parent));
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = pkg_name;
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+}
+
+TEST_CASE("A compiled-only module keeps its plain directory path", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("plain-import-compiled-module");
+    const fs::path      module_parent = dir.path();
+    const std::string   module_name   = "orca_test_compiled_module";
+    // A top-level compiled module has no <name> directory beside it, so the probe of that path
+    // reports "not found". That must not be read as a path past MAX_PATH. As with the package
+    // fixture, the file is not a loadable extension module, so the import fails after the sys.path
+    // entry has been recorded.
+#ifdef _WIN32
+    const fs::path compiled_module = module_parent / (module_name + ".pyd");
+#else
+    const fs::path compiled_module = module_parent / (module_name + ".so");
+#endif
+    {
+        std::ofstream compiled(compiled_module.string(), std::ios::binary);
+        compiled << "not a real extension module\n";
+        REQUIRE(compiled.good());
+    }
+
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(module_parent), module_name, error, &paths, &modules);
+    CHECK(module == nullptr);
+    CHECK_FALSE(error.empty());
+    REQUIRE(paths.size() == 1);
+    CHECK(paths.front() == path_utf8(module_parent));
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = module_name;
     loaded.plugin_sys_paths = paths;
     loaded.plugin_modules   = modules;
     loaded.release_module();
@@ -673,6 +1313,7 @@ class SlowPackage(orca.base):
     // The key is registered before the worker is spawned, so this is not a race.
     REQUIRE(manager.is_plugin_load_in_progress("Slow_Load_Plugin"));
     REQUIRE(manager.cancel_plugin_load("Slow_Load_Plugin"));
+    CHECK(manager.is_plugin_load_cancelled("Slow_Load_Plugin"));
 
     // Cancelling must not release the worker's slot. shutdown() unloads everything and GUI_App
     // finalizes the interpreter as soon as this wait returns, so reporting "no loads in progress"
@@ -683,7 +1324,10 @@ class SlowPackage(orca.base):
     // The worker releases the slot itself, once it has unwound.
     CHECK(manager.wait_for_all_plugin_loads(std::chrono::seconds(60)));
     CHECK_FALSE(manager.is_plugin_load_in_progress("Slow_Load_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_cancelled("Slow_Load_Plugin"));
     CHECK_FALSE(manager.is_plugin_loaded("Slow_Load_Plugin"));
+    // A cancellation is not an ordinary failure, so no prompt is kept actionable for a retry.
+    CHECK_FALSE(manager.is_plugin_load_failed("Slow_Load_Plugin"));
 }
 
 TEST_CASE("Loading an unknown plugin key records an error instead of crashing", "[PluginLifecycle][Python]")
@@ -705,6 +1349,62 @@ TEST_CASE("Loading an unknown plugin key records an error instead of crashing", 
     CHECK_FALSE(manager.is_plugin_loaded("No_Such_Plugin"));
     CHECK(manager.get_plugin_load_error("No_Such_Plugin") == "Plugin not found: No_Such_Plugin");
     CHECK(manager.get_plugin_capabilities("No_Such_Plugin").empty());
+}
+
+TEST_CASE("An ordinary load failure stays recorded until the plugin is unloaded", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // Registration raises after the module imported, which is an ordinary failure: the user can
+    // approve a queued runtime prompt and retry. Cancelling or unloading is different.
+    ScopedDataDir data_dir_guard("lifecycle-load-failed");
+    write_plugin(data_dir_guard, "Broken_Plugin", BROKEN_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    CHECK_FALSE(load_and_wait(manager, "Broken_Plugin", error));
+    INFO("load error: " << error);
+    CHECK_FALSE(error.empty());
+    CHECK_FALSE(manager.is_plugin_loaded("Broken_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_in_progress("Broken_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_cancelled("Broken_Plugin"));
+    CHECK(manager.is_plugin_load_failed("Broken_Plugin"));
+
+    // An explicit unload clears the state a queued prompt would otherwise rely on.
+    REQUIRE(manager.unload_plugin("Broken_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_failed("Broken_Plugin"));
+}
+
+TEST_CASE("Rediscovering a removed failed plugin does not revive its failure state", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-failed-removed");
+    const fs::path plugin_dir = write_plugin(data_dir_guard, "Removed_Plugin", BROKEN_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE_FALSE(load_and_wait(manager, "Removed_Plugin", error));
+    REQUIRE(manager.is_plugin_load_failed("Removed_Plugin"));
+
+    // Removing the missing package must drop the state, not leave it keyed by the old package.
+    fs::remove_all(plugin_dir);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    manager.remove_missing_plugins({"Removed_Plugin"});
+    CHECK_FALSE(manager.is_plugin_load_failed("Removed_Plugin"));
+
+    // Rediscovery starts from a clean failure state even when the key is reused.
+    write_plugin(data_dir_guard, "Removed_Plugin", BROKEN_PLUGIN_SOURCE);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    CHECK_FALSE(manager.is_plugin_load_failed("Removed_Plugin"));
 }
 
 TEST_CASE("The startup auto-load list only contains packages whose sidecar enables them", "[PluginLifecycle][Python]")
@@ -802,3 +1502,130 @@ TEST_CASE("Unloading a plugin that is not loaded is a no-op", "[PluginLifecycle]
     CHECK(manager.unload_plugin("No_Such_Plugin"));
     CHECK_FALSE(manager.is_plugin_loaded("No_Such_Plugin"));
 }
+
+namespace {
+
+// CA certificates in the default client context, as a plugin's urllib or http.client request would
+// verify against.
+int default_context_ca_count()
+{
+    pybind11::gil_scoped_acquire gil;
+    const pybind11::dict stats = pybind11::module_::import("ssl").attr("create_default_context")().attr("cert_store_stats")();
+    return stats["x509_ca"].cast<int>();
+}
+
+} // namespace
+
+TEST_CASE("The bundled Python trusts the system CA certificates", "[PluginLifecycle][Python]")
+{
+    // The app runs this before plugins load; on Linux it is what points OpenSSL at the distro bundle.
+    Http::tls_global_init();
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    CHECK(default_context_ca_count() > 0);
+}
+
+TEST_CASE("Waiting for Python threads at shutdown gives up on a thread that does not end", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    pybind11::gil_scoped_acquire gil;
+
+    const pybind11::module_ threading = pybind11::module_::import("threading");
+    const pybind11::object  release   = threading.attr("Event")();
+    pybind11::object worker = threading.attr("Thread")(pybind11::arg("target") = release.attr("wait"), pybind11::arg("daemon") = false);
+    worker.attr("start")();
+
+    const auto start = std::chrono::steady_clock::now();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds(200)) == 1);
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(5));
+
+    release.attr("set")();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::seconds(5)) == 0);
+}
+
+TEST_CASE("Waiting for Python threads at shutdown ends idle concurrent.futures workers", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    pybind11::gil_scoped_acquire gil;
+
+    const pybind11::module_ threading = pybind11::module_::import("threading");
+    const pybind11::module_ futures   = pybind11::module_::import("concurrent.futures");
+    const pybind11::module_ workers   = pybind11::module_::import("concurrent.futures.thread");
+    // The hooks that end the workers also refuse new tasks for the rest of the process; the
+    // interpreter outlives this test case.
+    const auto allow_new_tasks = [&workers] { workers.attr("_shutdown") = false; };
+
+    // An idle worker waits for its queue until the hooks tell it to end; the wait must not run out.
+    pybind11::object executor = futures.attr("ThreadPoolExecutor")(pybind11::arg("max_workers") = 1);
+    executor.attr("submit")(pybind11::module_::import("builtins").attr("int")).attr("result")();
+    auto start = std::chrono::steady_clock::now();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::seconds(5)) == 0);
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(2));
+    allow_new_tasks();
+
+    // A worker still in a task blocks the hooks; both are given up at the deadline.
+    const pybind11::object release = threading.attr("Event")();
+    executor                       = futures.attr("ThreadPoolExecutor")(pybind11::arg("max_workers") = 1);
+    executor.attr("submit")(release.attr("wait"));
+    start = std::chrono::steady_clock::now();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds(200)) == 1);
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(5));
+
+    release.attr("set")();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::seconds(5)) == 0);
+    allow_new_tasks();
+}
+
+TEST_CASE("Waiting for Python threads at shutdown counts the hooks an earlier wait gave up on", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    pybind11::gil_scoped_acquire gil;
+
+    const pybind11::module_ threading = pybind11::module_::import("threading");
+    REQUIRE(pybind11::hasattr(threading, "_threading_atexits"));
+    // A hook that holds only the first thread to run it: a later wait that starts its own hook
+    // thread would find nothing left running, and Py_Finalize would start under the first one.
+    pybind11::dict scope;
+    pybind11::exec("import threading\n"
+                   "release = threading.Event()\n"
+                   "runs = 0\n"
+                   "def hold():\n"
+                   "    global runs\n"
+                   "    runs += 1\n"
+                   "    if runs == 1:\n"
+                   "        release.wait()\n",
+                   scope);
+    pybind11::list hooks = threading.attr("_threading_atexits");
+    hooks.append(scope["hold"]);
+
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds(200)) == 1);
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds(200)) == 1);
+
+    scope["release"].attr("set")();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::seconds(5)) == 0);
+    hooks.attr("remove")(scope["hold"]);
+}
+
+#ifndef _WIN32 // Windows adds its system store whatever SSL_CERT_FILE names.
+TEST_CASE("SSL_CERT_FILE still overrides the bundled Python's default CA certificates", "[PluginLifecycle][Python]")
+{
+    // Existing but empty: Linux's CurlGlobalInit replaces an SSL_CERT_FILE that names a missing file.
+    ScopedTemporaryFile empty_bundle(".pem");
+    std::ofstream(empty_bundle.string()).close();
+    ScopedEnvVar ssl_cert_file{"SSL_CERT_FILE", empty_bundle.string()};
+
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    CHECK(default_context_ca_count() == 0);
+}
+#endif

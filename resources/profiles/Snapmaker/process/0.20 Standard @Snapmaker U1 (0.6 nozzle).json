@@ -1,6 +1,7 @@
 {
 	"type": "process",
 	"name": "0.20 Standard @Snapmaker U1 (0.6 nozzle)",
+	"renamed_from": "0.20 Standard Snapmaker U1 (0.6 nozzle);0.20 Standard @Snapmaker U1 (0.6 High Flow nozzle);0.20 Standard Snapmaker U1 (0.6 High Flow nozzle)",
 	"inherits": "fdm_process_U1_0.6_common",
 	"from": "system",
 	"setting_id": "6VM4QhgvHUmyf2um",
@@ -12,7 +13,16 @@
 	],
 	"ooze_prevention": "1",
 	"prime_tower_width": "30",
-	"slowdown_for_curled_perimeters": "0",
+	"slowdown_for_curled_perimeters": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
 	"standby_temperature_delta": "-150",
 	"wipe_tower_filament": "0",
 	"preheat_time": "30",
@@ -20,5 +30,65 @@
 	"prime_tower_brim_width": "5",
 	"initial_layer_print_height": "0.25",
 	"top_shell_layers": "4",
-	"bottom_shell_layers": "3"
+	"bottom_shell_layers": "3",
+	"print_extruder_id": [
+		"1",
+		"1",
+		"2",
+		"2",
+		"3",
+		"3",
+		"4",
+		"4"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"internal_solid_infill_speed": [
+		"150",
+		"600",
+		"150",
+		"600",
+		"150",
+		"600",
+		"150",
+		"600"
+	],
+	"inner_wall_speed": [
+		"150",
+		"600",
+		"150",
+		"600",
+		"150",
+		"600",
+		"150",
+		"600"
+	],
+	"sparse_infill_speed": [
+		"250",
+		"600",
+		"250",
+		"600",
+		"250",
+		"600",
+		"250",
+		"600"
+	],
+	"outer_wall_speed": [
+		"120",
+		"500",
+		"120",
+		"500",
+		"120",
+		"500",
+		"120",
+		"500"
+	]
 }

@@ -27,6 +27,7 @@
         "0"
     ],
     "nozzle_temperature_range_high": [
+        "270",
         "270"
     ],
     "nozzle_temperature": [

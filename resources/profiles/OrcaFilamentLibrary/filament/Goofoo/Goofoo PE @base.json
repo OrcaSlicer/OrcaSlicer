@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Goofoo PE @base",
+	"inherits": "Generic PE @System",
+	"from": "system",
+	"filament_id": "OFAln723",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"filament_type": [
+		"PE"
+	]
+}

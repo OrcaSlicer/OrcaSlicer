@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Goofoo ASA @base",
+	"inherits": "Generic ASA @System",
+	"from": "system",
+	"filament_id": "OFyncHIG",
+	"instantiation": "false",
+	"filament_flow_ratio": [
+		"0.93"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	],
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"filament_type": [
+		"ASA"
+	]
+}

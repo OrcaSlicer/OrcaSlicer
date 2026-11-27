@@ -1,6 +1,10 @@
 #ifndef PRUSASLICER_AABBMESH_H
 #define PRUSASLICER_AABBMESH_H
 
+#include <cstddef>
+#include <limits>
+#include <cmath>
+#include <cassert>
 #include <memory>
 #include <vector>
 

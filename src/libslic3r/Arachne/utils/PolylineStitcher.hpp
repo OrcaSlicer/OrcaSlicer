@@ -15,7 +15,6 @@
 
 #include "SparsePointGrid.hpp"
 #include "PolygonsPointIndex.hpp"
-#include "../../Polygon.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 

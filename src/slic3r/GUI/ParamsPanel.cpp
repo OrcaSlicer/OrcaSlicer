@@ -8,7 +8,6 @@
 #include "libslic3r/Preset.hpp"
 #include "ParamsPanel.hpp"
 #include "Tab.hpp"
-#include "format.hpp"
 #include "MainFrame.hpp"
 #include "GUI_App.hpp"
 #include "Plater.hpp"
@@ -17,6 +16,29 @@
 #include "Widgets/SwitchButton.hpp"
 #include "Widgets/Button.hpp"
 #include "GUI_Factories.hpp"
+#include "I18N.hpp"
+#include "libslic3r/Config.hpp"
+#include <string>
+#include <map>
+#include <wx/string.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
+#include <wx/event.h>
+#include <utility>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "UnsavedChangesDialog.hpp"
+#include <wx/anybutton.h>
+#include <wx/timer.h>
+#include <cstddef>
+#include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
+#include <wx/wupdlock.h>
+#include <vector>
 
 
 namespace Slic3r {
@@ -391,7 +413,7 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
     m_page_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_page_view->SetSizer(m_page_sizer);
-    m_page_view->SetScrollbars(1, 20, 1, 2);
+    m_page_view->SetScrollbars(1, FromDIP(20), 1, 2);
     //m_page_view->SetScrollRate( 5, 5 );
 
     if (m_mode_region)
@@ -643,13 +665,14 @@ void ParamsPanel::set_active_tab(wxPanel* tab)
         dialog->SetTitle(title);
     }
 
+    const wxString process_flow_ratio_reason = _L("The process flow ratio cannot be edited in this panel.");
     auto tab_print = dynamic_cast<Tab *>(m_tab_print);
     if (cur_tab == m_tab_print) {
         if (tab_print)
-            tab_print->toggle_line("print_flow_ratio", false);
+            tab_print->toggle_line("print_flow_ratio", false, -1, process_flow_ratio_reason);
     } else {
         if (tab_print)
-            tab_print->toggle_line("print_flow_ratio", false);
+            tab_print->toggle_line("print_flow_ratio", false, -1, process_flow_ratio_reason);
     }
 }
 
@@ -787,93 +810,11 @@ void ParamsPanel::free_sizers()
     m_button_sizer = nullptr;
 }
 
-void ParamsPanel::delete_subwindows()
-{
-    if (m_title_label)
-    {
-        delete m_title_label;
-        m_title_label = nullptr;
-    }
-
-    if (m_mode_region)
-    {
-        delete m_mode_region;
-        m_mode_region = nullptr;
-    }
-
-    if (m_mode_view)
-    {
-        m_mode_view = nullptr;
-    }
-
-    if (m_mode_icon) // ORCA m_title_view replacement
-    {
-        delete m_mode_icon;
-        m_mode_icon = nullptr;
-    }
-
-    if (m_search_btn)
-    {
-        delete m_search_btn;
-        m_search_btn = nullptr;
-    }
-
-    if (m_staticline_print)
-    {
-        delete m_staticline_print;
-        m_staticline_print = nullptr;
-    }
-
-    if (m_staticline_print_part)
-    {
-        delete m_staticline_print_part;
-        m_staticline_print_part = nullptr;
-    }
-
-    if (m_staticline_print_object)
-    {
-        delete m_staticline_print_object;
-        m_staticline_print_object = nullptr;
-    }
-
-    if (m_staticline_filament)
-    {
-        delete m_staticline_filament;
-        m_staticline_filament = nullptr;
-    }
-
-    if (m_staticline_printer)
-    {
-        delete m_staticline_printer;
-        m_staticline_printer = nullptr;
-    }
-
-    if (m_export_to_file)
-    {
-        delete m_export_to_file;
-        m_export_to_file = nullptr;
-    }
-
-    if (m_import_from_file)
-    {
-        delete m_import_from_file;
-        m_import_from_file = nullptr;
-    }
-
-    if (m_page_view)
-    {
-        delete m_page_view;
-        m_page_view = nullptr;
-    }
-}
-
 ParamsPanel::~ParamsPanel()
 {
 #if 0
     free_sizers();
     delete m_top_sizer;
-
-    delete_subwindows();
 #endif
     // BBS: fix double destruct of OG_CustomCtrl
     Tab* cur_tab = dynamic_cast<Tab*> (m_current_tab);

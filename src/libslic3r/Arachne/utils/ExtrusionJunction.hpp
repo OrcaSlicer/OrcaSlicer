@@ -6,6 +6,9 @@
 #define UTILS_EXTRUSION_JUNCTION_H
 
 #include "../../Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <cstddef>
+#include <vector>
 
 namespace Slic3r::Arachne
 {

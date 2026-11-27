@@ -6,6 +6,8 @@
     "setting_id": "GFSN03_03",
     "instantiation": "true",
     "activate_air_filtration": [
+        "0",
+        "0",
         "0"
     ],
     "chamber_temperatures": [
@@ -15,9 +17,13 @@
         "5"
     ],
     "fan_max_speed": [
+        "30",
+        "30",
         "30"
     ],
     "fan_min_speed": [
+        "10",
+        "10",
         "10"
     ],
     "filament_cooling_before_tower": [

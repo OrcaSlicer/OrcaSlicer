@@ -1,16 +1,26 @@
 #include "RotoptimizeJob.hpp"
 
-#include "libslic3r/MTUtils.hpp"
 #include "libslic3r/SLA/Rotfinder.hpp"
 #include "libslic3r/MinAreaBoundingBox.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/SLAPrint.hpp"
 
 #include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include <string>
+#include <algorithm>
+#include <cstddef>
+#include <tuple>
+#include <exception>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 namespace Slic3r { namespace GUI {
 

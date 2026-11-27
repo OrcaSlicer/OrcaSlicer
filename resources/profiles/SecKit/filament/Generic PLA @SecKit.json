@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @SecKit",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "SecKit Generic PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "uWvI4RDQiYLFN7pp",
 	"filament_id": "OFDSrzZ8",

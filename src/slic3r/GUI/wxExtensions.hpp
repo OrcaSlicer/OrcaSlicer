@@ -1,10 +1,17 @@
 #ifndef slic3r_GUI_wxExtensions_hpp_
 #define slic3r_GUI_wxExtensions_hpp_
 
+#include <string>
+#include <wx/anybutton.h>
+#include <cstddef>
 #include <wx/checklst.h>
+#include <wx/colour.h>
 #include <wx/combo.h>
 #include <wx/dataview.h>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/rtti.h>
 #include <wx/sizer.h>
 #include <wx/menu.h>
 #include <wx/bmpcbox.h>
@@ -13,10 +20,10 @@
 #include <wx/scrolwin.h>
 #include <wx/spinctrl.h>
 #include <wx/artprov.h>
-#include <wx/colordlg.h>
 
 #include <vector>
 #include <functional>
+#include <wx/string.h>
 #include "BitmapCache.hpp"
 #include "Widgets/PopupWindow.hpp"
 
@@ -45,7 +52,7 @@ wxMenuItem* append_menu_check_item(wxMenu* menu, int id, const wxString& string,
     std::function<bool()> const enable_condition = []() { return true; },
     std::function<bool()> const check_condition = []() { return true; }, wxWindow* parent = nullptr);
 
-void enable_menu_item(wxUpdateUIEvent& evt, std::function<bool()> const cb_condition, wxMenuItem* item, wxWindow* win);
+void enable_menu_item(wxUpdateUIEvent& evt, std::function<bool()> const cb_condition, wxWindow* win);
 
 class wxDialog;
 
@@ -80,7 +87,6 @@ wxBitmap * get_extruder_color_icon(std::string color, std::string label, int ico
 wxBitmap * get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height,
                                    const std::vector<wxColour> *ramp = nullptr);
 std::vector<std::vector<std::string>> read_color_pack(std::vector<std::string> color_pack);
-wxColourData show_sys_picker_dialog(wxWindow *parent, const wxColourData &clr_data);
 
 namespace Slic3r {
 namespace GUI {

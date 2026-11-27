@@ -6,6 +6,7 @@
     "setting_id": "GFSN04_28",
     "instantiation": "true",
     "activate_air_filtration": [
+        "0",
         "0"
     ],
     "chamber_temperatures": [

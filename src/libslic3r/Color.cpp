@@ -1,7 +1,15 @@
 #include "libslic3r.h"
 #include "Color.hpp"
 
+#include <cstddef>
+#include <cstdlib>
+#include <cassert>
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
 #include <random>
+#include <string>
+#include <vector>
 
 static const float INV_255 = 1.0f / 255.0f;
 

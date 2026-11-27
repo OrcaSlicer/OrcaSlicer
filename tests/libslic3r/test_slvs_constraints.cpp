@@ -1,4 +1,9 @@
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include <cstddef>
 using Catch::Approx;   // v3 scopes Approx into the Catch namespace; v2 had it at global scope
 
 #include "libslic3r/CAD/SketchSolver.hpp"

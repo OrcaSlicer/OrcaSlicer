@@ -1,15 +1,53 @@
 #include "IMSlider.hpp"
-#include "libslic3r/GCode.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "NotificationManager.hpp"
 #include "Widgets/StateColor.hpp"
+#include "libslic3r/libslic3r.h"
+#include <imgui.h>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include "libslic3r/ExPolygon.hpp"
+#include <string>
+#include "libslic3r/CustomGCode.hpp"
+#include <cstdio>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "libslic3r/Utils.hpp"
+#include <algorithm>
+#include <vector>
+#include "slic3r/GUI/TickCode.hpp"
+#include <boost/log/trivial.hpp>
+#include <wx/colour.h>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <set>
+#include <wx/string.h>
+#include <cstring>
+#include <cctype>
+#include <cstdlib>
+#include <wx/event.h>
+#include <wx/utils.h>
+#include <wx/slider.h>
+#include <array>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
+
+using namespace CustomGCode;
 
 namespace GUI {
 
@@ -369,10 +407,12 @@ void IMSlider::post_ticks_changed_event(Type type)
     m_is_need_post_tick_changed_event = true;
 }
 
-void IMSlider::add_custom_gcode(std::string custom_gcode)
+void IMSlider::add_custom_gcode(std::string custom_gcode, int tick)
 {
-    if (m_selection == ssUndef) return;
-    const int tick = m_selection == ssLower ? m_lower_value : m_higher_value;
+    if (tick < 0) {
+        if (m_selection == ssUndef) return;
+        tick = m_selection == ssLower ? m_lower_value : m_higher_value;
+    }
 
     const auto it = m_ticks.ticks.find(TickCode{ tick });
 
@@ -384,14 +424,16 @@ void IMSlider::add_custom_gcode(std::string custom_gcode)
     post_ticks_changed_event(Custom);
 }
 
-void IMSlider::add_code_as_tick(Type type, int selected_extruder)
+bool IMSlider::add_code_as_tick(Type type, int selected_extruder, int tick)
 {
-    if (m_selection == ssUndef) return;
-    const int tick = m_selection == ssLower ? m_lower_value : m_higher_value;
+    if (tick < 0) {
+        if (m_selection == ssUndef) return false;
+        tick = m_selection == ssLower ? m_lower_value : m_higher_value;
+    }
 
     if (!check_ticks_changed_event(type)) {
         BOOST_LOG_TRIVIAL(trace) << "check ticks change event false";
-        return;
+        return false;
     }
 
     if (type == ColorChange && gcode(ColorChange).empty()) GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::NotificationType::EmptyColorChangeCode);
@@ -401,14 +443,15 @@ void IMSlider::add_code_as_tick(Type type, int selected_extruder)
 
     if (it == m_ticks.ticks.end()) {
         // try to add tick
-        if (!m_ticks.add_tick(tick, type, extruder, m_values[tick])) return;
+        if (!m_ticks.add_tick(tick, type, extruder, m_values[tick])) return false;
     } else if (type == ToolChange || type == ColorChange) {
         // try to switch tick code to ToolChange or ColorChange accordingly
-        if (!m_ticks.switch_code_for_tick(it, type, extruder)) return;
+        if (!m_ticks.switch_code_for_tick(it, type, extruder)) return false;
     } else
-        return;
+        return false;
 
     post_ticks_changed_event(type);
+    return true;
 }
 
 void IMSlider::delete_tick(const TickCode& tick) {
@@ -483,6 +526,11 @@ void IMSlider::draw_background_and_groove(const ImRect& bg_rect, const ImRect& g
     ImGui::RenderFrame(groove.Min, groove.Max, groove_col, false, 0.5 * groove.GetWidth());
 }
 
+bool IMSlider::is_dragging() const
+{
+    return GImGui != nullptr && m_imgui_id != 0 && GImGui->ActiveId == m_imgui_id && GImGui->IO.MouseDown[0];
+}
+
 bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int v_max, const ImVec2& size, float scale)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -491,6 +539,7 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
 
     ImGuiContext& context = *GImGui;
     const ImGuiID id = window->GetID(str_id);
+    m_imgui_id = id;
 
     const ImVec2 pos = window->DC.CursorPos;
     const ImRect draw_region(pos, pos + size);
@@ -883,6 +932,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
 
     ImGuiContext& context = *GImGui;
     const ImGuiID id = window->GetID(str_id);
+    m_imgui_id = id;
 
     const ImVec2 pos = window->DC.CursorPos;
     const ImRect draw_region(pos, pos + size);
@@ -1370,7 +1420,7 @@ void IMSlider::render_input_custom_gcode(std::string custom_gcode)
 }
 
 void IMSlider::do_go_to_layer(size_t layer_number) {
-    layer_number = clamp((int)layer_number, m_min_value, m_max_value);
+    layer_number = std::clamp((int)layer_number, m_min_value, m_max_value);
     GetSelection() == ssLower ? SetLowerValue(layer_number) : SetHigherValue(layer_number);
 }
 
@@ -1489,7 +1539,7 @@ void IMSlider::render_add_menu()
         ImGui::OpenPopup("slider_add_menu_popup");
         m_show_menu = false;
     }
-    if (ImGui::BeginPopup("slider_add_menu_popup")) {
+    if (ImGui::BeginPopup("slider_add_menu_popup", ImGuiWindowFlags_NoMove)) {
         bool menu_item_enable = m_draw_mode != dmSequentialFffPrint;
         bool hovered = false;
         {
@@ -1527,7 +1577,7 @@ void IMSlider::render_add_menu()
                     ImU32                icon_clr = ImGuiWrapper::to_ImU32(rgba);
                     if (rgba.a() == 0)
                         icon_clr = 0;
-                    if (menu_item_with_icon((_u8L("Filament ") + std::to_string(i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr, false, true, &hovered)) add_code_as_tick(ToolChange, i + 1);
+                    if (menu_item_with_icon(into_u8(wxString::Format(_L("Filament %d"), i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr, false, true, &hovered)) add_code_as_tick(ToolChange, i + 1);
                     if (hovered) { show_tooltip(_u8L("Change filament at the beginning of this layer.")); }
                 }
                 end_menu();
@@ -1544,7 +1594,7 @@ void IMSlider::render_edit_menu(const TickCode& tick)
         ImGui::OpenPopup("slider_edit_menu_popup");
         m_show_menu = false;
     }
-    if (ImGui::BeginPopup("slider_edit_menu_popup")) {
+    if (ImGui::BeginPopup("slider_edit_menu_popup", ImGuiWindowFlags_NoMove)) {
         switch (tick.type)
         {
         case CustomGCode::PausePrint:
@@ -1577,7 +1627,7 @@ void IMSlider::render_edit_menu(const TickCode& tick)
                     for (int i = 0; i < extruder_num; i++) {
                         ColorRGBA rgba = decode_color_to_float_array(m_extruder_colors[i]);
                         ImU32     icon_clr = ImGuiWrapper::to_ImU32(rgba);
-                        if (menu_item_with_icon((_u8L("Filament ") + std::to_string(i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr)) add_code_as_tick(ToolChange, i + 1);
+                        if (menu_item_with_icon(into_u8(wxString::Format(_L("Filament %d"), i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr)) add_code_as_tick(ToolChange, i + 1);
                     }
                     end_menu();
                 }
@@ -1622,14 +1672,14 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
     wheel = wheel > 0 ? 1.0f : -1.0f;
 
 #ifdef __WXOSX__
-    if (wxGetKeyState(WXK_SHIFT)) {
+    if (Slic3r::GUI::get_key_state(WXK_SHIFT)) {
         wheel *= -5;
     }
-    else if (wxGetKeyState(WXK_RAW_CONTROL)) {
+    else if (Slic3r::GUI::get_key_state(WXK_RAW_CONTROL)) {
         wheel *= 5;
     }
 #else
-    if (wxGetKeyState(WXK_COMMAND) || wxGetKeyState(WXK_SHIFT))
+    if (Slic3r::GUI::get_key_state(WXK_COMMAND) || Slic3r::GUI::get_key_state(WXK_SHIFT))
         wheel *= 5;
 #endif
     if (is_horizontal()) {
@@ -1755,9 +1805,9 @@ double IMSlider::get_double_value(const SelectedSlider &selection)
     return m_values[selection == ssLower ? m_lower_value : m_higher_value];
 }
 
-int IMSlider::get_tick_from_value(double value, bool force_lower_bound /* = false*/)
+int IMSlider::get_tick_from_value(double value, bool force_lower_bound /* = false*/) const
 {
-    std::vector<double>::iterator it;
+    std::vector<double>::const_iterator it;
     if (m_is_wipe_tower && !force_lower_bound)
         it = std::find_if(m_values.begin(), m_values.end(), [value](const double &val) { return fabs(value - val) <= epsilon(); });
     else

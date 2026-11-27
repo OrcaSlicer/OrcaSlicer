@@ -64,7 +64,6 @@ private:
 	void set_auth(Http& http) const;
 	void disconnect(ConnectionType connectionType) const;
 	bool start_print(wxString &msg, const std::string &filename, ConnectionType connectionType) const;
-	int get_err_code_from_body(const std::string &body) const;
 };
 
 }

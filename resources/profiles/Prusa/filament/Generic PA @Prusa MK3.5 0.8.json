@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA @Prusa MK3.5 0.8",
-	"inherits": "fdm_filament_pa",
 	"renamed_from": "Prusa Generic PA @MK3.5 0.8;Prusa Generic PA MK3.5 0.8",
+	"inherits": "fdm_filament_pa",
 	"from": "system",
 	"setting_id": "WiO6dm6LbzJxOC9j",
 	"filament_id": "OFg8ndtj",

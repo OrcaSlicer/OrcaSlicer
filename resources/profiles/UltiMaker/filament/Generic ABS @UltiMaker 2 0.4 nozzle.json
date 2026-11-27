@@ -1,6 +1,6 @@
 {
 	"type": "filament",
-  "name": "Generic ABS @UltiMaker 2 0.4 nozzle",
+	"name": "Generic ABS @UltiMaker 2 0.4 nozzle",
 	"inherits": "Generic ABS @System",
 	"from": "system",
 	"setting_id": "z65YPRPvIareA5TJ",
@@ -8,6 +8,9 @@
 	"instantiation": "true",
 	"filament_diameter": [
 		"2.85"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
 	],
 	"filament_max_volumetric_speed": [
 		"6"
@@ -37,6 +40,6 @@
 		"1"
 	],
 	"compatible_printers": [
-    "UltiMaker 2 0.4 nozzle"
+		"UltiMaker 2 0.4 nozzle"
 	]
 }

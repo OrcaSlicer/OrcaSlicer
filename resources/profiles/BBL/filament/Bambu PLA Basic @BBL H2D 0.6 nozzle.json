@@ -6,6 +6,8 @@
     "setting_id": "GFSA00_27",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "75",
+        "75",
         "75"
     ],
     "counter_coef_2": [
@@ -27,9 +29,13 @@
         "55"
     ],
     "fan_max_speed": [
+        "80",
+        "80",
         "80"
     ],
     "fan_min_speed": [
+        "60",
+        "60",
         "60"
     ],
     "filament_change_length": [

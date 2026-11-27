@@ -8,6 +8,8 @@
 
 #include "PrebuildQueue.hpp"
 
+namespace Slic3r::GUI { class LazyBase; }
+
 namespace Slic3r { namespace GUI {
 
 // Runs the queue's units while the user is idle. Once the user has been idle long enough,
@@ -23,6 +25,7 @@ public:
     void clear() { m_queue.clear(); }
     // The task names in queue order, for a log line.
     std::string names() const { return m_queue.names(); }
+    bool        pending() const { return m_queue.pending(); }
 
     // Arms the timer; it stops itself once no task is pending, so call again when a task
     // appears.

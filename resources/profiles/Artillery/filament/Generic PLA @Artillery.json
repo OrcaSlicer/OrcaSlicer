@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFDSrzZ8",
-	"setting_id": "T0sW3uMBr94Y1X1G",
 	"name": "Generic PLA @Artillery",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Artillery Generic PLA",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "T0sW3uMBr94Y1X1G",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"
 	],

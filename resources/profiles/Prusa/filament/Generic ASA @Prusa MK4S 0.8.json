@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Prusa MK4S 0.8",
-	"inherits": "Generic ASA @Prusa MK4S",
 	"renamed_from": "Prusa Generic ASA @MK4S 0.8;Prusa Generic ASA MK4S 0.8",
+	"inherits": "Generic ASA @Prusa MK4S",
 	"from": "system",
 	"setting_id": "a0IXdYic1FVnKaJg",
 	"filament_id": "OFLPAxz3",

@@ -1,8 +1,23 @@
 #include "Flashforge.hpp"
 #include <algorithm>
 #include <array>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/host_name.hpp>
+#include <boost/asio/ip/udp.hpp>
+#include <boost/asio/socket_base.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/ip/address_v4.hpp>
+#include <boost/asio/error.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <cstring>
 #include <ctime>
 #include <chrono>
+#include <string>
+#include "libslic3r/Config.hpp"
+#include <exception>
+#include <ios>
 #include <thread>
 #include <sstream>
 #include <fstream>
@@ -11,16 +26,17 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <vector>
+#include <utility>
 #include <wx/frame.h>
 #include <wx/event.h>
 #include <wx/progdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 
@@ -28,17 +44,16 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/MsgDialog.hpp"
 #include "Http.hpp"
 #include "TCPConsole.hpp"
 #include "SerialMessage.hpp"
 #include "SerialMessageType.hpp"
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 using json = nlohmann::json;
 
 namespace Slic3r {
@@ -173,16 +188,17 @@ bool validate_local_api_response(const std::string& response_body, wxString& err
             message = parsed["msg"].get<std::string>();
 
         if (message.empty())
-            message = "Request failed";
+            message = _u8L("Request failed");
 
-        error_msg = GUI::from_u8((boost::format("Flashforge local API error %1%: %2%") % result_code % message).str());
+        // TRN %1% is the error code returned by the printer, %2% its error message.
+        error_msg = GUI::from_u8((boost::format(_u8L("Flashforge local API error %1%: %2%")) % result_code % message).str());
         return false;
     }
 
     return true;
 }
 
-std::string sanitize_flashforge_filename(const std::string& filename, const std::string& fallback_extension = {})
+std::string sanitize_flashforge_filename(const std::string& filename, const std::string& fallback_extension = {}, bool local_api = false)
 {
     std::string basename = fs::path(filename).filename().string();
     if (basename.empty()) {
@@ -193,7 +209,9 @@ std::string sanitize_flashforge_filename(const std::string& filename, const std:
 
     for (char& ch : basename) {
         const bool is_ascii_alnum = (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
-        if (!is_ascii_alnum && ch != '.' && ch != '_' && ch != '-') {
+        // Local API accepts the same names as FlashPrint/Orca-Flashforge: everything except <>[]:/\|?*" and control chars
+        const bool is_allowed = local_api && static_cast<unsigned char>(ch) >= 0x20 && !std::strchr("<>[]:/\\|?*\"", ch);
+        if (!is_ascii_alnum && !is_allowed && ch != '.' && ch != '_' && ch != '-') {
             ch = '_';
         }
     }
@@ -510,11 +528,21 @@ bool Flashforge::fetch_material_slots(std::vector<FlashforgeMaterialSlot>& slots
     if (!request_local_api_json("detail", json{{"serialNumber", m_serial_number}, {"checkCode", m_check_code}}.dump(), body, msg))
         return false;
 
-    const auto parsed = json::parse(body, nullptr, false, true);
-    if (parsed.is_discarded()) {
+    if (!parse_material_slots(body, slots, supports_material_station)) {
         msg = _(L("Flashforge returned an invalid JSON response."));
         return false;
     }
+
+    return true;
+}
+
+bool Flashforge::parse_material_slots(const std::string& body, std::vector<FlashforgeMaterialSlot>& slots, bool* supports_material_station)
+{
+    slots.clear();
+
+    const auto parsed = json::parse(body, nullptr, false, true);
+    if (parsed.is_discarded())
+        return false;
 
     const auto& detail = parsed.contains("detail") ? parsed["detail"] : parsed;
     const auto& station = detail.contains("matlStationInfo") ? detail["matlStationInfo"] :
@@ -542,12 +570,21 @@ bool Flashforge::fetch_material_slots(std::vector<FlashforgeMaterialSlot>& slots
     if (supports_material_station != nullptr)
         *supports_material_station = reports_material_station;
 
+    // Fields are read leniently: firmware may send numbers as strings or flags as numbers.
     for (const auto& slot : slot_infos) {
+        if (!slot.is_object())
+            continue;
         FlashforgeMaterialSlot info;
-        info.slot_id        = slot.value("slotId", static_cast<int>(slots.size()) + 1);
-        info.has_filament   = slot.value("hasFilament", false);
-        info.material_name  = slot.value("materialName", std::string());
-        info.material_color = slot.value("materialColor", std::string());
+        info.slot_id = static_cast<int>(slots.size()) + 1;
+        if (const auto it = slot.find("slotId"); it != slot.end())
+            try_parse_json_int(*it, info.slot_id);
+        int has_filament = 0;
+        if (const auto it = slot.find("hasFilament"); it != slot.end() && try_parse_json_int(*it, has_filament))
+            info.has_filament = has_filament != 0;
+        if (const auto it = slot.find("materialName"); it != slot.end() && it->is_string())
+            info.material_name = it->get<std::string>();
+        if (const auto it = slot.find("materialColor"); it != slot.end() && it->is_string())
+            info.material_color = it->get<std::string>();
         slots.emplace_back(std::move(info));
     }
 
@@ -562,6 +599,7 @@ bool Flashforge::upload_local_api(PrintHostUpload upload_data, ProgressFn progre
     auto        leveling_before_print = upload_data.extended_info["levelingBeforePrint"] == "1";
     auto        time_lapse_video      = upload_data.extended_info["timeLapseVideo"] == "1";
     auto        use_material_station  = upload_data.extended_info["useMatlStation"] == "1";
+    auto        flow_calibration      = upload_data.extended_info["flowCalibration"] == "1";
 
     if (auto it = upload_data.extended_info.find("materialMappings"); it != upload_data.extended_info.end())
         material_map_json = it->second;
@@ -571,7 +609,7 @@ bool Flashforge::upload_local_api(PrintHostUpload upload_data, ProgressFn progre
 
     auto        url      = make_http_url("uploadGcode");
     const std::string fallback_extension = upload_data.source_path.extension().string().empty() ? (upload_data.use_3mf ? ".3mf" : ".gcode") : upload_data.source_path.extension().string();
-    auto        filename = sanitize_flashforge_filename(upload_data.upload_path.string(), fallback_extension);
+    auto        filename = sanitize_flashforge_filename(upload_data.upload_path.string(), fallback_extension, true);
     std::string file_size;
     try {
         file_size = std::to_string(fs::file_size(upload_data.source_path));
@@ -585,7 +623,7 @@ bool Flashforge::upload_local_api(PrintHostUpload upload_data, ProgressFn progre
         .header("fileSize", file_size)
         .header("printNow", upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false")
         .header("levelingBeforePrint", leveling_before_print ? "true" : "false")
-        .header("flowCalibration", "false")
+        .header("flowCalibration", flow_calibration ? "true" : "false")
         .header("firstLayerInspection", "false")
         .header("timeLapseVideo", time_lapse_video ? "true" : "false")
         .header("useMatlStation", use_material_station ? "true" : "false")
@@ -668,15 +706,6 @@ std::string Flashforge::extract_host_name() const
 
     curl_url_cleanup(hurl);
     return out;
-}
-
-int Flashforge::get_err_code_from_body(const std::string& body) const
-{
-    pt::ptree          root;
-    std::istringstream iss(body); // wrap returned json to istringstream
-    pt::read_json(iss, root);
-
-    return root.get<int>("err", 0);
 }
 
 } // namespace Slic3r

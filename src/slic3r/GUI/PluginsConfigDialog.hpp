@@ -2,11 +2,16 @@
 
 #include <slic3r/GUI/Widgets/WebViewHostDialog.hpp>
 #include <libslic3r/Preset.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <slic3r/plugin/PluginConfig.hpp>
 
 #include <atomic>
 #include <memory>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <string>
+#include <wx/string.h>
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
@@ -27,6 +32,7 @@ public:
 
 private:
     void on_script_message(const nlohmann::json& payload) override;
+    nlohmann::json localized_strings() const override;
     // Runs one web command on a clean main-loop stack; see on_script_message.
     void handle_web_command(const nlohmann::json& payload);
 

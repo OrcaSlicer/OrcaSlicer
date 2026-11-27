@@ -6,6 +6,9 @@
 	"setting_id": "3bguiaEtUsS8ULHW",
 	"filament_id": "OFrjacXf",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_vendor": [
 		"Flashforge"
 	],

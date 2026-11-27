@@ -51,7 +51,42 @@ bare printable key in the frame hook would swallow that character in every text 
 The dialog refuses such chords and `ShortcutRegistry::load()` drops them from the config.
 Space counts as typing. The speed dial's default is the one bare Space, and
 `MainFrame` leaves it to a focused control that uses Space itself (text fields, buttons,
-combo boxes), so it opens the dial from the canvases and the tab strip only.
+combo boxes), so it opens the dial from the canvases and the tab strip only. Selecting a page
+with a 3D view (Prepare, Preview, the Design tab) gives the view the keyboard: the page's own
+`SetFocus()` would hand it to its first focusable control, a sidebar control there, which keeps
+Space until the pointer enters the view.
+
+`MainFrame::handle_global_shortcut` skips a chord that `KeyChord::edits_text()` reports
+while a text field has the focus (a wx text entry, spin control, web view or ImGui
+InputText), and skips every chord while an ImGui modal is open, as a wx modal dialog
+would. `ImGuiWrapper::owns_key()` reads the text input request and the popup stack of the
+last drawn frame, since `WantCaptureKeyboard` and `WantTextInput` only catch up when the
+next frame starts, and is called only when the focus is on a visible canvas from
+`OpenGLManager::create_wxglcanvas()`.
+
+The `Plater`, `Preview` and `Painting` shortcuts act on the 3D view, so they run only while
+the 3D view has the keyboard. `GLCanvas3D` feeds every key event to ImGui and asks
+`ImGuiWrapper::claim_key_event()` whether to act on it as well. While an ImGui popup (a
+dropdown, a menu or a modal) is open or an ImGui InputText is active, ImGui claims every key,
+as a focused sidebar text field or an open native dropdown keeps every key from the canvas.
+Esc then closes the topmost dropdown or menu, since this ImGui closes popups on Esc only
+through keyboard navigation, which is off; a modal handles Esc itself. A second Esc reaches
+the canvas once nothing claims it. A slider or button held with the mouse also claims every
+key until it is released, since a shortcut that switches the view or closes the tool would
+leave the drag behind. One side handles a key from its key-down to its release. Its
+repeats, its char event and its release follow the key-down's decision even when a field or
+modal opens or closes in between, so a key never both runs a shortcut and types, and a
+keyboard move of the selection always sees the release of the key that started it.
+
+Key-ups go to whatever window has the focus, so a shortcut that opens a dialog, such as
+Ctrl+P, takes the release of its modifier with it. When the canvas loses the focus it sends
+itself a key-up for each Shift, Ctrl or Alt still held, which ends a gizmo's Shift mode and
+clears ImGui's own copy of the modifier, and then drops its record of held keys.
+`ImGuiWrapper::update_mouse_data()` also takes ImGui's modifiers from each mouse event, which
+carries the real state, since a stale Ctrl would turn every slider click into a Ctrl+click
+and open the slider's text box. The macOS
+Edit menu, whose key equivalents run before the canvas sees the key, follows the same rule
+as the canvas.
 
 ## Which event a chord matches
 
@@ -92,7 +127,9 @@ canvas loses focus, so a held key is one undo step.
 Menu labels, toolbar tooltips, gizmo names, the context menu and the shortcuts dialog
 read the registry, so a rebinding shows up in all of them. Each tracked menu item keeps
 its base label; `MainFrame::update_shortcut_labels()` appends the current binding
-again after an edit, which also installs the new wx accelerator.
+again after an edit, which also installs the new wx accelerator. The context menu's Clone
+and Reload from disk items sit in menus that are built once, so they refresh their binding
+on `wxEVT_UPDATE_UI` each time the menu opens instead.
 
 A chord that is unsafe as a menu accelerator, meaning a bare printable key, is appended
 to the label as plain text so the menu cannot take it away from text fields. The macOS
@@ -124,7 +161,8 @@ Control on the Global page, and from the `?` key on the page of the view that re
    the dialog should list it; the row's section heading is the `section_table` entry
    above it, so a new section needs an entry there too. Pick a default that does not
    collide inside its contexts; the `[Shortcuts]` tests check every default against the
-   others.
+   others. An empty chord `{}` leaves a shortcut unbound until the user picks a key,
+   as the jump-to-tab shortcuts are.
 2. Handle it in the dispatcher of its context: `MainFrame::handle_global_shortcut`,
    `GLCanvas3D::handle_shortcut`, `ObjectList::dispatch_shortcut`, or a gizmo's
    `on_tool_shortcut`. A gizmo that opens on a key sets `m_shortcut` in its constructor.

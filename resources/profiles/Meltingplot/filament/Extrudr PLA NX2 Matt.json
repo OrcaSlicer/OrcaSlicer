@@ -6,6 +6,9 @@
 	"setting_id": "qmPRaTcPlmtk6zB2",
 	"filament_id": "OF1PznHI",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_vendor": [
 		"Extrudr"
 	],

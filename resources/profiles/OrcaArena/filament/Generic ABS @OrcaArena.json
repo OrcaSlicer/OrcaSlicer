@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @OrcaArena",
-	"inherits": "Generic ABS @OrcaArena base",
 	"renamed_from": "OrcaArena Generic ABS",
+	"inherits": "Generic ABS @OrcaArena base",
 	"from": "system",
 	"setting_id": "ftTPQmVmsaD0n1GF",
 	"instantiation": "true",

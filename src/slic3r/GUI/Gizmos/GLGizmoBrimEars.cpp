@@ -1,5 +1,40 @@
 #include "GLGizmoBrimEars.hpp"
+#include <cstddef>
+#include <Eigen/Geometry>
+#include <algorithm>
+#include <cereal/archives/binary.hpp>
+#include <cmath>
+#include <cstdint>
 #include <glad/gl.h>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include <memory>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <utility>
+#include "slic3r/GUI/Event.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Brim.hpp"
+#include "libslic3r/BrimEarsPoint.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <limits>
+#include <vector>
+#include <imgui.h>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/MultiPoint.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
+#include "libslic3r/Model.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <map>
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Camera.hpp"
@@ -10,6 +45,15 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "GLGizmoUtils.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/GLSelectionRectangle.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -17,8 +61,6 @@ static const ColorRGBA DEF_COLOR   = {0.7f, 0.7f, 0.7f, 1.f};
 static const ColorRGBA SELECTED_COLOR = {0.0f, 0.5f, 0.5f, 1.0f};
 static const ColorRGBA ERR_COLOR = {1.0f, 0.3f, 0.3f, 0.5f};
 static const ColorRGBA HOVER_COLOR = {0.7f, 0.7f, 0.7f, 0.5f};
-static constexpr float BRIM_EAR_RADIUS_MIN = 0.1f;
-static constexpr float BRIM_EAR_RADIUS_MAX = 100.f;
 
 static ModelVolume *get_model_volume(const Selection &selection, Model &model)
 {
@@ -50,7 +92,6 @@ bool GLGizmoBrimEars::on_init()
     m_shortcut = Shortcut::GizmoBrimEars;
 
     const wxString ctrl = GUI::shortkey_ctrl_prefix();
-    const wxString alt  = GUI::shortkey_alt_prefix();
 
     m_desc["brim_ear_radius"]       = _L("Brim ear radius");
     m_desc["max_angle"]             = _L("Max angle");
@@ -61,13 +102,11 @@ bool GLGizmoBrimEars::on_init()
     m_desc["create"]                = _L("Create");
     m_desc["auto_generate"]         = _L("Auto-generate");
     m_desc["auto-generate-tooltip"] = _L("Generate brim ears using Max angle and Detection radius");
-    m_desc["section_view"]          = _L("Section view");
 
     m_shortcuts = {
         {_L("Left mouse button"),   _L("Add or Select")},
         {_L("Right mouse button"),  _L("Remove")},
         {ctrl + _L("Mouse wheel"),  m_desc["brim_ear_radius"]},
-        {alt + _L("Mouse wheel"),   m_desc["section_view"]},
     };
 
     return true;
@@ -212,8 +251,8 @@ bool GLGizmoBrimEars::unproject_on_mesh2(const Vec2d &mouse_pos, std::pair<Vec3f
     double               clp_dist        = m_c->object_clipper()->get_position();
     const ClippingPlane *clp             = m_c->object_clipper()->get_clipping_plane();
     bool                 mouse_on_object = false;
-    Vec3f                position_on_model {};
-    Vec3f                normal_on_model {};
+    Vec3f                position_on_model { Vec3f::Zero() };
+    Vec3f                normal_on_model   { Vec3f::Zero() };
     double               closest_hit_distance = std::numeric_limits<double>::max();
 
     for (auto item : m_mesh_raycaster_map) {
@@ -516,26 +555,6 @@ bool GLGizmoBrimEars::gizmo_event(SLAGizmoEventType action, const Vec2d &mouse_p
         apply_radius_change();
     }
 
-    if (action == SLAGizmoEventType::MouseWheelUp && alt_down) {
-        double pos = m_c->object_clipper()->get_position();
-        pos        = std::min(1., pos + 0.01);
-        m_c->object_clipper()->set_position_by_ratio(pos, false, true);
-        return true;
-    }
-
-    if (action == SLAGizmoEventType::MouseWheelDown && alt_down) {
-        double pos = m_c->object_clipper()->get_position();
-        pos        = std::max(0., pos - 0.01);
-        m_c->object_clipper()->set_position_by_ratio(pos, false, true);
-        return true;
-    }
-
-    // reset clipper position
-    if (action == SLAGizmoEventType::ResetClippingPlane) {
-        m_c->object_clipper()->set_position_by_ratio(-1., false);
-        return true;
-    }
-
     return false;
 }
 
@@ -657,8 +676,8 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
                     ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
     float                 space_size      = m_imgui->get_style_scaling() * 8;
-    std::vector<wxString> text_list       = {m_desc["brim_ear_radius"], m_desc["max_angle"], m_desc["detection_radius"], m_desc["clipping_of_view"],
-                                             m_desc["create"], m_desc["remove"]};
+    std::vector<wxString> text_list       = {m_desc["brim_ear_radius"], m_desc["max_angle"], m_desc["detection_radius"], m_desc["create"],
+                                             m_desc["remove"]};
     float                 widest_text     = m_imgui->find_widest_text(text_list);
     float                 caption_size    = widest_text + space_size + ImGui::GetStyle().WindowPadding.x;
     float                 input_text_size = m_imgui->scaled(10.0f);
@@ -747,21 +766,6 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
         }
     }
     m_imgui->disabled_end();
-        
-    ImGui::Separator();
-
-    ImGui::AlignTextToFramePadding();
-    float clp_dist = float(m_c->object_clipper()->get_position());
-    m_imgui->text(m_desc["section_view"]);
-    ImGui::SameLine(caption_size);
-    ImGui::PushItemWidth(slider_width);
-    bool slider_clp_dist = m_imgui->bbl_slider_float_style("##section_view", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-    ImGui::SameLine(drag_left_width);
-    ImGui::PushItemWidth(1.5 * slider_icon_width);
-    bool b_clp_dist_input = ImGui::BBLDragFloat("##section_view_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-    if (slider_clp_dist || b_clp_dist_input) {
-        m_c->object_clipper()->set_position_by_ratio(clp_dist, false, true);
-    }
 
     ImGui::Separator();
 
@@ -797,6 +801,7 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
             ImVec2 min = ImGui::GetItemRectMin();
             ImVec2 max = ImGui::GetItemRectMax();
             ImGui::GetWindowDrawList()->AddLine(ImVec2(min.x, max.y - 2.0f), ImVec2(max.x, max.y - 2.0f), HyperColor);
+            m_imgui->record_named_item("Set brim type to painted", "button", min, max);
 
             if (ImGui::IsMouseHoveringRect(min, max)) {
                 m_link_text_hover = true;
@@ -813,7 +818,8 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
         }
 
         if (has_invalid_ears) {
-            wxString out = _L("Warning") + ": " + std::to_string(m_single_brim.size()) + " " + _L("invalid brim ears");
+            const int n_invalid = int(m_single_brim.size());
+            wxString out = _L("Warning") + ": " + wxString::Format(_L_PLURAL("%d invalid brim ear", "%d invalid brim ears", n_invalid), n_invalid);
             m_imgui->text_wrapped(out, parent_width);
         }
 
@@ -866,6 +872,13 @@ void GLGizmoBrimEars::update_model_object()
         wxGetApp().plater()->set_plater_dirty(true);
     }
     m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
+}
+
+void GLGizmoBrimEars::reload_on_next_opening()
+{
+    // An invalid id matches no object, so set_brim_data() reloads the cache when the gizmo next turns on.
+    m_old_mo_id = ObjectID();
+    select_point(NoPoints);
 }
 
 // switch gizmos
@@ -952,22 +965,9 @@ void GLGizmoBrimEars::reload_cache()
     find_single();
 }
 
-Points GLGizmoBrimEars::generate_points(Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer)
+Points GLGizmoBrimEars::generate_points(const Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer)
 {
-    const coordf_t angle_threshold = (180 - brim_ears_max_angle) * PI / 180.0;
-    Points         pt_ears;
-    if (ear_detection_length > 0) {
-        double detect_length = ear_detection_length / SCALING_FACTOR;
-        Points points = obj_polygon.points;
-        points.push_back(points.front());
-        points = MultiPoint::_douglas_peucker(points, detect_length);
-        if (points.size() > 4) {
-            points.erase(points.end() - 1);
-        }
-        obj_polygon.points = points;
-    }
-    append(pt_ears, is_outer ? obj_polygon.convex_points(angle_threshold) : obj_polygon.concave_points(angle_threshold));
-    return pt_ears;
+    return make_brim_ear_points(obj_polygon, scale_(ear_detection_length), brim_ears_max_angle, is_outer);
 }
 
 void GLGizmoBrimEars::first_layer_slicer()
@@ -1047,6 +1047,7 @@ void GLGizmoBrimEars::get_detection_radius_max()
         min_points_num   = MultiPoint::_douglas_peucker(out_points, 0).size();
         int repeat       = 0;
         int loop_protect = 0;
+        // ORCA: only a feature-size estimate for the slider's upper bound; the detector no longer decimates.
         for (;;) {
             loop_protect++;
             tolerance += 10;

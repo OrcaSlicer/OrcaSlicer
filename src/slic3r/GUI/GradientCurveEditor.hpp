@@ -10,6 +10,8 @@
 
 #include "libslic3r/FilamentMixer.hpp"
 
+class wxWindow;
+
 namespace Slic3r {
 namespace GUI {
 

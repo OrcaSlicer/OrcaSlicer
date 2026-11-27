@@ -16,6 +16,14 @@
 #include "ParamsDialog.hpp"
 #include "GUI_App.hpp"
 #include "wx/hyperlink.h"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/string.h>
+#include <string>
+#include <vector>
+#include <wx/event.h>
+#include "libslic3r/PrintConfig.hpp"
+#include <wx/panel.h>
 
 #define EXTRUSION_CALIBRATION_DEF_COLOUR    wxColour(255, 255, 255)
 #define EXTRUSION_CALIBRATION_GREY900       wxColour(38, 46, 48)

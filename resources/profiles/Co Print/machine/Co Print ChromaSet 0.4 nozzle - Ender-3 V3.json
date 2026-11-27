@@ -29,48 +29,63 @@
 		"0.5"
 	],
 	"machine_max_speed_e": [
+		"100",
 		"100"
 	],
 	"machine_max_speed_x": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_y": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_z": [
+		"10",
 		"10"
 	],
 	"machine_max_acceleration_e": [
+		"2500",
 		"2500"
 	],
 	"machine_max_acceleration_extruding": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_retracting": [
+		"2500",
 		"2500"
 	],
 	"machine_max_acceleration_travel": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_x": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_y": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_z": [
+		"100",
 		"100"
 	],
 	"machine_max_jerk_e": [
+		"2.5",
 		"2.5"
 	],
 	"machine_max_jerk_x": [
+		"8",
 		"8"
 	],
 	"machine_max_jerk_y": [
+		"8",
 		"8"
 	],
 	"machine_max_jerk_z": [
+		"0.2",
 		"0.2"
 	],
 	"z_hop": [

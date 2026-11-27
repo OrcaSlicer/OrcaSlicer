@@ -1,6 +1,10 @@
 #ifndef slic3r_GUI_ProgressBar_hpp_
 #define slic3r_GUI_ProgressBar_hpp_
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/colour.h>
+#include <wx/string.h>
 #include <wx/window.h>
 #include "../wxExtensions.hpp"
 

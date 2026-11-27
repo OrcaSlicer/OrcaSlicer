@@ -114,7 +114,6 @@
 	"wall_generator": "classic",
 	"top_solid_infill_flow_ratio": "0.8",
 	"only_one_wall_top": "1",
-	"minimum_sparse_infill_threshold": "0",
 	"gcode_label_objects": "1",
 	"exclude_object": "1",
 	"accel_to_decel_enable": "0",

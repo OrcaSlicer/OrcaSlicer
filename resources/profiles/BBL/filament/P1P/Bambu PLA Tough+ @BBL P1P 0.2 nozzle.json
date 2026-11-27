@@ -6,12 +6,14 @@
     "setting_id": "GFSA10_33",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "70",
         "70"
     ],
     "fan_cooling_layer_time": [
         "80"
     ],
     "fan_min_speed": [
+        "90",
         "90"
     ],
     "filament_flow_ratio": [

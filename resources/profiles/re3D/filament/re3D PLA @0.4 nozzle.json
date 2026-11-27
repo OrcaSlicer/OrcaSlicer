@@ -1,12 +1,12 @@
 {
 	"type": "filament",
 	"name": "re3D PLA @0.4 nozzle",
-	"from": "system",
 	"renamed_from": "re3D PLA",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
-	"filament_id": "OFRyOsZj",
+	"from": "system",
 	"setting_id": "M8OOntNjjDBR4W32",
+	"filament_id": "OFRyOsZj",
+	"instantiation": "true",
 	"filament_settings_id": [
 		"re3D PLA @0.4 nozzle"
 	],

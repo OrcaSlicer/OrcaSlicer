@@ -5,6 +5,10 @@
 #include "libslic3r/MTUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ModelArrange.hpp"
+#include "libslic3r/IMEXArrange.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
 
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -16,11 +20,90 @@
 #include "slic3r/plugin/PluginManager.hpp"
 
 #include "libnest2d/common.hpp"
+#include "libslic3r/Arrange.hpp"
+#include <libslic3r/BoundingBox.hpp>
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <boost/log/trivial.hpp>
+#include <cstddef>
+#include <vector>
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <set>
+#include <algorithm>
+#include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <cassert>
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include <numeric>
+#include <exception>
+#include "libslic3r/LifecycleEvents.hpp"
+#include <optional>
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Config.hpp"
+#include <cmath>
+#include <string>
 
 #define SAVE_ARRANGE_POLY 0
 
 namespace Slic3r { namespace GUI {
     using ArrangePolygon = arrangement::ArrangePolygon;
+
+void set_arrange_polygon_bed_exclusion_extruders(ArrangePolygon &polygon, const ModelObject &object,
+                                                  const PartPlate &plate, const DynamicPrintConfig &config)
+{
+    polygon.bed_exclusion_extruder_ids.clear();
+    if (active_bed_exclude_volume_mode(config) == BedExcludeVolumeMode::Shared)
+        return;
+
+    const ConfigOptionFloats *nozzle_diameters = config.opt<ConfigOptionFloats>("nozzle_diameter");
+    const size_t extruder_count = nozzle_diameters != nullptr ? nozzle_diameters->size() : 0;
+    if (extruder_count == 0)
+        return;
+
+    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    if (preset_bundle == nullptr)
+        return;
+
+    const DynamicPrintConfig &project_config = preset_bundle->project_config;
+    // Automatic Bambu mapping may be recalculated after arrangement or differ
+    // between destination plates. Leave it unresolved so every nozzle volume
+    // is checked rather than embedding a temporary assignment in the item.
+    if (preset_bundle->is_bbl_vendor() &&
+        is_auto_filament_map_mode(plate.get_real_filament_map_mode(project_config)))
+        return;
+
+    std::set<int> extruder_ids;
+    for (const auto &mapping : plate.get_object_filament_extruders(object, project_config, extruder_count))
+        extruder_ids.emplace(int(mapping.second));
+    polygon.bed_exclusion_extruder_ids.assign(extruder_ids.begin(), extruder_ids.end());
+}
+
+static void set_arrange_polygon_bed_exclusion_extruders_for_all_plates(ArrangePolygon &polygon,
+                                                                       const ModelObject &object,
+                                                                       PartPlateList &plate_list,
+                                                                       const DynamicPrintConfig &config)
+{
+    polygon.bed_exclusion_extruder_ids.clear();
+    if (active_bed_exclude_volume_mode(config) == BedExcludeVolumeMode::Shared)
+        return;
+
+    std::set<int> extruder_ids;
+    for (int plate_index = 0; plate_index < plate_list.get_plate_count(); ++plate_index) {
+        ArrangePolygon mapped = polygon;
+        set_arrange_polygon_bed_exclusion_extruders(mapped, object, *plate_list.get_plate(plate_index), config);
+        if (mapped.bed_exclusion_extruder_ids.empty()) {
+            polygon.bed_exclusion_extruder_ids.clear();
+            return;
+        }
+        extruder_ids.insert(mapped.bed_exclusion_extruder_ids.begin(), mapped.bed_exclusion_extruder_ids.end());
+    }
+    polygon.bed_exclusion_extruder_ids.assign(extruder_ids.begin(), extruder_ids.end());
+}
 
 // Cache the wti info
 class WipeTower: public GLCanvas3D::WipeTowerInfo {
@@ -64,18 +147,130 @@ public:
     }
 };
 
+// The belt purge prism is generated from the arranged parts (ensure_belt_purge_tower),
+// so arrange neither moves it nor packs around it; it reserves the prism's strip instead.
+static bool is_belt_purge_prism(const ModelObject *mo)
+{
+    const ConfigOption *opt = mo->config.option("belt_purge_tower_object");
+    return opt != nullptr && opt->getBool();
+}
+
 // BBS: add partplate logic
 static WipeTower get_wipe_tower(const Plater &plater, int plate_idx)
 {
     return WipeTower{plater.canvas3D()->get_wipe_tower_info(plate_idx)};
 }
 
-arrangement::ArrangePolygon get_wipetower_arrange_poly(WipeTower* tower)
+// Orca: the gap in mm the arranger will leave around each of the objects it is about to place, which
+// is the smallest inflation update_selected_items_inflation() gives them. It is worked out on copies,
+// since the arrange jobs only inflate the objects after the tower is in place.
+static double arranged_object_gap(const arrangement::ArrangeParams& params, const ArrangePolygons& selected, const DynamicPrintConfig* print_cfg)
+{
+    if (selected.empty())
+        return 0.;
+    arrangement::ArrangeParams params_copy   = params;
+    ArrangePolygons            selected_copy = selected;
+    update_selected_items_inflation(selected_copy, print_cfg, params_copy);
+    const auto by_inflation = [](const ArrangePolygon& lhs, const ArrangePolygon& rhs) { return lhs.inflation < rhs.inflation; };
+    return unscale<double>(std::min_element(selected_copy.begin(), selected_copy.end(), by_inflation)->inflation);
+}
+
+// Orca: a prime tower compacted by "No sparse layers" stays low, so the toolhead comes down beside it
+// at every tool change. The objects in placed have to keep from it the clearance
+// compacted_tower_arrange_clearance() gives, as they do from one another when printing by object, so
+// the arranger is given the tower grown by that much, less the gap it keeps around those objects
+// anyway. params.compacted_tower says whether the tower is compacted at all; once grown,
+// params.compacted_tower_growth holds by how much (scaled) the polygon now reaches past the tower's
+// own zone, which the arranger needs to find the tower's Y span again.
+static void grow_compacted_wipe_tower(arrangement::ArrangePolygon& ap, arrangement::ArrangeParams& params, const ArrangePolygons& placed)
+{
+    if (!params.compacted_tower || ap.poly.contour.points.empty())
+        return;
+
+    // The config init_arrange_params() read params from.
+    Plater*            plater = wxGetApp().plater();
+    const PrintConfig& config = plater->get_partplate_list().get_current_fff_print().config();
+    // The tower's polygon holds its brim already, both the one of a tower already there and the
+    // estimated one, so only the margin for the line width is left to add.
+    const Polygons footprint = offset(ap.poly.contour, float(scale_(compacted_tower_footprint_padding(config, 0.))));
+    if (footprint.empty())
+        return;
+    const CompactedTowerZone zone = compacted_wipe_tower_zone(config, footprint.front());
+    if (zone.empty())
+        return;
+    const double   clearance = compacted_tower_arrange_clearance(placed, params, zone.body_radius);
+    const coord_t  growth    = scaled(std::max(0., clearance - arranged_object_gap(params, placed, plater->config())));
+    const Polygons grown     = offset(zone.hull, float(growth), jtRound, scale_(0.1));
+    if (grown.empty())
+        return;
+    ap.poly.contour               = grown.front();
+    params.compacted_tower_growth = growth;
+}
+
+arrangement::ArrangePolygon get_wipetower_arrange_poly(WipeTower* tower, arrangement::ArrangeParams& params, const ArrangePolygons& placed)
 {
     ArrangePolygon ap = tower->get_arrange_polygon();
     ap.bed_idx = 0;
     ap.setter = NULL; // do not move wipe tower
+    grow_compacted_wipe_tower(ap, params, placed);
     return ap;
+}
+
+// Belt printers pack their parts against the edges of the bed, so what has to stay
+// free there is reserved with fixed virtual items on every plate, the way the bed's
+// own exclusion areas are:
+// - the strip the purge prism comes back to, flush with the far lateral edge (see
+//   ensure_belt_purge_tower), when the parts use more than one filament;
+// - the brim along every edge: a belt brim is printed brim_width wide for every brim
+//   type but none. Between parts the brims may overlap, as on any printer.
+void ArrangeJob::prepare_belt_regions(int num_plates)
+{
+    if (!params.is_belt || params.is_seq_print)
+        return;
+    const DynamicPrintConfig &config    = wxGetApp().preset_bundle->full_config();
+    const BoundingBoxf        bed       = get_extents(config.opt<ConfigOptionPoints>("printable_area")->values);
+    const bool                belt_is_y = params.belt_axis == 1;
+    std::vector<BoundingBoxf> regions;
+
+    std::set<int> filaments;
+    for (const ArrangePolygons *items : { &m_selected, &m_unselected })
+        for (const ArrangePolygon &ap : *items)
+            if (!ap.is_virt_object)
+                filaments.insert(ap.extrude_ids.begin(), ap.extrude_ids.end());
+    if (config.opt_bool("enable_belt_purge_tower") && filaments.size() > 1) {
+        // The prism is at least one millimetre per island plus the gaps between them.
+        const int    islands = int(filaments.size()) - 1;
+        const double width   = std::max(config.opt_float("belt_purge_tower_width"), 2. * islands - 1.) + 1.; // + the prism's edge inset
+        BoundingBoxf strip   = bed;
+        if (belt_is_y)
+            strip.min.x() = std::max(bed.min.x(), bed.max.x() - width);
+        else
+            strip.min.y() = std::max(bed.min.y(), bed.max.y() - width);
+        regions.push_back(strip);
+    }
+
+    // Virtual items are inflated by the one millimetre exclusion gap already.
+    const double brim = config.opt_enum<BrimType>("brim_type") == btNoBrim ? 0. :
+        config.opt_float("brim_width") + config.opt_float("brim_object_gap") + config.opt_float("extra_brim_width") - 1.;
+    if (brim > 0.) {
+        regions.emplace_back(bed.min, Vec2d(bed.min.x() + brim, bed.max.y()));
+        regions.emplace_back(Vec2d(bed.max.x() - brim, bed.min.y()), bed.max);
+        regions.emplace_back(bed.min, Vec2d(bed.max.x(), bed.min.y() + brim));
+        regions.emplace_back(Vec2d(bed.min.x(), bed.max.y() - brim), bed.max);
+    }
+
+    for (int j = 0; j < num_plates; ++j)
+        for (size_t i = 0; i < regions.size(); ++i) {
+            ArrangePolygon ap;
+            ap.poly.contour   = scaled(regions[i]).polygon();
+            ap.translation    = Vec2crd(0, 0);
+            ap.rotation       = 0.f;
+            ap.is_virt_object = true;
+            ap.bed_idx        = j;
+            ap.height         = 1;
+            ap.name           = "BeltRegion" + std::to_string(i);
+            m_unselected.emplace_back(std::move(ap));
+        }
 }
 
 void ArrangeJob::clear_input()
@@ -101,11 +296,14 @@ void ArrangeJob::clear_input()
     current_plate_index = 0;
 }
 
-ArrangePolygon ArrangeJob::prepare_arrange_polygon(void* model_instance)
+ArrangePolygon ArrangeJob::prepare_arrange_polygon(void *model_instance, const PartPlate *mapping_plate)
 {
     ModelInstance* instance = (ModelInstance*)model_instance;
     const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
-    return get_instance_arrange_poly(instance, config);
+    ArrangePolygon polygon = get_instance_arrange_poly(instance, config);
+    if (mapping_plate != nullptr)
+        set_arrange_polygon_bed_exclusion_extruders(polygon, *instance->get_object(), *mapping_plate, config);
+    return polygon;
 }
 
 void ArrangeJob::prepare_selected() {
@@ -129,6 +327,8 @@ void ArrangeJob::prepare_selected() {
     for (size_t oidx = 0; oidx < model.objects.size(); ++oidx) {
         const Selection::InstanceIdxsList* instlist = obj_sel[oidx];
         ModelObject* mo = model.objects[oidx];
+        if (is_belt_purge_prism(mo))
+            continue;
 
         std::vector<bool> inst_sel(mo->instances.size(), false);
 
@@ -139,6 +339,8 @@ void ArrangeJob::prepare_selected() {
         for (size_t i = 0; i < inst_sel.size(); ++i) {
             ModelInstance* mi = mo->instances[i];
             ArrangePolygon&& ap = prepare_arrange_polygon(mo->instances[i]);
+            set_arrange_polygon_bed_exclusion_extruders_for_all_plates(
+                ap, *mo, plate_list, wxGetApp().preset_bundle->full_config());
             //BBS: partplate_list preprocess
             //remove the locked plate's instances, neither in selected, nor in un-selected
             bool locked = plate_list.preprocess_arrange_polygon(oidx, i, ap, inst_sel[i]);
@@ -177,6 +379,7 @@ void ArrangeJob::prepare_selected() {
         }
 
     prepare_wipe_tower();
+    prepare_belt_regions(MAX_NUM_PLATES);
 
 
     // The strides have to be removed from the fixed items. For the
@@ -207,10 +410,14 @@ void ArrangeJob::prepare_all() {
     // Go through the objects and check if inside the selection
     for (size_t oidx = 0; oidx < model.objects.size(); ++oidx) {
         ModelObject *mo = model.objects[oidx];
+        if (is_belt_purge_prism(mo))
+            continue;
 
         for (size_t i = 0; i < mo->instances.size(); ++i) {
             ModelInstance * mi = mo->instances[i];
             ArrangePolygon&& ap = prepare_arrange_polygon(mo->instances[i]);
+            set_arrange_polygon_bed_exclusion_extruders_for_all_plates(
+                ap, *mo, plate_list, wxGetApp().preset_bundle->full_config());
             //BBS: partplate_list preprocess
             //remove the locked plate's instances, neither in selected, nor in un-selected
             bool locked = plate_list.preprocess_arrange_polygon(oidx, i, ap, true);
@@ -252,7 +459,8 @@ void ArrangeJob::prepare_all() {
     bool   enable_wrapping = current_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
 
     // add the virtual object into unselect list if has
-    plate_list.preprocess_exclude_areas(m_unselected, enable_wrapping, MAX_NUM_PLATES);
+    plate_list.preprocess_exclude_areas(m_unselected, wxGetApp().preset_bundle->full_config(), enable_wrapping, MAX_NUM_PLATES);
+    prepare_belt_regions(MAX_NUM_PLATES);
 }
 
 arrangement::ArrangePolygon estimate_wipe_tower_info(int plate_index, std::set<int>& extruder_ids)
@@ -290,6 +498,11 @@ void ArrangeJob::prepare_wipe_tower()
     auto                op = current_config.option("enable_prime_tower");
     bool enable_prime_tower = op && op->getBool();
     if (!enable_prime_tower || params.is_seq_print) return;
+
+    // Belt printers have no classic wipe tower; purging goes into the belt purge
+    // prism, whose strip prepare_belt_regions() reserves.
+    if (params.is_belt)
+        return;
 
     bool smooth_timelapse = false;
     auto sop = current_config.option("timelapse_type");
@@ -346,7 +559,7 @@ void ArrangeJob::prepare_wipe_tower()
             continue;
         if (auto wti = get_wipe_tower(*m_plater, bedid)) {
             // wipe tower is already there
-            wipe_tower_ap = get_wipetower_arrange_poly(&wti);
+            wipe_tower_ap = get_wipetower_arrange_poly(&wti, params, m_selected);
             wipe_tower_ap.bed_idx = bedid_unlocked;
             m_unselected.emplace_back(wipe_tower_ap);
         }
@@ -357,6 +570,7 @@ void ArrangeJob::prepare_wipe_tower()
                 extruder_ids.insert(plate_extruders.begin(), plate_extruders.end());
             }
             wipe_tower_ap = estimate_wipe_tower_info(bedid, extruder_ids);
+            grow_compacted_wipe_tower(wipe_tower_ap, params, m_selected);
             wipe_tower_ap.bed_idx = bedid_unlocked;
             m_unselected.emplace_back(wipe_tower_ap);
         }
@@ -394,10 +608,12 @@ void ArrangeJob::prepare_partplate() {
     for (size_t oidx = 0; oidx < model.objects.size(); ++oidx)
     {
         ModelObject* mo = model.objects[oidx];
+        if (is_belt_purge_prism(mo))
+            continue;
         for (size_t inst_idx = 0; inst_idx < mo->instances.size(); ++inst_idx)
         {
             bool             in_plate = plate->contain_instance(oidx, inst_idx) || plate->intersect_instance(oidx, inst_idx);
-            ArrangePolygon&& ap = prepare_arrange_polygon(mo->instances[inst_idx]);
+            ArrangePolygon&& ap = prepare_arrange_polygon(mo->instances[inst_idx], plate);
 
             ArrangePolygons& cont = mo->instances[inst_idx]->printable ?
                 (in_plate ? m_selected : m_unselected) :
@@ -420,7 +636,7 @@ void ArrangeJob::prepare_partplate() {
 
     // BBS
     if (auto wti = get_wipe_tower(*m_plater, current_plate_index)) {
-        ArrangePolygon&& ap = get_wipetower_arrange_poly(&wti);
+        ArrangePolygon&& ap = get_wipetower_arrange_poly(&wti, params, m_selected);
         m_unselected.emplace_back(std::move(ap));
     }
 
@@ -428,7 +644,39 @@ void ArrangeJob::prepare_partplate() {
     bool   enable_wrapping = current_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
 
     // add the virtual object into unselect list if has
-    plate_list.preprocess_exclude_areas(m_unselected, enable_wrapping, current_plate_index + 1);
+    plate_list.preprocess_exclude_areas(
+        m_unselected, wxGetApp().preset_bundle->full_config(), enable_wrapping, current_plate_index + 1);
+    prepare_belt_regions(current_plate_index + 1);
+}
+
+// Snapshot each plate's IMEX zones on the main thread, so process() never has to touch
+// PartPlate's IMEX cache; see the members' declaration for why that matters. The beds are the
+// arranger's: arranging one plate packs into bed 0, and arranging all of them numbers the beds
+// over the unlocked plates, as postprocess_bed_index_for_selected() maps them back.
+void ArrangeJob::prepare_imex_zones()
+{
+    m_imex = {};
+    PartPlateList& plate_list = m_plater->get_partplate_list();
+    std::vector<PartPlate*> plates;
+    if (only_on_partplate)
+        plates.push_back(plate_list.get_curr_plate());
+    else
+        for (int i = 0; i < plate_list.get_plate_count(); ++i)
+            if (!plate_list.get_plate(i)->is_locked())
+                plates.push_back(plate_list.get_plate(i));
+
+    for (PartPlate* plate : plates) {
+        std::optional<ImexArrangeZones> zones;
+        if (const std::optional<BoundingBoxf> pz = plate ? plate->imex_primary_zone() : std::nullopt) {
+            const Vec2d o = plate->get_origin().head<2>();
+            zones = ImexArrangeZones{BoundingBoxf(Vec2d(pz->min - o), Vec2d(pz->max - o)), {}};
+            for (const BoundingBoxf3& strip : plate->imex_collision_zones())
+                zones->collision_zones.emplace_back(Vec2d(strip.min.head<2>() - o), Vec2d(strip.max.head<2>() - o));
+        }
+        m_imex.beds.push_back(std::move(zones));
+    }
+    m_imex.adds_plates = !only_on_partplate;
+    m_imex.read_config(wxGetApp().preset_bundle->full_config());
 }
 
 //BBS: add partplate logic
@@ -458,6 +706,9 @@ void ArrangeJob::prepare()
         only_on_partplate = true;   // only arrange items on current plate
         prepare_partplate();
     }
+
+    // After prepare_all(), which locks the plates it must leave alone.
+    prepare_imex_zones();
 
 
 #if SAVE_ARRANGE_POLY
@@ -506,8 +757,8 @@ void ArrangeJob::check_unprintable()
 #endif
             if (it->poly.area() < 0.001) {
                 auto msg = (boost::format(
-                    _utf8("Object %s has zero size and can't be arranged."))
-                    % _utf8(it->name)).str();
+                    _u8L("Object %s has zero size and can't be arranged."))
+                    % it->name).str();
                 m_plater->get_notification_manager()->push_notification(NotificationType::BBLPlateInfo,
                     NotificationManager::NotificationLevel::WarningNotificationLevel, msg);
             }
@@ -533,22 +784,25 @@ void ArrangeJob::process(Ctl &ctl)
     if (is_bbl && params.avoid_extrusion_cali_region && global_config.opt_bool("scan_first_layer"))
         partplate_list.preprocess_nonprefered_areas(m_unselected, MAX_NUM_PLATES);
 
-    update_arrange_params(params, m_plater->config(), m_selected);
-    update_selected_items_inflation(m_selected, m_plater->config(), params);
-    update_unselected_items_inflation(m_unselected, m_plater->config(), params);
-    update_selected_items_axis_align(m_selected, m_plater->config(), params);
+    update_arrange_items(m_selected, m_unselected, m_plater->config(), params);
 
     Points      bedpts = get_shrink_bedpts(m_plater->config(),params);
 
+    // Keep the parts on IDEX/IQEX plates in their primary zones; see ImexArranger.
+    const ImexArranger imex(m_imex, params, bedpts);
+    bedpts = imex.bed_shape();
+    imex.add_keep_outs(m_unselected);
+
     bool   enable_wrapping = global_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
-    partplate_list.preprocess_exclude_areas(params.excluded_regions, enable_wrapping, 1, scale_(1));
+    partplate_list.preprocess_exclude_areas(params.excluded_regions, global_config, enable_wrapping, 1, scale_(1));
 
     BOOST_LOG_TRIVIAL(debug) << "arrange bedpts:" << bedpts[0].transpose() << ", " << bedpts[1].transpose() << ", " << bedpts[2].transpose() << ", " << bedpts[3].transpose();
 
     params.stopcondition = [&ctl]() { return ctl.was_canceled(); };
 
     params.progressind = [this, &ctl](unsigned num_finished, std::string str = "") {
-        ctl.update_status(num_finished * 100 / status_range(), _u8L("Arranging ") + str);
+        // TRN Progress status. %1% is the name of the object being arranged.
+        ctl.update_status(num_finished * 100 / status_range(), GUI::format(_u8L("Arranging %1%"), str));
     };
 
     {
@@ -564,7 +818,10 @@ void ArrangeJob::process(Ctl &ctl)
             <<", bbox:"<<get_extents(item.poly).min.transpose()<<","<<get_extents(item.poly).max.transpose();
     }
 
+    const ArrangePolygons before = imex.active() ? m_selected : ArrangePolygons();
     arrangement::arrange(m_selected, m_unselected, bedpts, params);
+    if (!ctl.was_canceled())
+        imex.finish(m_selected, before, m_unselected, params);
 
     // sort by item id
     std::sort(m_selected.begin(), m_selected.end(), [](auto a, auto b) {return a.itemid < b.itemid; });
@@ -621,6 +878,17 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
 
     if (canceled || eptr)
         return;
+
+    // Nothing could be placed: leave the plates and the instances exactly as they were.
+    // Rebuilding the plates would only re-home the instances by their bounds, which moves
+    // a too large item to whichever plate it happens to reach over.
+    const bool nothing_arranged = !m_selected.empty() &&
+        std::all_of(m_selected.begin(), m_selected.end(), [](const ArrangePolygon &ap) { return !ap.is_arranged(); });
+    if (nothing_arranged) {
+        m_plater->get_notification_manager()->close_notification_of_type(NotificationType::ArrangeOngoing);
+        m_plater->m_arrange_running.store(false);
+        return;
+    }
 
     // Unprintable items go to the last virtual bed
     int beds = 0;
@@ -721,12 +989,13 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
     }
     m_plater->get_notification_manager()->close_notification_of_type(NotificationType::ArrangeOngoing);
 
-    //BBS: reload all objects due to arrange
+    //BBS: reload all objects due to arrange. Plates are never recycled here: arranging
+    // must not remove a plate the user created, even when the arrange left it empty.
     if (only_on_partplate) {
-        plate_list.rebuild_plates_after_arrangement(!only_on_partplate, true, current_plate_index);
+        plate_list.rebuild_plates_after_arrangement(false, true, current_plate_index);
     }
     else {
-        plate_list.rebuild_plates_after_arrangement(!only_on_partplate, true);
+        plate_list.rebuild_plates_after_arrangement(false, true);
     }
 
     // unlock the plates we just locked
@@ -744,11 +1013,11 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
 }
 
 std::optional<arrangement::ArrangePolygon>
-get_wipe_tower_arrangepoly(const Plater &plater)
+get_wipe_tower_arrangepoly(const Plater &plater, arrangement::ArrangeParams &params, const arrangement::ArrangePolygons &placed)
 {
     int id = plater.canvas3D()->fff_print()->get_plate_index();
     if (auto wti = get_wipe_tower(plater, id))
-        return get_wipetower_arrange_poly(&wti);
+        return get_wipetower_arrange_poly(&wti, params, placed);
 
     return {};
 }
@@ -776,6 +1045,7 @@ arrangement::ArrangeParams init_arrange_params(Plater *p)
 
     params.clearance_height_to_rod             = print_config.extruder_clearance_height_to_rod.value;
     params.clearance_height_to_lid             = print_config.extruder_clearance_height_to_lid.value;
+    params.clearance_dist_to_rod               = print_config.extruder_clearance_dist_to_rod.value;
     params.clearance_radius                    = print_config.extruder_clearance_radius.value + object_skirt_offset * 2;
     params.object_skirt_offset                 = object_skirt_offset;
     params.printable_height                    = print_config.printable_height.value;
@@ -787,6 +1057,19 @@ arrangement::ArrangeParams init_arrange_params(Plater *p)
     params.is_seq_print                        = settings.is_seq_print;
     params.min_obj_distance                    = scaled(settings.distance);
     params.align_to_y_axis                     = settings.align_to_y_axis;
+    if (print_config.belt_printer.value) {
+        // Parts print in belt order: the belt runs across the gantry's tilt axis, a
+        // rotation about X prints toward +Y and one about Y toward -X (see
+        // BeltTransform), a negative angle flips that, and a tilted layer reaches
+        // cot(angle) * height past a part's far edge.
+        const BeltRotationAxis axis   = print_config.belt_slice_rotation.value;
+        const double           angle  = print_config.belt_slice_rotation_angle.value;
+        const bool             tilted = (axis == BeltRotationAxis::X || axis == BeltRotationAxis::Y) && std::abs(angle) > EPSILON;
+        params.is_belt         = true;
+        params.belt_axis       = axis == BeltRotationAxis::Y ? 0 : 1;
+        params.belt_reversed   = tilted && ((axis == BeltRotationAxis::Y) != (angle < 0.));
+        params.belt_tilt_slope = tilted ? float(1. / std::tan(Geometry::deg2rad(std::clamp(std::abs(angle), 5., 90.)))) : 0.f;
+    }
 
     int state = p->get_prepare_state();
     if (state == Job::JobPrepareState::PREPARE_STATE_MENU) {
@@ -803,6 +1086,11 @@ arrangement::ArrangeParams init_arrange_params(Plater *p)
         params.bed_shrink_x = BED_SHRINK_SEQ_PRINT;
         params.bed_shrink_y = BED_SHRINK_SEQ_PRINT;
     }
+
+    // Orca: the same condition as the slicer's clearance check for a compacted prime tower. Smooth
+    // timelapse and wrapping detection keep the tower at full height, and printing by object has a
+    // clearance check of its own.
+    params.compacted_tower = !params.is_seq_print && wipe_tower_sparse_layers_skipped(print_config);
     return params;
 }
 

@@ -5,10 +5,10 @@
 	"from": "system",
 	"setting_id": "MpG61mwVUtJ7t602",
 	"filament_id": "OFuFEtKX",
+	"instantiation": "true",
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PETG-CF"
 	],

@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Rapido @Qidi X-Smart 5 0.2 nozzle",
+	"inherits": "QIDI PETG Rapido@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "HR4TkzhVyHBq54XV",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"1"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.2 nozzle"
+	]
+}

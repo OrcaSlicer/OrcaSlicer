@@ -1,6 +1,5 @@
 #pragma once
 
-#include "PluginDescriptor.hpp"
 
 #include <boost/filesystem/path.hpp>
 
@@ -8,17 +7,21 @@
 #include <string>
 #include <vector>
 
+namespace Slic3r { struct PluginDescriptor; struct PluginInstallState; }
+
 namespace Slic3r {
 struct Plugin;
 } // namespace Slic3r
 
 namespace Slic3r::plugin_loader {
+// registration_failed, when given, is set if the plugin's own registration step rejected the load.
 bool load(const PluginDescriptor&                          descriptor,
           bool                                             skip_deps,
           const std::vector<std::string>&                  capabilities_to_enable,
           const std::function<std::string(const Plugin&)>& registry_precheck,
           Plugin&                                          out,
-          std::string&                                     error);
+          std::string&                                     error,
+          bool*                                            registration_failed = nullptr);
 
 // Run on_unload() on every capability, drop them, and release the module. Safe to call on a
 // not-loaded Plugin, and safe after the interpreter has been finalized (in which case the module
@@ -26,7 +29,7 @@ bool load(const PluginDescriptor&                          descriptor,
 void unload(Plugin& plugin);
 
 // Install Python dependencies into the shared packages directory via the bundled uv. Blocks, with
-// a 120 s cap.
+// a 120 s cap. Installs are serialized: plugins' loads and scripts' runs share the folder.
 bool install_packages(const std::vector<std::string>& pkgs, std::string& error);
 
 // Read a local .py/.whl package's metadata without installing it, and report whether a package is
@@ -39,10 +42,24 @@ bool inspect_local_plugin_package(const boost::filesystem::path& filepath,
 // Copy a .py/.whl package into the plugin directory (the per-user cloud directory when the
 // descriptor carries a cloud UUID and cloud_user_id is non-empty) and write its
 // .install_state.json sidecar, backing up and restoring any existing installation on failure.
+//
+// install_target_intact, when given, reports whether the directory the installer wrote to still
+// holds what it held before the call: true when the call failed before replacing it or after
+// restoring its backup, false once the replacement is committed or when restoring that directory's
+// backup failed. A previously installed package at a different root is unaffected by such a
+// failed restore; the update path re-checks that separately.
+//
+// preserved_state, when given, supplies the user's activation and per-capability choices for the
+// sidecar written for the installed package. Only enabled and capabilities are taken from it; the
+// sidecar metadata describes the new package and every permission is cleared, because the new
+// executable code must request them again. The sidecar is written before the backup is removed, so
+// a failed write rolls the package back and keeps the previous installation intact.
 bool install_plugin(const boost::filesystem::path& filepath,
                     const std::string&             cloud_user_id,
                     PluginDescriptor&              plugin_descriptor,
-                    std::string&                   error);
+                    std::string&                   error,
+                    bool*                          install_target_intact = nullptr,
+                    const PluginInstallState*      preserved_state      = nullptr);
 bool install_plugin(const boost::filesystem::path& filepath, const std::string& cloud_user_id, std::string& error);
 
 } // namespace Slic3r::plugin_loader

@@ -1,5 +1,8 @@
 #pragma once
 #include <admesh/stl.h>
+#include <vector>
+#include <utility>
+#include <cstddef>
 #include "Point.hpp"
 
 namespace Slic3r { namespace tex2color {

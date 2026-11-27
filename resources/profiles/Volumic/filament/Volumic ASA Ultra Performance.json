@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "OFU7CKZt",
-	"setting_id": "uE5jxeOBISvO5o7L",
 	"name": "Volumic ASA Ultra (Performance)",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"setting_id": "uE5jxeOBISvO5o7L",
+	"filament_id": "OFU7CKZt",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.96"
 	],

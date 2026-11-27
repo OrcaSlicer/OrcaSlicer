@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
 #include "slic3r/GUI/StagedBuild.hpp"
 
 using Slic3r::GUI::StagedBuild;

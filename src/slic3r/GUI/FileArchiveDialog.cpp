@@ -2,13 +2,33 @@
 
 #include "I18N.hpp"
 #include "GUI_App.hpp"
-#include "GUI.hpp"
 #include "MainFrame.hpp"
-#include "ExtraRenderers.hpp"
-#include "format.hpp"
+#include <boost/filesystem/path.hpp>
+#include <memory>
+#include <cassert>
+#include <miniz.h>
+#include <cstddef>
+#include <functional>
+#include "libslic3r/miniz_extension.hpp"
+#include <boost/algorithm/string/predicate.hpp>
+#include <algorithm>
 #include <regex>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/convert.hpp>
+#include <wx/string.h>
+#include <wx/dataview.h>
+#include <wx/variant.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/dialog.h>
+#include <wx/toplevel.h>
+#include <wx/settings.h>
+#include <wx/sizer.h>
+#include <wx/dvrenderers.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -169,6 +189,12 @@ ArchiveViewCtrl::~ArchiveViewCtrl()
     }
 }
 
+bool is_archive_model(const boost::filesystem::path& path)
+{
+    static const std::regex pattern_drop(".*[.](stl|obj|amf|3mf|step|stp)", std::regex::icase);
+    return !boost::algorithm::starts_with(path.string(), "__MACOSX") && std::regex_match(path.extension().string(), pattern_drop);
+}
+
 FileArchiveDialog::FileArchiveDialog(wxWindow* parent_window, mz_zip_archive* archive, std::vector<std::pair<boost::filesystem::path, size_t>>& selected_paths_w_size)
     : DPIDialog(parent_window, wxID_ANY, _(L("Archive preview")), wxDefaultPosition,
         wxSize(45 * wxGetApp().em_unit(), 40 * wxGetApp().em_unit()),
@@ -189,7 +215,7 @@ FileArchiveDialog::FileArchiveDialog(wxWindow* parent_window, mz_zip_archive* ar
 
     m_avc = new ArchiveViewCtrl(this, wxSize(45 * em, 30 * em));
     wxDataViewColumn*  toggle_column = m_avc->AppendToggleColumn(L"\u2714", 0, wxDATAVIEW_CELL_ACTIVATABLE, 6 * em);
-    m_avc->AppendTextColumn("filename", 1);
+    m_avc->AppendTextColumn(_L("filename"), 1);
     
     std::vector<std::shared_ptr<ArchiveViewNode>> stack;
 
@@ -215,7 +241,6 @@ FileArchiveDialog::FileArchiveDialog(wxWindow* parent_window, mz_zip_archive* ar
         return struct_size + 1;
     };
 
-    const std::regex pattern_drop(".*[.](stl|obj|amf|3mf|step|stp)", std::regex::icase);
     mz_uint num_entries = mz_zip_reader_get_num_files(archive);
     mz_zip_archive_file_stat stat;
     std::vector<std::pair<boost::filesystem::path, size_t>> filtered_entries; // second is unzipped size
@@ -243,7 +268,7 @@ FileArchiveDialog::FileArchiveDialog(wxWindow* parent_window, mz_zip_archive* ar
         depth = std::max(depth, adjust_stack(path, stack));
         if (!stack.empty())
             parent = stack.back();
-        if (std::regex_match(path.extension().string(), pattern_drop)) { // this leaves out non-compatible files 
+        if (is_archive_model(path)) { // this leaves out non-compatible files 
             std::shared_ptr<ArchiveViewNode> new_node = m_avc->get_model()->AddFile(parent, boost::nowide::widen(path.filename().string()), false);
             new_node->set_fullpath(/*std::move(path)*/path); // filename string to wstring?
             new_node->set_size(entry.second);

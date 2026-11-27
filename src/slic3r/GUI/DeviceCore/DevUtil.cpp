@@ -1,5 +1,16 @@
 #include "DevUtil.h"
 #include "fast_float/fast_float.h"
+#include <string>
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include <cstdint>
+#include <algorithm>
+#include <cctype>
+#include <cstddef>
+#include <limits>
+#include <stdexcept>
+#include <sstream>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r
 {

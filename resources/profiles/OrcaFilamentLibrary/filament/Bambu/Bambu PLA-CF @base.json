@@ -15,12 +15,25 @@
 		"45"
 	],
 	"filament_cost": [
-		"34.99"
+		"31.99"
 	],
 	"filament_density": [
 		"1.22"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_flow_ratio": [
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98",
 		"0.98"
 	],
 	"filament_type": [

@@ -1,8 +1,10 @@
 #include <catch2/catch_all.hpp>
 
+#include "slic3r/GUI/Lazy.hpp"
 #include <string>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
 #include "slic3r/GUI/PrebuildQueue.hpp"
 
 using Slic3r::GUI::LazyBase;

@@ -6,6 +6,7 @@
     "setting_id": "GFSN97_00",
     "instantiation": "true",
     "fan_max_speed": [
+        "35",
         "35"
     ],
     "filament_flow_ratio": [

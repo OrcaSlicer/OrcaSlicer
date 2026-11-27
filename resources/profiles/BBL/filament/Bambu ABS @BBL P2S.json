@@ -6,6 +6,8 @@
     "setting_id": "GFSB00_10",
     "instantiation": "true",
     "activate_air_filtration": [
+        "0",
+        "0",
         "0"
     ],
     "chamber_temperatures": [
@@ -24,6 +26,8 @@
         "0.3341"
     ],
     "fan_max_speed": [
+        "60",
+        "60",
         "60"
     ],
     "filament_cooling_before_tower": [

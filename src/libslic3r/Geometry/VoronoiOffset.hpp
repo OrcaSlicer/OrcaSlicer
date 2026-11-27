@@ -7,7 +7,6 @@
 #include <cmath>
 #include <vector>
 
-#include "libslic3r/libslic3r.h"
 #include "Voronoi.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Point.hpp"

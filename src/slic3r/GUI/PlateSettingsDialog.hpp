@@ -8,6 +8,19 @@
 #include "Widgets/ComboBox.hpp"
 #include "DragCanvas.hpp"
 #include "libslic3r/ParameterUtils.hpp"
+#include <wx/event.h>
+#include <vector>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include "libslic3r/PrintConfig.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/colour.h>
 
 namespace Slic3r { namespace GUI {
 

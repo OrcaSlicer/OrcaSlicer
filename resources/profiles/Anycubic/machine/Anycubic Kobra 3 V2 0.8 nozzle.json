@@ -78,78 +78,63 @@
 	"machine_load_filament_time": "42",
 	"machine_max_acceleration_e": [
 		"20000",
-		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_extruding": [
-		"20000",
 		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_retracting": [
 		"20000",
-		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_travel": [
-		"20000",
 		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_x": [
 		"20000",
-		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_y": [
-		"20000",
 		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_z": [
 		"1000",
-		"1000",
 		"1000"
 	],
 	"machine_max_jerk_e": [
-		"20",
 		"20",
 		"20"
 	],
 	"machine_max_jerk_x": [
 		"20",
-		"20",
 		"20"
 	],
 	"machine_max_jerk_y": [
-		"20",
 		"20",
 		"20"
 	],
 	"machine_max_jerk_z": [
 		"20",
-		"20",
 		"20"
 	],
 	"machine_max_speed_e": [
 		"600",
-		"300",
-		"780"
+		"300"
 	],
 	"machine_max_speed_x": [
 		"600",
-		"300",
-		"780"
+		"300"
 	],
 	"machine_max_speed_y": [
 		"600",
-		"300",
-		"780"
+		"300"
 	],
 	"machine_max_speed_z": [
 		"15",
-		"10",
-		"26"
+		"10"
 	],
 	"machine_min_extruding_rate": [
 		"0",

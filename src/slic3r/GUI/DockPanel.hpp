@@ -3,7 +3,10 @@
 #include "WebPanel.hpp"
 
 #include <functional>
+#include <optional>
 #include <string>
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

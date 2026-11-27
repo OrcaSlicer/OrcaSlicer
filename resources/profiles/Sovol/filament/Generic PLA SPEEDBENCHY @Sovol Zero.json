@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "OFIUkWYN",
-	"setting_id": "MC2InZ7iKDjIGike",
 	"name": "Generic PLA SPEEDBENCHY @Sovol Zero",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "MC2InZ7iKDjIGike",
+	"filament_id": "OFIUkWYN",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1"
 	],

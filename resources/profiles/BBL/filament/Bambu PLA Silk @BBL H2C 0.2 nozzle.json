@@ -6,6 +6,7 @@
     "setting_id": "GFSA05_21",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "75",
         "75"
     ],
     "counter_coef_2": [

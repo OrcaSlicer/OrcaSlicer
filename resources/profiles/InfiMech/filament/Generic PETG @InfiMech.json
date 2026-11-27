@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @InfiMech",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "InfiMech Generic PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "sAi8oKez7NGKo1wy",
 	"filament_id": "OFYPdQJh",

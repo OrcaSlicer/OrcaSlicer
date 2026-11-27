@@ -6,6 +6,14 @@
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
 #include "wx/webview.h"
+#include <wx/setup.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/toplevel.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <string>
+#include <wx/gdicmn.h>
+#include <boost/filesystem/path.hpp>
 
 #if wxUSE_WEBVIEW_IE
 #include "wx/msw/webview_ie.h"
@@ -26,9 +34,6 @@
 #include <wx/tbarbase.h>
 #include "wx/textctrl.h"
 
-#include "GUI_App.hpp"
-#include "libslic3r/PresetBundle.hpp"
-#include "slic3r/Utils/PresetUpdater.hpp"
 
 #include <atomic>
 #include <memory>
@@ -38,6 +43,16 @@
 #include <nlohmann/json.hpp>
 
 #include <boost/thread.hpp>
+#include "libslic3r/AppConfig.hpp"
+
+class wxCommandEvent;
+class wxIdleEvent;
+class wxWebView;
+class wxWebViewEvent;
+namespace Slic3r { class PresetBundle; }
+namespace Slic3r { class PresetUpdater; }
+namespace Slic3r::GUI { class GUI_App; }
+namespace boost { class thread; }
 
 namespace Slic3r { namespace GUI {
 
@@ -87,7 +102,7 @@ public:
     int LoadProfileFamily(std::string strVendor, std::string strFilePath);
     void init_guide_paths();
     void on_profile_loaded();
-    bool BuildProfileJson(const PresetBundle& bundle, bool require_all_resource_vendors);
+    void notify_profile_loaded();
     bool BuildProfileDataFromPresetBundle();
     bool BuildProfileDataFromVendors();
     void reset_profile_json();
@@ -95,7 +110,7 @@ public:
     int GetFilamentInfo( std::string VendorDirectory,json & pFilaList, std::string filepath, std::string &sVendor, std::string &sType);
 
 
-    bool apply_config(AppConfig *app_config, PresetBundle *preset_bundle, const PresetUpdater *updater, bool& apply_keeped_changes);
+    bool apply_config();
     bool run();
 
     void        StrReplace(std::string &strBase, std::string strSrc, std::string strDes);
@@ -127,6 +142,10 @@ private:
 
     //First Load
     bool bFirstComplete{false};
+    // The loading page gets userguide_profile_load_finish once both are true;
+    // every instance of it reports in, so the flag is never reset.
+    bool m_profile_ready{false};
+    bool m_page_ready{false};
     // Set once in the destructor. Read through `this` by the loading thread
     // (joined before `this` dies) and captured as the shared_ptr by CallAfter
     // lambdas so they don't touch `this` after the object is freed.

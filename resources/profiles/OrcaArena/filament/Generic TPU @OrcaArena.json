@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @OrcaArena",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "OrcaArena Generic TPU",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "GBRnBtqYf9H8pQKU",
 	"filament_id": "OFgbpcy9",

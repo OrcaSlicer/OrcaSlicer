@@ -6,6 +6,22 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include <string>
+#include <wx/event.h>
+#include <vector>
+#include <map>
+#include "slic3r/GUI/3DScene.hpp"
+#include <memory>
+#include <optional>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <wx/string.h>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <cereal/archives/binary.hpp>
+#include "libslic3r/Geometry.hpp"
 
 
 namespace Slic3r {
@@ -15,6 +31,11 @@ class ConfigOption;
 namespace GUI {
 
 enum class SLAGizmoEventType : unsigned char;
+
+// The radius an ear can have, in mm: the panel's slider and field keep to it, and so does a command that sets ears
+// (Ops::set_brim_ears()).
+inline constexpr float BRIM_EAR_RADIUS_MIN = 0.1f;
+inline constexpr float BRIM_EAR_RADIUS_MAX = 100.f;
 
 class GLGizmoBrimEars : public GLGizmoBase
 {
@@ -83,6 +104,13 @@ public:
     void delete_selected_points();
     bool has_selected_points() const;
     void update_model_object();
+    // For a caller that wrote the object's ears while the gizmo was closed (Ops::set_brim_ears()): the gizmo reloads its
+    // ears only when it opens on another object than the one it last opened on, so without this its next opening on the
+    // same object would show, and write back, the ears it held when it last closed. Also clears the ear selection, so
+    // that the reloaded ears, all unselected, and the selection a click reads agree.
+    void reload_on_next_opening();
+    // The radius a new ear takes: eight first-layer line widths of the edited process, within the radius limits.
+    float get_brim_default_radius() const;
     //ClippingPlane get_sla_clipping_plane() const;
 
     bool is_selection_rectangle_dragging() const override { return m_selection_rectangle.is_dragging(); }
@@ -143,7 +171,7 @@ private:
     void select_point(int i);
     void unselect_point(int i);
     void reload_cache();
-    Points generate_points(Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer);
+    Points generate_points(const Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer);
     void auto_generate();
     void first_layer_slicer();
     void get_detection_radius_max();
@@ -179,7 +207,6 @@ protected:
     //void update_single_mesh_pick(GLVolume* v);
     void reset_all_pick();
     bool add_point_to_cache(Vec3f pos, float head_radius, bool selected, Vec3f normal);
-    float get_brim_default_radius() const;
     ExPolygon make_polygon(BrimPoint point, const Geometry::Transformation &trsf);
     void find_single();
 };

@@ -1,12 +1,40 @@
 #include "GLGizmoScale.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
+#include <cstddef>
+#include <array>
+#include <cstdlib>
+#include <cmath>
 #include <glad/gl.h>
 
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include "libslic3r/libslic3r.h"
+#include <vector>
+#include <wx/intl.h>
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include <utility>
+#include "libslic3r/Geometry.hpp"
+#include <wx/string.h>
 #include <wx/utils.h>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Line.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/I18N.hpp"
+
+namespace Slic3r { class ModelVolume; }
 
 namespace Slic3r {
 namespace GUI {
@@ -158,8 +186,8 @@ bool GLGizmoScale3D::on_is_activable() const
 
 void GLGizmoScale3D::on_set_state() {
     if (get_state() == On) {
-        m_last_selected_obejct_idx = -1;
-        m_last_selected_volume_idx = -1;
+        m_last_selected_obejct_idx = -2;
+        m_last_selected_volume_idx = -2;
         change_cs_by_selection();
     }
 }
@@ -177,7 +205,7 @@ void GLGizmoScale3D::on_start_dragging()
         m_starting.drag_position = grabbers_transform * m_grabbers[m_hover_id].center;
         m_starting.plane_center  = grabbers_transform * m_grabbers[4].center; // plane_center = bottom center
         m_starting.plane_nromal  = (grabbers_transform * m_grabbers[5].center - grabbers_transform * m_grabbers[4].center).normalized();
-        m_starting.ctrl_down = wxGetKeyState(WXK_CONTROL);
+        m_starting.ctrl_down = Slic3r::GUI::get_key_state(WXK_CONTROL);
         m_starting.box           = m_bounding_box;
 
         m_starting.center              = m_center;
@@ -228,7 +256,7 @@ void GLGizmoScale3D::update_grabbers_data()
     m_instance_center = (selection.is_single_full_instance() || selection.is_single_volume_or_modifier()) ? selection.get_first_volume()->get_instance_offset() : m_center;
 
     const Vec3d box_half_size   = 0.5 * m_bounding_box.size();
-    bool        ctrl_down     = wxGetKeyState(WXK_CONTROL);
+    bool        ctrl_down     = Slic3r::GUI::get_key_state(WXK_CONTROL);
 
 
     bool single_instance = selection.is_single_full_instance();
@@ -275,7 +303,7 @@ void GLGizmoScale3D::update_grabbers_data()
 
 
 void GLGizmoScale3D::change_cs_by_selection() {
-    int          obejct_idx, volume_idx;
+    int          obejct_idx = -1, volume_idx = -1;
     ModelVolume *model_volume = m_parent.get_selection().get_selected_single_volume(obejct_idx, volume_idx);
     if (m_last_selected_obejct_idx == obejct_idx && m_last_selected_volume_idx == volume_idx) { return; }
     m_last_selected_obejct_idx = obejct_idx;
@@ -510,7 +538,7 @@ double GLGizmoScale3D::calc_ratio(const UpdateData& data) const
         ratio = (len_starting_vec + proj) / len_starting_vec;
     }
 
-    if (wxGetKeyState(WXK_SHIFT))
+    if (Slic3r::GUI::get_key_state(WXK_SHIFT))
         ratio = m_snap_step * (double)std::round(ratio / m_snap_step);
 
     return ratio;

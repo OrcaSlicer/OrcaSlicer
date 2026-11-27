@@ -19,6 +19,7 @@
 		"Cool Plate"
 	],
 	"fan_max_speed": [
+		"80",
 		"80"
 	],
 	"temperature_vitrification": [

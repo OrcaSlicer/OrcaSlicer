@@ -6,6 +6,7 @@
     "setting_id": "GFSU02_23",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "100",
         "100"
     ],
     "eng_plate_temp": [
@@ -15,6 +16,7 @@
         "35"
     ],
     "fan_max_speed": [
+        "40",
         "40"
     ],
     "filament_change_length": [

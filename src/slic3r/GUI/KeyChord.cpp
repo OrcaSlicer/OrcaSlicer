@@ -3,6 +3,11 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 
+#include <wx/accel.h>
+#include <string>
+#include <cstddef>
+#include <optional>
+#include <vector>
 #include <wx/event.h>
 
 #include <algorithm>
@@ -101,19 +106,6 @@ int parse_key(const std::string& text)
     return WXK_NONE;
 }
 
-int parse_modifier(const std::string& text)
-{
-    if (equals_ignoring_case(text, "Ctrl") || equals_ignoring_case(text, "Control") || equals_ignoring_case(text, "Cmd") || equals_ignoring_case(text, "Command"))
-        return wxMOD_CONTROL;
-    if (equals_ignoring_case(text, "Shift"))
-        return wxMOD_SHIFT;
-    if (equals_ignoring_case(text, "Alt") || equals_ignoring_case(text, "Option"))
-        return wxMOD_ALT;
-    if (equals_ignoring_case(text, "RawCtrl"))
-        return wxMOD_RAW_CONTROL;
-    return wxMOD_NONE;
-}
-
 // Numpad keys act as their main-keyboard counterparts, so one binding covers both.
 int fold_numpad(int key)
 {
@@ -182,6 +174,40 @@ bool KeyChord::is_menu_accelerator() const
     return valid() && ((modifiers & (wxMOD_CONTROL | wxMOD_ALT | wxMOD_RAW_CONTROL)) != 0 || (!is_printable(key) && key != WXK_SPACE));
 }
 
+bool KeyChord::edits_text() const
+{
+    if (!valid())
+        return false;
+    if (!is_menu_accelerator())
+        return true;
+    const int mods = modifiers & ~wxMOD_SHIFT;
+    switch (key) {
+    case WXK_LEFT: case WXK_RIGHT: case WXK_UP: case WXK_DOWN:
+    case WXK_HOME: case WXK_END: case WXK_BACK: case WXK_DELETE:
+#ifdef __APPLE__
+        return mods == wxMOD_NONE || mods == wxMOD_CONTROL || mods == wxMOD_ALT; // Option moves by word
+#else
+        return mods == wxMOD_NONE || mods == wxMOD_CONTROL;
+#endif
+    case WXK_INSERT:
+        return mods == wxMOD_NONE || mods == wxMOD_CONTROL;
+    case WXK_RETURN: case WXK_TAB: case WXK_ESCAPE: case WXK_PAGEUP: case WXK_PAGEDOWN:
+        return mods == wxMOD_NONE;
+    default:
+        break;
+    }
+    if (!is_printable(key))
+        return false;
+#ifdef __APPLE__
+    if (mods == wxMOD_ALT || mods == wxMOD_RAW_CONTROL)
+        return true; // Option types a character, Control runs the Cocoa text key bindings
+#else
+    if (mods == (wxMOD_CONTROL | wxMOD_ALT))
+        return true; // AltGr types a character
+#endif
+    return mods == wxMOD_CONTROL && (key == 'A' || key == 'C' || key == 'V' || key == 'X' || key == 'Y' || key == 'Z');
+}
+
 // Only a chord the desktop acts on while still delivering it to the app belongs here.
 bool KeyChord::is_system_shortcut() const
 {
@@ -202,6 +228,19 @@ std::string KeyChord::to_string() const
     else
         out += special_key_name(key);
     return out;
+}
+
+int KeyChord::parse_modifier(const std::string& text)
+{
+    if (equals_ignoring_case(text, "Ctrl") || equals_ignoring_case(text, "Control") || equals_ignoring_case(text, "Cmd") || equals_ignoring_case(text, "Command"))
+        return wxMOD_CONTROL;
+    if (equals_ignoring_case(text, "Shift"))
+        return wxMOD_SHIFT;
+    if (equals_ignoring_case(text, "Alt") || equals_ignoring_case(text, "Option"))
+        return wxMOD_ALT;
+    if (equals_ignoring_case(text, "RawCtrl"))
+        return wxMOD_RAW_CONTROL;
+    return wxMOD_NONE;
 }
 
 std::optional<KeyChord> KeyChord::parse(const std::string& text)

@@ -6,6 +6,7 @@
 	"setting_id": "5F1rml3AGNMD6F1g",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
+		"75",
 		"75"
 	],
 	"eng_plate_temp": [

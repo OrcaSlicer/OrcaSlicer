@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA High Speed @Creality Ender-3V3-all",
-	"inherits": "Generic PLA @Creality Ender-3V3-all",
 	"renamed_from": "Creality Generic PLA High Speed @Ender-3V3-all;Creality Generic PLA High Speed Ender-3V3-all",
+	"inherits": "Generic PLA @Creality Ender-3V3-all",
 	"from": "system",
 	"setting_id": "MOH1B7U4Ipv8jw0s",
 	"filament_id": "OFmpMwxS",

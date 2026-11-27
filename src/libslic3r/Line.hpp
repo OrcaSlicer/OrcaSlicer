@@ -4,7 +4,10 @@
 #include "libslic3r.h"
 #include "Point.hpp"
 
+#include <cmath>
 #include <type_traits>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 
@@ -319,7 +322,8 @@ BoundingBox get_extents(const Lines &lines);
 } // namespace Slic3r
 
 // start Boost
-#include <boost/polygon/polygon.hpp>
+#include <boost/polygon/isotropy.hpp>
+#include <boost/polygon/segment_concept.hpp>
 namespace boost { namespace polygon {
     template <>
     struct geometry_concept<Slic3r::Line> { typedef segment_concept type; };

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PVA @OrcaArena",
-	"inherits": "Generic PVA @OrcaArena base",
 	"renamed_from": "OrcaArena Generic PVA",
+	"inherits": "Generic PVA @OrcaArena base",
 	"from": "system",
 	"setting_id": "S9TMm0n7t54fKHoM",
 	"instantiation": "true",

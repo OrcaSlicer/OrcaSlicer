@@ -1,4 +1,7 @@
 #include "libslic3r/CAD/ThreadStandards.hpp"
+#include <cmath>
+#include <vector>
+#include <string>
 
 namespace Slic3r {
 
@@ -90,6 +93,20 @@ const ThreadSpec* find_thread_standard(const std::string& name)
         if (s.name == name)
             return &s;
     return nullptr;
+}
+
+const ThreadSpec* nearest_thread_standard(double diameter, bool internal)
+{
+    const ThreadSpec* best     = nullptr;
+    double            best_err = 0.0;
+    for (const ThreadSpec& s : thread_standards()) {
+        const double err = std::abs((internal ? s.minor_diameter_mm() : s.major_diameter_mm) - diameter);
+        if (best == nullptr || err < best_err) {
+            best     = &s;
+            best_err = err;
+        }
+    }
+    return best;
 }
 
 } // namespace Slic3r

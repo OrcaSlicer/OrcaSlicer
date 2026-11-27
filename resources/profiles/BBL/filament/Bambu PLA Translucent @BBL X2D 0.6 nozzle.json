@@ -114,6 +114,11 @@
         "220"
     ],
     "nozzle_temperature_range_low": [
+        "200",
+        "200",
+        "200",
+        "200",
+        "200",
         "200"
     ],
     "retraction_distances_when_ec": [

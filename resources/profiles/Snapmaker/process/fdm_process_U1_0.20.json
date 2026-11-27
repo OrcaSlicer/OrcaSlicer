@@ -14,5 +14,7 @@
 	"sparse_infill_speed": "270",
 	"internal_solid_infill_speed": "250",
 	"gap_infill_speed": "250",
-	"top_shell_layers": "5"
+	"top_shell_layers": "5",
+	"top_color_penetration_layers": "5",
+	"bottom_color_penetration_layers": "3"
 }

@@ -6,6 +6,8 @@
     "setting_id": "GFSL96_04",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "75",
+        "75",
         "75"
     ],
     "eng_plate_temp": [

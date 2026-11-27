@@ -3,16 +3,33 @@
 #include "WebView.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "libslic3r/Utils.hpp"
+#include <exception>
 #include <nlohmann/json.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <string>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/filename.h>
+#include <wx/filesys.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/chartype.h>
 #include <wx/log.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
 
 #include <algorithm>
+#include <atomic>
+#include <functional>
+#include <memory>
+#include <utility>
+#include <wx/webview.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -143,6 +160,114 @@ std::string WebViewHostDialog::document_start_injector(const std::string& markup
     return s;
 }
 
+bool WebViewHostDialog::own_page_navigation(const wxString& url, const wxFileName& page)
+{
+    if (url == "about:blank")
+        return true;
+    return url.Lower().StartsWith("file:") && wxFileSystem::URLToFileName(url.BeforeFirst('?').BeforeFirst('#')).SameAs(page);
+}
+
+boost::filesystem::path WebViewHostDialog::dropped_file(const wxString& url)
+{
+    if (!url.Lower().StartsWith("file:"))
+        return {};
+    return into_path(wxFileSystem::URLToFileName(url.BeforeFirst('?').BeforeFirst('#')).GetFullPath());
+}
+
+wxWebView* WebViewHostDialog::create_pane_web_view(wxWindow* pane, const boost::filesystem::path& page, const nlohmann::json& strings,
+                                                   std::shared_ptr<std::atomic<bool>>         alive,
+                                                   std::function<void(const nlohmann::json&)> on_message,
+                                                   std::function<void(wxWebViewEvent&)>       on_navigating)
+{
+    // Created empty and loaded once the user scripts are in, so the first load has them, as a WebViewHostDialog's page does.
+    wxWebView* web   = WebView::CreateWebView(pane, wxEmptyString);
+    auto*      sizer = new wxBoxSizer(wxVERTICAL);
+    if (web != nullptr)
+        sizer->Add(web, 1, wxEXPAND);
+    pane->SetSizer(sizer);
+    if (web == nullptr)
+        return nullptr;
+    // WebView2's accelerator keys would reload the page (Ctrl+R, F5) and zoom it.
+    web->EnableBrowserAcceleratorKeys(false);
+    web->AddUserScript(wxString::FromUTF8(theme_user_script()));
+    web->AddUserScript(wxString::FromUTF8(localized_strings_script(strings)));
+    web->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [alive, on_message = std::move(on_message)](wxWebViewEvent& event) {
+        nlohmann::json payload;
+        try {
+            payload = nlohmann::json::parse(event.GetString().utf8_string());
+        } catch (const std::exception&) {
+            return;
+        }
+        // Out of the web view's message callback: window work on its stack (file dialogs, prompts) is a crash class on
+        // GTK and macOS.
+        wxGetApp().CallAfter([alive, on_message, payload = std::move(payload)] {
+            if (alive->load())
+                on_message(payload);
+        });
+    });
+    web->Bind(wxEVT_WEBVIEW_NAVIGATING, std::move(on_navigating));
+    // A theme toggle re-themes the page in place.
+    web->Bind(EVT_WEBVIEW_RECREATED, [web](wxCommandEvent&) { WebView::RunScript(web, wxString::FromUTF8(theme_apply_script())); });
+    wxString url = file_url_from_path(page);
+    if (const wxString lang = wxGetApp().current_language_code_safe(); !lang.empty())
+        url += "?lang=" + lang;
+    WebView::LoadUrl(web, url);
+    return web;
+}
+
+nlohmann::json WebViewHostDialog::code_editor_strings()
+{
+    // The annotation, error-marker and gutter-tooltip messages are left out: these editors never show them.
+    return {
+        {"autocomplete.loading", _u8L("Loading…")},
+        {"autocomplete.popup.aria-label", _u8L("Suggestions")},
+        {"autocomplete.popup.aria-roledescription", _u8L("Suggestions")},
+        // TRN Read by a screen reader for one entry of the code editor's list of suggestions.
+        {"autocomplete.popup.item.aria-roledescription", _u8L("Suggestion")},
+        // TRN Read by a screen reader for the line numbers beside the code editor.
+        {"editor.gutter.aria-label", _u8L("Line numbers. Press Enter to use the fold buttons with the arrow keys, and Escape to leave them.")},
+        {"editor.gutter.aria-roledescription", _u8L("Line numbers")},
+        // TRN Read by a screen reader for the code editor's text.
+        {"editor.scroller.aria-label", _u8L("Code. Press Enter to start editing, and Escape to leave the editor.")},
+        {"editor.scroller.aria-roledescription", _u8L("Code editor")},
+        // TRN Shown when a person types in the code editor while a script runs.
+        {"editor.tooltip.disable-editing", _u8L("You can edit once the run ends.")},
+        // TRN The two %s are line numbers.
+        {"gutter.code-folding.closed.aria-label", _u8L("Unfold lines %s to %s")},
+        // TRN A button beside the code editor's line numbers that shows lines it hid.
+        {"gutter.code-folding.closed.title", _u8L_CONTEXT("Unfold", "Code editor")},
+        // TRN %s is a line number.
+        {"gutter.code-folding.open.aria-label", _u8L("Fold the lines from line %s")},
+        // TRN A button beside the code editor's line numbers that hides the lines of a block.
+        {"gutter.code-folding.open.title", _u8L_CONTEXT("Fold", "Code editor")},
+        // TRN The two %s are line numbers.
+        {"gutter.code-folding.range.aria-label", _u8L("Fold or unfold lines %s to %s")},
+        {"inline-fold.closed.title", _u8L_CONTEXT("Unfold", "Code editor")},
+        {"search-box.find-all.text", _u8L("Find all")},
+        {"search-box.find.placeholder", _u8L("Search for")},
+        {"search-box.replace-all.text", _u8L("Replace all")},
+        // TRN A button of the code editor's search box that replaces the next match.
+        {"search-box.replace-next.text", _u8L_CONTEXT("Replace", "Code editor")},
+        {"search-box.replace.placeholder", _u8L("Replace with")},
+        // TRN The code editor's search box: the first %s is the match the cursor is on, the second how many there are.
+        {"search-box.search-counter", _u8L("%s of %s")},
+        {"search-box.toggle-case.title", _u8L("Match case")},
+        {"search-box.toggle-in-selection.title", _u8L("Search in the selection")},
+        {"search-box.toggle-regexp.title", _u8L("Use a regular expression")},
+        // TRN Shows or hides the replace field of the code editor's search box.
+        {"search-box.toggle-replace.title", _u8L("Show or hide Replace")},
+        {"search-box.toggle-whole-word.title", _u8L("Match whole words")},
+        // TRN Read by a screen reader as the cursor moves in the code editor; %s is a line number.
+        {"text-input.aria-label", _u8L("Cursor on line %s")},
+        {"text-input.aria-roledescription", _u8L("Code editor")},
+    };
+}
+
+std::string WebViewHostDialog::localized_strings_script(const nlohmann::json& strings)
+{
+    return "window.ORCA_UI_STRINGS = " + strings.dump(-1, ' ', false, nlohmann::json::error_handler_t::ignore) + ";";
+}
+
 WebViewHostDialog::WebViewHostDialog(wxWindow* parent,
                                      wxWindowID id,
                                      const wxString& title,
@@ -165,7 +290,8 @@ bool WebViewHostDialog::create_webview(const std::string& resource_path,
     const wxString target_url = build_resource_url(resource_path);
     wxBoxSizer*    topsizer   = new wxBoxSizer(wxVERTICAL);
 
-    m_browser = WebView::CreateWebView(this, target_url);
+    // Created empty and loaded below, after the user scripts are added, so the first load already has them.
+    m_browser = WebView::CreateWebView(this, wxEmptyString);
     if (m_browser == nullptr) {
         wxLogError("Could not init m_browser");
         delete topsizer;
@@ -192,7 +318,7 @@ bool WebViewHostDialog::create_webview(const std::string& resource_path,
 
 wxString WebViewHostDialog::build_resource_url(const std::string& resource_path) const
 {
-    wxString target_url = from_u8((boost::filesystem::path(resources_dir()) / resource_path).make_preferred().string());
+    wxString target_url = file_url_from_path(boost::filesystem::path(resources_dir()) / resource_path);
 
     if (append_language_to_url()) {
         const wxString lang = wxGetApp().current_language_code_safe();
@@ -202,7 +328,7 @@ wxString WebViewHostDialog::build_resource_url(const std::string& resource_path)
         }
     }
 
-    return wxString("file://") + target_url;
+    return target_url;
 }
 
 void WebViewHostDialog::load_url(const wxString& url)
@@ -228,8 +354,23 @@ void WebViewHostDialog::call_web_handler(const nlohmann::json& payload, const wx
     const wxString payload_text = wxString::FromUTF8(payload.dump(-1, ' ', false, nlohmann::json::error_handler_t::ignore));
     const wxString script       = handler + wxT("(") + payload_text + wxT(")");
 
-    wxGetApp().CallAfter([this, script] { run_script(script); });
+    wxGetApp().CallAfter([this, script, alive = m_host_alive] {
+        if (alive->load())
+            run_script(script);
+    });
 }
+
+void WebViewHostDialog::restore_z_order()
+{
+    // Deferred so it runs on a clean stack after the modal has fully torn down; the
+    // alive guard covers the dialog being destroyed while the CallAfter is queued.
+    wxGetApp().CallAfter([this, alive = m_host_alive] {
+        if (alive->load() && IsShown())
+            Raise();
+    });
+}
+
+WebViewHostDialog::~WebViewHostDialog() { m_host_alive->store(false); }
 
 bool WebViewHostDialog::handle_common_script_command(const nlohmann::json& payload, int close_return_code)
 {
@@ -275,6 +416,8 @@ void WebViewHostDialog::register_theme_user_scripts()
     // some backends RemoveAllUserScripts() drops it too, which would break
     // window.wx.postMessage / HandleStudio. Live re-theme goes through apply_theme_live().
     m_browser->AddUserScript(wxString::FromUTF8(theme_user_script()));
+    if (const nlohmann::json strings = localized_strings(); !strings.is_null())
+        m_browser->AddUserScript(wxString::FromUTF8(localized_strings_script(strings)));
     add_user_scripts();
 }
 

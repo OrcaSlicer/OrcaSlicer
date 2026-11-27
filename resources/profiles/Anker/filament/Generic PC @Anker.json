@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @Anker",
-	"inherits": "Generic PC @Anker base",
 	"renamed_from": "Anker Generic PC",
+	"inherits": "Generic PC @Anker base",
 	"from": "system",
 	"setting_id": "ffufXVvW95sunH1B",
 	"instantiation": "true",

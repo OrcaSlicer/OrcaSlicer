@@ -1,34 +1,58 @@
 #include "ActionRegistry.hpp"
+#include "slic3r/plugin/host/PluginPages.hpp"
 
+#include "ActionIds.hpp"
+#include "CommandCatalog.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "ImGuiWrapper.hpp"
 #include "MainFrame.hpp"
 #include "NativeCommands.hpp"
 #include "Notebook.hpp"
+#include "NotificationManager.hpp"
 #include "OptionsGroup.hpp"
+#include "OptionStateRegistry.hpp"
 #include "Plater.hpp"
 #include "SettingsIndex.hpp"
 #include "Tab.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
+#ifdef SLIC3R_CAD
+#include "CAD/DesignOffer.hpp"
+#include "CAD/DesignPanel.hpp"
+#include "Mcp/McpToolsDesign.hpp"
+#endif
 
+#include <cassert>
+#include <boost/filesystem/operations.hpp>
 #include <libslic3r/AppConfig.hpp>
 #include <libslic3r/Config.hpp>
+#include "slic3r/plugin/PluginDescriptor.hpp"
+#include <memory>
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 
+#include <vector>
+#include <utility>
+#include <wx/app.h>
 #include <wx/thread.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/nowide/convert.hpp>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <cstddef>
 #include <ctime>
 #include <exception>
+#include <functional>
 #include <iterator>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 
@@ -43,6 +67,61 @@ std::vector<std::string> cap_favourites(const std::vector<std::string>& ids, siz
             out.push_back(id);
     }
     return out;
+}
+
+bool is_design_action_id([[maybe_unused]] const std::string& id)
+{
+#ifdef SLIC3R_CAD
+    for (const DesignTool& t : kDesignTools)
+        if (t.action != nullptr && AppAction::compose_id(kCommandPrefix, t.id, kOrcaSourceKey) == id)
+            return true;
+#endif
+    return false;
+}
+
+void prune_favourites(const std::vector<std::string>& favs, const std::function<bool(const std::string&)>& live,
+                      std::vector<std::string>& stored, std::vector<std::string>& shown)
+{
+    stored.clear();
+    shown.clear();
+    for (const std::string& id : favs) {
+        if (live(id)) {
+            stored.push_back(id);
+            if (shown.size() < ActionRegistry::kFavLimit)
+                shown.push_back(id);
+        } else if (is_design_action_id(id)) {
+            stored.push_back(id);
+        }
+    }
+}
+
+bool add_favourite(std::vector<std::string>& favs, const std::string& id, const std::function<bool(const std::string&)>& live)
+{
+    std::vector<std::string> stored, shown;
+    prune_favourites(favs, live, stored, shown);
+    if (std::find(shown.begin(), shown.end(), id) != shown.end())
+        return true;
+    // A full bar refuses a live pin past the tenth as it refuses a new one: the page shows neither as pinned.
+    if (shown.size() >= ActionRegistry::kFavLimit || favs.size() >= ActionRegistry::kFavStoredLimit)
+        return false;
+    if (std::find(favs.begin(), favs.end(), id) == favs.end())
+        favs.push_back(id);
+    return true;
+}
+
+std::vector<std::string> reordered_favourites(std::vector<std::string> stored, const std::vector<std::string>& ids)
+{
+    std::vector<std::string> moved; // the stored pins `ids` names, in its order
+    for (const std::string& id : ids)
+        if (std::find(stored.begin(), stored.end(), id) != stored.end() && std::find(moved.begin(), moved.end(), id) == moved.end())
+            moved.push_back(id);
+    std::vector<std::size_t> places; // where they are stored, in the stored order
+    for (std::size_t i = 0; i < stored.size(); ++i)
+        if (std::find(moved.begin(), moved.end(), stored[i]) != moved.end())
+            places.push_back(i);
+    for (std::size_t k = 0; k < places.size(); ++k)
+        stored[places[k]] = moved[k];
+    return stored;
 }
 
 namespace {
@@ -90,6 +169,45 @@ std::string find_loaded_source_name(PluginManager& manager, const std::string& p
     return plugin_key;
 }
 
+// Translates a Script capability outcome into the action layer's result vocabulary. Shared by
+// the synchronous run path and the async completion notification.
+AppActionRunResult script_outcome_to_action_result(const ScriptCompletion& completion)
+{
+    // Cancelled by PluginManager (unload/shutdown): expected termination, nothing to show.
+    if (completion.cancelled)
+        return {};
+
+    if (!completion.error.empty())
+        return {AppActionRunResult::Level::Error, from_u8(completion.error)};
+
+    const ExecutionResult& result   = completion.result;
+    const bool             skipped  = result.status == PluginResult::Skipped;
+    const wxString         fallback = skipped ? _L("Script plugin skipped.") : _L("Script plugin finished.");
+    return {skipped ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Succeeded,
+            result.message.empty() ? fallback : from_u8(result.message)};
+}
+
+// Surfaces the eventual outcome of an async script launched from the speed dial. That launch
+// already returned (the UI was not blocked), so the finish is reported as a notification. A
+// cancellation is silent.
+void notify_script_outcome(const ScriptCompletion& completion)
+{
+    if (completion.cancelled)
+        return;
+    if (wxTheApp == nullptr || wxGetApp().is_closing())
+        return;
+
+    Plater* plater = wxGetApp().plater();
+    if (plater == nullptr || wxGetApp().imgui() == nullptr || !wxGetApp().imgui()->display_initialized())
+        return;
+
+    const AppActionRunResult action_result = script_outcome_to_action_result(completion);
+    const auto               level         = action_result.level == AppActionRunResult::Level::Error
+                                                 ? NotificationManager::NotificationLevel::ErrorNotificationLevel
+                                                 : NotificationManager::NotificationLevel::RegularNotificationLevel;
+    plater->get_notification_manager()->push_notification(NotificationType::CustomNotification, level, into_u8(action_result.message));
+}
+
 // A runnable script capability exposed as a speed-dial action. source_key = plugin_key
 // (identity), so a plugin display-name change does not re-key the action.
 struct PluginScriptAction : AppAction
@@ -111,19 +229,43 @@ struct PluginScriptAction : AppAction
                     std::move(source_name))
         , plugin_key(std::move(plugin_key_in))
         , capability(std::move(capability_in))
-    {}
-
-    AppActionRunResult run(const std::string& /*param*/) const override
     {
-        std::string error;
-        const ExecutionResult result = PluginManager::instance().run_script_capability(plugin_key, capability, error);
-        if (!error.empty())
-            return {AppActionRunResult::Level::Error, from_u8(error)};
+        this->automation_description = "Run the plugin script \"" + this->title() + "\" (" + this->source_name() +
+                                       "). Its result arrives as a notification.";
+    }
 
-        const bool skipped      = result.status == PluginResult::Skipped;
-        const wxString fallback = skipped ? _L("Script plugin skipped.") : _L("Script plugin finished.");
-        return {skipped ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Success,
-                result.message.empty() ? fallback : from_u8(result.message)};
+    AppActionRunResult run(const nlohmann::json& /*args*/) const override
+    {
+        struct Outcome
+        {
+            bool               async     = false;
+            bool               completed = false;
+            AppActionRunResult result;
+        };
+        auto outcome = std::make_shared<Outcome>();
+
+        auto on_done = [outcome](const ScriptCompletion& completion) {
+            outcome->result    = script_outcome_to_action_result(completion);
+            outcome->completed = true;
+            if (outcome->async)
+                notify_script_outcome(completion);
+        };
+
+        const PluginManager::ScriptLaunchResult launch = PluginManager::instance().launch_script_capability(plugin_key, capability, on_done);
+        if (launch.launched_async) {
+            // The completion is delivered on this (GUI) thread once the (sync or async) invocation
+            // finishes, so marking `async` here cannot race with on_done. The speed dial has already
+            // shown a result by then; the final outcome arrives as a notification (a cancellation is
+            // silent).
+            outcome->async = true;
+            if (outcome->completed)
+                return outcome->result;
+            return {AppActionRunResult::Level::Info, _L("Script plugin started.")};
+        }
+
+        // The launch failed inline; on_done produced the (error) result.
+        on_done(launch.outcome);
+        return outcome->result;
     }
 };
 
@@ -140,6 +282,57 @@ std::unique_ptr<AppAction> make_action(const std::string& plugin_key, const std:
     return std::make_unique<PluginScriptAction>(plugin_key, capability, source_name);
 }
 
+// A plugin page capability exposed as a speed-dial action. source_key = plugin_key
+// (identity), so a plugin display-name change does not re-key the action.
+struct PluginPageAction : AppAction
+{
+    static constexpr const char* kIdPrefix = "plugin_page_action";
+
+    std::string plugin_key;
+    std::string capability;
+
+    // The id an action for (plugin_key, capability) would have - lets refresh_page_capability
+    // remove a gone capability without materialising the action.
+    static std::string id_for(const std::string& plugin_key, const std::string& capability)
+    { return AppAction::compose_id(kIdPrefix, capability.empty() ? plugin_key : capability, plugin_key); }
+
+    PluginPageAction(std::string plugin_key_in, std::string capability_in, std::string source_name)
+        : AppAction(kIdPrefix,
+                    capability_in.empty() ? plugin_key_in : capability_in, // title
+                    plugin_key_in,                                         // source_key
+                    std::move(source_name))
+        , plugin_key(std::move(plugin_key_in))
+        , capability(std::move(capability_in))
+    {
+        // Stay classified as a plugin: grouped under "Plugins" and gated by the same run-confirm.
+        this->kind                   = AppActionKind::Plugin;
+        this->automation_description = "Open the plugin page \"" + this->title() + "\" (" + this->source_name() + ").";
+        // Icon is left empty on purpose: the webview builds resources/images/<icon>.svg, which a
+        // plugin filesystem icon path would not resolve to.
+    }
+
+    AppActionRunResult run(const nlohmann::json& /*args*/) const override
+    {
+        MainFrame* mf = wxGetApp().mainframe;
+        if (mf)
+            mf->plugin_pages().select_page({PluginCapabilityType::Pages, capability, plugin_key});
+        return {AppActionRunResult::Level::Succeeded};
+    }
+};
+
+// Builds an action for a page capability, or nullptr if it is not a currently-loaded,
+// enabled page capability.
+std::unique_ptr<AppAction> make_page_action(const std::string& plugin_key, const std::string& capability, const std::string& source_name)
+{
+    PluginManager& manager = PluginManager::instance();
+    if (!manager.is_plugin_loaded(plugin_key))
+        return nullptr;
+    // only_enabled defaults true, so a disabled capability resolves to nullptr here.
+    if (!manager.get_plugin_capability({PluginCapabilityType::Pages, capability, plugin_key}))
+        return nullptr;
+    return std::make_unique<PluginPageAction>(plugin_key, capability, source_name);
+}
+
 // ---- built-in command actions (the speed dial "commands" section) ------
 
 constexpr const char* kSettingPrefix       = "orca_setting";
@@ -147,17 +340,50 @@ constexpr const char* kPlateGotoPrefix     = "orca_plate_goto";
 constexpr const char* kRecentProjectPrefix = "orca_recent_project";
 
 // Display context for a setting action's eyebrow, e.g. the "Process" in "Process : Quality : Layers".
-// Keyed by the option's preset type so the palette reads like the settings sidebar tabs.
-std::string setting_type_context(Preset::Type type)
+// Keyed by the option's preset type so the Speed Dial reads like the settings sidebar tabs. Untranslated:
+// the caller translates it for the displayed breadcrumb and keeps it for the English one.
+const char* setting_type_context(Preset::Type type)
 {
     switch (type) {
     case Preset::TYPE_FILAMENT:
-    case Preset::TYPE_SLA_MATERIAL: return _u8L("Filament");
-    case Preset::TYPE_PRINTER: return _u8L("Printer");
+    case Preset::TYPE_SLA_MATERIAL: return L("Filament");
+    case Preset::TYPE_PRINTER: return L("Printer");
     case Preset::TYPE_PRINT:
     case Preset::TYPE_SLA_PRINT:
-    default: return _u8L("Process");
+    default: return L("Process");
     }
+}
+
+// A setting's text in one language. The displayed text and its English search aliases both come from
+// here, so in an English UI the two are equal and no alias is sent.
+struct SettingText
+{
+    std::string title;      // the label the settings row draws
+    std::string full_label; // the descriptive ConfigOptionDef name when it differs from title: a
+                            // search-only alias ("overhang reversal" still finds "Reverse on even")
+    std::string source;     // the full settings path "Process : Quality : Layers". The JS renders
+                            // group || source and searches every field, so putting the whole path in
+                            // source both displays it and makes it matchable by any segment.
+};
+
+SettingText setting_text(const std::wstring& def_label, const std::string& display_label, const wxString& row_label, bool row_multi,
+                         const std::string& type_name, const std::wstring& category, const std::wstring& group)
+{
+    SettingText       text;
+    const std::string def = boost::nowide::narrow(def_label);
+    text.title            = into_u8(Search::resolve_setting_title(from_u8(display_label), row_label, row_multi));
+    if (text.title.empty())
+        text.title = def;
+    if (text.title != def)
+        text.full_label = def;
+
+    std::wstring path = boost::nowide::widen(type_name);
+    if (!category.empty())
+        path += L" : " + category;
+    if (!group.empty())
+        path += L" : " + group;
+    text.source = boost::nowide::narrow(path);
+    return text;
 }
 
 // Stable, non-localized mode token for the webview, which maps it to a badge ("Developer" etc.).
@@ -203,10 +429,10 @@ struct SettingAction : AppAction
         this->required_mode = mode_in;
     }
 
-    AppActionRunResult run(const std::string& /*param*/) const override
+    AppActionRunResult run(const nlohmann::json& /*args*/) const override
     {
         wxGetApp().sidebar().jump_to_option(opt_key, type, category);
-        return {AppActionRunResult::Level::Success};
+        return {AppActionRunResult::Level::Succeeded};
     }
 };
 
@@ -246,12 +472,14 @@ struct PlateAction : AppAction
     PlateAction(int index, std::string title, std::string source_name)
         : AppAction(AppActionId{id_for(index)}, std::move(title), kOrcaSourceKey, std::move(source_name)), plate_index(index)
     {
-        this->kind  = AppActionKind::Command;
-        this->group = _u8L("Plate");
+        this->kind                   = AppActionKind::Command;
+        this->group_en               = L("Plate");
+        this->group                  = I18N::translate_utf8(this->group_en);
+        this->automation_description = "Make plate " + std::to_string(index + 1) + " (index " + std::to_string(index) + ") the current plate.";
     }
 
-    AppActionRunResult run(const std::string& /*param*/) const override
-    { return NativeCommands::run("plate_goto", std::to_string(plate_index)); }
+    AppActionRunResult run(const nlohmann::json& /*args*/) const override
+    { return NativeCommands::run("plate_select", {{"plate", plate_index}}); }
 };
 
 // A dynamic "Open recent project <name>" action, one per recent project file, rebuilt on every
@@ -269,19 +497,45 @@ struct RecentProjectAction : AppAction
     RecentProjectAction(std::string path, std::string title, std::string source)
         : AppAction(AppActionId{id_for(path)}, std::move(title), kOrcaSourceKey, std::move(source)), file_path(std::move(path))
     {
-        this->kind  = AppActionKind::Command;
-        this->group = _u8L("Recent Projects");
+        this->kind                   = AppActionKind::Command;
+        this->group_en               = L("Recent Projects");
+        this->group                  = I18N::translate_utf8(this->group_en);
+        this->automation_description = "Open the recent project " + file_path + ".";
     }
 
-    AppActionRunResult run(const std::string& /*param*/) const override
+    AppActionRunResult run(const nlohmann::json& /*args*/) const override
     {
         if (MainFrame* mf = wxGetApp().mainframe; mf)
             mf->open_recent_project(size_t(-1), wxString::FromUTF8(file_path));
-        return {AppActionRunResult::Level::Success};
+        return {AppActionRunResult::Level::Succeeded};
     }
 };
 
 } // namespace
+
+nlohmann::json action_json(const AppAction& a)
+{
+    nlohmann::json j({{"id", a.id()},
+                      {"title", a.title()},
+                      {"full_label", a.full_label},
+                      {"source", a.source_name()},
+                      {"group", a.group},
+                      {"kind", a.kind == AppActionKind::Plugin ? "plugin" : "command"},
+                      {"input", a.input},
+                      {"icon", a.icon},
+                      {"mode", mode_key(a.required_mode)},
+                      {"desc", a.tooltip},
+                      {"wiki", !a.help_url.empty()}});
+    auto add_alias = [&j](const char* key, const std::string& english, const std::string& local) {
+        if (!english.empty() && english != local)
+            j[key] = english;
+    };
+    add_alias("title_en", a.title_en, a.title());
+    add_alias("group_en", a.group_en, a.group);
+    add_alias("source_en", a.source_en, a.source_name());
+    add_alias("full_label_en", a.full_label_en, a.full_label);
+    return j;
+}
 
 ActionRegistry::~ActionRegistry() = default;
 
@@ -302,13 +556,20 @@ void ActionRegistry::init()
         });
     };
     auto on_capability = [this](const PluginCapabilityId& capability, ActionChange change) {
-        if (capability.type != PluginCapabilityType::Script || !wxTheApp || wxGetApp().is_closing())
+        if (capability.type != PluginCapabilityType::Script && capability.type != PluginCapabilityType::Pages)
             return;
-        const std::string plugin_key = capability.plugin_key;
-        const std::string name       = capability.name;
-        wxGetApp().CallAfter([this, plugin_key, name, change] {
-            if (!wxGetApp().is_closing())
+        if (!wxTheApp || wxGetApp().is_closing())
+            return;
+        const PluginCapabilityType type = capability.type;
+        const std::string plugin_key    = capability.plugin_key;
+        const std::string name          = capability.name;
+        wxGetApp().CallAfter([this, type, plugin_key, name, change] {
+            if (wxGetApp().is_closing())
+                return;
+            if (type == PluginCapabilityType::Script)
                 this->refresh_capability(plugin_key, name, change);
+            else
+                this->refresh_page_capability(plugin_key, name, change);
         });
     };
 
@@ -338,12 +599,22 @@ void ActionRegistry::init()
             upsert(std::move(action));
     }
 
-    // Built-in palette commands (Save/Load, Preferences, Mode switch, Slice/Preview, Go to layer).
-    // Register after plugins so the plugin ids win on any (unlikely) id collision - ids are distinct
-    // by prefix, so this is order-independent. The catalog (and its thin AppAction adapter) lives in
-    // NativeCommands; the registry only stores and dispatches the result.
-    for (const NativeCommand& c : NativeCommands::catalog())
-        upsert(NativeCommands::make_action(c));
+    for (const auto& capability : manager.get_plugin_capabilities("", PluginCapabilityType::Pages)) {
+        if (!capability)
+            continue;
+        const std::string& key         = capability->audit_plugin_key();
+        auto it                        = source_names.find(key);
+        const std::string& source_name = it == source_names.end() ? key : it->second;
+        if (auto action = make_page_action(key, capability->name(), source_name))
+            upsert(std::move(action));
+    }
+
+    // Built-in Speed Dial actions (Save/Load, Preferences, Mode switch, Slice/Preview, Go to layer): the catalog's
+    // commands' own actions and the items of their actions, and no others. Register after plugins so the plugin ids
+    // win on any (unlikely) id collision - ids are distinct by prefix, so this is order-independent. The catalog (and
+    // its thin AppAction adapter) lives in NativeCommands; the registry only stores and dispatches the result.
+    for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(NativeCommands::instance()))
+        upsert(t.action != nullptr ? NativeCommands::make_action(*t.command, *t.action) : NativeCommands::make_action(*t.command));
 }
 
 void ActionRegistry::relocalize_builtins()
@@ -354,7 +625,8 @@ void ActionRegistry::relocalize_builtins()
 
     // Drop only the built-in commands; plugins and the dynamically materialised families are
     // either unlocalized or rebuilt per snapshot. remove() only erases the map entry, and upsert()
-    // re-seeds favourites/stats from config, so key-based ids keep their pinned state.
+    // re-seeds favourites/stats from config, so key-based ids keep their pinned state. make_action()
+    // translates in the new locale.
     std::vector<std::string> stale;
     for (const auto& [id, action] : m_actions)
         if (action->source_key() == kOrcaSourceKey && action->kind == AppActionKind::Command)
@@ -362,9 +634,8 @@ void ActionRegistry::relocalize_builtins()
     for (const std::string& id : stale)
         remove(id);
 
-    NativeCommands::rebuild_catalog();
-    for (const NativeCommand& c : NativeCommands::catalog())
-        upsert(NativeCommands::make_action(c));
+    for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(NativeCommands::instance()))
+        upsert(t.action != nullptr ? NativeCommands::make_action(*t.command, *t.action) : NativeCommands::make_action(*t.command));
 }
 
 void ActionRegistry::refresh_source(const std::string& plugin_key, ActionChange change)
@@ -392,6 +663,12 @@ void ActionRegistry::refresh_source(const std::string& plugin_key, ActionChange 
         if (auto action = make_action(plugin_key, capability->name(), source_name))
             upsert(std::move(action));
     }
+    for (const auto& capability : manager.get_plugin_capabilities(plugin_key, PluginCapabilityType::Pages)) {
+        if (!capability)
+            continue;
+        if (auto action = make_page_action(plugin_key, capability->name(), source_name))
+            upsert(std::move(action));
+    }
 }
 
 void ActionRegistry::refresh_capability(const std::string& plugin_key, const std::string& capability, ActionChange change)
@@ -406,6 +683,23 @@ void ActionRegistry::refresh_capability(const std::string& plugin_key, const std
 
     PluginManager& manager = PluginManager::instance();
     if (auto action = make_action(plugin_key, capability, find_loaded_source_name(manager, plugin_key)))
+        upsert(std::move(action));
+    else
+        remove(id);
+}
+
+void ActionRegistry::refresh_page_capability(const std::string& plugin_key, const std::string& capability, ActionChange change)
+{
+    assert(wxThread::IsMain());
+
+    const std::string id = PluginPageAction::id_for(plugin_key, capability);
+    if (change == ActionChange::Removed) {
+        remove(id);
+        return;
+    }
+
+    PluginManager& manager = PluginManager::instance();
+    if (auto action = make_page_action(plugin_key, capability, find_loaded_source_name(manager, plugin_key)))
         upsert(std::move(action));
     else
         remove(id);
@@ -432,7 +726,7 @@ void ActionRegistry::remove(const std::string& id)
 void ActionRegistry::seed_state(AppAction& a) const
 {
     // Favourites carry the quick-launch order, so the persisted list is the source of truth
-    // (not re-derived from the frecency sort). Cap it so stale configs can't exceed kFavLimit.
+    // (not re-derived from the frecency sort). favourite_ids() caps it at kFavStoredLimit.
     auto favs   = favourite_ids();
     a.favourite = std::find(favs.begin(), favs.end(), a.id()) != favs.end();
 
@@ -466,9 +760,16 @@ const AppAction* ActionRegistry::by_id(const std::string& id) const
 
 AppAction* ActionRegistry::find(const std::string& id) { return const_cast<AppAction*>(by_id(id)); }
 
+const AppAction* ActionRegistry::find_live(const std::string& id)
+{
+    assert(wxThread::IsMain());
+    materialize_live();
+    return by_id(id);
+}
+
 // ---- dispatch + write-through ----------------------------------------------
 
-AppActionRunResult ActionRegistry::run(const std::string& id, const std::string& param)
+AppActionRunResult ActionRegistry::run(const std::string& id, const nlohmann::json& args, bool record_stats)
 {
     assert(wxThread::IsMain());
     auto it = m_actions.find(id);
@@ -478,8 +779,8 @@ AppActionRunResult ActionRegistry::run(const std::string& id, const std::string&
     // nested event loop; a queued source refresh can erase the entry while the
     // keep-alive preserves the action until run returns.
     std::shared_ptr<AppAction> keep = it->second;
-    AppActionRunResult o            = keep->run(param);
-    if (o.level == AppActionRunResult::Level::Busy)
+    AppActionRunResult o            = keep->run(args);
+    if (o.level == AppActionRunResult::Level::Busy || !record_stats)
         return o;
 
     // Bump stats (write-through). Re-read to avoid clobbering a concurrent field.
@@ -504,14 +805,13 @@ bool ActionRegistry::set_favourite(const std::string& id, bool on)
     assert(wxThread::IsMain());
     // Start from the capped, deduped list so a persisted config can never be written back larger.
     auto favs = favourite_ids();
-    auto it   = std::find(favs.begin(), favs.end(), id);
-    if (on && it == favs.end()) {
-        if (favs.size() >= kFavLimit)
+    if (on) {
+        // The live actions are the ones the open Speed Dial shows, as snapshot() materialised them.
+        if (!add_favourite(favs, id, [this](const std::string& pin) { return m_actions.count(pin) != 0; }))
             return false; // bar is full - the caller surfaces a hint
-        favs.push_back(id);
-    }
-    if (!on && it != favs.end())
+    } else if (auto it = std::find(favs.begin(), favs.end(), id); it != favs.end()) {
         favs.erase(it);
+    }
     write_section("favourite_actions", nlohmann::json(favs));
     if (AppAction* live = find(id))
         live->favourite = on;
@@ -521,26 +821,25 @@ bool ActionRegistry::set_favourite(const std::string& id, bool on)
 std::vector<std::string> ActionRegistry::favourite_ids() const
 {
     assert(wxThread::IsMain());
-    // Enforce the cap + dedupe on read so the persisted order can never grow past kFavLimit, even from an older config.
-    return cap_favourites(read_string_array("favourite_actions"), kFavLimit);
+    // Enforce the cap + dedupe on read so the persisted order can never grow past kFavStoredLimit, even from a
+    // corrupt config.
+    return cap_favourites(read_string_array("favourite_actions"), kFavStoredLimit);
+}
+
+std::vector<std::string> ActionRegistry::favourites_bar() const
+{
+    assert(wxThread::IsMain());
+    std::vector<std::string> stored, shown;
+    prune_favourites(favourite_ids(), [this](const std::string& id) { return m_actions.count(id) != 0; }, stored, shown);
+    return shown;
 }
 
 void ActionRegistry::reorder_favourites(const std::vector<std::string>& ids)
 {
     assert(wxThread::IsMain());
-    auto cur = read_string_array("favourite_actions");
-    std::vector<std::string> next;
-    // keep the requested order, but only ids that are actually favourites (guard a bad payload)
-    for (const auto& id : ids)
-        if (std::find(cur.begin(), cur.end(), id) != cur.end() && std::find(next.begin(), next.end(), id) == next.end())
-            next.push_back(id);
-    // why: don't drop favourites the page omitted (e.g. pins with no live action hidden from the bar)
-    for (const auto& id : cur)
-        if (std::find(next.begin(), next.end(), id) == next.end())
-            next.push_back(id);
-    // never write the bar back larger than the quick-launch slots
-    next = cap_favourites(next, kFavLimit);
-    write_section("favourite_actions", nlohmann::json(next));
+    // Only ids that are favourites move (guard a bad payload), and the pins the page omitted, which its bar
+    // does not show, keep their places.
+    write_section("favourite_actions", nlohmann::json(reordered_favourites(favourite_ids(), ids)));
 }
 
 void ActionRegistry::materialize_setting_actions()
@@ -561,40 +860,36 @@ void ActionRegistry::materialize_setting_actions()
 
     std::unordered_set<std::string> seen;
     for (const Search::Option& opt : options) {
-        // The row's live state drives both the hidden filter and the title (labels can change at
-        // runtime, e.g. brim_width -> "Brim ear radius"). Hidden rows are skipped, not marked seen.
-        Tab* tab = wxGetApp().get_tab(opt.type);
+        // Keep recorded hidden settings searchable so the detail strip can explain their state.
+        // Unrecorded row restrictions retain their existing visibility behavior.
+        Tab* tab = get_tab_for_option(opt.opt_key(), opt.type);
+        const std::string key = opt.opt_key().substr(0, opt.opt_key().find('#'));
+        const OptionStateRegistry* registry = tab ? &tab->option_state_registry() : nullptr;
         Tab::SettingRowState row;
         if (tab)
             row = tab->setting_row_state(opt.opt_key());
-        if (!row.visible)
+        if (!row.visible && (!registry || !registry->hidden_reason(key)))
             continue;
 
         const std::string id = SettingAction::id_for(opt.opt_key(), opt.type);
         seen.insert(id);
 
-        // The page draws Line::label; the descriptive ConfigOptionDef name stays a search-only alias
-        // ("overhang reversal" still finds "Reverse on even").
-        const std::string search_label = boost::nowide::narrow(opt.label_local.empty() ? opt.label : opt.label_local);
-        std::string       title        = into_u8(Search::resolve_setting_title(from_u8(opt.display_label), row.label, row.multi));
-        if (title.empty())
-            title = search_label;
+        // The localized text the page shows, and its English search aliases from the untranslated row
+        // label, def name and breadcrumb.
+        const char* type_context = setting_type_context(opt.type);
+        SettingText local   = setting_text(opt.label_local.empty() ? opt.label : opt.label_local, opt.display_label, row.label, row.multi,
+                                           I18N::translate_utf8(type_context), opt.category_local, opt.group_local);
+        SettingText english = setting_text(opt.label, opt.display_label_en, row.label_en, row.multi, type_context,
+                                           Tab::translate_category(opt.category, opt.type, false).ToStdWstring(), opt.group);
 
-        // Eyebrow/source = the full settings path "Process : Quality : Layers" (localized). The JS
-        // renders group || source and searches source + " " + group, so putting the whole path in
-        // source both displays it and makes it matchable by any segment (e.g. a "quality" query).
-        std::wstring path = boost::nowide::widen(setting_type_context(opt.type));
-        if (!opt.category_local.empty())
-            path += L" : " + opt.category_local;
-        if (!opt.group_local.empty())
-            path += L" : " + opt.group_local;
-
-        // title = the label the settings row draws; group stays empty so the source path (above) is
-        // the single display/search breadcrumb rather than being duplicated.
-        auto action = std::make_unique<SettingAction>(opt.opt_key(), opt.type, title, std::string(), opt.category,
-                                                      boost::nowide::narrow(path), opt.mode);
-        if (title != search_label)
-            action->full_label = search_label;
+        // group stays empty so the source path is the single display/search breadcrumb rather than
+        // being duplicated.
+        auto action = std::make_unique<SettingAction>(opt.opt_key(), opt.type, local.title, std::string(), opt.category, local.source,
+                                                      opt.mode);
+        action->full_label    = std::move(local.full_label);
+        action->title_en      = std::move(english.title);
+        action->full_label_en = std::move(english.full_label);
+        action->source_en     = std::move(english.source);
 
         // Tile pictogram = the icon of the setting's own group header (e.g. Advanced -> param_advanced),
         // the one shown next to it in the page. Fall back to the page/category icon for groups
@@ -609,6 +904,11 @@ void ActionRegistry::materialize_setting_actions()
 
         // Footer description + wiki affordance; only settings whose row declared a wiki path have one.
         action->tooltip = opt.tooltip;
+        if (registry) {
+            const std::string availability = into_u8(registry->description(key));
+            if (!availability.empty())
+                action->tooltip = availability + (action->tooltip.empty() ? "" : "\n\n" + action->tooltip);
+        }
         if (!opt.wiki_path.empty())
             action->help_url = into_u8(OptionsGroup::get_url(opt.wiki_path));
 
@@ -652,13 +952,14 @@ void ActionRegistry::materialize_plate_actions()
         seen.insert(id);
 
         // "Go to Plate N" + " (name)" when the plate is named, matching the object-list label.
-        std::string title(_u8L("Go to Plate"));
-        title += " " + std::to_string(i + 1);
-        const std::string name = plate->get_plate_name();
+        const char* go_to_plate = L("Go to Plate");
+        std::string suffix      = " " + std::to_string(i + 1);
+        const std::string name  = plate->get_plate_name();
         if (!name.empty())
-            title += " (" + name + ")";
+            suffix += " (" + name + ")";
 
-        auto action = std::make_unique<PlateAction>(int(i), title, kOrcaSourceName);
+        auto action      = std::make_unique<PlateAction>(int(i), I18N::translate_utf8(go_to_plate) + suffix, kOrcaSourceName);
+        action->title_en = go_to_plate + suffix;
         seed_from(stats, favs, id, *action);
         auto const action_id  = action->id();
         auto const app_action = std::shared_ptr<AppAction>(std::move(action));
@@ -679,7 +980,7 @@ void ActionRegistry::materialize_recent_project_actions()
     std::vector<std::string> favs;
     load_persisted(stats, favs);
 
-    // app_config stores recents oldest-first; the palette shows newest-first.
+    // app_config stores recents oldest-first; the Speed Dial shows newest-first.
     std::vector<std::string> recents = wxGetApp().app_config->get_recent_projects();
     std::reverse(recents.begin(), recents.end());
 
@@ -708,6 +1009,51 @@ void ActionRegistry::materialize_recent_project_actions()
 
     // Drop recent-project actions whose file no longer exists / was removed from the recents list.
     drop_stale(m_actions, kRecentProjectPrefix, seen);
+}
+
+void ActionRegistry::materialize_design_actions()
+{
+    assert(wxThread::IsMain());
+#ifdef SLIC3R_CAD
+    // The Design tab's actions work on the tab a person is looking at, so they are there only while it is shown, and
+    // only those of the mode it is in, the tools its right-click menu offers there; none while the CAD feature
+    // is off, though the tab stays until a restart (Mcp::design_actions()). The catalog holds the Design commands
+    // only when the CAD feature was on at startup. A folded item's action runs its command with the item's arguments.
+    const MainFrame*   frame = wxTheApp ? wxGetApp().mainframe : nullptr;
+    const DesignPanel* panel = frame != nullptr ? frame->shown_design_panel() : nullptr;
+    std::unordered_set<std::string> seen;
+    if (panel != nullptr) {
+        nlohmann::json           stats;
+        std::vector<std::string> favs;
+        load_persisted(stats, favs);
+        for (const Mcp::DesignAction& design_action :
+             Mcp::design_actions(NativeCommands::instance(), panel->mcp_sketch_map_applies(), wxGetApp().is_enable_cad_feature())) {
+            std::unique_ptr<AppAction> action = design_action.action != nullptr ?
+                                                    NativeCommands::make_action(*design_action.command, *design_action.action) :
+                                                    NativeCommands::make_action(*design_action.command);
+            const std::string          id     = action->id();
+            seed_from(stats, favs, id, *action);
+            seen.insert(id);
+            m_actions.insert_or_assign(id, std::shared_ptr<AppAction>(std::move(action)));
+        }
+    }
+    // Drop the actions of a tab no longer shown, of the other mode, or of a CAD feature turned off. Their ids are
+    // command ids like those of the other commands' actions, so they are told apart by their group.
+    for (auto it = m_actions.begin(); it != m_actions.end();) {
+        const AppAction& a = *it->second;
+        if (a.kind == AppActionKind::Command && a.group_en == kDesignGroup && seen.count(it->first) == 0)
+            it = m_actions.erase(it);
+        else
+            ++it;
+    }
+#endif
+}
+
+void ActionRegistry::materialize_live()
+{
+    materialize_plate_actions();
+    materialize_recent_project_actions();
+    materialize_design_actions();
 }
 
 bool ActionRegistry::should_ask(const std::string& id) const
@@ -746,10 +1092,9 @@ nlohmann::json ActionRegistry::snapshot()
     assert(wxThread::IsMain());
     // Settings and plates are first-class actions; make sure the current visible option set and the
     // live plate list are materialised before we serialise the pool (tabs_list is built by the time
-    // the palette opens).
+    // the Speed Dial opens).
     materialize_setting_actions();
-    materialize_plate_actions();
-    materialize_recent_project_actions();
+    materialize_live();
 
     std::vector<const AppAction*> sorted;
     sorted.reserve(m_actions.size());
@@ -769,37 +1114,22 @@ nlohmann::json ActionRegistry::snapshot()
         return a->id() < b->id();
     });
 
-    auto action_to_json = [](const AppAction* a) {
-        return nlohmann::json({{"id", a->id()},
-                               {"title", a->title()},
-                               {"full_label", a->full_label},
-                               {"source", a->source_name()},
-                               {"group", a->group},
-                               {"kind", a->kind == AppActionKind::Plugin ? "plugin" : "command"},
-                               {"input", a->input},
-                               {"icon", a->icon},
-                               {"mode", mode_key(a->required_mode)},
-                               {"desc", a->tooltip},
-                               {"wiki", !a->help_url.empty()}});
-    };
-
     nlohmann::json actions = nlohmann::json::array();
     for (const AppAction* a : sorted)
-        actions.push_back(action_to_json(a));
+        actions.push_back(action_json(*a));
 
     // why: favourites is the ORDERED pin list - it must come from favourite_actions
     // as stored, not be re-derived from the frecency-sorted actions (that would
     // reorder the favourites bar). Drop pins with no live action (an option hidden by the
-    // current mode, an unloaded plugin, a gone plate/project) and persist the pruned list, so
-    // invisible pins can't silently fill the quick-launch cap. Order is preserved.
-    std::vector<std::string> favs = favourite_ids();
-    std::vector<std::string> live_favs;
-    live_favs.reserve(favs.size());
-    for (const auto& id : favs)
-        if (m_actions.count(id))
-            live_favs.push_back(id);
-    if (live_favs.size() != favs.size())
-        write_section("favourite_actions", nlohmann::json(live_favs));
+    // current mode, an unloaded plugin, a gone plate/project) and persist the pruned list. Order is
+    // preserved. A Design tab action's pin is kept but not shown while the action is not live (another tab,
+    // the other mode): the person pinned it to use in the Design tab. The bar is the first
+    // kFavLimit live pins, so a pin it does not show never fills it.
+    const std::vector<std::string> favs = favourite_ids();
+    std::vector<std::string>       stored_favs, live_favs;
+    prune_favourites(favs, [this](const std::string& id) { return m_actions.count(id) != 0; }, stored_favs, live_favs);
+    if (stored_favs.size() != favs.size())
+        write_section("favourite_actions", nlohmann::json(stored_favs));
     nlohmann::json favourites(live_favs);
 
     // Recent = the last-N launched actions by recency (only actions with a run history). N is a
@@ -818,13 +1148,89 @@ nlohmann::json ActionRegistry::snapshot()
         recent.resize(recent_limit);
     nlohmann::json recent_json = nlohmann::json::array();
     for (const AppAction* a : recent)
-        recent_json.push_back(action_to_json(a));
+        recent_json.push_back(action_json(*a));
 
     return {{"actions", std::move(actions)},
             {"favourites", std::move(favourites)},
             {"recent", std::move(recent_json)},
             {"user_mode", mode_key(wxGetApp().get_mode())},
             {"tooltip_expanded", tooltip_expanded()}};
+}
+
+// ---- automation catalog -------------------------------------------------------
+
+nlohmann::json ActionRegistry::describe(const Query& query)
+{
+    assert(wxThread::IsMain());
+    materialize_live();
+    if (query.include_settings)
+        materialize_setting_actions();
+
+    auto lower = [](std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+        return s;
+    };
+    const std::string text    = lower(query.text);
+    const std::string section = lower(query.section);
+    // The section an item shows, which an agent passes back as `section`.
+    auto shown_section = [](const AppAction& a) -> const std::string& {
+        return a.group_en.empty() ? (a.group.empty() ? a.source_name() : a.group) : a.group_en;
+    };
+
+    std::vector<const AppAction*> matches;
+    for (const auto& [id, action] : m_actions) {
+        const AppAction& a = *action;
+        if (!query.include_settings && id.rfind(kSettingPrefix, 0) == 0)
+            continue;
+        if (!section.empty() && lower(shown_section(a)) != section && lower(a.group) != section)
+            continue;
+        if (!text.empty()) {
+            bool hit = false;
+            for (const std::string* field : {&a.id(), &a.title(), &a.title_en, &a.group, &a.group_en, &a.source_name(), &a.source_en,
+                                             &a.full_label, &a.full_label_en, &a.automation_description})
+                if (lower(*field).find(text) != std::string::npos) {
+                    hit = true;
+                    break;
+                }
+            if (!hit)
+                continue;
+        }
+        matches.push_back(&a);
+    }
+    std::sort(matches.begin(), matches.end(), [](const AppAction* a, const AppAction* b) {
+        const std::string& ga = a->group_en.empty() ? a->group : a->group_en;
+        const std::string& gb = b->group_en.empty() ? b->group : b->group_en;
+        if (ga != gb)
+            return ga < gb;
+        if (a->title() != b->title())
+            return a->title() < b->title();
+        return a->id() < b->id();
+    });
+
+    nlohmann::json items = nlohmann::json::array();
+    for (std::size_t i = query.offset; i < matches.size() && items.size() < query.limit; ++i) {
+        const AppAction& a = *matches[i];
+        nlohmann::json   j{{"id", a.id()},
+                           {"title", a.title_en.empty() ? a.title() : a.title_en},
+                           {"section", shown_section(a)},
+                           {"kind", a.kind == AppActionKind::Plugin ? "plugin" : "command"}};
+        std::string description = a.automation_description;
+        if (description.empty() && !a.tooltip.empty())
+            description = a.tooltip.substr(0, 300);
+        if (!description.empty())
+            j["description"] = description;
+        if (a.input_schema.is_object() && !a.input_schema.value("properties", nlohmann::json::object()).empty())
+            j["input_schema"] = a.input_schema;
+        if (!a.command.empty())
+            j["command"] = a.command;
+        if (a.completes_in_background)
+            j["completes"] = "export";
+        items.push_back(std::move(j));
+    }
+    nlohmann::json out{{"total", matches.size()}, {"offset", query.offset}, {"items", std::move(items)}};
+    if (query.offset + query.limit < matches.size())
+        out["next_offset"] = query.offset + query.limit;
+    return out;
 }
 
 // ---- tab options (enumerate the MainFrame notebook's current pages) ----------
@@ -838,14 +1244,21 @@ nlohmann::json ActionRegistry::tab_options() const
     MainFrame* mf = wxGetApp().mainframe;
     if (!mf || !mf->m_tabpanel)
         return out;
+    // English labels of the built-in pages whose id is not already their English name, so the tab
+    // picker can be searched in English in any UI language.
+    static const std::unordered_map<std::string, const char*> english_labels{
+        {TAB_ID_MONITOR, L("Device")}, {TAB_ID_MONITOR_WEB, L("Device (Web)")}, {TAB_ID_MULTI_DEVICE, L("Multi-device")}};
+
     Notebook* notebook = mf->m_tabpanel;
     for (size_t i = 0; i < notebook->GetPageCount(); ++i) {
         const wxString id = notebook->GetPageName(i);
         if (id.empty())
             continue;
-        out.push_back({{"id", id.ToStdString()},
-                       {"title", notebook->GetPageLabel(i).ToStdString()},
-                       {"icon", notebook->GetPageIcon(i)}});
+        const std::string title = notebook->GetPageLabel(i).ToStdString();
+        nlohmann::json    tab({{"id", id.ToStdString()}, {"title", title}, {"icon", notebook->GetPageIcon(i)}});
+        if (auto it = english_labels.find(id.ToStdString()); it != english_labels.end() && title != it->second)
+            tab["title_en"] = it->second;
+        out.push_back(std::move(tab));
     }
     return out;
 }

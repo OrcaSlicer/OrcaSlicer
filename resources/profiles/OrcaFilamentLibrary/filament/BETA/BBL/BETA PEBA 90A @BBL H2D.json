@@ -6,6 +6,7 @@
 	"setting_id": "91b8WTzvOky9wAVK",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
+		"100",
 		"100"
 	],
 	"eng_plate_temp": [
@@ -113,6 +114,7 @@
 		"1"
 	],
 	"nozzle_temperature_range_high": [
+		"250",
 		"250"
 	],
 	"nozzle_temperature": [

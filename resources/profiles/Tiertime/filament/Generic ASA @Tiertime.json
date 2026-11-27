@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Tiertime",
-	"inherits": "fdm_filament_asa",
 	"renamed_from": "Tiertime Generic ASA",
+	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "kGrTR0sC37w9Qi3b",
 	"filament_id": "OFLPAxz3",

@@ -1,14 +1,22 @@
+#include <cstddef>
+#include <cassert>
 #include <numeric>
 
 #include "SlicesToTriangleMesh.hpp"
 
 //#include "libslic3r/MTUtils.hpp"
+#include "Polygon.hpp"
+#include "Point.hpp"
+#include "TriangleMesh.hpp"
+#include "Execution/Execution.hpp"
 #include "libslic3r/Execution/ExecutionTBB.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Tesselate.hpp"
 
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_reduce.h>
+#include <vector>
+#include "ExPolygon.hpp"
 
 namespace Slic3r {
 

@@ -2,14 +2,33 @@
 
 // Shared embedded-interpreter bootstrap for slic3rutils tests that need a live Python
 // interpreter (test_plugin_host_api.cpp, test_slicing_pipeline_bindings.cpp, ...).
+//
+// The runtime is process-wide: once initialized it stays up for the rest of the test process.
+// CPython cannot be reinitialized after Py_Finalize (a second init aborts inside _datetime), and
+// the app likewise finalizes it only at exit, so nothing here tears it down.
+// slic3rutils_tests_main.cpp finalizes the production interpreter once, after the last test case.
+//
+// Starts PythonInterpreter, the same runtime PluginManager::initialize() uses, or a bare
+// interpreter when there is no bundled runtime.
+//
+// PythonInterpreter releases the GIL once it is up, so callers take py::gil_scoped_acquire after
+// ensure_python_initialized() and before touching any Python object.
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <memory.h>
+#include <memory>
 #include <stdexcept>
+#include <string>
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 
+#include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
+
+#include <libslic3r/Utils.hpp>
+
+#include "test_utils.hpp"
 
 namespace {
 
@@ -18,6 +37,18 @@ void ensure_python_initialized()
     if (Py_IsInitialized())
         return;
 
+    {
+        // Static, because the interpreter writes {data_dir}/python and {data_dir}/log until the
+        // process exits.
+        static ScopedTemporaryDir python_data_dir{"orca-plugin-python"};
+        const std::string         previous = Slic3r::data_dir();
+        Slic3r::set_data_dir(python_data_dir.path().string());
+        const bool initialized = Slic3r::PythonInterpreter::instance().initialize();
+        Slic3r::set_data_dir(previous);
+        if (initialized || Py_IsInitialized())
+            return;
+    }
+
     static std::unique_ptr<pybind11::scoped_interpreter> interpreter;
 
     PyConfig config;
@@ -25,8 +56,15 @@ void ensure_python_initialized()
     config.parse_argv = 0;
 
     const auto python_home = boost::dll::program_location().parent_path() / "python";
+#ifdef _WIN32
+    const auto stdlib = python_home / "Lib";
+#else
+    const auto stdlib = python_home / "lib" /
+                        ("python" + std::to_string(PY_MAJOR_VERSION) + "." + std::to_string(PY_MINOR_VERSION));
+#endif
 
-    if (boost::filesystem::exists(python_home)) {
+    // Only a real runtime: a stray python/ folder (packages a test left behind) is not a home.
+    if (boost::filesystem::exists(stdlib / "encodings")) {
         const std::string home = python_home.string();
         const PyStatus status  = PyConfig_SetBytesString(&config, &config.home, home.c_str());
 

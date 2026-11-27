@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @FLSun T1",
-	"inherits": "Generic TPU @FLSun",
 	"renamed_from": "FLSun T1 TPU",
+	"inherits": "Generic TPU @FLSun",
 	"from": "system",
 	"setting_id": "TEakmydLXxrHti3G",
 	"instantiation": "true",

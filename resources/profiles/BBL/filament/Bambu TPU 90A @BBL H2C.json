@@ -6,6 +6,8 @@
     "setting_id": "GFSU03_09",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "100",
+        "100",
         "100"
     ],
     "eng_plate_temp": [
@@ -112,6 +114,8 @@
         "fdm_filament_template_direct_dual_e3d"
     ],
     "nozzle_temperature_range_high": [
+        "250",
+        "250",
         "250"
     ],
     "nozzle_temperature": [

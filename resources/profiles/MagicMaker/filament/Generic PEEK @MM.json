@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PEEK @MM",
-	"inherits": "fdm_filament_peek",
 	"renamed_from": "MM Generic PEEK",
+	"inherits": "fdm_filament_peek",
 	"from": "system",
 	"setting_id": "2xiVNAQTwBaiLjJn",
 	"filament_id": "OFz5oHgf",

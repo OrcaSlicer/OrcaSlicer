@@ -1,13 +1,16 @@
 #ifndef slic3r_3DPrinterOS_hpp_
 #define slic3r_3DPrinterOS_hpp_
 
+#include <boost/optional/optional.hpp>
 #include <string>
 #include <wx/string.h>
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include "PrintHost.hpp"
-#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/enum_bitmask.hpp"
+
+namespace boost { template <class T> class optional; }
 
 
 

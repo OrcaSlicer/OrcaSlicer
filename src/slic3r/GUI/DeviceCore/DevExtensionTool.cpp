@@ -1,9 +1,9 @@
 #include "DevExtensionTool.h"
 #include "DevUtil.h"
 
+#include <memory>
+#include <map>
 #include <nlohmann/json.hpp>
-
-using namespace nlohmann;
 
 namespace Slic3r
 {

@@ -1,7 +1,19 @@
 #include "StaticBox.hpp"
 #include "../GUI.hpp"
+#include <utility>
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/colour.h>
+#include <wx/dc.h>
+#include <cmath>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/gdicmn.h>
+#include <wx/peninfobase.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 BEGIN_EVENT_TABLE(StaticBox, wxWindow)
 
@@ -50,7 +62,14 @@ bool StaticBox::Create(wxWindow* parent, wxWindowID id, const wxPoint& pos, cons
 void StaticBox::SetCornerRadius(double radius)
 {
     this->radius = radius;
+    input_corner_radius = false;
     Refresh();
+}
+
+void StaticBox::apply_input_corner_radius()
+{
+    if (input_corner_radius)
+        radius = FromDIP(InputCornerRadius);
 }
 
 // ORCA use when adding widgets to top to show it like LabeledStaticBox

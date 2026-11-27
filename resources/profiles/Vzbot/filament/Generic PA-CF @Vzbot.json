@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA-CF @Vzbot",
-	"inherits": "fdm_filament_pa",
 	"renamed_from": "Vzbot Generic PA-CF",
+	"inherits": "fdm_filament_pa",
 	"from": "system",
 	"setting_id": "q8DtJmdJUN3KFV3E",
 	"filament_id": "OFQLcbps",

@@ -3,12 +3,33 @@
 
 #include "3DBed.hpp"
 #include "PartPlate.hpp"
+#include "I18N.hpp"
 
+#include <vector>
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <wx/colour.h>
+#include <wx/brush.h>
+#include <algorithm>
+#include "libslic3r/Color.hpp"
+#include <string>
+#include <cstddef>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/dcbuffer.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/wx.h>
+#include <wx/gdicmn.h>
+#include <wx/peninfobase.h>
+#include <wx/font.h>
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {
