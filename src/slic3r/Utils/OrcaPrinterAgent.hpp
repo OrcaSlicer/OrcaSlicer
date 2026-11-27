@@ -57,6 +57,7 @@ public:
 
     // Discovery
     bool start_discovery(bool start, bool sending) override;
+    bool discovers_on_lan() const override { return true; }
 
     // Binding
     int bind_detect(std::string dev_ip, std::string sec_link, detectResult& detect) override;

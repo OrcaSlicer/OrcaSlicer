@@ -14,6 +14,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -144,8 +145,24 @@ public:
     int get_mw_user_4ulist(int seed, int limit, std::function<void(std::string)> callback, const std::string& provider = ORCA_CLOUD_PROVIDER);
 
     // Printer agent methods
-    // Discovery is delivered through queue_on_main_fn, scoped to the live agent session.
-    int set_on_ssdp_msg_fn(OnMsgArrivedFn fn);
+    // Discovery runs on every printer agent that scans the LAN, not only the live one. Each
+    // agent reports under its own id, through queue_on_main_fn and its own session, so an
+    // event from an agent that has since been stopped is dropped.
+    using DiscoveryFn = std::function<void(const std::string& agent_id, std::string payload)>;
+    int set_on_discovery_fn(DiscoveryFn fn);
+    // Make `candidates` (normally every registered agent) the set that discovers: each agent that
+    // scans and is not in `disabled_agent_ids`, plus the live agent, which reports its configured
+    // host. Starts the agents that join and stops the ones that leave; the rest keep running.
+    void sync_discovery(const std::vector<std::shared_ptr<IPrinterAgent>>& candidates,
+                        const std::set<std::string>& disabled_agent_ids);
+    // Stop every discovering agent except `except_agent_id` and drop its callback.
+    void stop_all_discovery(const std::string& except_agent_id = std::string());
+    // Count the live agent as discovering even if its scan is disabled, while a picker asks for
+    // devices. Takes effect at the next sync_discovery().
+    void set_live_discovery_requested(bool requested) { m_live_discovery_requested = requested; }
+    // Stop one agent's discovery, for an agent about to be torn down.
+    void stop_discovery(const std::string& agent_id);
+    bool is_discovering(const std::string& agent_id) const;
     int set_on_printer_connected_fn(OnPrinterConnectedFn fn);
     int set_on_subscribe_failure_fn(GetSubscribeFailureFn fn);
     int set_on_message_fn(OnMessageFn fn);
@@ -209,7 +226,6 @@ public:
 
 private:
     struct PrinterCallbacks {
-        OnMsgArrivedFn on_ssdp_msg_fn = nullptr;
         OnPrinterConnectedFn on_printer_connected_fn = nullptr;
         GetSubscribeFailureFn on_subscribe_failure_fn = nullptr;
         OnMessageFn on_message_fn = nullptr;
@@ -220,11 +236,19 @@ private:
         OnServerErrFn on_server_err_fn = nullptr;
     };
 
+    struct DiscoveryEntry {
+        std::shared_ptr<IPrinterAgent> agent;
+        // Callbacks hold it weakly; replacing or dropping it invalidates everything already queued.
+        std::shared_ptr<int> session;
+    };
+
     void apply_printer_callbacks(const std::shared_ptr<IPrinterAgent>& printer_agent,
                                  const PrinterCallbacks& callbacks);
-    int apply_discovery_callback(const std::shared_ptr<IPrinterAgent>& printer_agent,
-                                 const PrinterCallbacks& callbacks);
-    std::shared_ptr<int> m_discovery_session = std::make_shared<int>(0);
+    void apply_discovery_callback(const std::string& agent_id, DiscoveryEntry& entry);
+    void stop_discovery_entry(DiscoveryEntry& entry);
+    std::map<std::string, DiscoveryEntry> m_discovery;
+    DiscoveryFn m_discovery_fn;
+    bool m_live_discovery_requested = false;
     PrinterCallbacks m_printer_callbacks;
     bool enable_track = false;
 

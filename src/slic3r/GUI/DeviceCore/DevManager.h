@@ -125,7 +125,8 @@ public:
     std::string get_current_printer_agent_id() const;
 
     /* create machine or update machine properties */
-    void on_machine_alive(std::string json_str);
+    // A discovery event from printer agent `agent_id`; the device is recorded under that agent.
+    void on_machine_alive(std::string json_str, const std::string& agent_id);
     int query_bind_status(std::string& msg, const std::string& provider);
 
     // mutil-device

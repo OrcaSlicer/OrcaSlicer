@@ -850,7 +850,14 @@ void SelectMachinePopup::update_machine_list(wxCommandEvent &event)
 
 void SelectMachinePopup::start_ssdp(bool start)
 {
-    if (auto* agent = wxGetApp().getAgent())
+    auto* agent = wxGetApp().getAgent();
+    if (!agent)
+        return;
+    // An open picker asks for devices even when the agent's background scan is disabled.
+    agent->set_live_discovery_requested(start);
+    wxGetApp().refresh_discovery_agents();
+    const auto live = agent->get_printer_agent();
+    if (live && agent->is_discovering(live->get_agent_info().id))
         agent->start_discovery(true, start);
 }
 

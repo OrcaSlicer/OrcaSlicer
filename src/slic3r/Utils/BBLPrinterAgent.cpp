@@ -771,6 +771,13 @@ bool BBLPrinterAgent::start_discovery(bool start, bool sending)
     return false;
 }
 
+bool BBLPrinterAgent::discovers_on_lan() const
+{
+    // Discovery runs inside the network plug-in, so it exists only while the plug-in is loaded.
+    auto& plugin = BBLNetworkPlugin::instance();
+    return plugin.is_loaded() && plugin.has_agent();
+}
+
 // ============================================================================
 // Binding
 // ============================================================================

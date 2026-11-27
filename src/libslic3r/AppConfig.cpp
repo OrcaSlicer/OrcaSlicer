@@ -30,6 +30,7 @@
 #include <utility>
 #include <vector>
 #include <stdexcept>
+#include <set>
 #include <sstream>
 
 #include <boost/filesystem/path.hpp>
@@ -1908,6 +1909,29 @@ void AppConfig::set_cloud_providers(const std::vector<std::string>& providers)
         joined += providers[i];
     }
     set(SETTING_CLOUD_PROVIDERS, joined);
+}
+
+std::set<std::string> AppConfig::get_disabled_discovery_agents() const
+{
+    std::set<std::string> result;
+    std::stringstream ss(get(SETTING_DISABLED_DISCOVERY_AGENTS));
+    std::string agent_id;
+    while (std::getline(ss, agent_id, ';')) {
+        if (!agent_id.empty())
+            result.insert(agent_id);
+    }
+    return result;
+}
+
+void AppConfig::set_disabled_discovery_agents(const std::set<std::string>& agent_ids)
+{
+    std::string joined;
+    for (const std::string& agent_id : agent_ids) {
+        if (!joined.empty())
+            joined += ";";
+        joined += agent_id;
+    }
+    set(SETTING_DISABLED_DISCOVERY_AGENTS, joined);
 }
 
 bool AppConfig::has_cloud_provider(const std::string& provider) const
