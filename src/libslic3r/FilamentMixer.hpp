@@ -13,6 +13,36 @@ namespace Slic3r {
 
 class ConfigBase;
 
+inline constexpr const char *feature_filament_keys[] = {
+    "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+    "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"
+};
+
+// Config values are one-based (0 inherits). The map uses zero-based slots, with -1 for a removed slot.
+template<class Config>
+bool remap_filament_option(Config &config, const char *key, const std::map<int, int> &slots)
+{
+    if (!config.has(key))
+        return false;
+    const int slot = config.opt_int(key);
+    if (slot <= 0)
+        return false;
+    const auto it = slots.find(slot - 1);
+    if (it == slots.end() || it->second + 1 == slot)
+        return false;
+    config.set(key, it->second + 1);
+    return true;
+}
+
+template<class Config>
+bool remap_feature_filaments(Config &config, const std::map<int, int> &slots)
+{
+    bool changed = false;
+    for (const char *key : feature_filament_keys)
+        changed |= remap_filament_option(config, key, slots);
+    return changed;
+}
+
 // Photoshop-style gradient curve control point in [0,1] x [0,1].
 // (x, y) is the anchor position; (m_in, m_out) are optional cubic Hermite tangent
 // overrides. NaN means "use the PCHIP-computed default", which is the case for plain

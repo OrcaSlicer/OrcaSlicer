@@ -15028,13 +15028,13 @@ msgstr "Le modificateur %1% « %2% » de « %3% » (%4% au total) couvre un pér
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "le modificateur « %1% » de « %2% » n’a eu aucun effet sur la couture (il n’atteint peut-être pas la ligne médiane du périmètre imprimé)"
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam"
+msgstr "le modificateur « %1% » de « %2% » n’a eu aucun effet sur la couture"
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "le modificateur « %1% » de « %2% » (%3% au total) n’a eu aucun effet sur la couture (il n’atteint peut-être pas la ligne médiane du périmètre imprimé)"
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam"
+msgstr "le modificateur « %1% » de « %2% » (%3% au total) n’a eu aucun effet sur la couture"
 
 # AI Translated
 msgid "Seam placement may differ from expected."

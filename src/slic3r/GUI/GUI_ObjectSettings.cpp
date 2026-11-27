@@ -170,7 +170,7 @@ bool ObjectSettings::update_settings_list()
                 Option option = optgroup->get_option(opt);
                 option.opt.width = 12;
                 if (is_extruders_cat)
-                    option.opt.max = wxGetApp().extruders_edited_cnt();
+                    option.opt.max = wxGetApp().filaments_cnt();
                 optgroup->append_single_option_line(option);
             }
             optgroup->activate();

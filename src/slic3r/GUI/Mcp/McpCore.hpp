@@ -1,0 +1,212 @@
+#pragma once
+
+#include "JobRegistry.hpp"
+#include "UiInvoker.hpp"
+
+#include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
+
+#include <nlohmann/json.hpp>
+
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <map>
+#include <mutex>
+#include <set>
+#include <string>
+#include <vector>
+
+namespace Slic3r { namespace GUI { namespace Mcp {
+
+class Journal;
+class AutomationRuntime;
+
+struct CoreTiming
+{
+    std::chrono::milliseconds soft_budget{1500};  // before probing for a blocking dialog
+    std::chrono::milliseconds probe_timeout{1000};
+    int                       blocking_slots = 32;
+    // How long a call waits for a worker job it started before cancelling it, and how often it looks.
+    std::chrono::milliseconds worker_timeout{std::chrono::minutes(30)};
+    std::chrono::milliseconds worker_poll{50};
+    // Above zero, the longest any command's reply budget runs: for tests that need a call to outlive its
+    // budget without waiting out the command's own (ORCA_MCP_REPLY_BUDGET_MS). Zero leaves each budget as is.
+    std::chrono::milliseconds reply_budget_cap{0};
+    // How long a call's UI closure waits for the UI thread to pick it up before it is abandoned (UiInvoker::run()).
+    std::chrono::milliseconds ui_queue_timeout{std::chrono::seconds(10)};
+};
+
+// The reply budget cap that ORCA_MCP_REPLY_BUDGET_MS's `value` sets: a whole positive number of milliseconds,
+// written as digits alone; anything else, or no value, is zero (no cap).
+std::chrono::milliseconds reply_budget_cap_from(const char* value);
+
+// The app's UI job worker (arrange, orient, fill bed, the Text, SVG and texture gizmos' jobs), which a
+// call can start as a person's click does. Both run on the UI thread; without them nothing is busy.
+struct WorkerHooks
+{
+    std::function<bool()> busy;   // a job is queued, running or not yet finalized
+    std::function<void()> cancel; // asks the running job to stop, without waiting for it
+};
+
+// Told about each call the core runs, client and child calls alike: what a recording captions and the Agent
+// Activity pane lists. A call refused before its handler runs (admission, blocking slots) is not reported.
+// Methods are called on the call's own thread, must be quick, and must not call back into the core; what
+// they throw is swallowed, so a caption never fails a call.
+class CallObserver
+{
+public:
+    virtual ~CallObserver() = default;
+    // A call that runs as a job, as its job is registered and before its thread starts, on the thread that made the
+    // call: the parent job, or the call that started it (`origin`'s `under`), is still running. Every call queued is
+    // later ended, also when it never starts (its thread can't start, its plugin unloaded before its handler).
+    virtual void call_queued(uint64_t /*call*/, const std::string& /*job*/, const std::string& /*parent*/,
+                             const nlohmann::json& /*origin*/)
+    {}
+    // Right before the handler runs: on the request thread for an inline call, the job's thread for a job.
+    // `parent` is the job of the run that made a child call ("" for a top-level call), `job` the call's own
+    // ("" for an inline call). `origin` says who made a top-level call, as an object whose `source` is
+    // "agent" (with the client's name as `client`, empty when unknown, and its tools/call message as
+    // `request`), "action_replay", "run_script", "command_line", "plugin" (with the plugin's key as `plugin`)
+    // or "person"; a child call's is null, as its parent's job says where it comes from. A call a call starts to
+    // outlive it (a recording's encode) names that call's job as `under`, and is listed with it.
+    virtual void call_started(uint64_t call, const NativeCommand& command, const nlohmann::json& args, const std::string& parent,
+                              const std::string& job, const nlohmann::json& origin) = 0;
+    // The handler replaced the arguments the journal records (refs became locators).
+    virtual void call_args(uint64_t call, const nlohmann::json& args) = 0;
+    // The call's final result: a job's once it finished, its UI job worker included.
+    virtual void call_ended(uint64_t call, const ToolResult& result) = 0;
+};
+
+// Executes command calls for the protocol layer, replays, scripts and a person's picks of long commands:
+// observation commands inline on the calling thread, everything else as a job on a thread of its own, with
+// the reply budget, the blocked-by-dialog probe, blocking slots, operation admission and the session
+// journal. Independent of wx so the threading contract is unit-testable with a hand-driven UiDispatcher.
+//
+// A call that finds the UI job worker idle and leaves it busy has started a worker job, whichever
+// tool or input did it, and that job is its operation: the call holds admission, and its job ends,
+// only once the worker is idle again, finalization included, since the job keeps pointers into the
+// model until then.
+class McpCore : public ToolCaller
+{
+public:
+    // The observers, told about every call in this order, must outlive the core.
+    McpCore(const CommandCatalog& catalog, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing = {},
+            WorkerHooks worker = {}, std::vector<CallObserver*> observers = {});
+    // Refuses new calls and waits for every call and job thread to leave, however long that takes:
+    // they use the core. The owner drains first, so this returns at once.
+    ~McpCore() override;
+
+    // A call from a client, or a run a front end follows, which `origin` names to the observers
+    // (CallObserver::call_started). Mutate commands become top-level jobs.
+    ToolResult call(const NativeCommand& command, const nlohmann::json& args, const nlohmann::json& origin = nlohmann::json()) override;
+    // As call(), with the job marked a person's.
+    ToolResult call_person(const NativeCommand& command, const nlohmann::json& args, const nlohmann::json& origin = nlohmann::json());
+    // A call made by a running job (a replay step or a script's call). The new job's parent is `parent_job`, so a
+    // `app_wait {for:"idle"}` from that job does not wait for it, and the journal leaves it out.
+    ToolResult call_child(const NativeCommand& command, const nlohmann::json& args, const std::string& parent_job,
+                          const std::string& plugin = {});
+    // A child call by the command's key, as ToolContext::call_child() makes one, under any parent: the command is
+    // looked up and its arguments normalized, validated and resolved first. Any thread.
+    ToolResult call_child_named(const std::string& tool, const nlohmann::json& args, const std::string& parent_job,
+                                const std::string& plugin = {});
+    // A call a plugin's code makes through orca.host.tools: run as a client's call is, its job owned by
+    // `plugin_key` (JobRegistry::owner, ToolContext::caller_plugin), and never journaled, since the journal
+    // is the agent's session.
+    ToolResult call_plugin(const NativeCommand& command, const nlohmann::json& args, const std::string& plugin_key);
+    // Starts `command` as a client's call starts a job, under the same guards and operation admission, whatever
+    // its inline_call, and returns the job's id without waiting; not journaled. It is a person's pick, so its job
+    // is marked a person's (JobRegistry::person_in()). `done` gets the job's result on the job's thread as it
+    // ends. A call refused before a job starts (another job's operation holds the project, too many jobs) returns
+    // an empty id and gets its refusal through `done` at once, on the calling thread. Once the core is shutting
+    // down it returns an empty id and never calls `done`. What `done` throws is dropped. Any thread.
+    std::string submit(const NativeCommand& command, const nlohmann::json& args, std::function<void(const ToolResult&)> done);
+
+    // Refuses new calls. The owner wakes UiInvoker and JobRegistry, which makes running calls return.
+    void shutdown();
+    // Waits until no call or job thread is inside the core; false when one is still running after
+    // `timeout`. The owner may destroy the core, and what it uses, only after this returns true.
+    bool drain(std::chrono::milliseconds timeout);
+
+    const CommandCatalog& catalog() const { return m_catalog; }
+    const CoreTiming&     timing() const { return m_timing; }
+    UiInvoker&            ui() { return m_ui; }
+    JobRegistry&          jobs() { return m_jobs; }
+    // The runtime that owns the core, which ToolContext::runtime() of its calls returns; nullptr for a core
+    // built on its own, as a unit test builds one. Set once, before any call.
+    void               set_runtime(AutomationRuntime* runtime) { m_runtime = runtime; }
+    AutomationRuntime* runtime() const { return m_runtime; }
+
+    // Operation admission for a change made by `job` ("" for a call that holds nothing), on the UI
+    // thread: throws ToolFailure while another job's operation holds the project, or while the UI job
+    // worker runs a job `job` does not hold (a person's, such as Text typing). Mutate calls get it in
+    // every UI closure; the GUI input tools apply it once their target is outside the topmost modal.
+    void admit(const std::string& job) const;
+    // UI thread. Whether the UI job worker has a job queued, running or left to finalize.
+    bool worker_busy() const;
+    // UI thread. Makes the busy worker's job `job`'s operation unless another call holds it or another
+    // operation runs; true when `job` holds it.
+    bool claim_worker(const std::string& job);
+    // UI thread. When `job` holds the UI job worker, asks its job to stop and returns true. The call
+    // keeps admission until the worker is idle, then fails as cancelled.
+    bool cancel_worker(const std::string& job);
+    // The serial of the dialog `job`'s call works in (ToolContext::works_in_dialog); 0 forgets it.
+    void set_dialog_of(const std::string& job, std::uint64_t dialog);
+
+private:
+    std::uint64_t dialog_of(const std::string& job) const;
+    // `person` marks the call's job a person's (JobRegistry::create()); an inline call has no job to mark. `origin`
+    // goes to the observers.
+    ToolResult run(const NativeCommand& command, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
+                   bool person, const nlohmann::json& origin);
+    // Starts `command` as a job on a thread of its own, under operation admission: returns the job's id, or ""
+    // with `refused` set when no job started. The job's journal entry is `seq` (0 for none); `done`, when
+    // given, gets the job's result on its thread as it ends, before a wait on the job sees it.
+    std::string start_job(const NativeCommand& command, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
+                          bool person, const nlohmann::json& origin, uint64_t seq, uint64_t call,
+                          const std::function<void(const ToolResult&)>& done, ToolResult& refused);
+    // Whether the core refuses new calls.
+    bool shutting_down();
+    // On `job`'s thread once its handler returned: when it holds the UI job worker, waits until the
+    // worker is idle, cancelling the job after CoreTiming::worker_timeout, and then lets it go. The
+    // result becomes a failure when the job was cancelled or timed out.
+    ToolResult await_worker(const std::string& job, const std::string& tool, ToolResult result);
+
+    const CommandCatalog& m_catalog;
+    UiInvoker&            m_ui;
+    JobRegistry&          m_jobs;
+    Journal*              m_journal;
+    CoreTiming            m_timing;
+    WorkerHooks           m_worker;
+    std::vector<CallObserver*> m_observers;
+    AutomationRuntime*    m_runtime = nullptr;
+    std::atomic<uint64_t> m_next_call{1};
+
+    // The job whose call started the worker's current job, and whether a cancel was asked for it.
+    mutable std::mutex m_worker_mutex;
+    std::string        m_worker_job;
+    bool               m_worker_cancelled = false;
+
+    mutable std::mutex                   m_dialogs_mutex;
+    std::map<std::string, std::uint64_t> m_dialogs_of;
+
+    // Requests that may block (a job within its reply budget, or app_wait) hold a slot, so the number of
+    // blocked request threads stays below the connection limit and recovery calls always get through.
+    bool acquire_slot();
+    void release_slot();
+    std::mutex m_slots_mutex;
+    int        m_slots_used = 0;
+
+    // Client and child calls inside run(), plus job threads.
+    bool enter();
+    void leave();
+    std::mutex              m_threads_mutex;
+    std::condition_variable m_threads_cv;
+    int                     m_active   = 0;
+    bool                    m_stopping = false;
+};
+
+}}} // namespace Slic3r::GUI::Mcp

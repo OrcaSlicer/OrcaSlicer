@@ -66,7 +66,7 @@ void IMEXFilamentPickerPopover::build_row()
     m_root_sizer->AddSpacer(10);
 
     auto* label = new wxStaticText(this, wxID_ANY,
-            wxString::Format("T%d", m_physical_head));
+            wxString::Format("T%d", m_physical_head + 1));
     m_root_sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, 6);
 
     m_root_sizer->AddSpacer(10);

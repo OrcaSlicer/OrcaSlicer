@@ -17,6 +17,7 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/OptionsGroup.hpp"
 #include <vector>
+#include <optional>
 #include <string>
 #include <set>
 #include <algorithm>
@@ -271,6 +272,12 @@ PresetNameStatus check_preset_name(const PresetCollection &presets, const std::s
     return PresetNameStatus::Valid;
 }
 
+std::optional<bool> locked_save_location(const PresetCollection &presets, const std::string &name)
+{
+    const Preset *existing = presets.find_preset(name, false);
+    return existing != nullptr ? std::optional<bool>(existing->is_project_embedded) : std::nullopt;
+}
+
 void SavePresetDialog::Item::update()
 {
     m_preset_name = into_u8(m_input_ctrl->GetTextCtrl()->GetValue());
@@ -279,17 +286,10 @@ void SavePresetDialog::Item::update()
     const PresetNameStatus   status = check_preset_name(*m_presets, m_preset_name, info_line);
     m_valid_type = status == PresetNameStatus::Invalid ? NoValid : status == PresetNameStatus::Warning ? Warning : Valid;
 
-    const Preset *existing = m_presets->find_preset(m_preset_name, false);
-
     // BBS: add project embedded presets logic
-    if (existing) { // ORCA RadioGroup
-        if (existing->is_project_embedded) {
-            m_radio_group->SetSelection(1);
-            m_save_to_project = true;
-        } else {
-            m_radio_group->SetSelection(0);
-            m_save_to_project = false;
-        }
+    if (const std::optional<bool> locked = locked_save_location(*m_presets, m_preset_name)) { // ORCA RadioGroup
+        m_radio_group->SetSelection(*locked ? 1 : 0);
+        m_save_to_project = *locked;
         m_radio_group->Disable();
     } else {
         m_radio_group->Enable();
@@ -402,7 +402,7 @@ void SavePresetDialog::input_name_from_other(std::string new_preset_name) {
 
 void SavePresetDialog::confirm_from_other() {
     for (Item *item : m_items)
-        if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(item->preset_name());
+        if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(m_action, item->preset_name());
 }
 
 // BBS: add project relate
@@ -507,22 +507,22 @@ void SavePresetDialog::on_dpi_changed(const wxRect &suggested_rect)
     Refresh();
 }
 
-void SavePresetDialog::update_physical_printers(const std::string &preset_name)
+void SavePresetDialog::update_physical_printers(ActionType action, const std::string &preset_name)
 {
-    if (m_action == UndefAction) return;
+    if (action == UndefAction) return;
 
     PhysicalPrinterCollection &physical_printers = wxGetApp().preset_bundle->physical_printers;
     if (!physical_printers.has_selection()) return;
 
     std::string printer_preset_name = physical_printers.get_selected_printer_preset_name();
 
-    if (m_action == Switch)
+    if (action == Switch)
         // unselect physical printer, if it was selected
         physical_printers.unselect_printer();
     else {
         PhysicalPrinter printer = physical_printers.get_selected_printer();
 
-        if (m_action == ChangePreset) printer.delete_preset(printer_preset_name);
+        if (action == ChangePreset) printer.delete_preset(printer_preset_name);
 
         if (printer.add_preset(preset_name)) physical_printers.save_printer(printer);
 
@@ -533,7 +533,7 @@ void SavePresetDialog::update_physical_printers(const std::string &preset_name)
 void SavePresetDialog::accept(wxCommandEvent &event)
 {
     for (Item *item : m_items)
-        if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(item->preset_name());
+        if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(m_action, item->preset_name());
 
     EndModal(wxID_OK);
 }

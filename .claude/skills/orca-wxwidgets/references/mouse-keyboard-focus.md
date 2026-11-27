@@ -796,7 +796,12 @@ append_shortcut_item(export_menu, Shortcut::ExportSlicedFile, true, _L("Export p
   NULL" (`:3438-3445`). `wxEVT_CHILD_FOCUS` derives from `wxCommandEvent` and propagates, and its
   window is the *direct* child (`:3453-3491`).
 - `wxPanel::SetFocus` focuses the first child if "the control has at least one child";
-  `SetFocusIgnoringChildren()` focuses the panel itself (`interface/wx/panel.h:125-142`).
+  `SetFocusIgnoringChildren()` focuses the panel itself (`interface/wx/panel.h:125-142`). **[source]**
+  Not while the focus is on the panel or inside it: `wxControlContainerBase::DoSetFocus()` returns at
+  once when `FindFocus()` or one of its parents below the top-level window is the panel, so a panel that
+  holds the focus itself keeps it (`src/common/containr.cpp:110-149`). Otherwise it focuses the child
+  that had the focus last, if it is still shown, else the first child that `CanAcceptFocusFromKeyboard()`
+  (`:605-700`).
 - `wxGetActiveWindow()` "always returns NULL in the other ports", i.e. on everything but MSW and GTK
   (`interface/wx/window.h:4545-4551`).
 
@@ -811,6 +816,10 @@ append_shortcut_item(export_menu, Shortcut::ExportSlicedFile, true, _L("Export p
   `MSWEnableHWND`). Any `WM_SETFOCUS`, `WM_KILLFOCUS` or button-down in a window outside
   `wxCurrentPopupWindow` dismisses a transient popup that lacks `wxPU_CONTAINS_CONTROLS`
   (`src/msw/window.cpp:3018-3033` → `MSWDismissUnfocusedPopup`, `src/msw/popupwin.cpp:218-229`).
+- **macOS:** hiding a window that holds the focus moves it to the next view AppKit can focus, which can
+  be a `wxPanel` just shown beside it rather than that panel's control; a `SetFocus()` on that panel then
+  leaves the focus on the panel (see Contract). Seen in `Plater::priv::set_current_panel` on a switch from
+  Prepare to Preview.
 - **Modeless windows:** focus requested right after `Show()` can be dropped while activation is still
   in flight (Orca comment in `SpeedDialWebDialog`'s ctor). Set it from `CallAfter` or on
   `wxEVT_ACTIVATE` (`SpeedDialWebDialog`'s activate handler, see `references/popups-menus.md`); the
@@ -846,6 +855,14 @@ append_shortcut_item(export_menu, Shortcut::ExportSlicedFile, true, _L("Export p
       e.Skip(); });
   ```
   Cite: `GLCanvas3D::on_mouse`.
+- **Rule:** To give a view the keyboard, focus its control, not the panel that holds it.
+  **Why:** a panel that holds the focus itself keeps it, and on macOS that is where hiding a focused
+  sibling leaves it, so the view's keys wait until the pointer enters it.
+  ```cpp
+  // Wrong:  current_panel->SetFocusFromKbd();
+  // Right:  get_current_canvas3D()->force_set_focus();   // the shown view's canvas
+  ```
+  Cite: `Plater::priv::set_current_panel`.
 - **Rule:** Defer focus changes out of `wxEVT_KILL_FOCUS`, and always `Skip()` focus events.
   ```cpp
   // Wrong:  ctrl->Bind(wxEVT_KILL_FOCUS, [=](wxFocusEvent&) { other->SetFocus(); });

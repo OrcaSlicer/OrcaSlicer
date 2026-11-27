@@ -13,6 +13,7 @@
 #include <Standard_TypeDef.hxx>
 #include <TopAbs_State.hxx>
 #include <array>
+#include <atomic>
 
 #include <Standard_Failure.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
@@ -89,6 +90,7 @@
 #include <math.h>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <algorithm>
@@ -114,19 +116,30 @@ namespace Slic3r {
 
 // ---- helical-thread construction helpers (file-local) ----------------------
 
-// Helix spine on a cylinder (radius/pitch/height) about `axis`, as a wire.
+// Helix spine on a cylinder (radius/pitch/height) about `axis`, as a wire of edges of at most one
+// turn each, all the same length. A thread swept along it has a face per edge, and a face that
+// winds round several turns is what OCCT's face/face intersection cannot be trusted with: cutting a
+// thread swept along a single many-turn edge from a bore intermittently loses a piece of the
+// helical curve where the groove meets the wall, and the cut then reports success having removed
+// nothing. Which placements fail depends only on round-off, so a bore that threads at one spot on
+// the bed would fail a few millimetres away. Faces of under one turn intersect reliably.
 static TopoDS_Wire make_helix_wire(const gp_Ax3& axis, double radius,
                                    double pitch, double height)
 {
     Handle(Geom_CylindricalSurface) cyl = new Geom_CylindricalSurface(axis, radius);
     double turns = (pitch > 1e-6) ? (height / pitch) : 1.0;
     // In the surface (u,v) parametrization u is the angle, v the axial height.
-    gp_Pnt2d p0(0.0, 0.0);
-    gp_Pnt2d p1(2.0 * M_PI * turns, height);
-    Handle(Geom2d_TrimmedCurve) seg = GC_MakeSegment2d(p0, p1);
-    TopoDS_Edge e = BRepBuilderAPI_MakeEdge(seg, cyl).Edge();
-    BRepLib::BuildCurves3d(e);
-    return BRepBuilderAPI_MakeWire(e).Wire();
+    const int n = std::max(1, int(std::ceil(turns - 1e-9)));
+    BRepBuilderAPI_MakeWire wire;
+    for (int i = 0; i < n; ++i) {
+        const double t0 = double(i) / n, t1 = double(i + 1) / n;
+        Handle(Geom2d_TrimmedCurve) seg = GC_MakeSegment2d(gp_Pnt2d(2.0 * M_PI * turns * t0, height * t0),
+                                                           gp_Pnt2d(2.0 * M_PI * turns * t1, height * t1));
+        TopoDS_Edge e = BRepBuilderAPI_MakeEdge(seg, cyl).Edge();
+        BRepLib::BuildCurves3d(e);
+        wire.Add(e);   // joins it to the previous edge's end, the same point on the cylinder
+    }
+    return wire.Wire();
 }
 
 // Helix spine from a CadFeature's helix params. Supports cylindrical (taper==0)
@@ -458,11 +471,8 @@ evaluate_variables(const std::map<std::string, std::string>& variables)
     return done;
 }
 
-// Write `value` into the CadFeature numeric field named `field`. Allow-list of
-// the geometric dimension fields a variable realistically drives. Integer-valued
-// fields are rounded. Throws std::runtime_error("unknown parameter: " + field)
-// for anything not in the list.
-static void assign_field(CadFeature& f, const std::string& field, double value)
+// The allow-list is the geometric dimensions a variable realistically drives.
+void CadDocument::set_numeric_field(CadFeature& f, const std::string& field, double value)
 {
     // double fields (alphabetical)
     if (field == "bool_tolerance")    { f.bool_tolerance = value; return; }
@@ -531,7 +541,7 @@ bool CadDocument::produces_body(CadFeatureType t)
 bool CadDocument::is_bindable_field(const std::string& field)
 {
     CadFeature probe;
-    try { assign_field(probe, field, 0.0); return true; }
+    try { set_numeric_field(probe, field, 0.0); return true; }
     catch (const std::exception&) { return false; }
 }
 
@@ -871,7 +881,7 @@ bool CadDocument::solve_sketch_feature(int index)
         case SketchConstraintType::EqualLength:  if ((valid = ok_idx({c.a, c.b, c.c, c.d}))) sc.equal_length(c.a, c.b, c.c, c.d); break;
         case SketchConstraintType::Parallel:     if ((valid = ok_idx({c.a, c.b, c.c, c.d}))) sc.parallel(c.a, c.b, c.c, c.d); break;
         case SketchConstraintType::Perpendicular:if ((valid = ok_idx({c.a, c.b, c.c, c.d}))) sc.perpendicular(c.a, c.b, c.c, c.d); break;
-        // The legacy solver implements these too; they used to be dropped without a word.
+        // The legacy solver implements these too, so they are passed on, not dropped.
         case SketchConstraintType::Midpoint:     if ((valid = ok_idx({c.a, c.b, c.c}))) sc.midpoint(c.a, c.b, c.c); break;
         case SketchConstraintType::Symmetric:    if ((valid = ok_idx({c.a, c.b, c.c, c.d}))) sc.symmetric(c.a, c.b, c.c, c.d); break;
         case SketchConstraintType::Angle:        if ((valid = ok_idx({c.a, c.b, c.c, c.d}))) sc.angle(c.a, c.b, c.c, c.d, c.value); break;
@@ -1399,35 +1409,63 @@ int CadDocument::add_project_edges(int source_body, const std::vector<int>& edge
     return int(features.size()) - 1;
 }
 
+std::vector<SketchEntity> CadDocument::project_edges_on(const SketchPlane& plane, int source_body,
+                                                        const std::vector<int>& edge_ids, int face,
+                                                        std::string& error) const
+{
+    error.clear();
+    const int nb = int(bodies.size());
+    const std::string body = "body " + std::to_string(source_body);
+    if (source_body < 0 || source_body >= nb) {
+        error = body + " does not exist; the model has " + std::to_string(nb) + (nb == 1 ? " body" : " bodies");
+        return {};
+    }
+    const TopoDS_Shape& shape = bodies[source_body].shape;
+    if (shape.IsNull()) {
+        error = body + " has no shape";
+        return {};
+    }
+
+    std::vector<TopoDS_Edge> edges;
+    if (!edge_ids.empty()) {
+        for (int id : edge_ids) {
+            TopoDS_Edge e = GeometryEngine::edge_by_index(shape, id);
+            if (e.IsNull()) {
+                error = "edge " + std::to_string(id) + " of " + body + " does not exist (it has " +
+                        std::to_string(GeometryEngine::edge_count(shape)) + " edges)";
+                return {};
+            }
+            edges.push_back(e);
+        }
+    } else if (face >= 0) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(shape, face);
+        if (fc.IsNull()) {
+            error = "face " + std::to_string(face) + " of " + body + " does not exist (it has " +
+                    std::to_string(GeometryEngine::face_count(shape)) + " faces)";
+            return {};
+        }
+        edges = GeometryEngine::edges_of_face(fc);
+    } else {
+        edges = GeometryEngine::edges_of(shape);
+    }
+
+    std::vector<SketchEntity> out;
+    project_edges_to_entities(edges, plane, /*construction=*/true, out);
+    if (out.empty()) error = "the edges project to a point on the plane: each is perpendicular to it";
+    return out;
+}
+
 int CadDocument::project_edges_into_sketch(int sketch_feature, int source_body,
                                            const std::vector<int>& edge_ids, int face)
 {
     if (sketch_feature < 0 || sketch_feature >= int(features.size())) return -1;
     CadFeature& sk = features[sketch_feature];
     if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project) return -1;
-    if (source_body < 0 || source_body >= int(bodies.size())
-        || bodies[source_body].shape.IsNull()) return -1;
-    const TopoDS_Shape& shape = bodies[source_body].shape;
-
-    std::vector<TopoDS_Edge> edges;
-    if (!edge_ids.empty()) {
-        for (int id : edge_ids) {
-            TopoDS_Edge e = GeometryEngine::edge_by_index(shape, id);
-            if (e.IsNull()) return -1;
-            edges.push_back(e);
-        }
-    } else if (face >= 0) {
-        TopoDS_Face fc = GeometryEngine::face_by_index(shape, face);
-        if (fc.IsNull()) return -1;
-        edges = GeometryEngine::edges_of_face(fc);
-    } else {
-        edges = GeometryEngine::edges_of(shape);
-    }
-    if (edges.empty()) return -1;
-
-    const size_t before = sk.entities.size();
-    project_edges_to_entities(edges, sk.plane, /*construction=*/true, sk.entities);
-    return int(sk.entities.size() - before);
+    std::string error;
+    const std::vector<SketchEntity> ents = project_edges_on(sk.plane, source_body, edge_ids, face, error);
+    if (ents.empty()) return -1;
+    sk.entities.insert(sk.entities.end(), ents.begin(), ents.end());
+    return int(ents.size());
 }
 
 int CadDocument::add_bridge(int sketch_ref, int ent_a, int end_a, int ent_b, int end_b,
@@ -1648,6 +1686,95 @@ bool CadDocument::plane_of_face(int body_idx, int face_idx, SketchPlane& out) co
     if (surf.GetType() != GeomAbs_Plane) return false;
     out = frame_from(GeometryEngine::face_centroid_world(f), GeometryEngine::face_normal_world(f));
     return true;
+}
+
+bool CadDocument::inward_plane_of_face(int body_idx, int face_idx, SketchPlane& out) const
+{
+    if (face_idx < 0 || body_idx < 0 || body_idx >= int(bodies.size())) return false;
+    const TopoDS_Face face = GeometryEngine::face_by_index(bodies[body_idx].shape, face_idx);
+    if (face.IsNull()) return false;
+    SketchPlane p;
+    p.origin = GeometryEngine::face_centroid_world(face);
+    p.normal = (-GeometryEngine::face_normal_world(face)).normalized();   // inward
+    Vec3d x(0, 0, 0); double best = 0;
+    for (const TopoDS_Edge& e : GeometryEngine::edges_of_face(face)) {
+        const std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
+        if (pts.size() < 2) continue;
+        Vec3d d = pts.back() - pts.front();
+        d = d - p.normal * d.dot(p.normal);        // project the edge direction into the plane
+        const double len = d.norm();
+        if (len > best) { best = len; x = d / len; }
+    }
+    if (best < 1e-9) {   // curved/edgeless face: an arbitrary in-plane basis; a hole is round anyway
+        const Vec3d ref = std::abs(p.normal.z()) < 0.9 ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+        x = ref.cross(p.normal).normalized();
+    }
+    p.x_axis = x.normalized();
+    p.y_axis = p.normal.cross(p.x_axis).normalized();
+    out = p;
+    return true;
+}
+
+bool CadDocument::thread_target(int body_idx, int face, int edge, SketchPlane& plane, GeometryEngine::CylinderFace& cyl,
+                                bool* from_face) const
+{
+    cyl = GeometryEngine::CylinderFace();
+    if (body_idx >= 0 && body_idx < int(bodies.size())) {
+        const TopoDS_Shape& shape = bodies[body_idx].shape;
+        if (face >= 0) cyl = GeometryEngine::cylinder_of_face(GeometryEngine::face_by_index(shape, face));
+        if (from_face != nullptr) *from_face = cyl.ok;
+        if (!cyl.ok && edge >= 0) cyl = GeometryEngine::circle_of_edge(GeometryEngine::edge_by_index(shape, edge));
+    } else if (from_face != nullptr) {
+        *from_face = false;
+    }
+    if (!cyl.ok) return false;
+    plane = frame_from(cyl.base, cyl.axis);
+    return true;
+}
+
+std::string CadDocument::datum_plane_refusal(const CadFeature& f) const
+{
+    auto face_of = [&](int body, int face) {
+        return face < 0 || body < 0 || body >= int(bodies.size()) ? TopoDS_Face()
+                                                                   : GeometryEngine::face_by_index(bodies[body].shape, face);
+    };
+    // As resolve_datum_planes() reads an edge: one it can sample end to end.
+    auto edge_on = [&](int body, int edge) {
+        if (edge < 0 || body < 0 || body >= int(bodies.size())) return false;
+        const TopoDS_Edge e = GeometryEngine::edge_by_index(bodies[body].shape, edge);
+        return !e.IsNull() && GeometryEngine::sample_edge_world(e).size() >= 2;
+    };
+    const bool faceA_on = !face_of(f.plane_face_body, f.plane_face).IsNull();
+    const char* gone    = L("A picked face or edge is no longer on the model — pick it again");
+    switch (f.plane_type) {
+    case PlaneType::Offset:
+    case PlaneType::Coincident:
+        // Face A is optional here; without it the plane is built from the base plane.
+        if (f.plane_face >= 0 && !faceA_on) return gone;
+        break;
+    case PlaneType::Angle:
+        if (f.plane_edge < 0) return L("An angled plane needs an edge to tilt about — pick Edge A");
+        if (!edge_on(f.plane_edge_body, f.plane_edge) || (f.plane_face >= 0 && !faceA_on)) return gone;
+        break;
+    case PlaneType::Midplane:
+        if (f.plane_face < 0 || f.plane_face2 < 0) return L("A midplane needs two faces — pick Face A and Face B");
+        // Well-defined but useless: the midplane of a face with itself is that same face.
+        if (f.plane_face == f.plane_face2 && f.plane_face_body == f.plane_face2_body)
+            return L("Face A and Face B are the same face — a midplane needs two different faces");
+        if (!faceA_on || face_of(f.plane_face2_body, f.plane_face2).IsNull()) return gone;
+        break;
+    case PlaneType::Tangent:
+        if (f.plane_face < 0) return L("A tangent plane needs a cylindrical face — pick Face A");
+        if (!faceA_on) return gone;
+        if (!GeometryEngine::cylinder_of_face(face_of(f.plane_face_body, f.plane_face)).ok)
+            return L("A tangent plane needs a cylindrical face — pick Face A");
+        break;
+    case PlaneType::TwoEdges:
+        if (f.plane_edge < 0 || f.plane_edge2 < 0) return L("This plane needs two edges — pick Edge A and Edge B");
+        if (!edge_on(f.plane_edge_body, f.plane_edge) || !edge_on(f.plane_edge2_body, f.plane_edge2)) return gone;
+        break;
+    }
+    return {};
 }
 
 std::vector<std::pair<std::string, SketchPlane>> CadDocument::resolve_datum_planes() const
@@ -2039,24 +2166,30 @@ void CadDocument::clear()
     variables.clear();
     error.clear();
     mate_conflicts.clear();
+    bodies_before.clear();
     ++topo_generation;       // every face/edge id handed out before this is stale now
     // A cleared document is a fresh start with no history.
     m_undo.clear();
     m_redo.clear();
+    m_redo_at_checkpoint.clear();
 }
 
 void CadDocument::checkpoint()
 {
     m_undo.push_back(Snapshot{features, variables});   // snapshot the pre-mutation recipe
-    m_redo.clear();                                    // any new action invalidates the redo branch
+    m_redo_at_checkpoint = std::move(m_redo);          // any new action invalidates the redo branch
+    m_redo.clear();
     if (m_undo.size() > k_undo_cap)
         m_undo.erase(m_undo.begin());
 }
 
 void CadDocument::abandon_checkpoint()
 {
-    if (!m_undo.empty())
-        m_undo.pop_back();
+    if (m_undo.empty())
+        return;
+    m_undo.pop_back();
+    m_redo = std::move(m_redo_at_checkpoint);   // nothing happened, so what was redoable still is
+    m_redo_at_checkpoint.clear();
 }
 
 bool CadDocument::undo()
@@ -2083,10 +2216,23 @@ bool CadDocument::redo()
     return true;
 }
 
+bool CadDocument::rollback()
+{
+    if (m_undo.empty())
+        return false;
+    features  = std::move(m_undo.back().features);
+    variables = std::move(m_undo.back().variables);
+    m_undo.pop_back();
+    m_redo = std::move(m_redo_at_checkpoint);
+    m_redo_at_checkpoint.clear();
+    recompute();
+    return true;
+}
+
 
 // A feature's body index: -1 means "the last body", anything else must exist. An index past
-// the end used to fall back to the last body in silence, so a feature whose body had gone away
-// went on to work on a different one.
+// the end is refused rather than taken as the last body, so a feature whose body has gone away
+// does not go on to work on a different one.
 static int pick_body(int ref, int nb)
 {
     if (ref == -1) return nb - 1;
@@ -2143,6 +2289,25 @@ static int find_body(const std::vector<CadBody>& v, const CadFeature::BodyId& id
     return -1;
 }
 
+CadFeature::BodyId CadDocument::body_id(int body) const { return body_id_of(bodies, body); }
+
+int CadDocument::body_index(const CadFeature::BodyId& id) const { return find_body(bodies, id); }
+
+CadDocument CadDocument::history_before(int f) const
+{
+    CadDocument out;
+    out.features.assign(features.begin(), features.begin() + std::clamp(f, 0, int(features.size())));
+    out.variables          = variables;
+    out.bodies             = bodies;
+    out.modeling_origin    = modeling_origin;
+    out.origin_from_recipe = origin_from_recipe;
+    out.auto_close_loops   = auto_close_loops;
+    out.linear_deflection  = linear_deflection;
+    out.angular_deflection = angular_deflection;
+    out.topo_generation    = topo_generation;
+    return out;
+}
+
 // Re-point `f`'s body fields of one kind (`running`) from the identities recorded last time,
 // then record the identities they resolve to now. Throws when a pending reference cannot be
 // found: the body it named is gone, and working on some other body instead is the bug this
@@ -2164,15 +2329,6 @@ static void settle_body_refs(CadFeature& f, const std::vector<CadBody>& v, bool 
         }
         id = ref >= 0 ? body_id_of(v, ref) : CadFeature::BodyId{};
     });
-}
-
-// Datum-plane ordinals: plane_base, axis_plane_a, axis_plane_b hold 3 + N.
-template<class Visit>
-static void for_each_datum_ref(CadFeature& f, Visit&& visit)
-{
-    visit(f.plane_base);
-    visit(f.axis_plane_a);
-    visit(f.axis_plane_b);
 }
 
 // Prepare every reference for a change of history in which feature `i` ends up at
@@ -2202,7 +2358,7 @@ static void stage_history_change(std::vector<CadFeature>& features,
     for (int j = 0; j < n; ++j) {
         if (map_feature(j) < 0) continue;
         CadFeature& f = features[j];
-        for_each_datum_ref(f, [&](int& ref) {
+        CadDocument::for_each_datum_ref(f, [&](int& ref) {
             if (ref < 3) return;
             const int N = ref - 3;
             const int oldf = (N < int(planes_before.size())) ? planes_before[N] : -1;
@@ -2258,33 +2414,6 @@ static bool commit_or_rollback(CadDocument& doc, std::vector<CadFeature>& snapsh
     doc.error = fail_err.empty() ? _u8L("feature is used by a later feature")
                                  : fail_err;
     return false;
-}
-
-// Visit every field of `f` that holds an index into features[].
-//
-// Deliberately NOT dispatched on f.type. A type switch is what this replaced, and it was
-// wrong in the way type switches go wrong: it listed Extrude and Mate, and every feature
-// type added afterwards — Revolve, Sweep, Loft, Rib, Pattern-on-curve, the Surface* family —
-// silently inherited a remap that skipped its references. Visiting the FIELDS instead means
-// a new type is covered the moment it reuses one of them, and reaching a field its type
-// never reads costs nothing: unset refs are -1 and every visitor here ignores those.
-//
-// The list is exactly the fields documented as "index into features[]" / "feature index" in
-// CadDocument.hpp. Not included, because they are a different basis and need their own pass:
-// plane_base / axis_plane_a / axis_plane_b encode `3 + N` = the Nth DATUM PLANE, an ordinal
-// into resolve_datum_planes(), not into features[]. Everything named *_body / *_face / *_edge
-// is a body index or a global topology id and must never be remapped here.
-template<class Visit>
-static void for_each_feature_ref(CadFeature& f, Visit&& visit)
-{
-    visit(f.sketch_ref);
-    visit(f.sweep_path_ref);
-    visit(f.pattern_curve_sketch);
-    visit(f.rib_sketch_ref);
-    visit(f.mate_cs_a);
-    visit(f.mate_cs_b);
-    for (int& r : f.loft_profile_refs)
-        visit(r);
 }
 
 bool CadDocument::remove_feature(int index)
@@ -2413,10 +2542,11 @@ bool CadDocument::replace_feature(int index, const CadFeature& edited)
 
     std::vector<CadFeature> snapshot = features;
 
-    // Preserve identity (name) and the structural link (sketch_ref) from the
+    // Preserve identity (name and uid) and the structural link (sketch_ref) from the
     // original; only the user-editable parameters come from `edited`.
     CadFeature f      = edited;
     f.name            = features[index].name;
+    f.uid             = features[index].uid;
     f.type            = features[index].type;
     if (f.type == CadFeatureType::Extrude)
         f.sketch_ref  = features[index].sketch_ref;
@@ -2499,10 +2629,10 @@ TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch, bool closed
         // An entity sketch that yields no wire is an ERROR, not a cue to fall through. The
         // legacy tail of this function ends in a default rectangle built from width/height,
         // which for an entity sketch are whatever they happened to be initialised to — so a
-        // sketch entities_to_wire cannot handle (a circle coexisting with a line, two circles:
-        // 88v) used to extrude into a box the user never drew, silently. Failing here
-        // costs the caller an error message; falling through cost them wrong geometry that
-        // looked deliberate. The legacy profile/shape paths below are still reached by sketches
+        // sketch entities_to_wire cannot handle (a circle coexisting with a line, two circles)
+        // would extrude into a box the user never drew, silently. Failing here costs the
+        // caller an error message; falling through would cost them wrong geometry that looks
+        // deliberate. The legacy profile/shape paths below are still reached by sketches
         // that legitimately carry no entities at all.
         throw std::runtime_error(
             open_loop_message(sketch,
@@ -2750,8 +2880,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         if (wire.IsNull()) throw std::runtime_error(_u8L("surface-revolve: empty profile"));
         gp_Ax1 axis = revolve_axis_of(f, sk);
         // Same angle rules as the solid Revolve (flip reverses it, and a negative sweep is a
-        // positive one about the reversed axis — MakeRevol wants (0, 2 pi]); this surface
-        // version used to ignore both.
+        // positive one about the reversed axis — MakeRevol wants (0, 2 pi]).
         double ang = (f.flip ? -f.revolve_angle : f.revolve_angle) * M_PI / 180.0;
         if (ang < 0) { axis.Reverse(); ang = -ang; }
         BRepPrimAPI_MakeRevol rev(wire, axis, ang, false);
@@ -2816,7 +2945,11 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             throw std::runtime_error(_u8L("sweep path must be a sketch or helix"));
         }
         TopoDS_Wire profile = build_sketch_wire(sk, true);
-        TopoDS_Shape tool   = SketchEngine::make_sweep(profile, path);
+        // Along a helix the profile keeps its angle to the helix axis, as a spring's wire does.
+        const Vec3d& axis = path_feat.plane.normal;
+        TopoDS_Shape tool = path_feat.type == CadFeatureType::Helix
+                                ? SketchEngine::make_sweep(profile, path, gp_Dir(axis.x(), axis.y(), axis.z()))
+                                : SketchEngine::make_sweep(profile, path);
         if (!have_body || f.mode == BooleanMode::New) {
             result = tool;
             have_body = true;
@@ -3479,8 +3612,8 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
     // successfully a few hundred lines up — but it CANNOT be handed an open sheet. In OCCT,
     // BRepOffset_MakeOffset::MakeThickSolid builds the solid only inside `if (!myFaces.IsEmpty())`
     // (BRepOffset_MakeOffset.cxx:1115): with no closing faces it stops after the offset shell and
-    // returns that. So it reports IsDone() and a non-null shape containing no TopAbs_SOLID at all
-    // — which is exactly how two earlier attempts failed, and why no parameter could have fixed it.
+    // returns that. So on an open sheet it reports IsDone() and a non-null shape containing no
+    // TopAbs_SOLID at all, and no parameter changes that.
     //
     // So close the sheet first, then use the working call: cap the free rims, sew into a closed
     // shell, make a solid, and hollow it inward passing the caps as the faces to remove. The caps
@@ -3547,7 +3680,7 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
         solid = mts.Shape();
     }
     if (solid.IsNull()) throw std::runtime_error(_u8L("thicken-surface: produced no geometry"));
-    // IsDone() is NOT a success test here — the failed attempts had IsDone() true and no solid.
+    // IsDone() is NOT a success test here: ByJoin on an open sheet reports IsDone() with no solid.
     if (!TopExp_Explorer(solid, TopAbs_SOLID).More())
         throw std::runtime_error(_u8L("thicken-surface: produced a shell, not a solid"));
 
@@ -4033,12 +4166,30 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
     }
 }
 
+std::map<std::string, double> CadDocument::variable_values(std::string& err) const
+{
+    try {
+        return evaluate_variables(variables);
+    } catch (const std::exception& e) {
+        err = e.what();
+        return {};
+    }
+}
+
 void CadDocument::bind_expressions()
 {
     std::map<std::string, double> varvals = evaluate_variables(variables);
     for (CadFeature& f : features)
         for (const auto& [field, e] : f.expr)
-            assign_field(f, field, eval_expr(e, varvals));
+            set_numeric_field(f, field, eval_expr(e, varvals));
+}
+
+// The next CadFeature::uid. One count for the whole process, so that a copy of a document (a card's preview, the history
+// before a feature) never hands its new features a number the document it was copied from gives one of its own.
+static uint64_t next_feature_uid()
+{
+    static std::atomic<uint64_t> next{1};
+    return next.fetch_add(1, std::memory_order_relaxed);
 }
 
 void CadDocument::replay_feature(size_t fi, std::vector<CadBody>& built)
@@ -4069,9 +4220,13 @@ void CadDocument::replay_feature(size_t fi, std::vector<CadBody>& built)
 bool CadDocument::recompute()
 {
     error.clear();
+    // A feature added since the last rebuild, or read from a project, gets its identity.
+    for (CadFeature& f : features)
+        if (f.uid == 0) f.uid = next_feature_uid();
     set_sketch_auto_close(auto_close_loops);   // this document's weld rule, not the last one's
     detect_mate_conflicts();
     std::vector<CadBody> built;
+    bodies_before.assign(features.size(), std::nullopt);
     // Did any feature in this document even ASK for a solid? A document made only of sketches
     // and datums has nothing to build, and that is a legitimate state — it is every document
     // between drawing the first profile and extruding it. Reporting it as a failure is what
@@ -4084,8 +4239,12 @@ bool CadDocument::recompute()
     });
     try {
         bind_expressions();
-        for (size_t fi = 0; fi < features.size(); ++fi)
+        for (size_t fi = 0; fi < features.size(); ++fi) {
+            // The bodies the feature starts from, which feature_describe lists.
+            std::vector<BodyBefore>& was = bodies_before[fi].emplace();
+            for (int b = 0; b < int(built.size()); ++b) was.push_back({built[size_t(b)].name, body_id_of(built, b)});
             replay_feature(fi, built);
+        }
     } catch (const std::exception& e) {
         error = *e.what() ? e.what() : _u8L("OCCT operation failed");
         return false;
@@ -4095,11 +4254,11 @@ bool CadDocument::recompute()
     }
     if (built.empty() && any_solid_feature) { error = _u8L("no solid-producing features"); return false; }
 
-    // A feature that leaves a body with a null shape must fail loudly. Until this existed,
-    // recompute() returned true and the document kept advertising the body: describe_scene
-    // counted it, error was empty, and only mass_properties on that specific body revealed
-    // anything was wrong. Returning false hands the caller its normal rollback path, so the
-    // operation that destroyed the body is undone rather than committed.
+    // A feature that leaves a body with a null shape fails the rebuild loudly. Were recompute() to
+    // return true, the document would go on listing the body: design_describe would count it, error
+    // would be empty, and only body_mass_properties on that body would show anything was wrong. Returning
+    // false hands the caller its normal rollback path, so the operation that destroyed the body is
+    // undone rather than committed.
     for (size_t i = 0; i < built.size(); ++i) {
         if (!built[i].shape.IsNull()) continue;
         const int src = built[i].source_feature;
@@ -4473,8 +4632,8 @@ std::string CadDocument::serialize_recipe() const
         ar(blen);
         ar(cereal::binary_data(bb.data(), bb.size()));
         // DOCUMENT EXTRAS, appended after the body names on the same terms (older builds stop
-        // reading before it): the modeling origin, and the body colours. A colour set with the
-        // Color tool used to live only until the project was closed.
+        // reading before it): the modeling origin, and the body colours, so a colour set with
+        // the Color tool is saved with the project.
         std::map<uint32_t, std::array<float, 4>> colours;
         for (uint32_t i = 0; i < bodies.size(); ++i)
             if (bodies[i].has_color)

@@ -1,6 +1,5 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
-#include <boost/nowide/filesystem.hpp>
 #include <boost/system/error_code.hpp>
 #include <catch2/catch_all.hpp>
 
@@ -8,6 +7,7 @@
 #include <libslic3r/Utils.hpp>
 #include <libslic3r/libslic3r.h>         // GCODEVIEWER_APP_KEY, SLIC3R_APP_KEY (via libslic3r_version.h)
 #include <slic3r/plugin/PluginAuditManager.hpp>
+#include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
@@ -18,6 +18,7 @@
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include "libslic3r_version.h"
@@ -39,6 +40,7 @@
 #include <chrono>
 #include <cstdint>
 #include <fstream>
+#include <chrono>
 #include <functional>
 #include <future>
 #include <ios>
@@ -1018,14 +1020,6 @@ TEST_CASE("Plugin audit denies secret/certificate/config-like paths by keyword",
 
 namespace {
 
-// Converts paths as UTF-8 for the test's lifetime, as the app does from startup
-// (boost::nowide::nowide_filesystem() in OrcaSlicer.cpp).
-struct Utf8PathConversion
-{
-    std::locale previous = boost::nowide::nowide_filesystem();
-    ~Utf8PathConversion() { fs::path::imbue(previous); }
-};
-
 // Switches the C library's character classification to a single-byte code page, as the app's UI
 // language does on Windows (Russian_Russia.1251), when the system has one.
 struct SingleByteCtypeLocale
@@ -1055,7 +1049,7 @@ TEST_CASE("Plugin audit keyword check keeps non-Latin path names intact", "[audi
 
     // Lowering these names byte by byte in a single-byte C locale broke their UTF-8, and turning
     // the result back into a path threw out of the audit hook: the plugin call never returned.
-    const Utf8PathConversion    utf8_paths;
+    // Paths convert as UTF-8, as in the app, for the whole test run (slic3rutils_tests_main.cpp).
     const SingleByteCtypeLocale ctype;
     INFO("single-byte C locale in use: " << (ctype.applied ? "yes" : "no"));
 
@@ -1360,6 +1354,34 @@ const char* const AUDIT_PLUGIN_SOURCE = R"PY(# /// script
 # ///
 )PY";
 
+// A plugin that loads: one capability, registered by its package and named after the plugin's file, since two
+// loaded plugins can't offer a capability of one name.
+const char* const LOADABLE_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Loadable Plugin"
+# description = "Plugin audit hook fixture"
+# author = "OrcaSlicer"
+# version = "1.0"
+# type = "script"
+# ///
+import os
+import orca
+
+class Echo(orca.script.ScriptPluginCapabilityBase):
+    def get_name(self):
+        return "Echo of " + os.path.splitext(os.path.basename(__file__))[0]
+
+    def execute(self, ctx):
+        return orca.ExecutionResult.success()
+
+@orca.plugin
+class EchoPackage(orca.base):
+    def register_capabilities(self):
+        orca.register_capability(Echo)
+)PY";
+
 // A plugin whose registration fails after the module has imported. Its queued runtime prompt is
 // the one an ordinary load failure must keep actionable for approval and retry.
 const char* const BROKEN_AUDIT_PLUGIN_SOURCE = R"PY(# /// script
@@ -1426,6 +1448,8 @@ import http.client, http.server, os, pathlib, shutil, socket, subprocess, sys, t
 import urllib.request, zipfile
 if os.name != "nt":
     import pty
+else:
+    import _winapi
 
 APPROVED = os.path.join(OUTSIDE, "approved.txt")
 PRIVATE = os.path.join(OUTSIDE, "private.txt")
@@ -1553,6 +1577,38 @@ std::vector<std::string> with_shell_grants(std::vector<std::string> grants,
     return grants;
 }
 
+const fs::path& audit_data_parent()
+{
+    static const ScopedTemporaryDir parent{"orca-plugin-audit-hook"};
+    return parent.path();
+}
+
+// A fresh data_dir() under audit_data_parent() for one AuditHarness.
+struct AuditDataDir
+{
+    fs::path    dir      = audit_data_parent() / fs::unique_path("%%%%-%%%%-%%%%");
+    std::string previous = data_dir();
+
+    AuditDataDir()
+    {
+        fs::create_directories(dir);
+        set_data_dir(dir.string());
+    }
+
+    ~AuditDataDir()
+    {
+        set_data_dir(previous);
+        boost::system::error_code ec;
+        fs::remove_all(dir, ec);
+    }
+
+    AuditDataDir(const AuditDataDir&)            = delete;
+    AuditDataDir& operator=(const AuditDataDir&) = delete;
+
+    // The plugin manager scans {data_dir}/orca_plugins.
+    fs::path plugins_dir() const { return dir / "orca_plugins"; }
+};
+
 // The plugin system with the audit hook installed, and the permission dialog replaced by a
 // recorder that answers with `approve`. Declare it first in a test, so it is destroyed last.
 //
@@ -1560,10 +1616,10 @@ std::vector<std::string> with_shell_grants(std::vector<std::string> grants,
 // PythonInterpreterRunEnd in slic3rutils_tests_main.cpp.
 struct AuditHarness
 {
+    bool python_was_running = PythonInterpreter::instance().is_initialized();
     // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log.
-    // data_dir() is a global allowed root from then on -- the first test to initialize Python in
-    // this process (under ctest, this one) -- so the test files live in `outside`.
-    ScopedDataDir                      data{"plugin-audit-hook"};
+    // The test files live in `outside`, away from every writable root.
+    AuditDataDir                       data;
     bool                               initialized = PluginManager::instance().initialize();
     ScopedTemporaryDir                 outside{"orca-plugin-audit-outside"};
     std::vector<Prompt>                prompts;
@@ -1573,6 +1629,13 @@ struct AuditHarness
     AuditHarness()
     {
         PluginAuditManager& audit = PluginAuditManager::instance();
+        // install_hook() grants only the data_dir() current when Python started, so when another
+        // test case started it, grant the parent of every harness data dir instead.
+        static bool parent_granted = false; // global roots are never removed
+        if (python_was_running && !parent_granted) {
+            audit.add_global_allowed_root(audit_data_parent());
+            parent_granted = true;
+        }
         audit.clear_current_plugin();
         audit.clear_current_capability();
         audit.clear_audit_denial();
@@ -2706,6 +2769,58 @@ site_packages_outcome = attempt(lambda: open(SITE_PACKAGE_FILE).close())
     CHECK(describe(harness.prompts) == write_prompt + site_packages_prompt);
 }
 
+#ifdef _WIN32
+TEST_CASE("A real _winapi.CreateProcess audit event reports its command line as text", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // subprocess reaches this event on Windows. CPython 3.12.13 raised it with PySys_Audit's "uuu"
+    // format, reading the command-line object as a wide string, so audit hooks received garbage
+    // instead of the text subprocess passed. The deps patch raises "uOu" (as upstream does,
+    // python/cpython#159237) until the pinned release carries the fix.
+    //
+    // The event is raised before the arguments are used, so a rejected environment mapping ends
+    // the call after the hook saw the event, without reaching CreateProcessW. Run outside a
+    // plugin scope, so the hook below is reached: the plugin audit hook aborts the event when it
+    // denies, and a real prompt is asserted separately at the end.
+    python.exec(R"PY(
+WINAPI_AUDIT_CALLS = []
+
+def record_winapi_audit(event, args):
+    if event == "_winapi.CreateProcess":
+        WINAPI_AUDIT_CALLS.append(args)
+
+sys.addaudithook(record_winapi_audit)
+
+DENIED_EXECUTABLE = os.path.join(OUTSIDE, "Program Files", "audit-denied.exe")
+COMMAND_LINE = '"' + DENIED_EXECUTABLE + '" --flag'
+try:
+    _winapi.CreateProcess(None, COMMAND_LINE, None, None, False, 0, object(), None,
+                          subprocess.STARTUPINFO())
+    audit_arguments_outcome = "started"
+except TypeError:
+    audit_arguments_outcome = "stopped"
+)PY");
+    CHECK(python.str("audit_arguments_outcome") == "stopped");
+    INFO("recorded audit arguments: " << python.str("WINAPI_AUDIT_CALLS"));
+    CHECK(python.eval("WINAPI_AUDIT_CALLS == [(None, COMMAND_LINE, None)]") == "True");
+
+    // In a plugin scope the same call is prompted and denied. The quoted executable is the
+    // permission target; its arguments are not part of the grant.
+    python.run_as(PLUGIN, R"PY(
+create_process_outcome = attempt(lambda: _winapi.CreateProcess(
+    None, COMMAND_LINE, None, None, False, 0, None, None, subprocess.STARTUPINFO()))
+)PY");
+    CHECK(python.str("create_process_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "_winapi.CreateProcess: " + python.str("DENIED_EXECUTABLE") + "\n");
+}
+#endif
+
 TEST_CASE("A filesystem wildcard grant covers the folder and its descendants at any depth", "[audit][Python]")
 {
     AuditHarness harness;
@@ -3288,6 +3403,169 @@ TEST_CASE("A threading permission request is prompted once and saved as a boolea
     CHECK_FALSE(prompted_again);
 }
 
+TEST_CASE("A tools declaration is not asked with the tools grant or full access", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    const bool        full_access = GENERATE(false, true);
+    PluginPermissions granted;
+    granted.tools       = !full_access;
+    granted.full_access = full_access;
+    harness.save_permissions(PLUGIN, granted);
+    const fs::path    sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    const std::string before  = read_text_file(sidecar);
+
+    PluginPermissions requested;
+    requested.tools = true;
+    bool asked      = false;
+    PluginAuditManager::set_permission_message_prompt_for_testing([&](const std::string&) {
+        asked = true;
+        return false;
+    });
+    CHECK(PluginAuditManager::instance().request_permissions(PLUGIN, requested));
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+    CHECK_FALSE(asked);
+    // Nothing is written: the stored grant, or full access, already covers the declaration.
+    CHECK(read_text_file(sidecar) == before);
+}
+
+TEST_CASE("A plugin may call the tools only with the tools grant or full access", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    PluginManager& manager = PluginManager::instance();
+
+    PluginPermissions permissions;
+    harness.save_permissions(PLUGIN, permissions);
+    CHECK_FALSE(manager.plugin_may_call_tools(PLUGIN));
+
+    permissions.tools = true;
+    harness.save_permissions(PLUGIN, permissions);
+    CHECK(manager.plugin_may_call_tools(PLUGIN));
+
+    // Full access allows them whatever the tools grant says.
+    permissions.full_access = true;
+    permissions.tools       = false;
+    harness.save_permissions(PLUGIN, permissions);
+    CHECK(manager.plugin_may_call_tools(PLUGIN));
+
+    // A sidecar that does not read, or is gone, grants nothing, though it held full access.
+    const fs::path sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    {
+        std::ofstream out(sidecar.string(), std::ios::binary | std::ios::trunc);
+        out << "{ \"permissions\": {";
+    }
+    CHECK_FALSE(manager.plugin_may_call_tools(PLUGIN));
+    boost::system::error_code ec;
+    fs::remove(sidecar, ec);
+    REQUIRE_FALSE(ec);
+    CHECK_FALSE(manager.plugin_may_call_tools(PLUGIN));
+    CHECK_FALSE(manager.plugin_may_call_tools("NoSuchPlugin"));
+}
+
+// request_tools_permission() is asked here through the runtime prompt seam, which answers before
+// the prompt queue. A plugin's real call runs on a Script worker, where the prompt is queued and the
+// call refused instead; that path needs a running app and is covered by the MCP sweep.
+TEST_CASE("A tools call with the tools grant or full access is allowed without asking", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    const bool        full_access = GENERATE(false, true);
+    PluginPermissions granted;
+    granted.tools       = !full_access;
+    granted.full_access = full_access;
+    harness.save_permissions(PLUGIN, granted);
+
+    CHECK(PluginAuditManager::instance().request_tools_permission(PLUGIN));
+    CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("A tools call with an unreadable sidecar is refused without asking", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    harness.approve = [](const Prompt&) { return true; };
+
+    const fs::path    sidecar   = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    const std::string malformed = "{ \"permissions\": {";
+    {
+        std::ofstream out(sidecar.string(), std::ios::binary | std::ios::trunc);
+        out << malformed;
+    }
+
+    // Its grants cannot be read, so a Yes could not be saved without replacing them: fail closed.
+    CHECK_FALSE(PluginAuditManager::instance().request_tools_permission(PLUGIN));
+    CHECK(describe(harness.prompts).empty());
+    CHECK(read_text_file(sidecar) == malformed);
+
+    // A plugin that was never discovered has nowhere to keep the grant either.
+    CHECK_FALSE(PluginAuditManager::instance().request_tools_permission("NoSuchPlugin"));
+    CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("A tools call without the grant asks each time and stores only a Yes", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    PluginAuditManager& mgr     = PluginAuditManager::instance();
+    const fs::path      sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    const std::string   before  = read_text_file(sidecar);
+
+    // No refuses the call and is not remembered: the next call asks again.
+    harness.approve = [](const Prompt&) { return false; };
+    CHECK_FALSE(mgr.request_tools_permission(PLUGIN));
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().event == "orca.host.tools.call");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{"orca.host.tools.call"});
+    CHECK(read_text_file(sidecar) == before);
+
+    CHECK_FALSE(mgr.request_tools_permission(PLUGIN));
+    CHECK(harness.prompts.size() == 2);
+    CHECK(read_text_file(sidecar) == before);
+
+    // Yes allows the call and is stored as the boolean grant, so the next call is not asked.
+    harness.approve = [](const Prompt&) { return true; };
+    CHECK(mgr.request_tools_permission(PLUGIN));
+    CHECK(harness.prompts.size() == 3);
+    CHECK(harness.saved_permissions(PLUGIN).tools);
+    CHECK(mgr.request_tools_permission(PLUGIN));
+    CHECK(harness.prompts.size() == 3);
+}
+
+TEST_CASE("A tools call with no sidecar asks and a Yes creates one", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    // A discovered plugin that has not been given a sidecar is asked, as for its other permissions.
+    const fs::path            sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    boost::system::error_code ec;
+    fs::remove(sidecar, ec);
+    REQUIRE_FALSE(ec);
+
+    const bool answer = GENERATE(true, false);
+    harness.approve   = [answer](const Prompt&) { return answer; };
+    CHECK(PluginAuditManager::instance().request_tools_permission(PLUGIN) == answer);
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().event == "orca.host.tools.call");
+    CHECK(fs::exists(sidecar) == answer);
+    CHECK(harness.saved_permissions(PLUGIN).tools == answer);
+}
+
 TEST_CASE("A permission request creates a sidecar for a discovered plugin that has none", "[audit]")
 {
     AuditHarness harness;
@@ -3722,11 +4000,12 @@ TEST_CASE("A permission mutation changes boolean grants only when asked", "[audi
 
     PluginManager& manager = PluginManager::instance();
 
-    // A mutation that names no booleans leaves both flags alone.
+    // A mutation that names no booleans leaves every flag alone.
     PluginPermissions applied;
     REQUIRE(manager.mutate_plugin_permissions(PLUGIN, PluginPermissionMutation{}, &applied));
     CHECK_FALSE(applied.threading);
     CHECK(applied.full_access);
+    CHECK_FALSE(applied.tools);
     CHECK(applied.fs_read == std::vector<std::string>{"/kept"});
 
     PluginPermissionMutation booleans;
@@ -3741,6 +4020,26 @@ TEST_CASE("A permission mutation changes boolean grants only when asked", "[audi
     CHECK(stored.threading);
     CHECK_FALSE(stored.full_access);
     CHECK(stored.fs_read == std::vector<std::string>{"/kept"});
+
+    // The tools grant is set and cleared on its own, and the other grants stay.
+    PluginPermissionMutation tools_on;
+    tools_on.tools = true;
+    REQUIRE(manager.mutate_plugin_permissions(PLUGIN, tools_on, &applied));
+    CHECK(applied.tools);
+    const PluginPermissions tools_granted = harness.saved_permissions(PLUGIN);
+    CHECK(tools_granted.tools);
+    CHECK(tools_granted.threading);
+    CHECK_FALSE(tools_granted.full_access);
+    CHECK(tools_granted.fs_read == std::vector<std::string>{"/kept"});
+
+    PluginPermissionMutation tools_off;
+    tools_off.tools = false;
+    REQUIRE(manager.mutate_plugin_permissions(PLUGIN, tools_off, &applied));
+    const PluginPermissions after_tools = harness.saved_permissions(PLUGIN);
+    CHECK_FALSE(after_tools.tools);
+    CHECK(after_tools.threading);
+    CHECK_FALSE(after_tools.full_access);
+    CHECK(after_tools.fs_read == std::vector<std::string>{"/kept"});
 }
 
 TEST_CASE("A permission mutation fails closed for a plugin it cannot update", "[audit]")
@@ -5758,4 +6057,41 @@ with open(os.path.join(DENIED_DIR, "token.txt"), "w") as f:
     AuditViolation violation;
     REQUIRE(mgr.last_violation(violation));
     CHECK(violation.reason == "denied path");
+}
+
+TEST_CASE("No plugin file name gives a script identity as its key", "[audit]")
+{
+    for (const std::string identity : {kScriptIdentityPerson, kScriptIdentityAgent})
+        CHECK(make_local_plugin_key(identity) != identity);
+    // The words the identities are made of stay free for plugin files.
+    for (const char* stem : {"script", "mcp"})
+        CHECK_FALSE(is_script_identity(make_local_plugin_key(stem)));
+}
+
+TEST_CASE("A plugin whose file is named script or mcp loads as any other plugin", "[audit][Python]")
+{
+    ScopedDataDir data{"plugin-script-word-key"};
+    if (!PluginManager::instance().initialize())
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    const std::vector<std::string> names{"script", "mcp"};
+    for (const std::string& name : names) {
+        const fs::path root = data.plugins_dir() / name;
+        fs::create_directories(root);
+        std::ofstream((root / (name + ".py")).string(), std::ios::binary) << LOADABLE_PLUGIN_SOURCE;
+        PluginInstallState state;
+        state.installed_from    = "local";
+        state.installed_version = "1.0";
+        state.plugin_name       = name;
+        REQUIRE(write_install_state(root, state));
+    }
+
+    PluginManager::instance().discover_plugins(/*async=*/false, /*clear=*/true);
+    for (const std::string& name : names)
+        PluginManager::instance().load_plugin(name);
+    PluginManager::instance().wait_for_all_plugin_loads(std::chrono::seconds(30));
+    for (const std::string& name : names) {
+        INFO(name);
+        CHECK(PluginManager::instance().is_plugin_loaded(name));
+    }
+    PluginManager::instance().shutdown();
 }

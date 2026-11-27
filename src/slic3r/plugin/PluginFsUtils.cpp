@@ -1116,6 +1116,9 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
             // key, a "true" string, a number or any other type leaves it off.
             if (permissions.contains("full_access") && permissions["full_access"].is_boolean())
                 parsed.permissions.full_access = permissions["full_access"].get<bool>();
+            // As full_access: only a JSON boolean counts.
+            if (permissions.contains("tools") && permissions["tools"].is_boolean())
+                parsed.permissions.tools = permissions["tools"].get<bool>();
         }
 
         if (state.contains("enabled") && state["enabled"].is_boolean())
@@ -1278,6 +1281,7 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         {"threading", state.permissions.threading},
         {"events", state.permissions.events},
         {"full_access", state.permissions.full_access},
+        {"tools", state.permissions.tools},
     };
 
     nlohmann::json capabilities = nlohmann::json::array();
@@ -1701,8 +1705,12 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
 
     for (fs::directory_iterator it(resolved_dir, ec), end; it != end && !ec; it.increment(ec)) {
         const fs::path& path = it->path();
+        // Plugin extraction writes through extended_path(), so a pack file can sit past Windows'
+        // MAX_PATH; the plain path cannot reach it there.
+        const fs::path            io_path = extended_path(path);
+        boost::system::error_code file_ec;
 
-        if (!fs::is_regular_file(path, ec) || ec)
+        if (!fs::is_regular_file(io_path, file_ec) || file_ec)
             continue;
 
         std::string ext = path.extension().string();
@@ -1710,8 +1718,12 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
         if (ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".bmp")
             continue;
 
-        // Re-check per file: a symlink inside the pack must not resolve outside it.
-        if (!is_inside_allowed_root(path, resolved_root))
+        // Re-check per file: a symlink inside the pack must not resolve outside it. Any other entry is a
+        // direct child of resolved_dir, checked above. is_inside_allowed_root() resolves the plain path,
+        // so a symlink that path cannot reach is refused rather than trusted.
+        const fs::file_status status = fs::symlink_status(io_path, file_ec);
+        if (file_ec || (fs::is_symlink(status) && (!fs::exists(path, file_ec) || file_ec ||
+                                                   !is_inside_allowed_root(path, resolved_root))))
             continue;
 
         files.push_back(path.string());

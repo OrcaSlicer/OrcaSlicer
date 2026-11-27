@@ -6,8 +6,12 @@
     "setting_id": "1N3BqmbZKCKh8v9N",
     "filament_id": "OFmFwUWM",
     "instantiation": "true",
+    "include": [
+        "fdm_filament_template_nextruder_pet_hf"
+    ],
     "compatible_printers": [
-        "Prusa MK4S HF0.4 nozzle"
+        "Prusa MK4S HF0.4 nozzle",
+        "Prusa MK4S MMU3 HF0.4 nozzle"
     ],
     "filament_max_volumetric_speed": [
         "26"
