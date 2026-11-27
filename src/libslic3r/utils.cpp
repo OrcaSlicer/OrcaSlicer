@@ -206,7 +206,7 @@ static std::optional<unsigned int> g_command_line_log_level;
 void set_command_line_logging_level(std::optional<unsigned int> level)
 {
     g_command_line_log_level = level;
-    if (level)
+    if (level.has_value())
         set_logging_level(*level);
 }
 

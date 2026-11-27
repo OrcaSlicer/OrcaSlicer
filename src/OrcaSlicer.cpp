@@ -1595,13 +1595,12 @@ int CLI::run(int argc, char **argv)
 #endif // SLIC3R_GUI
     }
 
-    // With no --debug the "debug" option's own default sets the CLI level.
+    // --debug is applied above, so this applies only the option's own default.
     const ConfigOptionInt* opt_loglevel = m_config.opt<ConfigOptionInt>("debug");
     if (opt_loglevel && m_given_option_keys.count("debug") == 0) {
         set_logging_level(opt_loglevel->value);
     }
-    // set_logging_file() lacks the macOS 12 guard that set_log_path_and_level() applies, so it is
-    // only safe here. An empty name makes boost::log write a "00000.log" into the working directory.
+    // An empty name makes boost::log write a "00000.log" into the working directory.
     const ConfigOptionString* opt_logfile = m_config.opt<ConfigOptionString>("logfile");
     if (opt_logfile && !opt_logfile->value.empty()) {
         set_logging_file(opt_logfile->value);

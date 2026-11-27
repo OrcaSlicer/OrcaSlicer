@@ -670,7 +670,6 @@ TEST_CASE("default_data_dir is the XDG config dir without a portable data_dir fo
 #endif
 
 namespace {
-// Puts back the process-wide log level, however the test case exits.
 struct ScopedLoggingLevel
 {
     const unsigned int level = get_logging_level();
