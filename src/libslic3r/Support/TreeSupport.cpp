@@ -3764,8 +3764,6 @@ void TreeSupport::generate_contact_points()
         }
     }
 
-    int      nonempty_layers = 0;
-    tbb::concurrent_vector<Slic3r::Vec3f> all_nodes;
     tbb::parallel_for(tbb::blocked_range<size_t>(1, m_object->layers().size()), [&](const tbb::blocked_range<size_t>& range) {
         for (size_t layer_nr = range.begin(); layer_nr < range.end(); layer_nr++) {
             if (m_object->print()->canceled())
@@ -3897,8 +3895,6 @@ void TreeSupport::generate_contact_points()
                 if (node)
                     node->skin_direction = pt_and_normal.second;
             }
-            if (!curr_nodes.empty()) nonempty_layers++;
-            for (auto node : curr_nodes) { all_nodes.emplace_back(node->position(0), node->position(1), scale_(node->print_z)); }
 #ifdef SUPPORT_TREE_DEBUG_TO_SVG
             if (!curr_nodes.empty())
             draw_contours_and_nodes_to_svg(debug_out_path("init_contact_points_%.2f.svg", bottom_z), layer->loverhangs,layer->lslices_extrudable, m_ts_data->m_layer_outlines_below[layer_nr],
@@ -3909,22 +3905,29 @@ void TreeSupport::generate_contact_points()
 
 
 
-    int nNodes = all_nodes.size();
+    // Counted and summed after the parallel loop, layer by layer, so neither the count nor the
+    // rounding of the sums depends on the order the threads finish in.
+    int nNodes = 0, nonempty_layers = 0;
+    float mx = 0, my = 0, mxy = 0, mx2 = 0;
+    for (size_t layer_nr = 1; layer_nr < m_object->layers().size(); ++layer_nr) {
+        const std::vector<SupportNode*> &curr_nodes = contact_nodes[layer_nr - 1];
+        if (!curr_nodes.empty()) nonempty_layers++;
+        for (const SupportNode *node : curr_nodes) {
+            float x = unscale_(node->position(0));
+            float y = unscale_(node->position(1));
+            mx += x;
+            my += y;
+            mxy += x * y;
+            mx2 += x * x;
+        }
+        nNodes += int(curr_nodes.size());
+    }
     avg_node_per_layer = nodes_angle = 0;
     if (nNodes > 0) {
         avg_node_per_layer = nNodes / nonempty_layers;
         // get orientation of nodes by line fitting
         // line: y=kx+b, where
         //       k=tan(nodes_angle)=(n\sum{xy}-\sum{x}\sum{y})/(n\sum{x^2}-\sum{x}^2)
-        float mx = 0, my = 0, mxy = 0, mx2 = 0;
-        for (auto &pt : all_nodes) {
-            float x = unscale_(pt(0));
-            float y = unscale_(pt(1));
-            mx += x;
-            my += y;
-            mxy += x * y;
-            mx2 += x * x;
-        }
         nodes_angle = atan2(nNodes * mxy - mx * my, nNodes * mx2 - SQ(mx));
 
         BOOST_LOG_TRIVIAL(info) << "avg_node_per_layer=" << avg_node_per_layer << ", nodes_angle=" << nodes_angle;

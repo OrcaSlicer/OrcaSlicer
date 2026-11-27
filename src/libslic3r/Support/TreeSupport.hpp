@@ -13,18 +13,18 @@
 #include <unordered_set>
 #include <vector>
 #include <utility>
-#include "ExPolygon.hpp"
-#include "Point.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
-#include "Slicing.hpp"
-#include "MinimumSpanningTree.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/MinimumSpanningTree.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Support/TreeSupportCommon.hpp"
 #include "libslic3r/Support/SupportParameters.hpp"
 #include "tbb/concurrent_unordered_map.h"
-#include "Flow.hpp"
-#include "PrintConfig.hpp"
-#include "Fill/Lightning/Generator.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Fill/Lightning/Generator.hpp"
 #include "TreeModelVolumes.hpp"
 #include "TreeSupport3D.hpp"
 
