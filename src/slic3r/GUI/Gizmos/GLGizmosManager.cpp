@@ -769,9 +769,9 @@ bool GLGizmosManager::on_mouse_wheel(const wxMouseEvent &evt)
 {
     bool processed = false;
 
-    // Orca: a macOS trackpad sends a wheel event with a rotation of 0 on a two finger tap (see IMSlider::on_mouse_wheel()).
-    // It is not a wheel step: read as one it would count as a step down and shrink the brush.
-    if (evt.GetWheelRotation() == 0)
+    // Orca: only a vertical wheel event with a direction is a step. A macOS trackpad also sends horizontal
+    // events, and events with a rotation of 0 (see ImGuiWrapper::update_mouse_data()).
+    if (evt.GetWheelAxis() != wxMOUSE_WHEEL_VERTICAL || evt.GetWheelRotation() == 0)
         return false;
 
     if (/*m_current == SlaSupports || m_current == Hollow ||*/ m_current == FdmSupports || m_current == Seam || m_current == MmSegmentation || m_current == FuzzySkin ||
