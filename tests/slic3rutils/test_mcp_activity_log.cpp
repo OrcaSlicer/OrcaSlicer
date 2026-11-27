@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <future>
 #include <memory>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -978,13 +979,19 @@ TEST_CASE("a replay's variables are masked through long alias chains, as objects
     setenv("ORCA_ACTIVITY_TEST_PW", "env-secret", 1);
 #endif
     const json replay{{"vars", chain}, {"steps", typed}};
+    // The entry doesn't show arguments this long, so a value can only leak through the error.
     t.log.call_ended(t.start(command("replay_run"), {{"replay", replay}}, "", "j1", {{"source", "agent"}}),
-                     ToolResult::error("Field rejected env-secret"));
-    const std::string all = json(t.entries()).dump();
+                     ToolResult::error("Field rejected hunter22 obj-secret arr-secret 4242 env-secret"));
+    const std::vector<json> entries = t.entries();
+    REQUIRE(entries.size() == 1);
+    CHECK(entries[0]["args"]["truncated"] == true);
+    CHECK(entries[0]["error"] == "Field rejected " + kMask + " " + kMask + " " + kMask + " " + kMask + " " + kMask);
+    const std::string all = json(entries).dump();
     CHECK(all.find("hunter22") == std::string::npos);
     CHECK(all.find("obj-secret") == std::string::npos);
     CHECK(all.find("arr-secret") == std::string::npos);
-    CHECK(all.find("4242") == std::string::npos);
+    // Epoch-millisecond times can contain 4242, so it counts only with no digit next to it.
+    CHECK_FALSE(std::regex_search(all, std::regex(R"((^|\D)4242(\D|$))")));
     CHECK(all.find("env-secret") == std::string::npos);
 }
 
