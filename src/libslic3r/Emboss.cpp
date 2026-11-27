@@ -1407,7 +1407,11 @@ namespace {
 int align_shape(ExPolygonsWithIds &shapes, const std::wstring &text, const FontProp &prop, const FontFile &font);
 }
 
-ExPolygonsWithIds Emboss::text2vshapes(FontFileWithCache &font_with_cache, const std::wstring& text, const FontProp &font_prop, const std::function<bool()>& was_canceled){
+namespace {
+// Letters of the text aligned as the property says, straight; first_baseline_y gets the first line's baseline.
+ExPolygonsWithIds layout_straight(FontFileWithCache &font_with_cache, const std::wstring &text, const FontProp &font_prop,
+                                  const std::function<bool()> &was_canceled, int &first_baseline_y)
+{
     assert(font_with_cache.has_value());
     const FontFile &font = *font_with_cache.font_file;
     unsigned int font_index = font_prop.collection_number.value_or(0);
@@ -1430,7 +1434,17 @@ ExPolygonsWithIds Emboss::text2vshapes(FontFileWithCache &font_with_cache, const
         result.push_back({id, letter2shapes(letter, cursor, font_with_cache, font_prop, font_info_cache)});
     }
 
-    const int first_baseline_y = align_shape(result, text, font_prop, font);
+    first_baseline_y = align_shape(result, text, font_prop, font);
+    return result;
+}
+} // namespace
+
+ExPolygonsWithIds Emboss::text2vshapes(FontFileWithCache &font_with_cache, const std::wstring& text, const FontProp &font_prop, const std::function<bool()>& was_canceled){
+    int first_baseline_y = 0;
+    ExPolygonsWithIds result = layout_straight(font_with_cache, text, font_prop, was_canceled, first_baseline_y);
+    if (result.empty())
+        return result;
+    const FontFile &font = *font_with_cache.font_file;
     // letters placed one by one on the model keep the straight layout
     if (font_prop.arc_radius.has_value() && !font_prop.per_glyph)
         bend_to_arc(result, *font_prop.arc_radius / get_text_shape_scale(font_prop, font), first_baseline_y, get_line_height(font, font_prop));
@@ -1441,37 +1455,60 @@ namespace {
 // Beyond this radius a text of any length is straight to within its coordinates.
 const double MAX_ARC_RADIUS = 1e12; // [in shape units]
 
+bool fits_on_arc(const ExPolygonsWithIds &shapes, double radius, double first_baseline_y, double line_height)
+{
+    return std::isfinite(radius) && std::abs(radius) <= MAX_ARC_RADIUS &&
+           std::abs(radius) > Emboss::min_arc_radius(shapes, first_baseline_y, line_height, radius > 0.);
+}
+} // namespace
+
 // Each line with letters has to stay clear of the circle's center and end before it meets its own start.
 // Letters stand on the baseline's circle and reach toward the center with their bottoms when it is
 // below them and with their tops when it is above, so that inner edge has the least room.
-bool fits_on_arc(const ExPolygonsWithIds &shapes, double radius, double first_baseline_y, double line_height)
+double Emboss::min_arc_radius(const ExPolygonsWithIds &shapes, double first_baseline_y, double line_height, bool tops_outward)
 {
-    if (!std::isfinite(radius) || std::abs(radius) > MAX_ARC_RADIUS)
-        return false;
-
+    double      result     = 0.;
     double      baseline_y = first_baseline_y;
     BoundingBox line_bb;
-    auto line_fits = [&]() {
+    auto add_line = [&]() {
         if (!line_bb.defined)
-            return true;
-        const double line_radius  = radius + baseline_y;
-        const double inner_radius = radius + static_cast<double>(radius > 0. ? line_bb.min.y() : line_bb.max.y());
-        if (line_radius * radius <= 0. || inner_radius * radius <= 0.)
-            return false;
-        return static_cast<double>(line_bb.size().x()) < 2. * M_PI * std::min(std::abs(line_radius), std::abs(inner_radius));
+            return;
+        const double half_turn = static_cast<double>(line_bb.size().x()) / (2. * M_PI);
+        const double line = tops_outward ? half_turn - std::min(baseline_y, static_cast<double>(line_bb.min.y())) :
+                                           half_turn + std::max(baseline_y, static_cast<double>(line_bb.max.y()));
+        result = std::max(result, line);
     };
     for (const ExPolygonsWithId &letter : shapes) {
-        if (letter.id == Emboss::ENTER_UNICODE) {
-            if (!line_fits())
-                return false;
+        if (letter.id == ENTER_UNICODE) {
+            add_line();
             baseline_y -= line_height;
             line_bb = BoundingBox();
         } else if (!letter.expoly.empty())
             line_bb.merge(get_extents(letter.expoly));
     }
-    return line_fits();
+    add_line();
+    return result;
 }
-} // namespace
+
+Emboss::ArcRadiusLimits Emboss::arc_radius_limits(const std::shared_ptr<const FontFile> &font, const std::wstring &text, const FontProp &prop)
+{
+    if (font == nullptr)
+        return {};
+    FontProp straight   = prop;
+    straight.arc_radius.reset();
+    straight.per_glyph  = false;
+    FontFileWithCache font_with_cache;
+    font_with_cache.font_file = font;
+    font_with_cache.cache     = std::make_shared<Glyphs>();
+    int first_baseline_y = 0;
+    const ExPolygonsWithIds shapes = layout_straight(font_with_cache, text, straight, []() { return false; }, first_baseline_y);
+    if (shapes.empty())
+        return {};
+    const double line_height = get_line_height(*font, straight);
+    const double scale       = get_text_shape_scale(straight, *font);
+    return {min_arc_radius(shapes, first_baseline_y, line_height, true) * scale,
+            min_arc_radius(shapes, first_baseline_y, line_height, false) * scale};
+}
 
 void Emboss::bend_to_arc(ExPolygonsWithIds &shapes, double radius, double first_baseline_y, double line_height)
 {

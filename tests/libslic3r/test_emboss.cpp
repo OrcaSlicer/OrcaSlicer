@@ -366,3 +366,109 @@ TEST_CASE("Each line of bent text turns by the angle of its own baseline", "[Emb
         CHECK_THAT(turned, WithinAbs(-expected, 1e-3));
     }
 }
+
+TEST_CASE("The smallest radius matches a hand computation", "[Emboss]")
+{
+    // One line of three squares spanning x -2500..2500 and y 0..1000, standing on baseline 0.
+    ExPolygonsWithIds shapes{letter('a', square(-2000, 0, 1000)), letter('b', square(0, 0, 1000)), letter('c', square(2000, 0, 1000))};
+    CHECK_THAT(Emboss::min_arc_radius(shapes, 0., 1500., true), WithinAbs(5000. / (2. * M_PI), 1.));
+    CHECK_THAT(Emboss::min_arc_radius(shapes, 0., 1500., false), WithinAbs(5000. / (2. * M_PI) + 1000., 1.));
+
+    // A wider second line whose baseline is 1500 lower decides the outward radius.
+    shapes.push_back(letter(Emboss::ENTER_UNICODE));
+    shapes.push_back(letter('d', ExPolygons{ExPolygon(Polygon({Point(-3000, -1500), Point(3000, -1500), Point(3000, -500), Point(-3000, -500)}))}));
+    CHECK_THAT(Emboss::min_arc_radius(shapes, 0., 1500., true), WithinAbs(6000. / (2. * M_PI) + 1500., 1.));
+    CHECK_THAT(Emboss::min_arc_radius(shapes, 0., 1500., false), WithinAbs(5000. / (2. * M_PI) + 1000., 1.));
+}
+
+TEST_CASE("A side with nothing in the way gives zero", "[Emboss]")
+{
+    CHECK(Emboss::min_arc_radius({}, 0., 100., true) == 0.);
+    CHECK(Emboss::min_arc_radius({letter(Emboss::ENTER_UNICODE), letter(Emboss::ENTER_UNICODE)}, 0., 100., false) == 0.);
+
+    // Letters wholly below a low baseline, as top alignment leaves short text: any inward radius fits.
+    const coord_t     w = 1000;
+    ExPolygonsWithIds low{letter('a', square(0, -2 * w - 200, w))};
+    CHECK(Emboss::min_arc_radius(low, -2. * w, 100., false) == 0.);
+
+    Emboss::FontFileWithCache font = bundled_font();
+    if (!font.has_value())
+        SKIP("the bundled font is not reachable");
+    const Emboss::ArcRadiusLimits limits = Emboss::arc_radius_limits(font.font_file, L"   ", FontProp(10.f));
+    CHECK(limits.outward == 0.);
+    CHECK(limits.inward == 0.);
+}
+
+TEST_CASE("A trailing empty line does not count toward the smallest radius", "[Emboss]")
+{
+    ExPolygonsWithIds shapes{letter('a', square(-500, 0, 1000)), letter('b', square(500, 0, 1000))};
+    const double      outward = Emboss::min_arc_radius(shapes, 0., 1500., true);
+    const double      inward  = Emboss::min_arc_radius(shapes, 0., 1500., false);
+    shapes.push_back(letter(Emboss::ENTER_UNICODE));
+    CHECK(Emboss::min_arc_radius(shapes, 0., 1500., true) == outward);
+    CHECK(Emboss::min_arc_radius(shapes, 0., 1500., false) == inward);
+
+    const Points before = all_points(shapes);
+    Emboss::bend_to_arc(shapes, outward * 1.001, 0., 1500.);
+    CHECK(all_points(shapes) != before);
+}
+
+TEST_CASE("The bend agrees with the smallest radius on either side of it", "[Emboss]")
+{
+    Emboss::FontFileWithCache font = bundled_font();
+    if (!font.has_value())
+        SKIP("the bundled font is not reachable");
+
+    const FontProp::Align align = GENERATE(FontProp::Align(FontProp::HorizontalAlign::left, FontProp::VerticalAlign::top),
+                                           FontProp::Align(FontProp::HorizontalAlign::center, FontProp::VerticalAlign::center),
+                                           FontProp::Align(FontProp::HorizontalAlign::right, FontProp::VerticalAlign::bottom));
+    const bool outward = GENERATE(true, false);
+    FontProp   prop(10.f);
+    prop.align = align;
+
+    const std::wstring       text        = L"Orca\nSlicer radial";
+    const ExPolygonsWithIds  straight    = Emboss::text2vshapes(font, text, prop);
+    const Emboss::FontFile  &font_file   = *font.font_file;
+    const double             scale       = Emboss::get_text_shape_scale(prop, font_file);
+    const double             baseline    = Emboss::get_align_y_offset_in_mm(align.second, 2, font_file, prop) / scale;
+    const double             line_height = Emboss::get_line_height(font_file, prop);
+    const double             r0          = Emboss::min_arc_radius(straight, baseline, line_height, outward);
+    REQUIRE(r0 > 0.);
+    const double sign = outward ? 1. : -1.;
+
+    ExPolygonsWithIds above = straight;
+    Emboss::bend_to_arc(above, sign * r0 * (1. + 1e-3), baseline, line_height);
+    CHECK(all_points(above) != all_points(straight));
+
+    ExPolygonsWithIds below = straight;
+    Emboss::bend_to_arc(below, sign * r0 * (1. - 1e-3), baseline, line_height);
+    CHECK(all_points(below) == all_points(straight));
+}
+
+TEST_CASE("Limits in mm are the shape-unit limits times the scale", "[Emboss]")
+{
+    Emboss::FontFileWithCache font = bundled_font();
+    if (!font.has_value())
+        SKIP("the bundled font is not reachable");
+
+    FontProp prop(10.f);
+    prop.align = FontProp::Align(FontProp::HorizontalAlign::center, FontProp::VerticalAlign::center);
+    const std::wstring      text      = L"Orca\nSlicer";
+    const ExPolygonsWithIds straight  = Emboss::text2vshapes(font, text, prop);
+    const Emboss::FontFile &font_file = *font.font_file;
+    const double            scale     = Emboss::get_text_shape_scale(prop, font_file);
+    const double baseline    = Emboss::get_align_y_offset_in_mm(prop.align.second, 2, font_file, prop) / scale;
+    const double line_height = Emboss::get_line_height(font_file, prop);
+
+    FontProp bent = prop;
+    bent.arc_radius = 25.f;
+    const Emboss::ArcRadiusLimits limits = Emboss::arc_radius_limits(font.font_file, text, bent);
+    CHECK_THAT(limits.outward, WithinRel(Emboss::min_arc_radius(straight, baseline, line_height, true) * scale, 1e-9));
+    CHECK_THAT(limits.inward, WithinRel(Emboss::min_arc_radius(straight, baseline, line_height, false) * scale, 1e-9));
+
+    FontProp other_face = prop;
+    other_face.collection_number = 3;
+    const Emboss::ArcRadiusLimits none = Emboss::arc_radius_limits(font.font_file, text, other_face);
+    CHECK(none.outward == 0.);
+    CHECK(none.inward == 0.);
+}

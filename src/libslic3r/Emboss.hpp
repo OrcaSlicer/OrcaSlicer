@@ -176,6 +176,21 @@ namespace Emboss
     /// <param name="line_height">[in shape units] Distance between baselines</param>
     void bend_to_arc(ExPolygonsWithIds &shapes, double radius, double first_baseline_y, double line_height);
 
+    /// Smallest radius the aligned text fits on, as bend_to_arc decides: a radius with the direction's sign
+    /// fits exactly when its magnitude is greater. Zero when nothing is in the way, as for text without letters.
+    /// <param name="tops_outward">Center below the text (positive radius), else above</param>
+    /// <returns>[in shape units]</returns>
+    double min_arc_radius(const ExPolygonsWithIds &shapes, double first_baseline_y, double line_height, bool tops_outward);
+
+    struct ArcRadiusLimits
+    {
+        double outward = 0.; // [in mm] for a positive radius
+        double inward  = 0.; // [in mm] for a negative radius
+    };
+    /// Smallest radii the text fits on, laid out straight on a glyph cache of its own, so any thread may call it.
+    /// Empty when the font is missing or has no face of the property's collection number.
+    ArcRadiusLimits arc_radius_limits(const std::shared_ptr<const FontFile> &font, const std::wstring &text, const FontProp &prop);
+
     const unsigned ENTER_UNICODE = static_cast<unsigned>('\n');
     /// Sum of character '\n'
     unsigned get_count_lines(const std::wstring &ws);
