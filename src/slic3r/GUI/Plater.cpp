@@ -3771,9 +3771,8 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
 
     PlaterPresetComboBox* combobox = (*combo);
     edit_btn->Bind(wxEVT_BUTTON, [this, edit_btn, combobox, filament_idx](wxCommandEvent) {
-        bool single_or_bbl     = should_show_SEMM_buttons();
         bool is_multi_material = p->combos_filament.size() > 1;
-        if(single_or_bbl && is_multi_material) {
+        if(is_multi_material) {
            // MULTI MATERIAL Show menu
             auto menu = p->plater->filament_action_menu(filament_idx);
             wxPoint pt { 0, edit_btn->GetSize().GetHeight() + FromDIP(2) };
@@ -3783,7 +3782,7 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
             p->plater->PopupMenu(menu, (int) pt.x, pt.y);
         }
         else {
-            // SINGLE MATERIAL / MULTI EXTRUDER / TOOLCHANGER / IDEX Opens Dialog directly
+            // SINGLE MATERIAL Opens Dialog directly
             // -1 first, like Sidebar::edit_filament(): switch_to_tab() can run select_preset(),
             // whose on_presets_changed() cascade would otherwise write into this slot mid-switch.
             p->editing_filament = -1;
@@ -5877,7 +5876,7 @@ static void update_print_tab_after_filament_change(bool process_changed)
     tab->update();
 }
 
-void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
+void Sidebar::delete_filament(size_t filament_id, int replace_filament_id, std::optional<bool> confirm_tool_shift) {
     if (is_new_project_in_gcode3mf()) { return; }
     if (p->combos_filament.size() <= 1) return;
 
@@ -5896,6 +5895,19 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
         return;
 
     bool is_mixed = (filament_id >= p->combos_filament.size());
+
+    if (!is_mixed && delete_shifts_tools(filament_id)) {
+        if (confirm_tool_shift == std::optional<bool>(false))
+            return;
+        if (!confirm_tool_shift.has_value()) {
+            MessageDialog dlg(this,
+                _L("Removing this filament will shift the tool numbers of later filament slots. "
+                   "Check that the filament assignments still match your printer's physical tools. Continue?"),
+                _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
+            if (dlg.ShowModal() != wxID_OK)
+                return;
+        }
+    }
 
     if (!is_mixed) {
         if (wxGetApp().preset_bundle->is_the_only_edited_filament(filament_id) || (filament_id == 0)) {
@@ -5944,6 +5956,16 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     filament_list->Scroll(-1, INT_MAX); // ORCA scroll to end of list on changes to inform user about filament count
 }
 
+bool Sidebar::delete_shifts_tools(size_t filament_id) const
+{
+    auto&       bundle         = *wxGetApp().preset_bundle;
+    const auto& printer_config = bundle.printers.get_edited_preset().config;
+    const auto* nozzles        = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    return p != nullptr && filament_id + 1 < p->combos_filament.size() && !bundle.is_bbl_vendor() &&
+           !printer_config.opt_bool("single_extruder_multi_material") && nozzles != nullptr &&
+           nozzles->values.size() > 1;
+}
+
 bool Sidebar::merge_removes_component(size_t from_id, size_t to_id) const
 {
     const auto& pb = *wxGetApp().preset_bundle;
@@ -5956,8 +5978,11 @@ bool Sidebar::merge_removes_component(size_t from_id, size_t to_id) const
     return std::find(comps.begin(), comps.end(), (unsigned int) from_id + 1) != comps.end();
 }
 
-void Sidebar::change_filament(size_t from_id, size_t to_id)
+bool Sidebar::change_filament(size_t from_id, size_t to_id, std::optional<bool> confirm_tool_shift)
 {
+    if (from_id == size_t(-2))
+        from_id = p->m_menu_filament_id;
+
     // Merging a physical filament into a mixed one that lists it as a component would delete
     // the very filament the mix depends on, leaving it broken. Warn before doing so.
     if (merge_removes_component(from_id, to_id)) {
@@ -5967,10 +5992,11 @@ void Sidebar::change_filament(size_t from_id, size_t to_id)
             _L("Warning"),
             wxOK | wxCANCEL | wxICON_WARNING);
         if (dlg.ShowModal() != wxID_OK)
-            return;
+            return false;
     }
 
-    delete_filament(from_id, int(to_id));
+    delete_filament(from_id, int(to_id), confirm_tool_shift);
+    return true;
 }
 
 void Sidebar::edit_filament()
@@ -5995,9 +6021,6 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
 
     // Mixed-color slots are kept at the tail of the filament arrays, so a new physical
     // filament has to be inserted just after the last physical one rather than appended.
-    // Count actual colour slots, not filament_presets or the combos: the extruder-count spinner
-    // reaches this before the sidebar has rebuilt, and update_multi_material_filament_presets()
-    // can have grown filament_presets alone.
     auto       *bundle         = wxGetApp().preset_bundle;
     size_t      insert_pos     = bundle->num_physical_filaments();
     size_t      total          = insert_pos + bundle->num_mixed_filaments();
@@ -6649,7 +6672,10 @@ Sidebar::AmsSyncApplied Sidebar::apply_ams_sync(bool direct_sync, std::map<int, 
             auto& cur = merge_info.merges[i];
             for (int j = cur.size() -1; j >= 1 ; j--) {
                 auto last_index = cur[j];
+                const size_t previous_count = wxGetApp().preset_bundle->filament_presets.size();
                 change_filament(last_index, cur[0]);
+                if (wxGetApp().preset_bundle->filament_presets.size() == previous_count)
+                    continue;
                 cur.erase(cur.begin() + j);
                 sync_ams_badges.erase(sync_ams_badges.begin() + last_index);
                 reduce_index(merge_info, last_index);
@@ -6697,20 +6723,20 @@ void Sidebar::show_SEMM_buttons()
         return;
     
     bool is_multi_material = p->combos_filament.size() > 1;
-    bool single_or_bbl     = should_show_SEMM_buttons();
-    bool is_single = single_or_bbl && !is_multi_material; // SINGLE EXTRUDER / BBL WITH 1 MATERIAL
-    bool is_multi  = single_or_bbl && is_multi_material;  // MULTI MATERIAL WITH SINGLE EXTRUDER
-    bool is_fixed  = !is_single && !is_multi;             // MULTI EXTRUDER / TOOLCHANGER / IDEX WITH FIXED MATERIAL
+    // Flushing volumes only apply to single-extruder multi-material (SEMM) and BBL printers.
+    bool is_seMM_multi = should_show_SEMM_buttons() && is_multi_material;
 
-    p->m_bpButton_add_filament->Show(single_or_bbl);
-    p->m_bpButton_del_filament->Show(is_multi);
-    p->m_flushing_volume_btn->Show(  is_multi);
+    // Filament slots can be added and removed for every printer; the add/delete paths
+    // enforce the >= 1 and MAXIMUM_EXTRUDER_NUMBER bounds themselves.
+    p->m_bpButton_add_filament->Show(true);
+    p->m_bpButton_del_filament->Show(is_multi_material);
+    p->m_flushing_volume_btn->Show(  is_seMM_multi);
 
-    if (is_multi) {
+    if (is_multi_material) {
         for (auto &c : p->combos_filament)
             c->edit_btn->SetBitmap_("menu_filament");
     }
-    else if (is_single || is_fixed) {
+    else {
         for (auto &c : p->combos_filament)
             c->edit_btn->SetBitmap_("edit");
     }

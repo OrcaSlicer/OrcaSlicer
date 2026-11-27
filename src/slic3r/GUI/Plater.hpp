@@ -224,8 +224,16 @@ public:
     void on_filaments_delete(size_t filament_id);
 
     void add_filament();
-    void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1);  // 0 base, -1 means default
-    void change_filament(size_t from_id, size_t to_id);  // 0 base
+    // `confirm_tool_shift` answers deleting a physical slot before a later one on a non-Bambu Lab printer with more
+    // than one nozzle and without single_extruder_multi_material, which asks about the later slots' tool numbers: true
+    // deletes, false deletes nothing, none asks. 0 base, -1 means default.
+    void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1,
+                         std::optional<bool> confirm_tool_shift = std::nullopt);
+    // True unless its question about a physical filament that the mixed target uses was answered no. 0 base.
+    bool change_filament(size_t from_id, size_t to_id, std::optional<bool> confirm_tool_shift = std::nullopt);
+    // Whether deleting physical filament `filament_id` (0 base) can shift the tool numbers of the slots after it, which
+    // delete_filament() asks about first.
+    bool delete_shifts_tools(size_t filament_id) const;
     // Whether merging filament `from_id` into `to_id` (0 base) deletes a physical filament that the mixed filament `to_id`
     // mixes, which change_filament() asks about first.
     bool merge_removes_component(size_t from_id, size_t to_id) const;

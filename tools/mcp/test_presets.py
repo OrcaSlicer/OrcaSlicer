@@ -344,6 +344,15 @@ class PresetsTest:
     def dialogs(self):
         return dialogs(self.c)
 
+    def warning(self, label, reply, words):
+        """The warning that holds a call, whose message holds `words`."""
+        self.t.equal(f"{label}: a dialog holds the call", reply.get("status"), "blocked_by_dialog")
+        shown = self.c.call("app_state").get("dialogs", [])
+        ok = (len(shown) == 1 and shown[0].get("title") == "Warning" and
+              sorted(button.get("label") for button in shown[0].get("buttons", [])) == ["Cancel", "OK"] and
+              words in shown[0].get("message", ""))
+        self.t.check(f"{label}: the warning saying {words}", ok, shown)
+
     def selection_is(self, label, text, **placeholders):
         """selection() against the entry's row, whole. A name written <X> is checked by placeholders[X], a
         predicate on the name."""
@@ -428,7 +437,7 @@ class PresetsTest:
 
     def without_remembered_presets(self):
         """remember_printer_config off, so that a printer switch keeps the process and filament that fit the new
-        printer, whatever the data folder remembers it was last used with. The next scenario's start() turns it on
+        printer, whatever the data folder remembers it was last used with. The next start() turns it on
         again, as the baseline has it."""
         self.c.call("preferences_set", values={"remember_printer_config": False})
 
@@ -1766,6 +1775,10 @@ class PresetsTest:
         s = "another extruder"
         t = self.t
         t.equal(f"{s} 1: the start", start(self.c), START)
+        for n in range(1, 5):
+            t.equal(f"{s} 1: slot {n + 1} added", add_slot(self.c, SLOT_COLOURS[n]), n + 1)
+        self.named_selection_is(f"{s} 1: before the switch", named("Klipper | Std | " + ", ".join(["PLA"] * 5)))
+        self.without_remembered_presets()
         self.select("printer", TOOLCHANGER)
         self.named_selection_is(f"{s} 1", named("ToolChanger | TC Std | " + ", ".join(["TC PLA"] * 5)))
         t.equal(f"{s} 1: the nozzles", self.value("printer", "nozzle_diameter"), times(0.4, 5))
@@ -1805,16 +1818,81 @@ class PresetsTest:
                 (self.own(0, "layer_height"), self.own(0, "outer_wall_line_width")), ("0.32", "0.7"))
         t.equal(f"{s} 4: the tower prints with slot 1", self.object_filaments(), [("SpeedTestStructure.drc", 1)])
 
-        t.equal(f"{s} 5: the start", start(self.c), START)
+        self.run("project_new", **DISCARD)
+        t.equal(f"{s} 5: spiral mode discarded", self.value("process", "spiral_mode"), "0")
+        self.named_selection_is(f"{s} 5: after discard", named("ToolChanger | TC Std | " + ", ".join(["TC PLA"] * 5)))
+
+        # The slots are independent of the tools, so this non-SEMM toolchanger adds and deletes them, and a slot
+        # before a later one asks before the later slots' tool numbers shift.
+        reply = self.run("filament_add")
+        t.equal(f"{s} 5: a slot added beyond the five tools",
+                {k: reply.get(k) for k in ("filament_slot", "filament_slots")},
+                {"filament_slot": 6, "filament_slots": 6})
+        self.named_selection_is(f"{s} 5: six slots", named("ToolChanger | TC Std | " + ", ".join(["TC PLA"] * 6)))
+        reply = self.run("filament_delete", filament_slot=6)
+        t.equal(f"{s} 5: the last slot's delete", {k: reply.get(k) for k in ("filament_slot", "filament_slots")},
+                {"filament_slot": 6, "filament_slots": 5})
+        t.equal(f"{s} 5: no dialog opened", self.dialogs(), [])
+
+        reply = self.run("filament_add")
+        t.equal(f"{s} 6: slot 6 added again", reply.get("filament_slot"), 6)
+        reply = self.c.call("filament_delete", filament_slot=5)
+        self.warning(f"{s} 6", reply, "shift the tool numbers")
+        self.c.call("dialog_answer", button="Cancel")
+        self.t.refused(f"{s} 6: the job", lambda: self.c.await_job(reply, timeout=60), code="delete_cancelled")
+        t.equal(f"{s} 6: the cancel leaves six slots", slots(self.c), "0,0,0,0,0,0")
+        t.equal(f"{s} 6: no dialog is left open", self.dialogs(), [])
+
+        reply = self.c.call("filament_delete", filament_slot=5, merge_into=6)
+        self.warning(f"{s} 7", reply, "shift the tool numbers")
+        self.c.call("dialog_answer", button="Cancel")
+        self.t.refused(f"{s} 7: the job", lambda: self.c.await_job(reply, timeout=60), code="delete_cancelled")
+        t.equal(f"{s} 7: the cancel leaves six slots", slots(self.c), "0,0,0,0,0,0")
+
+        self.refused(f"{s} 8: the merge answered no ahead",
+                     lambda: self.c.call("filament_delete", filament_slot=5, merge_into=6, confirm_shift=False),
+                     code="shifts_tools")
+        t.equal(f"{s} 8: no dialog opened", self.dialogs(), [])
+        reply = self.run("filament_delete", filament_slot=5, merge_into=6, confirm_shift=True)
+        t.equal(f"{s} 8: the merge",
+                {k: reply.get(k) for k in ("filament_slot", "merged_into", "filament_slots")},
+                {"filament_slot": 5, "merged_into": 5, "filament_slots": 5})
+        t.equal(f"{s} 8: no dialog opened", self.dialogs(), [])
+
+        # A merge that both breaks a mix and shifts the later tools asks the mix's question first: cancelling it
+        # reports the merge, not the shift question that never opened.
+        reply = self.run("filament_add_mixed", components=[1, 2], ratios=[50, 50])
+        t.equal(f"{s} 9: the mixed slot", reply.get("filament_slot"), 6)
+        t.equal(f"{s} 9: six slots, the last mixed", slots(self.c), "0,0,0,0,0,1")
+        reply = self.c.call("filament_delete", filament_slot=1, merge_into=6)
+        self.warning(f"{s} 9", reply, "uses this physical filament")
+        self.c.call("dialog_answer", button="Cancel")
+        self.t.refused(f"{s} 9: the job", lambda: self.c.await_job(reply, timeout=60), code="merge_cancelled")
+        t.equal(f"{s} 9: the cancel leaves six slots", slots(self.c), "0,0,0,0,0,1")
+        t.equal(f"{s} 9: no dialog is left open", self.dialogs(), [])
+
+        reply = self.c.call("filament_delete", filament_slot=1, merge_into=6)
+        self.warning(f"{s} 10", reply, "uses this physical filament")
+        self.c.call("dialog_answer", button="OK")
+        until(lambda: any("shift the tool numbers" in d.get("message", "")
+                          for d in self.c.call("app_state").get("dialogs", [])),
+              f"{s} 10: the shift question")
+        self.warning(f"{s} 10: the shift question", reply, "shift the tool numbers")
+        self.c.call("dialog_answer", button="Cancel")
+        self.t.refused(f"{s} 10: the job", lambda: self.c.await_job(reply, timeout=60), code="delete_cancelled")
+        t.equal(f"{s} 10: the cancel leaves six slots", slots(self.c), "0,0,0,0,0,1")
+        t.equal(f"{s} 10: no dialog is left open", self.dialogs(), [])
+
+        t.equal(f"{s} 11: the start", start(self.c), START)
         self.hide_printers()
         printers = self.names("printer")
-        t.equal(f"{s} 5: the Klipper listed and the ToolChanger not", (KLIPPER in printers, TOOLCHANGER in printers),
+        t.equal(f"{s} 11: the Klipper listed and the ToolChanger not", (KLIPPER in printers, TOOLCHANGER in printers),
                 (True, False))
         # After a printer of five extruders, the Klipper keeps no row for the four it lacks.
-        self.extruder_page(f"{s} 5")
-        t.equal(f"{s} 5: the Speed Dial has one action", self.dial("retraction_length"),
+        self.extruder_page(f"{s} 11")
+        t.equal(f"{s} 11: the Speed Dial has one action", self.dial("retraction_length"),
                 [("orca_setting:retraction_length#0:5", "Printer : Extruder : Retraction")])
-        t.equal(f"{s} 5: no setting on a numbered extruder page", self.numbered(), [])
+        t.equal(f"{s} 11: no setting on a numbered extruder page", self.numbered(), [])
 
     def extruder_page(self, label):
         """The entry's Extruder page check: the printer has one Extruder page, whose Retraction group holds the ten

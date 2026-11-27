@@ -3949,9 +3949,8 @@ void PresetBundle::update_selections(AppConfig &config)
     filaments.select_preset_by_name_strict(initial_filament_profile_name);
 
     // Load the names of the other filament profiles selected for a multi-material printer.
-    // Load it even if the current printer technology is SLA.
-    // The possibly excessive filament names will be later removed with this->update_multi_material_filament_presets()
-    // once the FFF technology gets selected.
+    // Load it even if the current printer technology is SLA. The list is restored as saved: the
+    // slot count is independent of the printer's extruder count, so nothing trims it to that.
     this->filament_presets = { filaments.get_selected_preset_name() };
     for (unsigned int i = 1; i < 1000; ++ i) {
         char name[64];
@@ -4111,9 +4110,8 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     // sla_materials.select_preset_by_name_strict(initial_sla_material_profile_name);
 
     // Load the names of the other filament profiles selected for a multi-material printer.
-    // Load it even if the current printer technology is SLA.
-    // The possibly excessive filament names will be later removed with this->update_multi_material_filament_presets()
-    // once the FFF technology gets selected.
+    // Load it even if the current printer technology is SLA. The list is restored as saved: the
+    // slot count is independent of the printer's extruder count, so nothing trims it to that.
     this->filament_presets = { filaments.get_selected_preset_name() };
     for (unsigned int i = 1; i < 1000; ++ i) {
         char name[64];
@@ -4366,10 +4364,9 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     ConfigOptionInts* filament_nozzle_map = project_config.option<ConfigOptionInts>("filament_nozzle_map");
     ConfigOptionInts* filament_volume_map = project_config.option<ConfigOptionInts>("filament_volume_map");
 
-    // Which slots are new is a fact about the arrays below, not about filament_presets:
-    // on a tool changer, update_multi_material_filament_presets() tops that list up to the tool
-    // count on its own, so it can already sit at the new size while every array below is still at
-    // the old one.
+    // Which slots are new is a fact about the arrays below, not about filament_presets: loading
+    // selections can move the preset list without moving the arrays, so the array being written
+    // is the only reliable new-slot boundary.
     const size_t old_slot_count = filament_color->values.size();
 
     filament_color->resize(n);
@@ -4503,8 +4500,9 @@ size_t PresetBundle::num_mixed_filaments() const
     return size_t(std::count(opt->values.begin(), opt->values.begin() + std::min(slot_count, opt->values.size()), true));
 }
 
-// Colours describe actual slots; on a tool changer filament_presets can be topped up to the tool count alone.
-// Imported projects may have fewer mixed flags than slots. Missing flags mean physical filaments.
+// Colours describe actual slots; filament_presets can be shorter or longer than the per-slot arrays
+// mid-update, so the arrays are authoritative. Imported projects may have fewer mixed flags than
+// slots; missing flags mean physical filaments.
 size_t PresetBundle::num_physical_filaments() const
 {
     const auto *colors = project_config.option<ConfigOptionStrings>("filament_colour");
@@ -5442,23 +5440,16 @@ int PresetBundle::get_printer_extruder_count() const
     return count;
 }
 
-size_t PresetBundle::min_filament_count() const
-{
-    if (printers.get_edited_preset().config.opt_bool("single_extruder_multi_material"))
-        return 1;
-    return static_cast<size_t>(get_printer_extruder_count());
-}
-
 void PresetBundle::update_filament_count()
 {
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
-    const size_t min_filaments = min_filament_count();
-    if (filament_presets.size() >= min_filaments)
-        return;
-    filament_presets.resize(min_filaments, filament_presets.empty()
-        ? filaments.first_visible().name
-        : filament_presets.back());
+    // A filament slot is not a tool: a printer may run more materials than it has extruders
+    // (several filaments feeding the same path, e.g. an AMS behind one nozzle) or fewer (a tool
+    // left unused). Only an empty list needs a seed: one slot keeps the FFF UI and full_config()
+    // valid, and the user owns the rest.
+    if (filament_presets.empty())
+        filament_presets.emplace_back(filaments.first_visible().name);
 }
 
 bool PresetBundle::support_different_extruders() const
@@ -8646,47 +8637,44 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
 
-    // Orca: when there are fewer filament presets than the printer runs with (min_filament_count(): one per tool on a
-    // tool changer, one on a printer sharing its nozzles), append copies of the last one. Padding a shared-nozzle printer
-    // up to its nozzle count would bring back a filament the user deleted, in this list alone, without the colours and
-    // maps of the parallel per-filament arrays.
-    //
-    // Verify and select the filament presets.
+    // Orca: the filament slots are independent of the extruder count, so a list shorter than the
+    // printer's nozzle count is left alone: the user may run fewer materials than it has tools,
+    // and a project only carries the materials it used. Only an empty list is seeded with a safe
+    // default; otherwise full_config() and the FFF UI have nothing to bind to.
     size_t num_filaments = this->filament_presets.size();
-
-    const size_t min_filaments = min_filament_count();
-    if (min_filaments > num_filaments) { // Verify validity of the current filament presets.
-        for (size_t i = 0; i < this->filament_presets.size(); ++i)
-            this->filament_presets[i] = this->filaments.find_preset(this->filament_presets[i], true)->name;
-        // Append the rest of filament presets.
-        this->filament_presets.resize(min_filaments, this->filament_presets.empty() ? this->filaments.first_visible().name :
-                                                                                      this->filament_presets.back());
-        num_filaments = this->filament_presets.size();
+    if (num_filaments == 0) {
+        this->filament_presets.emplace_back(this->filaments.first_visible().name);
+        num_filaments = 1;
     }
     if (to_delete_filament_id == -1)
         to_delete_filament_id = num_filaments;
 
-    // Now verify if flush_volumes_matrix has proper size (it is used to deduce number of extruders in wipe tower generator):
+    // Now verify that flush_volumes_matrix describes the current filament x filament block per
+    // nozzle (its shape is also how the wipe tower generator recovers the filament count). The
+    // total size alone is not enough: a different filament/nozzle split can produce the same
+    // count (e.g. 2 filaments x 4 nozzles and 4 x 1 are both 16 values), so compare the layout.
     std::vector<double> old_matrix = this->project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
     size_t old_nozzle_nums = this->project_config.option<ConfigOptionFloats>("flush_multiplier")->values.size();
-    size_t old_number_of_filaments = size_t(sqrt(old_matrix.size() / old_nozzle_nums) + EPSILON);
+    // A malformed or stale flush_multiplier must not divide by zero; with no nozzles there is no
+    // old matrix layout to preserve, so force the rebuild below.
+    size_t old_number_of_filaments = old_nozzle_nums == 0 ? 0 :
+        size_t(sqrt(old_matrix.size() / old_nozzle_nums) + EPSILON);
     size_t nozzle_nums = get_printer_extruder_count();
     if (old_nozzle_nums != nozzle_nums) {
         std::vector<double>& f_multiplier = this->project_config.option<ConfigOptionFloats>("flush_multiplier")->values;
         f_multiplier.resize(nozzle_nums, 1.f);
     }
 
-    if (old_matrix.size() != num_filaments * num_filaments * nozzle_nums) {
+    if (old_matrix.size() != num_filaments * num_filaments * nozzle_nums ||
+        old_number_of_filaments != num_filaments || old_nozzle_nums != nozzle_nums) {
         // First verify if purging volumes presets for each extruder matches number of extruders
         std::vector<double>& filaments = this->project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values;
         while (filaments.size() < 2* num_filaments) {
             filaments.push_back(filaments.size()>1 ? filaments[0] : 140.);  // copy the values from the first extruder
             filaments.push_back(filaments.size()>1 ? filaments[1] : 140.);
         }
-        while (filaments.size() > 2* num_filaments) {
-            filaments.pop_back();
-            filaments.pop_back();
-        }
+        if (filaments.size() > 2 * num_filaments)
+            filaments.resize(2 * num_filaments);
 
         size_t old_matrix_size = old_number_of_filaments * old_number_of_filaments;
         size_t new_matrix_size = num_filaments * num_filaments;
@@ -8694,14 +8682,20 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
         for (unsigned int i = 0; i < num_filaments; ++i)
             for (unsigned int j = 0; j < num_filaments; ++j) {
                 if (i < old_number_of_filaments && j < old_number_of_filaments) {
-                    unsigned int old_i = i >= to_delete_filament_id ? i + 1 : i;
-                    unsigned int old_j = j >= to_delete_filament_id ? j + 1 : j;
+                    // The delete index is relative to the old filament list, while
+                    // old_number_of_filaments comes from the old matrix shape. They can disagree
+                    // when the stored matrix is stale, so validate the shifted source index before
+                    // reading instead of assuming it stays inside the old block.
+                    const size_t old_i = i >= to_delete_filament_id ? i + 1 : i;
+                    const size_t old_j = j >= to_delete_filament_id ? j + 1 : j;
                     for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) {
+                        const size_t old_index = old_i * old_number_of_filaments + old_j + old_matrix_size * nozzle_id;
                         // Orca: only copy from old_matrix when the old layout actually has data
                         // for this nozzle slot; otherwise initialize from the per-filament
                         // flush volumes the same way the (i,j) out-of-range branch does.
-                        if (nozzle_id < old_nozzle_nums) {
-                            new_matrix[i * num_filaments + j + new_matrix_size * nozzle_id] = old_matrix[old_i * old_number_of_filaments + old_j + old_matrix_size * nozzle_id];
+                        if (nozzle_id < old_nozzle_nums && old_i < old_number_of_filaments &&
+                            old_j < old_number_of_filaments && old_index < old_matrix.size()) {
+                            new_matrix[i * num_filaments + j + new_matrix_size * nozzle_id] = old_matrix[old_index];
                         } else {
                             new_matrix[i * num_filaments + j + new_matrix_size * nozzle_id] = (i == j ? 0. : filaments[2 * i] + filaments[2 * j + 1]);
                         }
