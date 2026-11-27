@@ -11679,12 +11679,13 @@ void normalize_filament_values_to_variants(DynamicPrintConfig &config)
 
 void ensure_filament_variant_columns(DynamicPrintConfig &config, size_t filament_count)
 {
-    if (filament_count == 0)
-        return;
     const auto *columns = config.option<ConfigOptionInts>("filament_self_index");
-    // Another length is a multi-variant layout, or one that omits a filament.
+    // Anything but 1..N is a multi-variant layout, or one that omits a filament.
     if (columns == nullptr || columns->size() != filament_count)
         return;
+    for (size_t filament = 0; filament < filament_count; ++filament)
+        if (columns->values[filament] != int(filament) + 1)
+            return;
     auto *variants = config.option<ConfigOptionStrings>("filament_extruder_variant", true);
     if (variants->size() < filament_count)
         variants->values.resize(filament_count, get_extruder_variant_string(etDirectDrive, nvtStandard));

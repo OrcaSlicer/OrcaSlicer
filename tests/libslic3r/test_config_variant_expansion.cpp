@@ -923,6 +923,18 @@ TEST_CASE("A self index that does not cover every filament is left alone", "[Con
           std::vector<std::string>({"Direct Drive High Flow"}));
 }
 
+TEST_CASE("A self index that gives one filament both columns is left alone", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("filament_self_index", true)->values          = {1, 1};
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive High Flow"};
+
+    ensure_filament_variant_columns(config, 2);
+    CHECK(config.option<ConfigOptionInts>("filament_self_index")->values == std::vector<int>({1, 1}));
+    CHECK(config.option<ConfigOptionStrings>("filament_extruder_variant")->values ==
+          std::vector<std::string>({"Direct Drive High Flow"}));
+}
+
 TEST_CASE("A multi-variant filament layout is left alone", "[Config]")
 {
     const std::vector<std::string> variants = {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard",
