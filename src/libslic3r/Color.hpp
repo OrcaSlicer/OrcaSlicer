@@ -71,9 +71,18 @@ public:
     static const ColorRGB ORCA()		{ return {0.0f, 150.f / 255.0f, 136.0f / 255}; }
 	static const ColorRGB WARNING()     { return {241.0f / 255, 117.f / 255.0f, 78.0f / 255}; }
 
-	static const ColorRGB X()           { return { 255 / 255.f, 60  / 255.f, 91  / 255.f};}
-	static const ColorRGB Y()           { return { 100 / 255.f, 200 / 255.f, 24  / 255.f};}
-	static const ColorRGB Z()           { return { 47  / 255.f, 136 / 255.f, 233 / 255.f};}
+	// ORCA: the axis colors. The GUI replaces them with those of its color set, see GUI::set_ui_color_set()
+	static const ColorRGB X()           { return { s_axes[0][0], s_axes[0][1], s_axes[0][2] };}
+	static const ColorRGB Y()           { return { s_axes[1][0], s_axes[1][1], s_axes[1][2] };}
+	static const ColorRGB Z()           { return { s_axes[2][0], s_axes[2][1], s_axes[2][2] };}
+	static void set_axes(const ColorRGB& x, const ColorRGB& y, const ColorRGB& z) { s_axes = {{ x.m_data, y.m_data, z.m_data }}; }
+
+private:
+	static inline std::array<std::array<float, 3>, 3> s_axes = {{
+		{ 255 / 255.f, 60  / 255.f, 91  / 255.f},
+		{ 100 / 255.f, 200 / 255.f, 24  / 255.f},
+		{ 47  / 255.f, 136 / 255.f, 233 / 255.f}
+	}};
 };
 
 class ColorRGBA

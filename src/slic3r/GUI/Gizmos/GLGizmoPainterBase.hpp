@@ -252,7 +252,7 @@ protected:
     virtual ColorRGBA get_cursor_sphere_left_button_color() const;
     virtual ColorRGBA get_cursor_sphere_right_button_color() const;
     // ORCA: whether the triangle selectors are colored with the two brush colors of TriangleSelectorGUI,
-    // which follow the "Colorblind friendly colors" preference
+    // which follow the "Color set" preference
     virtual bool paints_with_brush_colors() const { return true; }
     // BBS
     virtual ColorRGBA get_cursor_hover_color() const { return { 0.f, 0.f, 0.f, 0.25f }; }

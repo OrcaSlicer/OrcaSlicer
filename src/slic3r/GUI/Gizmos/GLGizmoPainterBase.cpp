@@ -1,5 +1,6 @@
 #include "GLGizmoPainterBase.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/GUI_Colors.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 
 #include <cfloat>
@@ -54,18 +55,6 @@ namespace Slic3r::GUI { class ImGuiWrapper; }
 namespace cereal { class BinaryInputArchive; }
 
 namespace Slic3r::GUI {
-
-// ORCA: the two brush colors, and the ones used in their place when "Colorblind friendly colors" is enabled in
-// Preferences. Yellow green and brick red over a muted purple overhang marking (GLVolume::overhang_color()):
-// the model, the overhangs, the two brushes and the two brushes over an overhang then all stay apart with
-// protanopia and deuteranopia, which the default green and red over a red overhang marking do not.
-// The red is much darker than the green as the two differ only in lightness with a red-green deficiency.
-// The overhang color is weak in blue so that the green, a yellow with these deficiencies, keeps its hue
-// where the two overlap: against a strong blue it turns into a grey like the model
-static const ColorRGBA DEFAULT_ENFORCERS_COLOR    = {0.5f, 1.f, 0.5f, 1.f};
-static const ColorRGBA DEFAULT_BLOCKERS_COLOR     = {1.f, 0.5f, 0.5f, 1.f};
-static const ColorRGBA COLORBLIND_ENFORCERS_COLOR = {133 / 255.f, 255 / 255.f, 1   / 255.f, 1.f}; // #85FF01
-static const ColorRGBA COLORBLIND_BLOCKERS_COLOR  = {156 / 255.f, 43  / 255.f, 0   / 255.f, 1.f}; // #9C2B00
 
 // ORCA: the cursor while one of its buttons is held. A sphere this translucent still shows the stroke under it and
 // stands out from the model in the light default brush colors, as the blue and red spheres it replaces did
@@ -145,11 +134,10 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection, const Mode
 
 void GLGizmoPainterBase::render_triangles(const Selection& selection, const std::vector<const ModelVolume*>& skip) const
 {
-    // ORCA: the two brush colors follow the "Colorblind friendly colors" preference. The triangle selectors keep
+    // ORCA: the two brush colors follow the "Color set" preference. The triangle selectors keep
     // the colors they were built with, so they are given the current ones.
-    const bool colorblind = GUI_App::use_colorblind_friendly_colors();
-    TriangleSelectorGUI::enforcers_color = colorblind ? COLORBLIND_ENFORCERS_COLOR : DEFAULT_ENFORCERS_COLOR;
-    TriangleSelectorGUI::blockers_color  = colorblind ? COLORBLIND_BLOCKERS_COLOR : DEFAULT_BLOCKERS_COLOR;
+    TriangleSelectorGUI::enforcers_color = ui_colors().enforcer;
+    TriangleSelectorGUI::blockers_color  = ui_colors().blocker;
     if (paints_with_brush_colors()) {
         for (const std::unique_ptr<TriangleSelectorGUI>& selector : m_triangle_selectors) {
             if (auto* patch = dynamic_cast<TriangleSelectorPatch*>(selector.get()))
@@ -209,7 +197,7 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection, const std:
         shader->set_uniform("volume_world_matrix", trafo_matrix);
         shader->set_uniform("volume_mirrored", is_left_handed);
         shader->set_uniform("slope.actived", m_parent.is_using_slope());
-        shader->set_uniform("overhang_color", GLVolume::overhang_color());
+        shader->set_uniform("overhang_color", ui_colors().overhang);
         shader->set_uniform("slope.volume_world_normal_matrix", normal_matrix);
         shader->set_uniform("slope.normal_z", normal_z);
         shader->set_uniform("slope.up_direction", up_direction);
@@ -1302,8 +1290,8 @@ TriangleSelector::ClippingPlane GLGizmoPainterBase::get_clipping_plane_in_volume
     return TriangleSelector::ClippingPlane({float(normal_transformed.x()), float(normal_transformed.y()), float(normal_transformed.z()), offset_transformed});
 }
 
-ColorRGBA TriangleSelectorGUI::enforcers_color = DEFAULT_ENFORCERS_COLOR;
-ColorRGBA TriangleSelectorGUI::blockers_color  = DEFAULT_BLOCKERS_COLOR;
+ColorRGBA TriangleSelectorGUI::enforcers_color = {0.5f, 1.f, 0.5f, 1.f};
+ColorRGBA TriangleSelectorGUI::blockers_color  = {1.f, 0.5f, 0.5f, 1.f};
 
 // ORCA: the color of the cursor while one of its buttons is held: the color the stroke leaves on the model,
 // made translucent. `state` is what the button paints. Dark blue stands for erasing, which Shift

@@ -209,6 +209,19 @@ void Slic3r::GUI::GLCanvas3D::load_render_colors()
     RenderColor::colors[RenderCol_3D_Background] = ImGuiWrapper::to_ImVec4(DEFAULT_BG_LIGHT_COLOR);
 }
 
+// ORCA: makes the color set of the "ui_color_set" preference the one in use. The colors are read from ui_colors()
+// when they are drawn, the axis colors are also kept by the gizmos and the bed
+void Slic3r::GUI::GLCanvas3D::update_ui_colors()
+{
+    // the preference stores the index of the set, nothing stored reads as the default set
+    const AppConfig* config = wxGetApp().app_config;
+    set_ui_color_set(config != nullptr ? std::atoi(config->get("ui_color_set").c_str()) : 0);
+    GLGizmoBase::update_axes_colors();
+    Bed3D::AXIS_X_COLOR = ColorRGBA::X();
+    Bed3D::AXIS_Y_COLOR = ColorRGBA::Y();
+    Bed3D::AXIS_Z_COLOR = ColorRGBA::Z();
+}
+
 //static constexpr const float AXES_COLOR[3][3] = { { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } };
 
 namespace Slic3r {
@@ -2341,6 +2354,8 @@ bool GLCanvas3D::init()
         return false;
 
     BOOST_LOG_TRIVIAL(info) <<__FUNCTION__<< ": finish m_selection";
+
+    update_ui_colors();
 
 #if ENABLE_IMGUI_STYLE_EDITOR
     //BBS load render color for style editor

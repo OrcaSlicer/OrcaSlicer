@@ -1,6 +1,7 @@
 #include "GLGizmoCut.hpp"
 #include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/GUI_Colors.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -80,11 +81,9 @@ namespace Slic3r {
 namespace GUI {
 
 static const ColorRGBA GRABBER_COLOR = ColorRGBA::YELLOW();
-static const ColorRGBA UPPER_PART_COLOR = ColorRGBA::CYAN();
-static const ColorRGBA LOWER_PART_COLOR = ColorRGBA::MAGENTA();
-// ORCA: the two above, or their variants when "Colorblind friendly colors" is enabled in Preferences
-static const ColorRGBA& upper_part_color() { return GUI_App::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_1ST_COLOR : UPPER_PART_COLOR; }
-static const ColorRGBA& lower_part_color() { return GUI_App::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_2ND_COLOR : LOWER_PART_COLOR; }
+// ORCA: the colors of the two parts follow the "Color set" preference
+static const ColorRGBA& upper_part_color() { return ui_colors().cut_pair[0]; }
+static const ColorRGBA& lower_part_color() { return ui_colors().cut_pair[1]; }
 static const ColorRGBA MODIFIER_COLOR   = ColorRGBA(0.75f, 0.75f, 0.75f, 0.5f);
 
 // connector colors
@@ -2370,7 +2369,7 @@ void GLGizmoCut3D::on_render()
     // check objects visibility
     toggle_model_objects_visibility();
 
-    // ORCA: the two part colors follow the "Colorblind friendly colors" preference, which can change while the gizmo is open
+    // ORCA: the two part colors follow the "Color set" preference, which can change while the gizmo is open
     apply_color_clip_plane_colors();
 
     update_clipper();

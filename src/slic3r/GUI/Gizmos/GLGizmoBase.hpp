@@ -67,9 +67,8 @@ public:
     static ColorRGBA GRABBER_UNIFORM_COL;
     static ColorRGBA GRABBER_UNIFORM_HOVER_COL;
 
-    // ORCA: the two-color pair of the measure, assembly and cut gizmos when "Colorblind friendly colors" is enabled in Preferences
-    static const ColorRGBA COLORBLIND_1ST_COLOR;
-    static const ColorRGBA COLORBLIND_2ND_COLOR;
+    // ORCA: refreshes AXES_COLOR and AXES_HOVER_COLOR after the axis colors changed with the color set
+    static void update_axes_colors();
 
     static void update_render_colors();
     static void load_render_colors();

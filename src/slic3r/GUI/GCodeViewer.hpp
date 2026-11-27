@@ -46,6 +46,8 @@ class PresetBundle;
 
 namespace GUI {
 
+enum class UIColorSet : unsigned char; // GUI_Colors.hpp
+
 class PartPlateList;
 class OpenGLManager;
 
@@ -416,8 +418,8 @@ private:
     bool m_contained_in_bed{ true };
 mutable bool m_no_render_path { false };
     bool m_is_dark = false;
-    // ORCA: the palette the range views were last given, see set_colorblind_friendly_colors()
-    bool m_colorblind_friendly_colors = false;
+    // ORCA: the color set the range views were last given the palette of, see update_ranges_colors(). Starts as the default set
+    UIColorSet m_ui_color_set{};
 
     bool  m_belt_view_enabled = false;
     bool  m_belt_show_designed = true;   // Designed (upright, back-transformed) view by default; off shows
@@ -590,9 +592,8 @@ public:
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
     // ORCA: draw the toolpaths of translucent filament colors translucent
     void set_translucent_filaments(bool value) { m_viewer.set_translucent_filaments(value); }
-    // ORCA: color the range views (speed, flow, layer time...) with the colorblind friendly palette
-    // instead of the default one
-    void set_colorblind_friendly_colors(bool value);
+    // ORCA: color the range views (speed, flow, layer time...) with the palette of the color set in use
+    void update_ranges_colors();
 
     // whether the mouse is holding either slider's handle
     bool is_slider_dragging() const { return m_layers_slider->is_dragging() || m_moves_slider->is_dragging(); }

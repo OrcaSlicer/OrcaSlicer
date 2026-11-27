@@ -514,8 +514,6 @@ public:
     void            open_orca_cloud(const std::string& next = std::string());
     static unsigned get_colour_approx_luma(const wxColour& colour);
     static bool     dark_mode();
-    // ORCA: whether "Colorblind friendly colors" is enabled in Preferences
-    static bool     use_colorblind_friendly_colors();
     const wxColour  get_label_default_clr_system();
     const wxColour  get_label_default_clr_modified();
     void            init_label_colours();

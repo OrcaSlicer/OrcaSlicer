@@ -3,6 +3,7 @@
 
 #include "imgui/imgui.h"
 #include "libslic3r/Color.hpp"
+#include "libvgcode/include/Types.hpp"
 #include <array>
 
 enum RenderCol_ {
@@ -40,6 +41,33 @@ public:
     static ImVec4      colors[RenderCol_Count];
 };
 const char* GetRenderColName(RenderCol idx);
+
+namespace GUI {
+
+// ORCA: the color sets of the "Color set" preference ("ui_color_set", which stores their index).
+// Deutan is for the red-green deficiencies, deuteranopia and protanopia
+enum class UIColorSet : unsigned char { Default, Deutan, Count };
+
+// ORCA: the colors that depend on the color set. make_ui_colors() in GUI_Colors.cpp defines them for every set
+struct UIColors
+{
+    std::array<ColorRGB, 3>  axes;         // X, Y and Z axis, what ColorRGB::X(), Y() and Z() return
+    ColorRGBA                enforcer;     // positive brush of the painting gizmos
+    ColorRGBA                blocker;      // negative brush of the painting gizmos
+    ColorRGB                 overhang;     // overhang marking, the overhang_color of the shaders
+    std::array<ColorRGBA, 2> measure_pair; // first and second selection of the measure and assembly gizmos
+    std::array<ColorRGBA, 2> cut_pair;     // upper and lower part of the cut gizmo
+    libvgcode::Palette       ranges;       // color scales of the sliced preview (speed, flow, layer time...)
+};
+
+// ORCA: the color set in use and its colors
+UIColorSet      ui_color_set();
+const UIColors& ui_colors();
+// ORCA: changes the color set in use, `idx` is the value of the preference. Called by GLCanvas3D::update_ui_colors(),
+// which also refreshes the copies of the colors that are kept elsewhere
+void            set_ui_color_set(int idx);
+
+} // namespace GUI
 
 }
 

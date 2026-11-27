@@ -189,15 +189,6 @@ ColorRGBA GLVolume::SLA_PAD_COLOR     = { 0.0f, 0.2f, 0.0f, 1.0f };
 ColorRGBA GLVolume::NEUTRAL_COLOR     = { 0.8f, 0.8f, 0.8f, 1.0f };
 ColorRGBA GLVolume::UNPRINTABLE_COLOR = { 0.0f, 0.0f, 0.0f, 0.5f };
 
-// ORCA: a muted purple for the colorblind friendly colors, see the brush colors in GLGizmoPainterBase.cpp
-static const ColorRGB DEFAULT_OVERHANG_COLOR    = { 0.78f, 0.0f, 0.0f };
-static const ColorRGB COLORBLIND_OVERHANG_COLOR = { 106 / 255.f, 84 / 255.f, 157 / 255.f }; // #6A549D
-
-ColorRGB GLVolume::overhang_color()
-{
-    return GUI::GUI_App::use_colorblind_friendly_colors() ? COLORBLIND_OVERHANG_COLOR : DEFAULT_OVERHANG_COLOR;
-}
-
 ColorRGBA GLVolume::MODEL_MIDIFIER_COL   = {1.0f, 1.0f, 0.0f, 0.6f};
 ColorRGBA GLVolume::MODEL_NEGTIVE_COL    = {0.3f, 0.3f, 0.3f, 0.4f};
 ColorRGBA GLVolume::SUPPORT_ENFORCER_COL = {0.3f, 0.3f, 1.0f, 0.4f};
@@ -1099,7 +1090,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     // Compute up direction accounting for build plate tilt. This is frame-invariant
     // (config cannot change mid-render), so compute it once before the volume loop.
     const Vec3f up_direction = GUI::build_plate_tilt_up_direction().cast<float>();
-    const ColorRGB overhang_color = GLVolume::overhang_color();
+    const ColorRGB& overhang_color = GUI::ui_colors().overhang;
     const bool persistent_outline = outlined_volumes != nullptr &&
                                    GUI::wxGetApp().app_config->get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT);
 

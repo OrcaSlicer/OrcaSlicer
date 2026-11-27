@@ -8,6 +8,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/Measure.hpp"
 #include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_Colors.hpp"
 #include <string>
 #include <array>
 #include "libslic3r/Point.hpp"
@@ -38,11 +39,9 @@ enum class AssemblyMode : unsigned char {
     FACE_FACE,
     POINT_POINT,
 };
-static const Slic3r::ColorRGBA SELECTED_1ST_COLOR = {0.25f, 0.75f, 0.75f, 1.0f};
-static const Slic3r::ColorRGBA SELECTED_2ND_COLOR = {0.75f, 0.25f, 0.75f, 1.0f};
-// ORCA: the two above, or their variants when "Colorblind friendly colors" is enabled in Preferences
-const Slic3r::ColorRGBA& selected_1st_color();
-const Slic3r::ColorRGBA& selected_2nd_color();
+// ORCA: the colors of the two selections follow the "Color set" preference
+inline const Slic3r::ColorRGBA& selected_1st_color() { return ui_colors().measure_pair[0]; }
+inline const Slic3r::ColorRGBA& selected_2nd_color() { return ui_colors().measure_pair[1]; }
 static const Slic3r::ColorRGBA NEUTRAL_COLOR      = {0.5f, 0.5f, 0.5f, 1.0f};
 
 static const int POINT_ID        = 100;

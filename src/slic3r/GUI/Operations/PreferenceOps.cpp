@@ -173,11 +173,12 @@ std::vector<Preference> build_table()
     t.checkbox("window_buttons_on_left", L("Use window buttons on left side")).note = L("(Requires restart)");
     table.back().restart_needed = true;
 #endif
-    t.checkbox("colorblind_friendly_colors", L("Colorblind friendly colors"),
-        {L("Use colors that are easier to tell apart with a color vision deficiency for the color scales of the sliced preview "
-           "(speed, flow, layer time, etc.), for the two-color pairs of the measure, assembly and cut tools "
-           "and for the two brushes and the overhang highlight of the painting tools (supports, seam, fuzzy skin, etc.).\n"
-           "Turn it off to use the original colors.")}
+    // ORCA: the values are the indices of UIColorSet
+    t.choice("ui_color_set", L("Color set"), {{"0", L("Default")}, {"1", L("Colorblind friendly (red-green)")}},
+        {L("The colors of the color scales of the sliced preview (speed, flow, layer time, etc.), of the axes, of the "
+           "two-color pairs of the measure, assembly and cut tools and of the two brushes and the overhang highlight "
+           "of the painting tools (supports, seam, fuzzy skin, etc.).\n"
+           "The colorblind friendly sets are easier to tell apart with the color vision deficiency they are named after.")}
     );
 
     //// GENERAL > Features
@@ -825,10 +826,11 @@ void apply_preference(const std::string& key)
     } else if (key == "hide_login_side_panel") {
         if (WebViewPanel* home = WebViewPanel::if_built())
             home->SendCloudProvidersInfo();
-    } else if (key == "colorblind_friendly_colors") {
+    } else if (key == "ui_color_set") {
         // ORCA: apply the color set change immediately to the currently loaded preview and to the open gizmo
+        GLCanvas3D::update_ui_colors();
         if (GLCanvas3D* canvas = preview_canvas()) {
-            canvas->get_gcode_viewer().set_colorblind_friendly_colors(config.get_bool(key));
+            canvas->get_gcode_viewer().update_ranges_colors();
             redraw_preview(*canvas);
         }
         // the gizmos read the preference when they draw

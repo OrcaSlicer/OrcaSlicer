@@ -54,17 +54,19 @@ const float GLGizmoBase::Grabber::FixedRadiusSize = 80.0f;
 ColorRGBA GLGizmoBase::DEFAULT_BASE_COLOR = { 0.625f, 0.625f, 0.625f, 1.0f };
 ColorRGBA GLGizmoBase::DEFAULT_DRAG_COLOR = { 1.0f, 1.0f, 1.0f, 1.0f };
 ColorRGBA GLGizmoBase::DEFAULT_HIGHLIGHT_COLOR = {1.0f, 0.38f, 0.0f, 1.0f};
-std::array<ColorRGBA, 3> GLGizmoBase::AXES_HOVER_COLOR = {{
-    {ColorRGBA::X().r() * 1.2f, ColorRGBA::X().g() * 1.4f, ColorRGBA::X().b() * 1.4f, 1.0f},
-    {ColorRGBA::Y().r() * 1.2f, ColorRGBA::Y().g() * 1.2f, ColorRGBA::Y().b() * 1.2f, 1.0f},
-    {ColorRGBA::Z().r() * 1.2f, ColorRGBA::Z().g() * 1.2f, ColorRGBA::Z().b() * 1.2f, 1.0f},
-}};
+static std::array<ColorRGBA, 3> axes_hover_colors()
+{
+    return {{
+        {ColorRGBA::X().r() * 1.2f, ColorRGBA::X().g() * 1.4f, ColorRGBA::X().b() * 1.4f, 1.0f},
+        {ColorRGBA::Y().r() * 1.2f, ColorRGBA::Y().g() * 1.2f, ColorRGBA::Y().b() * 1.2f, 1.0f},
+        {ColorRGBA::Z().r() * 1.2f, ColorRGBA::Z().g() * 1.2f, ColorRGBA::Z().b() * 1.2f, 1.0f},
+    }};
+}
 
-std::array<ColorRGBA, 3> GLGizmoBase::AXES_COLOR = {{
-    ColorRGBA::X(),
-    ColorRGBA::Y(),
-    ColorRGBA::Z()
-}};
+static std::array<ColorRGBA, 3> axes_colors() { return {{ ColorRGBA::X(), ColorRGBA::Y(), ColorRGBA::Z() }}; }
+
+std::array<ColorRGBA, 3> GLGizmoBase::AXES_HOVER_COLOR = axes_hover_colors();
+std::array<ColorRGBA, 3> GLGizmoBase::AXES_COLOR       = axes_colors();
 
 ColorRGBA            GLGizmoBase::CONSTRAINED_COLOR   = {0.5f, 0.5f, 0.5f, 1.0f};
 ColorRGBA            GLGizmoBase::FLATTEN_COLOR       = {0.96f, 0.93f, 0.93f, 0.5f};
@@ -76,10 +78,11 @@ ColorRGBA            GLGizmoBase::GRABBER_HOVER_COL         = {0.863f, 0.125f, 0
 ColorRGBA            GLGizmoBase::GRABBER_UNIFORM_COL       = {0, 1.0, 1.0, 1.0f};
 ColorRGBA            GLGizmoBase::GRABBER_UNIFORM_HOVER_COL = {0, 0.7, 0.7, 1.0f};
 
-
-// ORCA: blue and green, as yellow tones are taken by the grabber of the cut gizmo
-const ColorRGBA GLGizmoBase::COLORBLIND_1ST_COLOR = {0   / 255.f, 112 / 255.f, 210 / 255.f, 1.0f}; // #0070D2
-const ColorRGBA GLGizmoBase::COLORBLIND_2ND_COLOR = {15  / 255.f, 173 / 255.f, 78  / 255.f, 1.0f}; // #0FAD4E
+void GLGizmoBase::update_axes_colors()
+{
+    AXES_COLOR       = axes_colors();
+    AXES_HOVER_COLOR = axes_hover_colors();
+}
 
 void GLGizmoBase::update_render_colors()
 {

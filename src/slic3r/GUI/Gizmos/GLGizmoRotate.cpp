@@ -676,6 +676,10 @@ void GLGizmoRotate3D::on_render()
 {
     glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
 
+    // ORCA: the axis colors change with the "Color set" preference
+    for (unsigned int i = 0; i < 3; ++i)
+        m_gizmos[i].set_highlight_color(AXES_COLOR[i]);
+
     if (m_hover_id == -1 || m_hover_id == 0)
         m_gizmos[X].render();
 
