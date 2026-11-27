@@ -63,14 +63,22 @@ TEST_CASE("The print start of a 3MF names the plate to print", "[QidiPrinterAgen
 TEST_CASE("A Box slot's filament name matches its per-printer preset", "[QidiPrinterAgent]")
 {
     // The Box reports vendor and product ("QIDI" + "PETG Tough"); presets add an "@<printer> <nozzle>" suffix.
-    CHECK(QidiPrinterAgent::preset_names_filament("QIDI PETG Tough @Qidi X-Max 4 0.4 nozzle", "QIDI PETG Tough"));
-    CHECK(QidiPrinterAgent::preset_names_filament("QIDI PETG-CF", "qidi petg-cf"));
+    CHECK(QidiPrinterAgent::preset_matches_slot("QIDI PETG Tough @Qidi X-Max 4 0.4 nozzle", "PETG", "QIDI PETG Tough", "PETG"));
+    // The type is compared before normalize_filament_type, which turns "PETG-CF" into "PETG".
+    CHECK(QidiPrinterAgent::preset_matches_slot("QIDI PETG-CF", "PETG-CF", "qidi petg-cf", "petg-cf"));
 }
 
 TEST_CASE("A Box slot's filament name does not match a different product or an empty name", "[QidiPrinterAgent]")
 {
     // A shared prefix is not a match, so "QIDI PETG" must not pick "QIDI PETG Tough".
-    CHECK_FALSE(QidiPrinterAgent::preset_names_filament("QIDI PETG Tough @Qidi X-Max 4 0.4 nozzle", "QIDI PETG"));
-    CHECK_FALSE(QidiPrinterAgent::preset_names_filament("Generic PETG @Qidi X-Max 4 0.4 nozzle", "QIDI PETG Tough"));
-    CHECK_FALSE(QidiPrinterAgent::preset_names_filament("QIDI PETG Tough", ""));
+    CHECK_FALSE(QidiPrinterAgent::preset_matches_slot("QIDI PETG Tough @Qidi X-Max 4 0.4 nozzle", "PETG", "QIDI PETG", "PETG"));
+    CHECK_FALSE(QidiPrinterAgent::preset_matches_slot("Generic PETG @Qidi X-Max 4 0.4 nozzle", "PETG", "QIDI PETG Tough", "PETG"));
+    CHECK_FALSE(QidiPrinterAgent::preset_matches_slot("QIDI PETG Tough", "PETG", "", "PETG"));
+}
+
+TEST_CASE("A Box slot's filament name does not match a preset for a different material", "[QidiPrinterAgent]")
+{
+    // The slot's name and type disagree, so the preset with that name is for another material.
+    CHECK_FALSE(QidiPrinterAgent::preset_matches_slot("QIDI PETG Tough @Qidi X-Max 4 0.4 nozzle", "PETG", "QIDI PETG Tough", "PLA"));
+    CHECK_FALSE(QidiPrinterAgent::preset_matches_slot("QIDI PETG Tough", "PETG", "QIDI PETG Tough", ""));
 }

@@ -30,7 +30,11 @@ public:
     // Builds the body of Moonraker's print start for an uploaded file, naming the plate to print when it is a 3MF
     static nlohmann::json print_start_request(const PrintParams& params, const std::string& filename);
     // True when a preset name without its "@<printer>" suffix is the filament name a Box slot reports (e.g. "QIDI PETG Tough")
-    static bool preset_names_filament(const std::string& preset_name, const std::string& filament_name);
+    // and the preset's filament_type is the slot's raw type (e.g. "PETG-CF")
+    static bool preset_matches_slot(const std::string& preset_name,
+                                    const std::string& preset_type,
+                                    const std::string& slot_name,
+                                    const std::string& slot_type);
 
 protected:
     // Saves the Box slot picked for each filament in the print dialog, then starts the print through Moonraker
