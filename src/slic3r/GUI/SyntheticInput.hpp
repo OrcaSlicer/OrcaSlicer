@@ -1,0 +1,51 @@
+#pragma once
+
+#include <wx/defs.h>
+#include <wx/gdicmn.h>
+#include <wx/mousestate.h>
+
+#include <functional>
+#include <utility>
+#include <vector>
+
+class wxMenu;
+class wxWindow;
+
+namespace Slic3r { namespace GUI {
+
+// Input state that automation holds down while it synthesizes a gesture.
+// Synthesized wx events carry their own modifier and button flags, but parts of the 3D view also
+// ask the system for the keyboard and mouse state; those reads go through get_key_state() and
+// get_mouse_state(), which add whatever automation is holding. Empty unless a synthesized gesture
+// is in progress, so real input is unaffected. UI thread only.
+namespace SyntheticInput {
+void press_key(int key_code);
+void release_key(int key_code);
+bool is_key_down(int key_code);
+// The pointer automation drives, in screen coordinates, with its buttons.
+void set_mouse(const wxMouseState& state);
+void release_mouse();
+bool is_mouse_held();
+// Drops everything held, e.g. when a gesture fails half-way.
+void clear();
+// Popup and context menus that open while automation acts on the UI go to `capture` instead of
+// being shown: a native menu loop would hold the UI thread until a person closed the menu, and on
+// macOS it pauses the queued calls automation runs through. `capture` returns false to let a menu
+// show. Empty unless the GUI instruments are on (`enable_gui_instruments()`); clear() leaves it.
+void set_menu_capture(std::function<bool(wxMenu& menu, wxWindow& owner)> capture);
+} // namespace SyntheticInput
+
+// Shows `menu` from `owner` as wxWindow::PopupMenu() does, unless automation takes it (see
+// SyntheticInput::set_menu_capture()). Every popup and context menu goes through here.
+bool popup_menu(wxWindow& owner, wxMenu& menu, const wxPoint& pos = wxDefaultPosition);
+
+// The menus popup_menu() shows now, each with the window it was shown from, the last shown last. Screen
+// captures draw them over that window: GTK knows no window of a menu shown as wx shows them.
+const std::vector<std::pair<wxMenu*, wxWindow*>>& shown_menus();
+
+// wxGetKeyState() plus the keys automation holds down.
+bool get_key_state(wxKeyCode key);
+// wxGetMouseState(), or automation's pointer while it drives one.
+wxMouseState get_mouse_state();
+
+}} // namespace Slic3r::GUI

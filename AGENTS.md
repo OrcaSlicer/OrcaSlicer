@@ -27,6 +27,10 @@ ctest --test-dir ./tests/libslic3r -C Release       # individual suite
 ctest --test-dir ./tests/fff_print -C Release
 ```
 
+To run the app and see or drive it (reproduce an issue, capture before/after screenshots, script GUI steps), use its MCP server: [tools/mcp/README.md](tools/mcp/README.md) launches it and drives it from a shell, Python or a replayable script, and the design is in [docs/HLSD/mcp-server.md](docs/HLSD/mcp-server.md).
+
+The MCP sweep's tests (`tools/mcp/run_sweep.py`) are designed top down: [tools/mcp/TESTS.md](tools/mcp/TESTS.md) holds the rules and the index, and each area's entries are in `tools/mcp/test-entries/`. Before writing or changing a test, add or update its entry (what it tests, the checks that decide it, what it leaves out) and have the entry reviewed. Keep the entry in step with the test.
+
 ## Documentation
 
 - Docs live in `docs/`; the high-level design of a subsystem goes in `docs/HLSD/<subsystem>.md`.

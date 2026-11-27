@@ -28,12 +28,16 @@
 #include <cmath>
 #include <cstddef>
 #include <fstream>
+#include <initializer_list>
 #include <ios>
 #include <regex>
 #include <set>
 #include <map>
+#include <math.h>
 #include <sstream>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -642,8 +646,12 @@ TEST_CASE("Exported moves use the decimal places selected by the G-code precisio
 TEST_CASE("An exported G-code's settings load back as the settings it was sliced with", "[GCode]")
 {
     // Two filaments, so the config block carries the flush matrix already multiplied by flush_multiplier.
+    const double file_multiplier = GENERATE(0.5, 0.);
+    // The config block leaves prime_volume_mode out, so the receiver's choice has to survive the load.
+    const PrimeVolumeMode mode = GENERATE(PrimeVolumeMode::pvmDefault, PrimeVolumeMode::pvmFast);
+    CAPTURE(file_multiplier, int(mode));
     const DynamicPrintConfig config = Test::multifilament_config(2, {
-        { "flush_multiplier", "0.5" },
+        { "flush_multiplier", std::to_string(file_multiplier) },
         { "printable_area", "0x0,250x0,250x210,0x210" },
         { "printable_height", "180" },
     });
@@ -658,21 +666,29 @@ TEST_CASE("An exported G-code's settings load back as the settings it was sliced
     }
 
     PresetBundle bundle;
-    // The config block leaves prime_volume_mode out, so the receiver's choice has to survive the load.
-    bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value = PrimeVolumeMode::pvmFast;
+    bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value = mode;
+    const std::vector<double> fast_multiplier = bundle.project_config.option<ConfigOptionFloats>("flush_multiplier_fast")->values;
     ConfigSubstitutions substitutions;
     bundle.load_config_model(file.string(), bundle.config_from_gcode(file.string(), ForwardCompatibilitySubstitutionRule::Enable, substitutions));
 
     const DynamicPrintConfig &printer = bundle.printers.get_edited_preset().config;
     CHECK(printer.opt_serialize("printable_area") == config.opt_serialize("printable_area"));
     CHECK_THAT(printer.opt_float("printable_height"), Catch::Matchers::WithinAbs(180., 1e-6));
-    // The purge between the two filaments is what the slice used: 280 at a 0.5 multiplier.
-    const std::vector<double> &matrix     = bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
+    // The multipliers stay with the project after the file is closed and scale every table the app recalculates,
+    // so they are the file's own and, for Fast mode, which the block leaves out, the receiver's.
     const std::vector<double> &multiplier = bundle.project_config.option<ConfigOptionFloats>("flush_multiplier")->values;
-    REQUIRE(matrix.size() == 4);
+    const std::vector<double> &fast_after = bundle.project_config.option<ConfigOptionFloats>("flush_multiplier_fast")->values;
     REQUIRE(multiplier.size() == 1);
-    CHECK_THAT(matrix[1] * multiplier[0], Catch::Matchers::WithinAbs(140., 1e-6));
-    CHECK(bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value == PrimeVolumeMode::pvmFast);
+    REQUIRE(fast_multiplier.size() == 1);
+    REQUIRE(fast_after.size() == 1);
+    CHECK_THAT(multiplier[0], Catch::Matchers::WithinAbs(file_multiplier, 1e-9));
+    CHECK_THAT(fast_after[0], Catch::Matchers::WithinAbs(fast_multiplier[0], 1e-9));
+    // The purge between the two filaments is what the slice used: 280 at the file's multiplier.
+    const std::vector<double> &matrix = bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
+    REQUIRE(matrix.size() == 4);
+    const double slicing_multiplier = mode == PrimeVolumeMode::pvmFast ? fast_after[0] : multiplier[0];
+    CHECK_THAT(matrix[1] * slicing_multiplier, Catch::Matchers::WithinAbs(280. * file_multiplier, 1e-6));
+    CHECK(bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value == mode);
 }
 
 TEST_CASE("Z hop follows the lift settings of the filament printing", "[GCode]")
@@ -793,5 +809,162 @@ TEST_CASE("The temperature tower steps the temperature of the tool printing it",
         // Every 5 degree band from the start to the end temperature, and nothing else.
         CHECK(temperatures == std::set<int>{190, 195, 200, 205, 210, 215, 220, 225, 230});
         CHECK(tools == std::set<std::string>{multi_tool ? "1" : "none"});
+    }
+}
+
+namespace {
+
+constexpr double filament_diameter = 1.75;
+constexpr double max_volumetric_speed = 20.;
+constexpr double layer_height = 0.2;
+
+// A 20mm cube sliced at 0.2mm layers with volumetric speeds `enabled` and `extra` applied last.
+std::string volumetric_speed_gcode(bool enabled, std::initializer_list<ConfigBase::SetDeserializeItem> extra)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"enable_volumetric_speeds", enabled ? "1" : "0"},
+        {"filament_diameter", filament_diameter},
+        {"filament_max_volumetric_speed", max_volumetric_speed},
+        {"layer_height", layer_height},
+        {"initial_layer_print_height", layer_height},
+        {"slow_down_for_layer_cooling", "0"},
+        {"slow_down_layers", "0"},
+        {"enable_arc_fitting", "0"},
+    });
+    config.set_deserialize_strict(extra);
+    return Test::slice({Test::cube(20.)}, config);
+}
+
+// For each extrusion move longer than 1mm of `role` above the first layer: its feed rate (mm/s) and extruded flow (mm³/s).
+std::vector<std::pair<double, double>> role_speeds_and_flows(const std::string &gcode, std::string_view role)
+{
+    const double filament_area = 0.25 * M_PI * filament_diameter * filament_diameter;
+    std::vector<std::pair<double, double>> moves;
+    bool in_role = false;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view comment = line.comment();
+        if (comment.find("TYPE:") != std::string_view::npos)
+            in_role = comment.substr(comment.find("TYPE:") + 5) == role;
+        if (in_role && line.extruding(self) && line.dist_XY(self) > 1. && line.new_Z(self) > 1.5 * layer_height) {
+            const double speed = line.new_F(self) / Test::MM_PER_MIN;
+            moves.emplace_back(speed, line.dist_E(self) * filament_area / line.dist_XY(self) * speed);
+        }
+    });
+    return moves;
+}
+
+} // namespace
+
+TEST_CASE("Volumetric speeds print each feature at its configured flow", "[GCode]")
+{
+    const auto [key, role] = GENERATE(table<std::string, std::string>({
+        {"outer_wall_volumetric_flow", "Outer wall"},
+        {"inner_wall_volumetric_flow", "Inner wall"},
+        {"sparse_infill_volumetric_flow", "Sparse infill"},
+        {"internal_solid_infill_volumetric_flow", "Internal solid infill"},
+        {"top_surface_volumetric_flow", "Top surface"},
+    }));
+    INFO(key);
+    const double flow = 6.;
+    const auto moves = role_speeds_and_flows(volumetric_speed_gcode(true, {{key, flow}}), role);
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves)
+        CHECK_THAT(extruded_flow, Catch::Matchers::WithinRel(flow, 0.01));
+}
+
+TEST_CASE("A volumetric speed in percent is a share of the filament's max volumetric speed, which caps it", "[GCode]")
+{
+    const auto [value, expected_flow] = GENERATE(table<std::string, double>({
+        {"50%", 0.5 * max_volumetric_speed},
+        {"300%", max_volumetric_speed},
+        {"40", max_volumetric_speed},
+    }));
+    INFO(value);
+    const auto moves = role_speeds_and_flows(volumetric_speed_gcode(true, {{"outer_wall_volumetric_flow", value}}), "Outer wall");
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves)
+        CHECK_THAT(extruded_flow, Catch::Matchers::WithinRel(expected_flow, 0.01));
+}
+
+TEST_CASE("Volumetric speeds are ignored while disabled", "[GCode]")
+{
+    const double outer_wall_speed = 50.;
+    const auto moves = role_speeds_and_flows(
+        volumetric_speed_gcode(false, {{"outer_wall_speed", outer_wall_speed}, {"outer_wall_volumetric_flow", "2"}}), "Outer wall");
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves)
+        CHECK_THAT(speed, Catch::Matchers::WithinRel(outer_wall_speed, 0.001));
+}
+
+TEST_CASE("The max external volumetric speed limits outer walls but not inner walls", "[GCode]")
+{
+    // At 200mm/s both walls would extrude well above the external limit and below the filament limit.
+    const double max_external = 5.;
+    const std::string gcode = volumetric_speed_gcode(false, {{"filament_max_external_volumetric_speed", max_external},
+                                                             {"outer_wall_speed", 200.},
+                                                             {"inner_wall_speed", 200.}});
+    const auto outer_wall = role_speeds_and_flows(gcode, "Outer wall");
+    const auto inner_wall = role_speeds_and_flows(gcode, "Inner wall");
+
+    REQUIRE_FALSE(outer_wall.empty());
+    REQUIRE_FALSE(inner_wall.empty());
+    for (const auto &[speed, extruded_flow] : outer_wall)
+        CHECK_THAT(extruded_flow, Catch::Matchers::WithinRel(max_external, 0.01));
+    for (const auto &[speed, extruded_flow] : inner_wall)
+        CHECK(extruded_flow > 2. * max_external);
+}
+
+TEST_CASE("The max external volumetric speed limits top surfaces only when they are not ironed", "[GCode]")
+{
+    const auto [ironing_type, limited] = GENERATE(table<std::string, bool>({
+        {"no ironing", true},
+        {"top", false},
+    }));
+    INFO(ironing_type);
+    const double max_external = 5.;
+    const auto moves = role_speeds_and_flows(volumetric_speed_gcode(false, {{"filament_max_external_volumetric_speed", max_external},
+                                                                            {"top_surface_speed", 200.},
+                                                                            {"ironing_type", ironing_type}}),
+                                             "Top surface");
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves) {
+        if (limited)
+            CHECK_THAT(extruded_flow, Catch::Matchers::WithinRel(max_external, 0.01));
+        else
+            CHECK(extruded_flow > 2. * max_external);
+    }
+}
+
+// Resonance avoidance moves an outer wall in the upper half of its band up to the band's top. When the
+// volumetric limit keeps the wall below that top, the boost would exceed the limit, so the wall drops to
+// the band's bottom instead.
+TEST_CASE("Resonance avoidance keeps outer walls within their volumetric speed limit", "[GCode]")
+{
+    static constexpr double min_avoided = 40., max_avoided = 90.;
+    const auto [limit_key, limit, outer_wall_speed, expected_speed] = GENERATE(table<std::string, double, double, double>({
+        // 6 mm3/s caps a 0.2 mm wall at about 75-80 mm/s, in the upper half of the band.
+        {"filament_max_external_volumetric_speed", 6., 200., min_avoided},
+        {"filament_max_volumetric_speed", 6., 200., min_avoided},
+        // 10 mm3/s allows the top of the band, so a 75 mm/s wall is still boosted to it.
+        {"filament_max_external_volumetric_speed", 10., 75., max_avoided},
+    }));
+    INFO(limit_key << " = " << limit << ", outer wall " << outer_wall_speed << " mm/s");
+    const auto moves = role_speeds_and_flows(volumetric_speed_gcode(false, {{limit_key, limit},
+                                                                            {"outer_wall_speed", outer_wall_speed},
+                                                                            {"resonance_avoidance", "1"},
+                                                                            {"min_resonance_avoidance_speed", min_avoided},
+                                                                            {"max_resonance_avoidance_speed", max_avoided}}),
+                                             "Outer wall");
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves) {
+        CHECK(extruded_flow <= limit * 1.01);
+        CHECK_THAT(speed, Catch::Matchers::WithinAbs(expected_speed, 0.5));
     }
 }

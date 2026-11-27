@@ -239,7 +239,10 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
     m_url_loaded = false;
     m_handler = create_printer_webview_handler(*this);
 
-    if (this->IsShown()) {
+    // Orca: IsShownOnScreen(), not IsShown(): the idle prebuild builds this view inside the hidden
+    // Device tab, and a new panel counts as shown, so the page and its camera stream would start
+    // before the tab is opened. Show() loads the deferred page.
+    if (this->IsShownOnScreen()) {
         //ORCA: m_url_deferred will be cleared on load success
         //m_url_deferred.clear();
         m_browser->LoadURL(url);
@@ -308,8 +311,7 @@ void PrinterWebView::SendAPIKey()
     // RemoveAllUserScripts causes WebView to forget about our script message handler, 
     // so re-add it here.
     m_browser->RemoveScriptMessageHandler("wx");
-    // Mark before adding: on WKWebView the add yields in RunScript() after registering "wx",
-    // and CreateWebView()'s deferred add, if it runs in that yield, would register it again.
+    // Marked so that CreateWebView()'s deferred add, if it is still queued, skips the duplicate.
     WebView::MarkScriptMessageHandlerAdded(m_browser);
     if (!m_browser->AddScriptMessageHandler("wx"))
         wxLogError("Could not add script message handler");

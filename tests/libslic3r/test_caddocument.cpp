@@ -3,6 +3,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <Standard_TypeDef.hxx>
 #include <algorithm>
 #include <TopAbs_ShapeEnum.hxx>
@@ -2617,7 +2618,7 @@ TEST_CASE("datum plane construction methods", "[CadDocument][plane]")
 
 // Mirrors the Snapmaker [Deviation] case (Snapmaker carries it in test_geometry.cpp; here it lives
 // alongside the CAD suite). GeometryEngine::surface_deviation = one-sided Hausdorff used by the
-// MCP validate_against acceptance metric.
+// MCP body_compare acceptance metric.
 TEST_CASE("surface_deviation: identical solids ~0, shifted solid ~shift", "[Deviation]")
 {
     TopoDS_Shape ref = BRepPrimAPI_MakeBox(10.0, 10.0, 10.0).Shape();
@@ -3869,6 +3870,42 @@ TEST_CASE("project round-trip serialization", "[CadDocument][project]")
     }
 }
 
+TEST_CASE("project_edges_on gives a box's top face as four lines on the plane and an error for a body not there", "[CadDocument][project]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int top_face = -1;
+    for (int i = 0; i < GeometryEngine::face_count(doc.bodies[0].shape); ++i)
+        if (GeometryEngine::face_normal_world(GeometryEngine::face_by_index(doc.bodies[0].shape, i)).z() > 0.9) {
+            top_face = i;
+            break;
+        }
+    REQUIRE(top_face >= 0);
+
+    // The 20 x 20 top face's outline, as construction lines on XY; the document gains no feature.
+    std::string error;
+    const std::vector<SketchEntity> ents = doc.project_edges_on(SketchPlane::XY(), 0, {}, top_face, error);
+    CHECK(error.empty());
+    REQUIRE(ents.size() == 4);
+    for (const SketchEntity& e : ents) {
+        CHECK(e.type == SketchEntity::Type::Line);
+        CHECK(e.construction);
+        CHECK_THAT((e.p1 - e.p0).norm(), WithinAbs(20.0, 1e-9));
+    }
+    CHECK(doc.features.size() == 2);
+
+    // Body 1 is not there.
+    const std::vector<SketchEntity> none = doc.project_edges_on(SketchPlane::XY(), 1, {}, top_face, error);
+    CHECK(none.empty());
+    CHECK_CONTAINS(error, "body 1");
+}
+
 TEST_CASE("Use/Convert Entities: box top-face edges land as construction geometry", "[CadDocument][project]")
 {
     CadDocument doc;
@@ -4295,7 +4332,7 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
     // A failure BELOW this point means the on-disk serialization format changed: some field
     // in CadFeature::save/load was reordered, retyped, or removed. Fields may only ever be
     // APPENDED at the end of both lists. Do NOT regenerate the fixture to make this pass --
-    // fix the field order instead. See scripts/CAD/run-kernel-tests.sh and the [.regen] case.
+    // fix the field order instead. The fixture is written only by the libslic3r_tests "[.regen]" run.
 
     // Field-by-field assertions against expected values.
     // Every field set to a distinctive non-default literal must be checked here.
@@ -5161,9 +5198,9 @@ TEST_CASE("unknown identifier fails recompute", "[CadDocument][variables]")
 }
 
 // The checkpoint -> mutate -> recompute -> undo-on-failure pattern is what both the GUI and
-// McpControl use to keep a bad edit out of the document. It only works if the snapshot covers
-// `variables` as well as `features`: undo() used to restore features alone, so a bad variable
-// survived the rollback and every later recompute failed — the document was left unusable.
+// the Design commands (Mcp/Tools/Design*.cpp) use to keep a bad edit out of the document. It only works if the snapshot
+// covers `variables` as well as `features`: an undo() that restored features alone would let a bad
+// variable survive the rollback, and every later recompute would fail — the document left unusable.
 TEST_CASE("undo rolls back a bad variable, not just features", "[CadDocument][variables]")
 {
     CadDocument doc;
@@ -7982,9 +8019,9 @@ TEST_CASE("dressup: four chamfer ids captured up-front drift as earlier chamfers
     // Documents a defect, not a desired result. Measured on this fixture: [0.4, 0.008324,
     // 0.397333, 0.280405] mm^3 — the second chamfer's stale id landed on a nearly-consumed
     // edge and cut ~2% of the intended volume. Ids captured once and replayed against an
-    // evolving edge map DRIFT; that is the degeneration the socket chamfers showed, and it is
-    // a driver artefact (wrong usage), not a kernel defect — Test 1 proves the kernel stays
-    // uniform when ids are re-read.
+    // evolving edge map DRIFT; that is what four chamfers driven with up-front ids showed in the
+    // app, and it is a driver artefact (wrong usage), not a kernel defect — Test 1 proves the
+    // kernel stays uniform when ids are re-read.
     REQUIRE_FALSE(threw);            // currently it does NOT throw: it silently drifts
     REQUIRE(rmv.size() == 4);
     double mn = rmv[0], mx = rmv[0];
@@ -8906,6 +8943,100 @@ TEST_CASE("Datum-plane references follow their plane when an earlier plane is de
     CHECK(std::abs(planes[1].second.origin.z() - 25.0) < 1e-9);   // still on P2, not on XY
 }
 
+TEST_CASE("A feature keeps its uid through every change of the history, and a recipe does not carry it",
+          "[CadDocument][history]")
+{
+    // Two sketches, then their two extrudes: two boxes, each its own body.
+    CadDocument doc;
+    SketchPlane beside = SketchPlane::XY();
+    beside.origin      = Vec3d(40, 0, 0);
+    const int s1 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "S1");
+    const int s2 = doc.add_sketch(SketchShape::Rectangle, beside, 10, 10, 0, "S2");
+    doc.add_extrude(s1, 5, false, BooleanMode::New, "E1");
+    doc.add_extrude(s2, 5, false, BooleanMode::New, "E2");
+    CHECK(doc.features[3].uid == 0);   // none until a rebuild gives it one
+    REQUIRE(doc.recompute());
+    const uint64_t first = doc.features[2].uid, second = doc.features[3].uid;
+    CHECK(first != 0);
+    CHECK(second != 0);
+    CHECK(first != second);
+    const auto uid_of = [&doc](const std::string& name) {
+        for (const CadFeature& f : doc.features)
+            if (f.name == name) return f.uid;
+        return uint64_t(0);
+    };
+
+    SECTION("a delete") {
+        REQUIRE(doc.remove_feature(2));
+        CHECK(uid_of("E2") == second);
+    }
+    SECTION("a reorder") {
+        REQUIRE(doc.move_feature(2, 1));
+        REQUIRE(doc.features[2].name == "E2");
+        CHECK(uid_of("E2") == second);
+        CHECK(uid_of("E1") == first);
+    }
+    SECTION("a suppress") {
+        REQUIRE(doc.set_feature_enabled(2, false));
+        CHECK(uid_of("E2") == second);
+        CHECK(uid_of("E1") == first);
+    }
+    SECTION("replace_feature, given a candidate with none, as a card's is") {
+        CadFeature edited = doc.features[3];
+        edited.distance   = 8;
+        edited.uid        = 0;
+        REQUIRE(doc.replace_feature(3, edited));
+        CHECK(doc.features[3].uid == second);
+    }
+    SECTION("undo and redo") {
+        doc.checkpoint();
+        REQUIRE(doc.remove_feature(2));
+        REQUIRE(doc.undo());
+        CHECK(uid_of("E1") == first);
+        CHECK(uid_of("E2") == second);
+        REQUIRE(doc.redo());
+        CHECK(uid_of("E1") == 0);
+        CHECK(uid_of("E2") == second);
+    }
+    SECTION("a feature added later gets one of its own") {
+        doc.add_extrude(s1, 2, false, BooleanMode::New, "E3");
+        REQUIRE(doc.recompute());
+        CHECK(uid_of("E3") != 0);
+        CHECK(uid_of("E3") != first);
+        CHECK(uid_of("E3") != second);
+    }
+    SECTION("a copy of the document makes numbers the live one never gives") {
+        CadDocument copy = doc.history_before(4);
+        copy.add_extrude(s1, 2, false, BooleanMode::New, "In the copy");
+        REQUIRE(copy.recompute());
+        doc.add_extrude(s1, 2, false, BooleanMode::New, "In the live one");
+        REQUIRE(doc.recompute());
+        CHECK(copy.features[4].uid != doc.features[4].uid);
+        CHECK(copy.features[3].uid == second);
+    }
+    SECTION("a recipe") {
+        // A feature serialized and read back has none, and one read with the recipe gets a new one when the recipe
+        // rebuilds.
+        std::ostringstream out;
+        {
+            cereal::BinaryOutputArchive archive(out);
+            archive(doc.features[3]);
+        }
+        CadFeature read;
+        {
+            std::istringstream in(out.str());
+            cereal::BinaryInputArchive archive(in);
+            archive(read);
+        }
+        CHECK(read.name == "E2");
+        CHECK(read.uid == 0);
+        CadDocument back;
+        REQUIRE(back.deserialize_recipe(doc.serialize_recipe()));
+        CHECK(back.features[3].uid != 0);
+        CHECK(back.features[3].uid != second);
+    }
+}
+
 TEST_CASE("clear() starts a document without the previous one's variables", "[CadDocument]")
 {
     CadDocument doc;
@@ -9008,6 +9139,82 @@ TEST_CASE("A new thread reads its radius as the nominal (major) radius", "[CadDo
     doc.features[t].thread_depth = 0.9 * P;
     CHECK_FALSE(doc.recompute());
     CHECK(doc.error.find("thread") != std::string::npos);
+}
+
+// Taps the bore of body 0 with the standard `designation` along the bore's whole length, as the Thread card and the
+// thread command do for a picked bore, and returns the volume the thread removes.
+static double tap_the_bore(CadDocument& doc, const char* designation)
+{
+    REQUIRE(doc.recompute());
+    const double                    before = doc.body_mass_properties(0).volume;
+    const std::vector<TopoDS_Face> faces  = GeometryEngine::faces_of(doc.bodies[0].shape);
+    int                             bore   = -1;
+    for (int i = 0; i < int(faces.size()); ++i)
+        if (GeometryEngine::cylinder_of_face(faces[i]).ok) bore = i;
+    REQUIRE(bore >= 0);
+    SketchPlane                  plane;
+    GeometryEngine::CylinderFace cyl;
+    REQUIRE(doc.thread_target(0, bore, -1, plane, cyl));
+    REQUIRE(cyl.internal);
+    const ThreadSpec* s = find_thread_standard(designation);
+    REQUIRE(s != nullptr);
+    doc.add_thread(0.5 * s->major_diameter_mm, s->pitch_mm, cyl.height, s->internal_depth_mm(), true, 0, 0, plane, "Thread");
+    const bool rebuilt = doc.recompute();
+    INFO(doc.error);
+    REQUIRE(rebuilt);
+    return before - doc.body_mass_properties(0).volume;
+}
+
+// The volume of the ring between a thread's minor and major diameters over `length`. A tapped thread's groove is a V
+// from the one out to the other, so it takes part of that ring, never all of it.
+static double thread_ring(const char* designation, double length)
+{
+    const ThreadSpec* s = find_thread_standard(designation);
+    return 0.25 * M_PI * (std::pow(s->major_diameter_mm, 2) - std::pow(s->minor_diameter_mm(), 2)) * length;
+}
+
+TEST_CASE("A bore takes the same thread wherever the part sits on the bed", "[CadDocument][thread]")
+{
+    using Catch::Matchers::WithinRel;
+    // The M5 hex standoff of the cad_features replay: 8 mm across flats, 15 long, bored with M5's tap drill, with the
+    // design's origin, which the Design tab puts at the bed's centre, at `origin`.
+    auto tapped_standoff = [](const Vec3d& origin) {
+        CadDocument doc;
+        doc.modeling_origin = origin;
+        SketchPlane xy      = SketchPlane::XY();
+        xy.origin += origin;
+        SketchProfile hex;
+        hex.points = {{4.618802, 0}, {2.309401, 4}, {-2.309401, 4}, {-4.618802, 0}, {-2.309401, -4}, {2.309401, -4}};
+        hex.closed = true;
+        doc.add_extrude(doc.add_sketch_profile(hex, xy, "Sketch"), 15.0, false, BooleanMode::New, "Extrude");
+        doc.add_hole(find_thread_standard("M5")->minor_diameter_mm(), 15.0, true, 0, 0, xy, "Hole");
+        return tap_the_bore(doc, "M5");
+    };
+    const double at_origin = tapped_standoff(Vec3d::Zero());
+    CHECK(at_origin > 0.1 * thread_ring("M5", 15.0));
+    CHECK(at_origin < 0.5 * thread_ring("M5", 15.0));
+    // Centres where OCCT, cutting a groove whose faces wind round several turns of the thread, loses part of the
+    // groove's intersection with the bore wall, and the cut removes nothing. (125, 125) is the middle of a 250 mm bed.
+    const Vec3d centre = GENERATE(Vec3d(125, 125, 0), Vec3d(118, 118, 0), Vec3d(122.5, 122.5, 0), Vec3d(130.5, 130.5, 0),
+                                  Vec3d(131.51, 119.07, 0));
+    CHECK_THAT(tapped_standoff(centre), WithinRel(at_origin, 1e-3));
+}
+
+TEST_CASE("A blind hole takes a thread along its whole depth", "[CadDocument][thread]")
+{
+    // M3's tap drill 8 deep into the top of a 20 x 20 x 10 block, drilled from the top face down.
+    CadDocument doc;
+    doc.add_extrude(doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Sketch"), 10.0, false,
+                    BooleanMode::New, "Block");
+    SketchPlane top;
+    top.origin = Vec3d(0, 0, 10);
+    top.normal = Vec3d(0, 0, -1);
+    top.x_axis = Vec3d(1, 0, 0);
+    top.y_axis = top.normal.cross(top.x_axis);
+    doc.add_hole(find_thread_standard("M3")->minor_diameter_mm(), 8.0, false, 0, 0, top, "Hole");
+    const double removed = tap_the_bore(doc, "M3");
+    CHECK(removed > 0.1 * thread_ring("M3", 8.0));
+    CHECK(removed < 0.5 * thread_ring("M3", 8.0));
 }
 
 TEST_CASE("CadDocument: a profile on a body face touches it, one in free space does not", "[CadDocument]")
@@ -9309,4 +9516,42 @@ TEST_CASE("A hole owns its bore", "[CadDocument][highlight]")
     for (const auto& bf : bore)
         CHECK(made_face_type(doc, bf) == GeomAbs_Cylinder);
     CHECK(doc.faces_made_by(ex).size() == 6);
+}
+
+TEST_CASE("A rebuild records the bodies each feature starts from", "[CadDocument]")
+{
+    CadDocument doc;
+    const int sk0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Sketch0");
+    doc.add_extrude(sk0, 10.0, false, BooleanMode::New, "Box0");
+    SketchPlane beside = SketchPlane::XY();
+    beside.origin = Vec3d(10, 5, 0);
+    const int sk1 = doc.add_sketch(SketchShape::Rectangle, beside, 20, 20, 10, "Sketch1");
+    doc.add_extrude(sk1, 10.0, false, BooleanMode::New, "Box1");
+    REQUIRE(doc.recompute());
+    doc.checkpoint();
+    const int cut = doc.add_boolean(BooleanMode::Cut, 0, 1, false, 0.0, -1, -1, "Cut");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    REQUIRE(doc.bodies_before.size() == doc.features.size());
+    REQUIRE(doc.bodies_before[size_t(sk0)].has_value());
+    CHECK(doc.bodies_before[size_t(sk0)]->empty());
+    // The Cut starts from both boxes. The first is the body the rebuild ends with; the tool it consumed is in none.
+    REQUIRE(doc.bodies_before[size_t(cut)].has_value());
+    const std::vector<CadDocument::BodyBefore>& was = *doc.bodies_before[size_t(cut)];
+    REQUIRE(was.size() == 2);
+    CHECK(doc.body_index(was[0].id) == 0);
+    CHECK(doc.body_index(was[1].id) == -1);
+    CHECK(doc.body_index(doc.body_id(0)) == 0);
+    // A copy keeps it, as it keeps the bodies.
+    const CadDocument copy = doc;
+    CHECK(copy.bodies_before.size() == doc.bodies_before.size());
+
+    // The history before the Cut rebuilds the two boxes, with none of the undo history.
+    CadDocument before = doc.history_before(cut);
+    CHECK(before.features.size() == size_t(cut));
+    CHECK(before.undo_depth() == 0);
+    REQUIRE(doc.undo_depth() == 1);
+    REQUIRE(before.recompute());
+    CHECK(before.bodies.size() == was.size());
 }

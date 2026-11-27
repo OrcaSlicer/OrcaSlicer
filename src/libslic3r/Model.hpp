@@ -1195,6 +1195,8 @@ public:
     bool is_fdm_support_painted() const { return !this->supported_facets.empty(); }
     bool is_seam_painted() const { return !this->seam_facets.empty(); }
     bool is_mm_painted() const { return !this->mmu_segmentation_facets.empty(); }
+    // Whether multi-material painting covers every facet.
+    bool is_mm_painted_everywhere() const;
     bool is_fuzzy_skin_painted() const { return !this->fuzzy_skin_facets.empty(); }
     bool is_texture_displacement_painted() const { return !this->texture_displacement_facets_all_empty(); }
     bool is_any_painted() const {
@@ -1883,6 +1885,9 @@ public:
     // overlap the others there. Keeps its height and the layout of its instances. Instances that have no
     // assembly pose yet start from their pose on the plate.
     void          set_assembly_pos(ModelObject *model_object, const std::vector<const ModelObject*> &ignore = {});
+    // ORCA: Places the copies of instance source_idx (the instances from first_copy on) in the assembly view:
+    // in the pose of their source, in a row to the right of everything else.
+    void          set_assembly_pos_of_copies(ModelObject *model_object, size_t source_idx, size_t first_copy);
     // Returns approximate axis aligned bounding box of this model.
     BoundingBoxf3 bounding_box_approx() const;
     // Returns exact axis aligned bounding box of this model.
@@ -2012,8 +2017,11 @@ bool model_has_multi_part_objects(const Model &model);
 // If the model has advanced features, then it cannot be processed in simple mode.
 bool model_has_advanced_features(const Model &model);
 
+// Deletion handles the base extruder separately because objects and modifiers use different fallbacks.
+void remap_model_filament_configs(Model &model, const std::map<int, int> &slots, bool include_extruder);
+
 // Remap the model's filament-slot references after a published-3MF import relocated
-// mixed-filament definitions onto new slot numbers: object/volume "extruder" configs and
+// mixed-filament definitions onto new slot numbers: base and per-feature filament assignments and
 // multi-material color-painting states (paint state stores the one-based slot number).
 // slot_relocations maps the author's zero-based slot number to its final zero-based slot;
 // entries are applied simultaneously (no chained lookups), untouched slots keep everything.

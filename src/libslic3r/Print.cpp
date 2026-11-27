@@ -68,6 +68,7 @@
 #include "Geometry/ConvexHull.hpp"
 #include "I18N.hpp"
 #include "LifecycleEvents.hpp"
+#include "ParallelForFirstError.hpp"
 #include "ShortestPath.hpp"
 #include "Thread.hpp"
 #include "Time.hpp"
@@ -308,6 +309,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "nozzle_height",
         "extruder_colour",
         "filament_flow_ratio",
+        "filament_max_external_volumetric_speed",
         "reduce_fan_stop_start_freq",
         "dont_slow_down_outer_wall",
         "fan_cooling_layer_time",
@@ -579,6 +581,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "travel_speed"
             || opt_key == "travel_speed_z"
             || opt_key == "initial_layer_speed"
+            || opt_key == "enable_volumetric_speeds"
+            || opt_key == "initial_layer_volumetric_flow"
+            || opt_key == "initial_layer_infill_volumetric_flow"
             || opt_key == "initial_layer_travel_speed"
             || opt_key == "initial_layer_travel_acceleration"
             || opt_key == "initial_layer_travel_jerk"
@@ -774,6 +779,10 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
 {
     std::vector<unsigned int> extruders = this->object_extruders();
     append(extruders, this->support_material_extruders());
+    for (const PrintObject *object : m_objects)
+        if (object->config().brim_filament_id.value > 0 &&
+            ((object->has_brim() && !m_config.belt_printer.value) || object->has_belt_brim()))
+            extruders.push_back(object->config().brim_filament_id.value - 1);
 
     if (conside_custom_gcode)
         this->append_tool_change_extruders(extruders);
@@ -1956,6 +1965,8 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
                 if (print_object->config().support_interface_filament >= 1 && (unsigned int)print_object->config().support_interface_filament < num_extruders + 1)
                     obj_used_extruder_ids.insert((unsigned int) print_object->config().support_interface_filament - 1);
             }
+            if (print_object->has_brim() && print_object->config().brim_filament_id.value > 0)
+                obj_used_extruder_ids.insert(print_object->config().brim_filament_id.value - 1);
             std::vector<std::string> filament_types;
             std::vector<int> nozzle_temperatures;
             std::vector<int> nozzle_temperature_range_lows;
@@ -2285,7 +2296,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             if (routing.primary_unrouted) {
                 std::string routed_list;
                 for (int head : routing.routed_heads)
-                    routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head);
+                    routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head + 1);
                 // Print::apply() normalises physical_extruder_map through
                 // effective_physical_extruder_map (PrintApply.cpp) before validate() runs, so
                 // an unauthored map arrives here as the identity and every slot is in range.
@@ -2298,13 +2309,13 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                         // TRN %1% is the IDEX/IQEX mode name, %2% the tool number.
                         L("IDEX/IQEX mode \"%1%\" prints with T%2%, but none of this plate's filaments are on a configured tool. "
                           "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
-                        parallel_mode, routing.primary_phys);
+                        parallel_mode, routing.primary_phys + 1);
                 else
                     err.string = Slic3r::format(
                         // TRN %1% is the IDEX/IQEX mode name, %2% the tool number, %3% a list of tools such as "T1, T2".
                         L("IDEX/IQEX mode \"%1%\" prints with T%2%, but this plate's filaments are on %3%. "
                           "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
-                        parallel_mode, routing.primary_phys, routed_list);
+                        parallel_mode, routing.primary_phys + 1, routed_list);
                 // Gives the notification a "Jump to <object>" link, which selects the object
                 // and switches to Prepare -- directly enabling the first suggested remedy.
                 err.object = m_objects.front();
@@ -2510,7 +2521,25 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         // spiral vase cannot print.
         const auto &is_mixed = m_config.filament_is_mixed.values;
         for (const PrintObject *object : m_objects) {
-            const auto used_filament_ids = object->object_extruders();
+            auto used_filament_ids = object->object_extruders();
+            // Painted all over, the object prints only its painted filaments, unless the segmented region
+            // max width or interlocking depth limits the paint to a band and fills the rest with its own filament.
+            // Beam interlocking turns that band off.
+            const PrintObjectConfig &object_config = object->config();
+            const ModelVolumePtrs   &volumes       = object->model_object()->volumes;
+            if ((object_config.interlocking_beam.value ||
+                 (object_config.mmu_segmented_region_max_width.value == 0. &&
+                  object_config.mmu_segmented_region_interlocking_depth.value == 0.)) &&
+                std::all_of(volumes.begin(), volumes.end(), [](const ModelVolume *volume) {
+                    return !volume->is_model_part() || volume->is_mm_painted_everywhere();
+                })) {
+                used_filament_ids.clear();
+                for (const ModelVolume *volume : volumes)
+                    if (volume->is_model_part())
+                        for (size_t filament_id : volume->get_extruders_from_multi_material_painting())
+                            used_filament_ids.push_back(static_cast<unsigned int>(filament_id));
+                sort_remove_duplicates(used_filament_ids);
+            }
             if (used_filament_ids.size() > 1 ||
                 std::any_of(used_filament_ids.begin(), used_filament_ids.end(), [&is_mixed](unsigned int filament_id) {
                     return filament_id < is_mixed.size() && is_mixed[filament_id];
@@ -2535,6 +2564,22 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             }
         }
     }
+
+    for (const PrintObject *object : m_objects)
+        for (const PrintRegion &region : object->all_regions()) {
+            const PrintRegionConfig &cfg = region.config();
+            if (cfg.sparse_infill_strategy.value == InfillStrategy::Crossing && cfg.fill_multiline.value > 3 &&
+                has_infill_strategy(cfg.sparse_infill_pattern.value) && cfg.sparse_infill_density.value > 0. &&
+                cfg.sparse_infill_density.value < 100.) {
+                // TRN %1% is the object name.
+                warn(Slic3r::format(_u8L("The sparse infill of the object %1% uses the Crossing strategy with more than 3 lines. "
+                                         "Its walls overlap over a large area at every crossing, which can over-extrude there "
+                                         "and make the nozzle scrape the infill. Use the Non-crossing strategy or fewer lines."),
+                                    object->model_object()->name),
+                     "sparse_infill_strategy", object);
+                break;
+            }
+        }
 
     // Cache of layer height profiles for checking:
     // 1) Whether all layers are synchronized if printing with wipe tower and / or unsynchronized supports.
@@ -2621,6 +2666,12 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 if (! check_object_layers_fixed(print_object.slicing_parameters(), layers))
                     return {_u8L("Variable layer height is not supported with Organic supports.") };
         }
+
+    // The brim filament is a physical tool. The GUI hides mixed slots from the option; this guards loaded projects and the CLI.
+    for (const PrintObject *object : m_objects)
+        if (const int brim_filament = object->config().brim_filament_id.value; brim_filament > 0 &&
+            size_t(brim_filament - 1) < m_config.filament_is_mixed.values.size() && m_config.filament_is_mixed.values[brim_filament - 1])
+            return { L("The brim filament cannot be a mixed filament."), object, "brim_filament_id" };
 
     if ((this->has_wipe_tower() || this->has_belt_purge_tower()) && ! m_objects.empty()) {
         // Orca: wipe_tower_filament (issue #10971) is inserted into the tool order after
@@ -2827,10 +2878,16 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 if (!validate_extrusion_width(object->config(), "support_line_width", layer_height, err_msg))
                     return {err_msg, object, "support_line_width"};
             }
-            for (const char *opt_key : { "inner_wall_line_width", "outer_wall_line_width", "sparse_infill_line_width", "internal_solid_infill_line_width", "top_surface_line_width","skin_infill_line_width" ,"skeleton_infill_line_width"})
+            for (const char *opt_key : { "inner_wall_line_width", "outer_wall_line_width", "sparse_infill_line_width", "internal_solid_infill_line_width", "top_surface_line_width"})
 				for (const PrintRegion &region : object->all_regions())
                     if (!validate_extrusion_width(region.config(), opt_key, layer_height, err_msg))
 		            	return  {err_msg, object, opt_key};
+            // Only the Locked Zag sparse infill prints skin and skeleton lines.
+            for (const PrintRegion &region : object->all_regions())
+                if (region.config().sparse_infill_pattern == ipLockedZag)
+                    for (const char *opt_key : { "skin_infill_line_width", "skeleton_infill_line_width" })
+                        if (!validate_extrusion_width(region.config(), opt_key, layer_height, err_msg))
+                            return {err_msg, object, opt_key};
 
             const bool allow_thin_bridge_width = object->config().thick_bridges && object->config().thick_internal_bridges;
             for (const PrintRegion &region : object->all_regions()) {
@@ -2844,7 +2901,8 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                         err_msg = L("Bridge line width must not exceed nozzle diameter");
                         return { err_msg, object, "bridge_line_width" };
                     }
-                    if (!allow_thin_bridge_width && bridge_width <= layer_height) {
+                    // A bridge as wide as the layer is tall is a round strand, the same as a thick bridge.
+                    if (!allow_thin_bridge_width && bridge_width < layer_height) {
                         err_msg = L("Line width too small");
                         return { err_msg, object, "bridge_line_width" };
                     }
@@ -3213,11 +3271,12 @@ Flow Print::brim_flow() const
        extruders and take the one with, say, the smallest index.
        The same logic should be applied to the code that selects the extruder during G-code
        generation as well. */
+    const int brim_filament = m_objects.front()->config().brim_filament_id.value;
     return Flow::new_from_config_width(
         frPerimeter,
         // Flow::new_from_config_width takes care of the percent to value substitution
 		width,
-        (float)nozzle_diameter_for_filament(m_config, m_print_regions.front()->config().outer_wall_filament_id, this->is_BBL_printer()),
+        (float)nozzle_diameter_for_filament(m_config, brim_filament > 0 ? brim_filament : m_print_regions.front()->config().outer_wall_filament_id.value, this->is_BBL_printer()),
 		(float)this->skirt_first_layer_height());
 }
 
@@ -3377,8 +3436,11 @@ BoundingBox PrintObject::get_first_layer_bbox(float& a, float& layer_height, std
 std::map<ObjectID, unsigned int> getObjectExtruderMap(const Print& print) {
     std::map<ObjectID, unsigned int> objectExtruderMap;
     for (const PrintObject* object : print.objects()) {
+        if (object->config().brim_filament_id.value > 0) {
+            objectExtruderMap.insert(std::make_pair(object->id(), (unsigned int)object->config().brim_filament_id.value));
+        }
         // BBS
-        if (object->object_first_layer_wall_extruders.empty()){
+        else if (object->object_first_layer_wall_extruders.empty()){
             unsigned int objectFirstLayerFirstExtruder = print.config().filament_diameter.size();
             auto firstLayerRegions = object->layers().front()->regions();
             if (!firstLayerRegions.empty()) {
@@ -3566,16 +3628,37 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": total object counts %1% in current print, need to slice %2%")%m_objects.size()%need_slicing_objects.size();
     BOOST_LOG_TRIVIAL(info) << "Starting the slicing process." << log_memory_info();
+    // Runs a step on the objects `needs` selects and `skip` on the others. A step of an object reads that object and
+    // the print's configuration only, which the support step has always relied on, so the objects run the step
+    // together: one after another, each object's serial parts and slowest layers kept most of the cores idle.
+    // A slicing pipeline plugin runs its hook between the objects, so with one active they keep their order.
+    // Nothing enforces that rule. In particular, the PrintObjects made from one ModelObject, one per distinct instance
+    // transformation, share its ModelVolumes, whose lazily filled caches are not guarded: a step must not fill them
+    // (ModelVolume::is_splittable() is the exception, under a lock).
+    auto for_each_object_step = [this](auto &&needs, auto &&process, auto &&skip) {
+        std::vector<PrintObject*> objects;
+        for (PrintObject *obj : m_objects)
+            if (! needs(obj))
+                skip(obj);
+            else if (m_pipeline_plugin_active)
+                process(obj);
+            else
+                objects.push_back(obj);
+        if (objects.size() == 1)
+            process(objects.front());
+        else if (objects.size() > 1)
+            parallel_for_first_error(objects.size(), 1, [&process, &objects](size_t i) { process(objects[i]); });
+    };
     if (!use_cache) {
         // Fire the SlicingPipeline hook for `obj` iff it just (re)computed `pstep` this pass.
         auto hook_after = [this](PrintObject* obj, bool was_done, PrintObjectStep pstep, SlicingPipelineStepPlugin sstep) {
             if (m_pipeline_plugin_active && !was_done && obj->is_step_done(pstep))
                 run_pipeline_hook(sstep, obj);
         };
+        auto needs_slicing = [&need_slicing_objects](PrintObject *obj) { return need_slicing_objects.count(obj) != 0; };
 
         // SlicingPipeline: dedicated slice loop so the Slice boundary is hookable before perimeters.
-        for (PrintObject *obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 const bool was_done = obj->is_step_done(posSlice);
                 obj->slice();
                 hook_after(obj, was_done, posSlice, SlicingPipelineStepPlugin::posSlice);
@@ -3590,32 +3673,25 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 if (m_pipeline_plugin_active && !was_done && obj->is_step_done(posSlice))
                     for (Layer *layer : obj->layers())
                         layer->backup_untyped_slices();
-            } else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posSlice)) obj->set_done(posSlice);   // shared/duplicate — no hook
-            }
-        }
-        for (PrintObject *obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+            });
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 const bool was_done = obj->is_step_done(posPerimeters);
                 obj->make_perimeters();   // slice() inside is a no-op: posSlice already DONE
                 hook_after(obj, was_done, posPerimeters, SlicingPipelineStepPlugin::posPerimeters);
-            } else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posPerimeters)) obj->set_done(posPerimeters);
-            }
-        }
-        for (PrintObject *obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+            });
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 const bool was_done = obj->is_step_done(posEstimateCurledExtrusions);
                 obj->estimate_curled_extrusions();
                 hook_after(obj, was_done, posEstimateCurledExtrusions, SlicingPipelineStepPlugin::posEstimateCurledExtrusions);
-            }
-            else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posEstimateCurledExtrusions))
                     obj->set_done(posEstimateCurledExtrusions);
-            }
-        }
-        for (PrintObject *obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+            });
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 // split prepare_infill (fill-surface prep) from infill (make_fills) so a
                 // plugin can mutate fill surfaces at the PrepareInfill seam and have make_fills
                 // consume them (unlike the Infill seam, which fires after the fills are already
@@ -3627,25 +3703,20 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 const bool was_done = obj->is_step_done(posInfill);
                 obj->infill();
                 hook_after(obj, was_done, posInfill, SlicingPipelineStepPlugin::posInfill);
-            }
-            else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posPrepareInfill))
                     obj->set_done(posPrepareInfill);
                 if (obj->set_started(posInfill))
                     obj->set_done(posInfill);
-            }
-        }
-        for (PrintObject *obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+            });
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 const bool was_done = obj->is_step_done(posIroning);
                 obj->ironing();
                 hook_after(obj, was_done, posIroning, SlicingPipelineStepPlugin::posIroning);
-            }
-            else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posIroning))
                     obj->set_done(posIroning);
-            }
-        }
+            });
 
         // Z-Contouring
         for (PrintObject *obj : m_objects) {
@@ -3693,17 +3764,14 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     && m_objects[i]->is_step_done(posSupportMaterial))
                     run_pipeline_hook(SlicingPipelineStepPlugin::posSupportMaterial, m_objects[i]);
 
-        for (PrintObject* obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 const bool was_done = obj->is_step_done(posDetectOverhangsForLift);
                 obj->detect_overhangs_for_lift();
                 hook_after(obj, was_done, posDetectOverhangsForLift, SlicingPipelineStepPlugin::posDetectOverhangsForLift);
-            }
-            else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posDetectOverhangsForLift))
                     obj->set_done(posDetectOverhangsForLift);
-            }
-        }
+            });
     }
     else {
         for (PrintObject *obj : m_objects) {
@@ -4068,9 +4136,9 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
     }
     //BBS
-    for (PrintObject *obj : m_objects) {
-        if (((!use_cache)&&(need_slicing_objects.count(obj) != 0))
-            || (use_cache &&(re_slicing_objects.count(obj) != 0))){
+    for_each_object_step([&](PrintObject *obj) {
+            return (!use_cache && need_slicing_objects.count(obj) != 0) || (use_cache && re_slicing_objects.count(obj) != 0);
+        }, [&](PrintObject *obj) {
             const bool was_done = obj->is_step_done(posSimplifyPath);
             obj->simplify_extrusion_path();
             // Unlike every other seam (all inside the `if (!use_cache)` block above), this loop is
@@ -4078,16 +4146,14 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             // explicitly here to keep hooks from ever firing on cache-loaded (plugin-final) objects.
             if (!use_cache && m_pipeline_plugin_active && !was_done && obj->is_step_done(posSimplifyPath))
                 run_pipeline_hook(SlicingPipelineStepPlugin::posSimplifyPath, obj);
-        }
-        else {
+        }, [](PrintObject *obj) {
             if (obj->set_started(posSimplifyPath))
                 obj->set_done(posSimplifyPath);
             if (obj->set_started(posSimplifyInfill))
                 obj->set_done(posSimplifyInfill);
             if (obj->set_started(posSimplifySupportPath))
                 obj->set_done(posSimplifySupportPath);
-        }
-    }
+        });
 
     // BBS
     bool has_adaptive_layer_height = false;
@@ -4473,6 +4539,11 @@ void Print::_make_skirt()
             auto compatible_brim_nozzles =
                 [this, &brim_filament, &brim_exclusion_regions, has_nozzle_specific_brim_exclusions]
                 (const ObjectInstanceID& first, const ObjectInstanceID& second) {
+                    // A brim with a chosen filament is only combined with brims chosen the same.
+                    const int first_chosen  = get_object(first.object_id)->config().brim_filament_id.value;
+                    const int second_chosen = get_object(second.object_id)->config().brim_filament_id.value;
+                    if (first_chosen > 0 || second_chosen > 0)
+                        return first_chosen == second_chosen;
                     if (!has_nozzle_specific_brim_exclusions)
                         return true;
                     const std::optional<unsigned int> first_filament = brim_filament(first);

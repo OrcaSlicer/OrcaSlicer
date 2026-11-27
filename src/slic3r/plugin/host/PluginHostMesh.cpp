@@ -47,11 +47,14 @@ void host_bindings::register_mesh(py::module_& host)
     // ModelVolume::set_mesh — never mutate a mesh obtained from the graph.
     py::class_<TriangleMesh, std::shared_ptr<TriangleMesh>>(host, "TriangleMesh",
         "Immutable snapshot of a ModelVolume's mesh in local (untransformed) coordinates, mm.")
-        .def("vertex_count", [](const TriangleMesh& mesh) { return mesh.its.vertices.size(); })
-        .def("triangle_count", [](const TriangleMesh& mesh) { return mesh.its.indices.size(); })
-        .def("facets_count", [](const TriangleMesh& mesh) { return mesh.its.indices.size(); })
-        .def("is_empty", [](const TriangleMesh& mesh) { return mesh.its.indices.empty(); })
-        // Read-only, zero-copy (N, 3) float32 view of vertex positions. Requires numpy.
+        .def("vertex_count", [](const TriangleMesh& mesh) { return mesh.its.vertices.size(); },
+             "Number of vertices; vertex(index) takes 0 to vertex_count() - 1.")
+        .def("triangle_count", [](const TriangleMesh& mesh) { return mesh.its.indices.size(); },
+             "Number of triangles; triangle(index) takes 0 to triangle_count() - 1.")
+        .def("facets_count", [](const TriangleMesh& mesh) { return mesh.its.indices.size(); },
+             "Number of triangles, the same as triangle_count().")
+        .def("is_empty", [](const TriangleMesh& mesh) { return mesh.its.indices.empty(); },
+             "True when the mesh has no triangles.")
         .def("vertices", [](py::object self) {
             const TriangleMesh& mesh = self.cast<const TriangleMesh&>();
             return with_numpy([&] {
@@ -61,7 +64,6 @@ void host_bindings::register_mesh(py::module_& host)
                     static_cast<py::ssize_t>(vertices.size())));
             });
         }, "Read-only zero-copy (N, 3) float32 ndarray of vertex positions (local mm). Requires numpy.")
-        // Read-only, zero-copy (M, 3) int32 view of triangle vertex indices. Requires numpy.
         .def("triangles", [](py::object self) {
             const TriangleMesh& mesh = self.cast<const TriangleMesh&>();
             return with_numpy([&] {
@@ -70,8 +72,8 @@ void host_bindings::register_mesh(py::module_& host)
                     self, indices.empty() ? nullptr : indices.front().data(),
                     static_cast<py::ssize_t>(indices.size())));
             });
-        }, "Read-only zero-copy (M, 3) int32 ndarray of triangle vertex indices. Requires numpy.")
-        // One normalized normal per triangle as an (M, 3) float32 copy. Requires numpy.
+        }, "Read-only zero-copy (M, 3) int32 ndarray of triangle vertex indices (0-based rows of vertices()). "
+           "Requires numpy.")
         .def("face_normals", [](const TriangleMesh& mesh) {
             return with_numpy([&] {
                 std::vector<Vec3f> normals = its_face_normals(mesh.its);
@@ -87,24 +89,31 @@ void host_bindings::register_mesh(py::module_& host)
                 return py::object(std::move(array));
             });
         }, "Per-triangle normalized normals as an (M, 3) float32 ndarray (copy). Requires numpy.")
-        // numpy-free element access, bounds-checked.
         .def("vertex", [](const TriangleMesh& mesh, size_t index) {
             const std::vector<stl_vertex>& vertices = mesh.its.vertices;
             if (index >= vertices.size())
                 throw py::index_error("vertex index out of range");
             const stl_vertex& vertex = vertices[index];
             return py::make_tuple(vertex.x(), vertex.y(), vertex.z());
-        })
+        }, py::arg("index"),
+           "Vertex at index, 0-based, as an (x, y, z) tuple of floats in local mm; raises IndexError when out of "
+           "range. Needs no numpy; vertices() returns them all at once.")
         .def("triangle", [](const TriangleMesh& mesh, size_t index) {
             const std::vector<stl_triangle_vertex_indices>& indices = mesh.its.indices;
             if (index >= indices.size())
                 throw py::index_error("triangle index out of range");
             const stl_triangle_vertex_indices& triangle = indices[index];
             return py::make_tuple(triangle[0], triangle[1], triangle[2]);
-        })
-        .def("volume", [](const TriangleMesh& mesh) { return mesh.stats().volume; })
-        .def("bounding_box", [](const TriangleMesh& mesh) { return bbox_from_stats(mesh.stats()); })
-        .def("is_manifold", [](const TriangleMesh& mesh) { return mesh.stats().manifold(); });
+        }, py::arg("index"),
+           "Triangle at index, 0-based, as a tuple (i0, i1, i2) of 0-based vertex indices, ordered so the right-hand "
+           "rule gives its normal; raises IndexError when out of range. Needs no numpy; triangles() returns them all.")
+        .def("volume", [](const TriangleMesh& mesh) { return mesh.stats().volume; },
+             "Volume in mm^3 that the mesh encloses; -1 when it was never computed. Meaningful only for a closed "
+             "mesh (see is_manifold()).")
+        .def("bounding_box", [](const TriangleMesh& mesh) { return bbox_from_stats(mesh.stats()); },
+             "Bounding box of the mesh's vertices in its local frame, in mm.")
+        .def("is_manifold", [](const TriangleMesh& mesh) { return mesh.stats().manifold(); },
+             "True when the mesh has no open edges, that is, it is closed.");
 }
 
 } // namespace Slic3r
