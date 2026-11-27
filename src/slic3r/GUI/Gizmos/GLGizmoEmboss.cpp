@@ -3076,9 +3076,13 @@ void GLGizmoEmboss::draw_advanced()
         ImGui::SetNextItemWidth(m_gui_cfg->input_width);
         const float shown   = to_percent(arc_radius);
         float       percent = shown;
+        // no tooltip while dragging: it would cover the Radius row, which follows the drag
+        const std::string label    = "##" + tr.curve;
+        const bool        dragging = ImGui::GetActiveID() == ImGui::GetID(label.c_str());
         ImGui::BeginGroup();
-        bool changed = m_imgui->slider_float("##" + tr.curve, &percent, -100.f, 100.f, "%.0f %%", 1.f, true,
-                                             _L("Bend the text along a circle. 0 keeps it straight, 100 closes it into a ring, negative values bend it the other way."));
+        bool changed = m_imgui->slider_float(label, &percent, -100.f, 100.f, "%.0f %%", 1.f, true,
+                                             dragging ? wxString() :
+                                                        _L("Bend the text along a circle. 0 keeps it straight, 100 closes it into a ring, negative values bend it the other way."));
         ImGui::EndGroup();
         tooltip_when_disabled();
         // a percentage worked out from a radius is rarely whole, and the slider reports it changed whenever its rounding differs
