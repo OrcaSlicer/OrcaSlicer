@@ -1,4 +1,5 @@
 #include "PrinterCommLogger.hpp"
+#include "PrinterSequenceIds.hpp"
 
 #include "libslic3r/Utils.hpp"
 
@@ -507,7 +508,7 @@ void PrinterCommLogger::log_mqtt(
                 kind = msg->get<int>() == 0 ? "full" : "diff";
         }
 
-        // Never throttle a reply to something we sent. START_SEQ_ID..END_SEQ_ID is the app's own range.
+        // Never throttle a reply to something we sent. PrinterSequenceIds' band is the app's own range.
         bool is_our_ack = false;
         if (payload.is_object()) {
             for (auto& [k, v] : payload.items()) {
@@ -518,7 +519,7 @@ void PrinterCommLogger::log_mqtt(
                     continue;
                 try {
                     int id = sid->is_string() ? std::stoi(sid->get<std::string>()) : sid->get<int>();
-                    if (id >= 20000 && id < 30000)
+                    if (PrinterSequenceIds::in_band(id))
                         is_our_ack = true;
                 } catch (...) {}
             }

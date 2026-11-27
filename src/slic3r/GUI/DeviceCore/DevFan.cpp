@@ -8,6 +8,7 @@
 #include <vector>
 #include <wx/app.h>
 #include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/Utils/PrinterSequenceIds.hpp"
 using namespace nlohmann;
 
 void Slic3r::DevFan::converse_to_duct(bool is_suppt_part_fun, bool is_suppt_aux_fun, bool is_suppt_cham_fun)
@@ -92,9 +93,10 @@ int Slic3r::DevFan::command_handle_response(const json &response)
 int Slic3r::DevFan::command_control_air_duct(int mode_id, int submode, const CommandCallBack& cb)
 {
     BOOST_LOG_TRIVIAL(info) << "MachineObject::command_control_air_duct, set air duct, d = " << mode_id;
-    m_callback_list[std::to_string(m_owner->m_sequence_id)] = cb;
+    const std::string sequence_id = std::to_string(MachineObject::m_sequence_id++);
+    m_callback_list[sequence_id] = cb;
     json j;
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    j["print"]["sequence_id"] = sequence_id;
     j["print"]["command"]     = "set_airduct";
     j["print"]["modeId"]      = mode_id;
     j["print"]["submode"]     = submode;

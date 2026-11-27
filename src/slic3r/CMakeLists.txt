@@ -927,6 +927,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/OrcaMqttConnection.hpp
     Utils/OrcaPrinterAgent.cpp
     Utils/OrcaPrinterAgent.hpp
+    Utils/PrinterSequenceIds.cpp
+    Utils/PrinterSequenceIds.hpp
     Utils/OrcaCloudSignalingChannel.cpp
     Utils/OrcaCloudSignalingChannel.hpp
     Utils/QidiPrinterAgent.cpp

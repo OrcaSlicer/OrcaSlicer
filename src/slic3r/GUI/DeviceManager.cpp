@@ -1,6 +1,7 @@
 #include "PrinterNetworkTypes.hpp"
 #include <nlohmann/json.hpp>
 #include "DeviceManager.hpp"
+#include "slic3r/Utils/PrinterSequenceIds.hpp"
 #include "HMS.hpp"
 #include "I18N.hpp"
 #include "libslic3r/Thread.hpp"
@@ -1474,10 +1475,7 @@ void MachineObject::parse_version_func()
 
 bool MachineObject::is_studio_cmd(int sequence_id)
 {
-    if (sequence_id >= START_SEQ_ID && sequence_id < END_SEQ_ID) {
-        return true;
-    }
-    return false;
+    return PrinterSequenceIds::in_band(sequence_id);
 }
 
 bool MachineObject::canEnableTimelapse(wxString &error_message) const

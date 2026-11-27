@@ -6,6 +6,7 @@
 #include "OrcaCloudServiceAgent.hpp"
 #include "OrcaMqttConnection.hpp"
 #include "PrinterCommLogger.hpp"
+#include "PrinterSequenceIds.hpp"
 #include "bambu_networking.hpp"
 
 #include <boost/algorithm/string.hpp>
@@ -1149,7 +1150,7 @@ std::string OrcaPrinterAgent::lan_connection_target() const
     return m_lan_url;
 }
 
-std::string OrcaPrinterAgent::seq(int n) { return std::to_string(20000 + (n % 10000)); }
+std::string OrcaPrinterAgent::next_sequence_id() { return std::to_string(PrinterSequenceIds::shared().next()); }
 
 std::string OrcaPrinterAgent::build_pushing_start(const std::string& sid)
 { return R"({"pushing":{"command":"start","sequence_id":")" + sid + R"("}})"; }
@@ -1167,10 +1168,10 @@ void OrcaPrinterAgent::emit_connect_sequence(const std::string& dev_id,
                                              std::function<void(const std::string&)> request)
 {
     subscribe(dev_id);
-    request(build_pushing_start(seq(1)));
-    request(build_pushall(seq(2)));
-    request(build_get_version(seq(3)));
-    request(build_get_capabilities(seq(4)));
+    request(build_pushing_start(next_sequence_id()));
+    request(build_pushall(next_sequence_id()));
+    request(build_get_version(next_sequence_id()));
+    request(build_get_capabilities(next_sequence_id()));
 }
 
 void OrcaPrinterAgent::on_connected(const std::string& dev_id, OrcaMqttConnection* conn, uint64_t generation)
@@ -1316,7 +1317,7 @@ int OrcaPrinterAgent::disconnect_printer()
     // Tell the printer to stop pushing and drop the report topic before the socket
     // goes away (§3.2/§5.4: deselect issues pushing.stop on both transports).
     if (doomed && !prev_dev.empty() && doomed->is_connected()) {
-        doomed->send_request(prev_dev, build_pushing_stop(seq(5)));
+        doomed->send_request(prev_dev, build_pushing_stop(next_sequence_id()));
         doomed->unsubscribe(prev_dev);
     }
     if (doomed)
@@ -1494,7 +1495,7 @@ int OrcaPrinterAgent::set_user_selected_machine(std::string dev_id)
     if (!previous.empty()) {
         cloud->del_subscribe({previous});
         if (conn && conn->is_connected())
-            conn->send_request(previous, build_pushing_stop(seq(5)));
+            conn->send_request(previous, build_pushing_stop(next_sequence_id()));
     }
 
     // A previous initial-connect worker may still be blocking in start(). Stop it

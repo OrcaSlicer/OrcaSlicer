@@ -26,6 +26,7 @@
 #include "libslic3r/calib.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/PrinterNetworkTypes.hpp"
+#include "slic3r/Utils/PrinterSequenceIds.hpp"
 
 #include "DeviceCore/DevDefs.h"
 #include "DeviceCore/DevConfigUtil.h"
@@ -60,8 +61,6 @@
 #define GET_VERSION_RETRYS      10
 #define RETRY_INTERNAL          2000
 
-#define START_SEQ_ID            20000
-#define END_SEQ_ID              30000
 #define SUBSCRIBE_RETRY_COUNT   5
 
 namespace Slic3r {
@@ -202,7 +201,8 @@ public:
 public:
 
     /* static members and functions */
-    static inline int m_sequence_id = START_SEQ_ID;
+    // The process-wide counter, kept under its old name so `m_sequence_id++` still numbers a command.
+    static inline PrinterSequenceIds& m_sequence_id = PrinterSequenceIds::shared();
 
     /* properties */
     std::string get_dev_name() const { return dev_name; }

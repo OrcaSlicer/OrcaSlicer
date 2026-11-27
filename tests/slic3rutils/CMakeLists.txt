@@ -61,6 +61,7 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_capabilities_in_use.cpp
     test_plugin_status.cpp
     test_printer_agent.cpp
+    test_printer_sequence_ids.cpp
     test_orca_mqtt_connection.cpp
     test_orca_printer_agent.cpp
     test_qidi_printer_agent.cpp
