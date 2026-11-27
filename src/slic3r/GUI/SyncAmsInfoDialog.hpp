@@ -277,6 +277,11 @@ public:
     void hide_no_use_controls();
     void show_sizer(wxSizer *sizer, bool show);
     void deal_ok();
+    // True when deal_ok() would apply m_ams_mapping_result rather than take its direct-sync path.
+    bool applies_mapping() const;
+    // True when a selected AMS/tray resolves to a device tool the printer does not report. Used
+    // by the Synchronize button to re-check the current state on every click.
+    bool has_invalid_ams_binding() const;
     bool get_is_double_extruder();
     bool is_dirty_filament();
     bool is_need_show();

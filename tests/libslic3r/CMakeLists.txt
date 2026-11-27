@@ -40,6 +40,7 @@ add_executable(${_TEST_NAME}_tests
     test_parallel_for_first_error.cpp
     test_parallel_resolve.cpp
     test_preset_bundle_loading.cpp
+    test_preset_bundle_ams_sync.cpp
     test_preset_collection.cpp
     test_preset_setting_id.cpp
     test_preset_diff.cpp

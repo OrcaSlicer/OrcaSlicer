@@ -5003,6 +5003,16 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             auto exist_presets      = this->filament_presets;
 
             size_t tray_count = ams_filament_presets.size();
+            // Empty trays trailing the device list are placeholders, not filaments: the project
+            // keeps its own slot count and they must not grow it. A placeholder before a real tray
+            // still occupies that tray's index, so only the trailing run is dropped. The trim
+            // needs both parallel lists aligned (and the placeholder to have pushed no preset):
+            // otherwise a placeholder index could stand for a slot ams_filament_presets filled
+            // with a real tray.
+            if (tray_count == ams_infos.size())
+                while (tray_count > 0 && ams_infos[tray_count - 1].is_placeholder &&
+                       ams_filament_presets[tray_count - 1].empty())
+                    --tray_count;
             size_t total      = std::max(tray_count, exist_presets.size());
 
             std::vector<std::string> result_colors;
@@ -5189,7 +5199,26 @@ std::vector<std::vector<DynamicPrintConfig>> PresetBundle::get_extruder_filament
     int extruder_nums = get_printer_extruder_count();
     if (extruder_nums > 1) {
         filament_infos.resize(extruder_nums, std::vector<DynamicPrintConfig>());
+        const ConfigOptionInts physical_map = effective_physical_extruder_map(*this);
         for (auto ams_item : filament_ams_list) {
+            // A generic slot carries the device tool it belongs to. Resolve it through the effective
+            // logical-to-physical map instead of using the device id as a logical index: a swapped
+            // map ({1,0}) and two logical extruders sharing one device both need this lookup.
+            if (ams_item.second.has("device_tray_extruder_id")) {
+                const int device_tool = ams_item.second.opt_int("device_tray_extruder_id");
+                if (device_tool < 0 || device_tool >= extruder_nums)
+                    continue; // invalid association
+                const size_t logical_count = std::min<size_t>(size_t(extruder_nums), physical_map.values.size());
+                for (size_t logical = 0; logical < logical_count; ++logical) {
+                    if (physical_map.values[logical] != device_tool)
+                        continue;
+                    // Drop the transient association before the config reaches the slicing pipeline.
+                    DynamicPrintConfig entry = ams_item.second;
+                    entry.erase("device_tray_extruder_id");
+                    filament_infos[logical].push_back(std::move(entry));
+                }
+                continue; // A device no logical extruder routes to contributes no inventory.
+            }
             if (ams_item.first & 0x10000) { // right
                 filament_infos[1].push_back(ams_item.second);
             } else { // left
@@ -5198,6 +5227,55 @@ std::vector<std::vector<DynamicPrintConfig>> PresetBundle::get_extruder_filament
         }
     }
     return filament_infos;
+}
+
+std::map<int, DynamicPrintConfig> PresetBundle::order_external_filaments_by_toolhead(std::map<int, DynamicPrintConfig> list, int main_virtual_tray_id,
+                                                                                     int extruder_count)
+{
+    if (extruder_count <= 1)
+        return list;
+
+    const int lowest_virtual_id = main_virtual_tray_id - extruder_count + 1;
+    const auto external_tool = [lowest_virtual_id, main_virtual_tray_id](const DynamicPrintConfig &entry, int &tool) {
+        const std::string ams_id = entry.opt_string("ams_id", 0u);
+        if (ams_id.empty() || !std::all_of(ams_id.begin(), ams_id.end(), [](unsigned char c) { return std::isdigit(c) != 0; }))
+            return false;
+        int id = 0;
+        try {
+            id = std::stoi(ams_id);
+        } catch (...) {
+            return false;
+        }
+        if (id < lowest_virtual_id || id > main_virtual_tray_id)
+            return false;
+        tool = main_virtual_tray_id - id;
+        return true;
+    };
+
+    std::map<int, DynamicPrintConfig>               ordered;
+    std::vector<std::pair<int, DynamicPrintConfig>> external; // device tool -> spool
+    int                                             last_non_external_key = -1;
+    for (auto &entry : list) {
+        int tool = -1;
+        if (external_tool(entry.second, tool)) {
+            external.emplace_back(tool, std::move(entry.second));
+            continue;
+        }
+        last_non_external_key = std::max(last_non_external_key, entry.first);
+        ordered.emplace(entry.first, std::move(entry.second));
+    }
+    if (external.empty())
+        return ordered;
+
+    std::sort(external.begin(), external.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
+    // After every AMS tray. In the common case the base stays at main_virtual_tray_id + 1, and each
+    // spool's key depends only on its own toolhead, so a spool that is absent on one refresh leaves
+    // its key unused instead of shifting the others. load_ams_list() preserves a slot's refresh
+    // metadata by key, and a shifted key could hand another slot's metadata to this spool.
+    const int base = std::max(last_non_external_key + 1, main_virtual_tray_id + 1);
+    for (auto &entry : external)
+        ordered.emplace(base + entry.first, std::move(entry.second));
+    return ordered;
 }
 
 // ORCA TODO: currently, this function assumes the printer name follows the pattern of "<printer_model> <nozzle_diameter>", e.g.
@@ -6184,6 +6262,38 @@ void PresetBundle::convert_filament_preset_name(const std::string& machine_name,
         }
     }
 }
+// A project may store fewer values than its filament slots for a per-slot key: a file written
+// before the key joined s_project_options, or before a slot was added, carries the key's
+// one-element default. Grow such lists to the slot count so every slot has a value; the values
+// already there are kept, and an explicitly longer list is left alone. The multi-colour list is
+// extended with each new slot's own colour: a single-colour filament's multi-colour list is that
+// colour, and no existing multi-colour definition is replaced.
+static void grow_project_filament_slots(DynamicPrintConfig &config, size_t slot_count)
+{
+    auto grow_strings = [slot_count, &config](const char *key, auto fill) {
+        auto *opt = config.option<ConfigOptionStrings>(key, true);
+        // An explicitly empty list ("value of its own") is left as written.
+        if (opt == nullptr || opt->values.empty())
+            return;
+        for (size_t i = opt->values.size(); i < slot_count; ++i)
+            opt->values.push_back(fill(i));
+    };
+    auto grow_ints = [slot_count, &config](const char *key, int fill) {
+        auto *opt = config.option<ConfigOptionInts>(key, true);
+        if (opt != nullptr && !opt->values.empty() && opt->values.size() < slot_count)
+            opt->values.resize(slot_count, fill);
+    };
+
+    const std::vector<std::string> &colours = config.option<ConfigOptionStrings>("filament_colour")->values;
+    grow_strings("filament_multi_colour", [&colours](size_t i) {
+        return i < colours.size() ? colours[i] : std::string{};
+    });
+    grow_strings("filament_colour_type", [](size_t) { return std::string("1"); });
+    grow_ints("filament_map", 1);
+    grow_ints("filament_nozzle_map", 0);
+    grow_ints("filament_volume_map", static_cast<int>(NozzleVolumeType::nvtStandard));
+}
+
 // Load a config file from a boost property_tree. This is a private method called from load_config_file.
 // is_external == false on if called from ConfigWizard
 void PresetBundle::load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version, bool selected, PublishedConfig *published_config)
@@ -6473,8 +6583,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         // cross over (the receiver must not inherit the author's filament/purge data).
         this->project_config.apply_only(config, is_published ? s_project_options_published : s_project_options);
         // Older projects inherit one-element mixed defaults, regardless of their filament count.
-        if (!is_published)
+        if (!is_published) {
             resize_mixed_filament_metadata(this->project_config, num_filaments, num_filaments);
+            // The same older files also store a one-element default for the per-slot colour type,
+            // multi-colour and map lists; grow them so every slot has a value.
+            grow_project_filament_slots(this->project_config, num_filaments);
+        }
 
         break;
     }

@@ -50,6 +50,19 @@
 
 namespace Slic3r { namespace GUI {
 
+// Orca: a two-tool printer can show device tool 0 on either side. The Device tab keeps the
+// legacy left/right panel constants (DEPUTY = left, MAIN = right), so cache the presentation
+// order once per update instead of swapping device ids anywhere else.
+static bool two_tool_display_left_is_main(const MachineObject* obj)
+{
+    if (!obj || !obj->GetExtderSystem() || obj->GetExtderSystem()->GetTotalExtderCount() != 2)
+        return false;
+
+    const int left_tool  = obj->device_tool_for_display_index(0);
+    const int right_tool = obj->device_tool_for_display_index(1);
+    return left_tool == MAIN_EXTRUDER_ID && right_tool == DEPUTY_EXTRUDER_ID;
+}
+
 #define AMS_CANS_SIZE wxSize(FromDIP(284), -1)
 #define AMS_CANS_WINDOW_SIZE wxSize(FromDIP(264), -1)
 #define SINGLE_SLOT_AMS_PANEL_SIZE wxSize(FromDIP(264), FromDIP(160))
@@ -363,13 +376,19 @@ std::string AMSControl::GetCurrentCan(std::string amsid)
 
 bool AMSControl::IsAmsInRightPanel(std::string ams_id) {
     if (m_total_ext_count == 2){
-        // Orca: inlet-aware panel routing (see AMSinfo::routes_to_main_extruder)
-        if (m_ams_item_list.find(ams_id) != m_ams_item_list.end() && m_ams_item_list[ams_id]->routes_to_main_extruder()) {
-            return true;
+        // Orca: the item's panel already follows the two-tool display order, so it is the
+        // authoritative presentation side. Fall back to the same mapping for a not-yet-built item.
+        auto item = m_ams_item_list.find(ams_id);
+        if (item != m_ams_item_list.end() && item->second) {
+            return item->second->get_panel_pos() == AMSPanelPos::RIGHT_PANEL;
         }
-        else{
-            return false;
+        for (const auto& info : m_ams_info) {
+            if (info.ams_id == ams_id) return ams_belongs_to_right_panel(info);
         }
+        for (const auto& info : m_ext_info) {
+            if (info.ams_id == ams_id) return ams_belongs_to_right_panel(info);
+        }
+        return false;
     }
     else{
         for (auto id : m_item_ids[MAIN_EXTRUDER_ID]){
@@ -628,43 +647,62 @@ void AMSControl::ClearAms() {
     pair_id.clear();
 }
 
+bool AMSControl::ams_belongs_to_right_panel(const AMSinfo& info) const
+{
+    // Only the exactly-two-tool presentation is reordered. Single-tool and >2-tool layouts, and
+    // AMS placed by a Filament Track Switch inlet, keep their existing routing.
+    if (m_total_ext_count != 2 || info.switch_pos.has_value())
+        return info.routes_to_main_extruder();
+
+    if (info.nozzle_id == MAIN_EXTRUDER_ID)
+        return !m_two_tool_display_left_is_main;
+    if (info.nozzle_id == DEPUTY_EXTRUDER_ID)
+        return m_two_tool_display_left_is_main;
+    return info.routes_to_main_extruder();
+}
+
+int AMSControl::visual_extruder_side(int device_tool_id) const
+{
+    // AMSextruder interprets MAIN as the right nozzle and DEPUTY as the left nozzle. Translate
+    // only the presentation id; the device tool id used by commands is left unchanged.
+    if (m_total_ext_count != 2 || !m_two_tool_display_left_is_main)
+        return device_tool_id;
+
+    if (device_tool_id == MAIN_EXTRUDER_ID)
+        return DEPUTY_EXTRUDER_ID;
+    if (device_tool_id == DEPUTY_EXTRUDER_ID)
+        return MAIN_EXTRUDER_ID;
+    return device_tool_id;
+}
+
 void AMSControl::CreateAmsDoubleNozzle(const std::string &series_name, const std::string &printer_type)
 {
     std::vector<AMSinfo> single_info_left;
     std::vector<AMSinfo> single_info_right;
 
     //Freeze();
-    // Orca: place each AMS by its switch inlet when a Filament Track Switch is installed, else by the pinned
-    // nozzle_id (routes_to_main_extruder). Switch-less machines are unaffected; ext spools keep nozzle_id.
+    // Orca: place each AMS by its switch inlet when a Filament Track Switch is installed, else by
+    // the device tool's display side. Two-tool generic printers mirror the Bambu layout, so the
+    // cached display order decides the panel; device tool ids stay unchanged.
     for (auto ams_info = m_ams_info.begin(); ams_info != m_ams_info.end(); ams_info++){
         if (ams_info->cans.size() == GENERIC_AMS_SLOT_NUM){
-            ams_info->routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(ams_info->ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(ams_info->ams_id);
+            const bool right = ams_belongs_to_right_panel(*ams_info);
+            m_item_ids[right ? MAIN_EXTRUDER_ID : DEPUTY_EXTRUDER_ID].push_back(ams_info->ams_id);
             AddAmsPreview(*ams_info, ams_info->ams_type);
             AddAms(*ams_info);
         }
         else if (ams_info->cans.size() == 1){
-
-            if (ams_info->routes_to_main_extruder()){
-                single_info_right.push_back(*ams_info);
-                if (single_info_right.size() == 2){
-                    single_info_right[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[0].ams_id);
-                    single_info_right[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[1].ams_id);
-                    AddAms(single_info_right, series_name, printer_type);
-                    AddAmsPreview(single_info_right, AMSPanelPos::RIGHT_PANEL);
-                    pair_id.push_back(std::make_pair(single_info_right[0].ams_id, single_info_right[1].ams_id));
-                    single_info_right.clear();
+            const bool right = ams_belongs_to_right_panel(*ams_info);
+            auto& single_info = right ? single_info_right : single_info_left;
+            single_info.push_back(*ams_info);
+            if (single_info.size() == 2){
+                for (const auto& info : single_info) {
+                    m_item_ids[ams_belongs_to_right_panel(info) ? MAIN_EXTRUDER_ID : DEPUTY_EXTRUDER_ID].push_back(info.ams_id);
                 }
-            }
-            else if (!ams_info->routes_to_main_extruder()){
-                single_info_left.push_back(*ams_info);
-                if (single_info_left.size() == 2){
-                    single_info_left[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[0].ams_id);
-                    single_info_left[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[1].ams_id);
-                    AddAms(single_info_left, series_name, printer_type);
-                    AddAmsPreview(single_info_left, AMSPanelPos::LEFT_PANEL);
-                    pair_id.push_back(std::make_pair(single_info_left[0].ams_id, single_info_left[1].ams_id));
-                    single_info_left.clear();
-                }
+                AddAms(single_info, series_name, printer_type);
+                AddAmsPreview(single_info, right ? AMSPanelPos::RIGHT_PANEL : AMSPanelPos::LEFT_PANEL);
+                pair_id.push_back(std::make_pair(single_info[0].ams_id, single_info[1].ams_id));
+                single_info.clear();
             }
         }
     }
@@ -673,42 +711,28 @@ void AMSControl::CreateAmsDoubleNozzle(const std::string &series_name, const std
         assert(0);
         return;
     }
-    AMSinfo ext_info;
+
+    // Ext spools follow the same side as the tool they feed.
     for (auto info : m_ext_info){
-        if (info.ams_id == std::to_string(VIRTUAL_TRAY_MAIN_ID)){
-            ext_info = info;
-            single_info_right.push_back(ext_info);
-            break;
+        if (info.ams_id == std::to_string(VIRTUAL_TRAY_MAIN_ID) || info.ams_id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
+            (ams_belongs_to_right_panel(info) ? single_info_right : single_info_left).push_back(info);
         }
     }
-    //wait add
-
-
-    single_info_right[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[0].ams_id);
-    if (single_info_right.size() == 2){
-        single_info_right[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[1].ams_id);
-        pair_id.push_back(std::make_pair(single_info_right[0].ams_id, single_info_right[1].ams_id));
-    }
-    AddAms(single_info_right, series_name, printer_type);
-    AddAmsPreview(single_info_right, AMSPanelPos::RIGHT_PANEL);
-    single_info_right.clear();
-
-    for (auto info : m_ext_info) {
-        if (info.ams_id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
-            ext_info = info;
-            single_info_left.push_back(ext_info);
-            break;
+    auto add_ext_spools = [&](std::vector<AMSinfo>& single_info) {
+        if (single_info.empty()) return;
+        for (const auto& info : single_info) {
+            m_item_ids[ams_belongs_to_right_panel(info) ? MAIN_EXTRUDER_ID : DEPUTY_EXTRUDER_ID].push_back(info.ams_id);
         }
-    }
-    //wait add
-    single_info_left[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[0].ams_id);
-    if (single_info_left.size() == 2){
-        single_info_left[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[1].ams_id);
-        pair_id.push_back(std::make_pair(single_info_left[0].ams_id, single_info_left[1].ams_id));
-    }
-    AddAmsPreview(single_info_left, AMSPanelPos::LEFT_PANEL);
-    AddAms(single_info_left, series_name, printer_type);
-    single_info_left.clear();
+        if (single_info.size() == 2){
+            pair_id.push_back(std::make_pair(single_info[0].ams_id, single_info[1].ams_id));
+        }
+        const bool right = ams_belongs_to_right_panel(single_info[0]);
+        AddAms(single_info, series_name, printer_type);
+        AddAmsPreview(single_info, right ? AMSPanelPos::RIGHT_PANEL : AMSPanelPos::LEFT_PANEL);
+        single_info.clear();
+    };
+    add_ext_spools(single_info_right);
+    add_ext_spools(single_info_left);
 
     m_sizer_prv_left->Layout();
     m_sizer_prv_right->Layout();
@@ -966,6 +990,11 @@ void AMSControl::UpdateAms(const std::string   &series_name,
         // update item
         bool fresh = false;
 
+        // Orca: a change in the two-tool display order changes which panel each AMS belongs to.
+        const bool display_left_is_main = two_tool_display_left_is_main(obj);
+        if (data.GetTotalExtderCount() == 2 && m_two_tool_display_left_is_main != display_left_is_main)
+            fresh = true;
+
         // basic check
         if (m_ams_info.size() == ams_info.size() && m_total_ext_count == data.GetTotalExtderCount() && m_dev_id == dev_id && m_ext_info.size() == ext_info.size())
         {
@@ -988,6 +1017,7 @@ void AMSControl::UpdateAms(const std::string   &series_name,
         m_ams_info.clear();
         m_ams_info = ams_info;
         m_total_ext_count = data.GetTotalExtderCount();
+        m_two_tool_display_left_is_main = display_left_is_main;
         m_ext_info.clear();
         m_ext_info = ext_info;
         m_dev_id = dev_id;
@@ -1106,12 +1136,12 @@ void AMSControl::AddAmsPreview(AMSinfo info, AMSModel type)
 {
     AMSPreview *ams_prv = nullptr;
 
-    if (info.routes_to_main_extruder())
+    if (ams_belongs_to_right_panel(info))
     {
         ams_prv = new AMSPreview(m_panel_prv_right, wxID_ANY, info, type);
         m_sizer_prv_right->Add(ams_prv, 0, wxALIGN_CENTER | wxLEFT, FromDIP(6));
     }
-    else if (!info.routes_to_main_extruder())
+    else
     {
         ams_prv = new AMSPreview(m_panel_prv_left, wxID_ANY, info, type);
         m_sizer_prv_left->Add(ams_prv, 0, wxALIGN_CENTER | wxLEFT, FromDIP(6));
@@ -1229,10 +1259,10 @@ void AMSControl::createAmsPanel(wxSimplebook *parent, int &idx, std::vector<AMSi
 void AMSControl::AddAms(AMSinfo info, AMSPanelPos pos)
 {
     if (m_total_ext_count > 1){
-        if (info.routes_to_main_extruder()){
+        if (ams_belongs_to_right_panel(info)){
             createAms(m_simplebook_ams_right, m_right_page_index, info, AMSPanelPos::RIGHT_PANEL);
         }
-        else if (!info.routes_to_main_extruder()){
+        else {
             createAms(m_simplebook_ams_left, m_left_page_index, info, AMSPanelPos::LEFT_PANEL);
         }
     }
@@ -1270,10 +1300,10 @@ void AMSControl::AddAms(std::vector<AMSinfo> single_info, const std::string &ser
         return;
     }
     if (m_total_ext_count == 2) {
-        if (single_info[0].routes_to_main_extruder()) {
+        if (ams_belongs_to_right_panel(single_info[0])) {
             createAmsPanel(m_simplebook_ams_right, m_right_page_index, single_info, series_name, printer_type, AMSPanelPos::RIGHT_PANEL, m_total_ext_count);
         }
-        else if (!single_info[0].routes_to_main_extruder()) {
+        else {
             createAmsPanel(m_simplebook_ams_left, m_left_page_index, single_info, series_name, printer_type, AMSPanelPos::LEFT_PANEL, m_total_ext_count);
         }
     }
@@ -1500,12 +1530,20 @@ void AMSControl::SetExtruder(bool on_off, int nozzle_id, std::string ams_id, std
     AmsItem *item = nullptr;
     if (m_ams_item_list.find(ams_id) != m_ams_item_list.end()) { item = m_ams_item_list[ams_id]; }
 
+    // Orca: nozzle_id is a device tool id; AMSextruder only needs the side it is drawn on.
+    // Switch-routed AMS keeps its previous device-id behavior; other layouts map presentation only.
+    int visual_nozzle_id = nozzle_id;
+    if (m_total_ext_count == 2) {
+        const bool switch_routed = item && item->get_ams_info().switch_pos.has_value();
+        if (!switch_routed) visual_nozzle_id = visual_extruder_side(nozzle_id);
+    }
+
     if (on_off && item) {
         auto col = item->GetTagColr(slot_id);
-        m_extruder->OnAmsLoading(true, nozzle_id, col);
+        m_extruder->OnAmsLoading(true, visual_nozzle_id, col);
     }
     else {
-        m_extruder->OnAmsLoading(false, nozzle_id);
+        m_extruder->OnAmsLoading(false, visual_nozzle_id);
     }
 }
 
@@ -1518,6 +1556,14 @@ void AMSControl::SetAmsStep(std::string ams_id, std::string canid, AMSPassRoadTy
     if (amsit != m_ams_item_list.end()) {ams = amsit->second;}
     else {return;}
     if (ams == nullptr) return;
+
+    // Orca: the item knows which panel it is drawn in. AMSextruder uses MAIN for the right
+    // nozzle and DEPUTY for the left one, so only the presentation id is translated here.
+    // Switch-routed AMS keeps its previous device-id behavior, and single/>2-tool layouts stay unchanged.
+    const bool switch_routed = m_total_ext_count == 2 && ams->get_ams_info().switch_pos.has_value();
+    const int visual_nozzle_id = (m_total_ext_count == 2 && !switch_routed)
+        ? (ams->get_panel_pos() == AMSPanelPos::LEFT_PANEL ? DEPUTY_EXTRUDER_ID : MAIN_EXTRUDER_ID)
+        : ams->get_nozzle_id();
 
     m_last_ams_id = ams_id;
     m_last_tray_id = canid;
@@ -1636,7 +1682,7 @@ void AMSControl::SetAmsStep(std::string ams_id, std::string canid, AMSPassRoadTy
         ams->SetAmsStep(ams_id, canid, type, AMSPassRoadSTEP::AMS_ROAD_STEP_NONE);
         if (ams_id_left == ams_id || ams_id_right == ams_id || in_same_page) {
             m_down_road->UpdatePassRoad(pos, -1, AMSPassRoadSTEP::AMS_ROAD_STEP_NONE);
-            m_extruder->OnAmsLoading(false, ams->get_nozzle_id());
+            m_extruder->OnAmsLoading(false, visual_nozzle_id);
         }
     }
 
@@ -1644,7 +1690,7 @@ void AMSControl::SetAmsStep(std::string ams_id, std::string canid, AMSPassRoadTy
         ams->SetAmsStep(ams_id, canid, type, AMSPassRoadSTEP::AMS_ROAD_STEP_1);
         if (ams_id_left == ams_id || ams_id_right == ams_id || in_same_page) {
             m_down_road->UpdatePassRoad(pos, length, AMSPassRoadSTEP::AMS_ROAD_STEP_1);
-            m_extruder->OnAmsLoading(false, ams->get_nozzle_id());
+            m_extruder->OnAmsLoading(false, visual_nozzle_id);
         }
         else
         {
@@ -1656,7 +1702,7 @@ void AMSControl::SetAmsStep(std::string ams_id, std::string canid, AMSPassRoadTy
         ams->SetAmsStep(ams_id, canid, type, AMSPassRoadSTEP::AMS_ROAD_STEP_2);
         if (ams_id_left == ams_id || ams_id_right == ams_id || in_same_page) {
             m_down_road->UpdatePassRoad(pos, length, AMSPassRoadSTEP::AMS_ROAD_STEP_2);
-            m_extruder->OnAmsLoading(true, ams->get_nozzle_id(), ams->GetTagColr(canid));
+            m_extruder->OnAmsLoading(true, visual_nozzle_id, ams->GetTagColr(canid));
         }
         else
         {
@@ -1668,7 +1714,7 @@ void AMSControl::SetAmsStep(std::string ams_id, std::string canid, AMSPassRoadTy
         if (ams_id_left == ams_id || ams_id_right == ams_id || in_same_page)
         {
             m_down_road->UpdatePassRoad(pos, length, AMSPassRoadSTEP::AMS_ROAD_STEP_3);
-            m_extruder->OnAmsLoading(true, ams->get_nozzle_id(), ams->GetTagColr(canid));
+            m_extruder->OnAmsLoading(true, visual_nozzle_id, ams->GetTagColr(canid));
         }
         else
         {

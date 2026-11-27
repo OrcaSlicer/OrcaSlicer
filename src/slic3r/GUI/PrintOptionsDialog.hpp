@@ -13,6 +13,7 @@
 #include <wx/string.h>
 #include <wx/sizer.h>
 #include <wx/dialog.h>
+#include <wx/scrolwin.h>
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
@@ -45,13 +46,17 @@ protected:
     Button* m_single_update_nozzle_button;
     Button* m_multiple_update_nozzle_button;
 
-    ComboBox* multiple_left_nozzle_type_checkbox;
-    ComboBox *multiple_left_nozzle_diameter_checkbox;
-    ComboBox *multiple_left_nozzle_flow_checkbox;
-
-    ComboBox *multiple_right_nozzle_type_checkbox;
-    ComboBox *multiple_right_nozzle_diameter_checkbox;
-    ComboBox *multiple_right_nozzle_flow_checkbox;
+    struct NozzleRow {
+        int tool;
+        wxString name;
+        ComboBox *type;
+        ComboBox *diameter;
+        ComboBox *flow;
+    };
+    std::vector<NozzleRow> nozzle_rows;
+    bool nozzle_rows_flow_supported{false};
+    wxBoxSizer *nozzle_rows_sizer;
+    wxScrolledWindow *nozzle_rows_window;
 
     Label *multiple_change_nozzle_tips;
     Button* multiple_wiki_link;
@@ -72,6 +77,7 @@ private:
     void  EnableEditing(bool enable);
     void  OnWikiClicked(wxMouseEvent& e);
     void  OnNozzleRefresh(wxCommandEvent& e);
+    void  UpdateParts();
 
     wxString GetString(NozzleType nozzle_type) const;
     wxString GetString(NozzleFlowType nozzle_flow_type) const;

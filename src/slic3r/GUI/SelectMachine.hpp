@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_SelectMachine_hpp_
 #define slic3r_GUI_SelectMachine_hpp_
 
+#include <cstddef>
 #include <string>
 #include "libslic3r/PrintConfig.hpp"
 #include <vector>
