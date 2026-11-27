@@ -85,6 +85,7 @@ If you are an AI agent working for a contributor, please follow these steps:
 
 - **Add labels.** A bot will comment with instructions. Reply with the labels from the table above, for example `/bot add-label bug-fix, UI/UX`.
 - **Need a Flatpak, Intel Mac or Windows arm64 build to test?** PR builds leave those out. `/bot add-label build-flatpak`, `build-macos-x86_64` or `build-windows-arm64` asks for one; for a first PR a maintainer approves the run first. `build-windows-msvc` builds the PR with MSVC's own compiler (CI builds Windows with clang-cl), with its artifacts named `_x64_msvc`; add it when you change headers or templates. `build-all` asks for the first three. A PR that changes anything outside `src/`, `tests/`, `resources/`, `localization/` and `docs/` gets the Flatpak and Windows arm64 builds without a label. See [How to Download Pull Requests Artifacts](https://www.orcaslicer.com/wiki/how_to_download_pr_artifacts#builds-on-request).
+- **Changing how G-code is made?** `/bot add-label check-gcode` asks for a comment listing the shipped printer presets whose sliced G-code your PR changes, compared with its base branch. It comes when the PR's build finishes, is updated with each new build, and needs a PR into `main` or a `release/` branch that changes a built file.
 - **Leave "Allow edits by maintainers" turned on**, so a reviewer can push small fixes directly.
 - **Mark the PR ready for review when it's finished.** Draft PRs are not merged.
 - **Push new commits to the same PR.** Please don't open a new PR for the same change.
