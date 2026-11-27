@@ -99,7 +99,7 @@ static const ColorRGBA CONNECTOR_ERR_COLOR  = ColorRGBA(1.0f, 0.3f, 0.3f, 0.5f);
 static const ColorRGBA HOVERED_ERR_COLOR    = ColorRGBA(1.0f, 0.3f, 0.3f, 1.0f);
 
 static const ColorRGBA CUT_PLANE_DEF_COLOR  = ColorRGBA(0.9f, 0.9f, 0.9f, 0.5f);
-static const ColorRGBA CUT_PLANE_ERR_COLOR  = ColorRGBA(1.0f, 0.8f, 0.8f, 0.5f);
+static const ColorRGBA CUT_PLANE_ERR_COLOR  = ColorRGBA(1.0f, 0.3f, 0.3f, 0.5f); // ORCA: red-green colorblind people tell the invalid plane from the valid one by how dark it is, so it is a darker red
 
 const unsigned int AngleResolution = 64;
 const unsigned int ScaleStepsCount = 72;
