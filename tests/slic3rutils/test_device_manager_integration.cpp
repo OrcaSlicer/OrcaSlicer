@@ -23,6 +23,12 @@
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <slic3r/GUI/DeviceCore/DevFilaSystem.h>
+#include <slic3r/GUI/DeviceCore/DevChamber.h>
+#include <slic3r/GUI/DeviceCore/DevCtrl.h>
+#include <slic3r/GUI/DeviceCore/DevDefs.h>
+#include <slic3r/GUI/DeviceCore/DevLamp.h>
+#include <slic3r/GUI/DeviceCore/DevPrintOptions.h>
+#include <slic3r/GUI/DeviceCore/DevUpgrade.h>
 #include <slic3r/GUI/FilamentMappingUtils.hpp>
 #include <slic3r/GUI/Mcp/McpTools.hpp>
 #include <slic3r/GUI/Operations/Outcome.hpp>
@@ -42,6 +48,7 @@
 
 #include <memory>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
@@ -90,8 +97,9 @@ public:
 
     using OrcaPrinterAgent::deliver_to_sink;
 
-    int send_message(std::string dev_id, std::string json_str, int, int) override
+    int send_message(std::string dev_id, std::string json_str, int qos, int) override
     {
+        sent.emplace_back(qos, json_str);
         last_message = json_str;
         published_device = std::move(dev_id);
         published_message = json::parse(json_str);
@@ -116,6 +124,7 @@ public:
     }
 
     std::string last_message;
+    std::vector<std::pair<int, std::string>> sent; // (qos, message) of every send, in order
     std::string published_device;
     json published_message;
     std::string connected_ca_file;
@@ -1074,4 +1083,120 @@ TEST_CASE("The printer's status is read from the machine, publishes nothing and 
     // A model the tab names without a bundle.
     p.printer.printer_type = "orcasonar";
     CHECK(GUI::Ops::printer_model_name(p.printer, nullptr) == "OrcaSonar Printer");
+}
+
+namespace {
+
+// Every message `printer` handed its agent, one per line as "qos <message>", with each sequence id checked
+// to be a decimal string and then masked so the text compares across runs. Re-serialising keeps the bytes:
+// nlohmann::json writes keys sorted and numbers in shortest form.
+std::string published_command(const ConnectedPrinter& p)
+{
+    std::string text;
+    for (const auto& [qos, sent] : p.agent->sent) {
+        json message = json::parse(sent);
+        for (auto& [ns, body] : message.items())
+            if (body.is_object() && body.contains("sequence_id")) {
+                const json&       id     = body["sequence_id"];
+                const std::string digits = id.is_string() ? id.get<std::string>() : std::string();
+                CHECK(id.is_string());
+                CHECK_FALSE(digits.empty());
+                CHECK(digits.find_first_not_of("0123456789") == std::string::npos);
+                body["sequence_id"] = "#";
+            }
+        text += (text.empty() ? "" : "\n") + std::to_string(qos) + " " + message.dump();
+    }
+    return text;
+}
+
+struct PublishedCommand
+{
+    const char*                         name;
+    std::function<int(MachineObject&)> send;
+    const char*                         expected;
+};
+
+} // namespace
+
+// Pins the exact JSON each device-layer command sends, so moving the builders cannot change a byte.
+TEST_CASE("Each device-layer command publishes its established JSON", "[DeviceManager][Commands]")
+{
+    using LIGHT = DevLamp::LIGHT_EFFECT;
+    const std::vector<PublishedCommand> commands = {
+        {"get_version", [](MachineObject& m) { return m.command_get_version(false); }, R"(1 {"info":{"command":"get_version","sequence_id":"#"}})"},
+        {"get_access_code", [](MachineObject& m) { return m.command_get_access_code(); }, R"(0 {"system":{"command":"get_access_code","sequence_id":"#"}})"},
+        {"pushall", [](MachineObject& m) { return m.command_request_push_all(true); }, R"(0 {"pushing":{"command":"pushall","push_target":1,"sequence_id":"#","version":1}})"},
+        {"pushing start", [](MachineObject& m) { return m.command_pushing("start"); }, R"(0 {"pushing":{"command":"start","sequence_id":"#"}})"},
+        {"clean_print_error", [](MachineObject& m) { return m.command_clean_print_error("subtask-7", 50348044); }, R"(0 {"print":{"command":"clean_print_error","print_error":50348044,"sequence_id":"#","subtask_id":"subtask-7"}})"},
+        {"uiop", [](MachineObject& m) { return m.command_clean_print_error_uiop(50348044); }, R"(0 {"system":{"action":"close","command":"uiop","err":"0300400C","name":"print_error","sequence_id":"#","source":1,"type":"dialog"}})"},
+        {"upgrade_confirm", [](MachineObject& m) { return m.command_upgrade_confirm(); }, R"(0 {"upgrade":{"command":"upgrade_confirm","sequence_id":"#","src_id":1}})"},
+        {"consistency_confirm", [](MachineObject& m) { return m.command_consistency_upgrade_confirm(); }, R"(0 {"upgrade":{"command":"consistency_confirm","sequence_id":"#","src_id":1}})"},
+        {"upgrade module", [](MachineObject& m) { return m.command_upgrade_module("https://example.com/f.bin", "ams", "01.02.03"); }, R"(0 {"upgrade":{"command":"start","module":"ams","sequence_id":"#","src_id":1,"url":"https://example.com/f.bin","version":"01.02.03"}})"},
+        {"skip_objects", [](MachineObject& m) { return m.command_task_partskip({3, 9}); }, R"(1 {"print":{"command":"skip_objects","obj_list":[3,9],"sequence_id":"#"}})"},
+        {"stop", [](MachineObject& m) { return m.command_task_abort(); }, R"(1 {"print":{"command":"stop","param":"","sequence_id":"#"}})"},
+        {"stop job", [](MachineObject& m) { return m.command_task_cancel("job-42"); }, R"(1 {"print":{"command":"stop","job_id":"job-42","param":"","sequence_id":"#"}})"},
+        {"pause", [](MachineObject& m) { return m.command_task_pause(); }, R"(1 {"print":{"command":"pause","param":"","sequence_id":"#"}})"},
+        {"resume", [](MachineObject& m) { return m.command_task_resume(); }, R"(1 {"print":{"command":"resume","param":"","sequence_id":"#"}})"},
+        {"idle_ignore", [](MachineObject& m) { return m.command_hms_idle_ignore("0300-1A00-0001", 2); }, R"(1 {"print":{"command":"idle_ignore","err":"0300-1A00-0001","sequence_id":"#","type":2}})"},
+        {"hms resume", [](MachineObject& m) { return m.command_hms_resume("0300-1A00-0001", "job-42"); }, R"(1 {"print":{"command":"resume","err":"0300-1A00-0001","job_id":"job-42","param":"reserve","sequence_id":"#"}})"},
+        {"hms ignore", [](MachineObject& m) { return m.command_hms_ignore("0300-1A00-0001", "job-42"); }, R"(1 {"print":{"command":"ignore","err":"0300-1A00-0001","job_id":"job-42","param":"reserve","sequence_id":"#"}})"},
+        {"hms stop", [](MachineObject& m) { return m.command_hms_stop("0300-1A00-0001", "job-42"); }, R"(1 {"print":{"command":"stop","err":"0300-1A00-0001","job_id":"job-42","param":"reserve","sequence_id":"#"}})"},
+        {"buzzer_ctrl", [](MachineObject& m) { return m.command_stop_buzzer(); }, R"(1 {"print":{"command":"buzzer_ctrl","mode":0,"sequence_id":"#"}})"},
+        {"set_nozzle_temp", [](MachineObject& m) { return m.command_set_nozzle_new(1, 215); }, R"(1 {"print":{"command":"set_nozzle_temp","extruder_index":1,"sequence_id":"#","target_temp":215}})"},
+        {"refresh_nozzle", [](MachineObject& m) { return m.command_refresh_nozzle(); }, R"(1 {"print":{"command":"refresh_nozzle","sequence_id":"#"}})"},
+        {"set_ctt", [](MachineObject& m) { return m.command_set_chamber(45); }, R"(1 {"print":{"command":"set_ctt","ctt_val":45,"sequence_id":"#"}})"},
+        {"ams_change_filament load", [](MachineObject& m) { return m.command_ams_change_filament(true, "1", "2", 210, 230); }, R"(0 {"print":{"ams_id":1,"command":"ams_change_filament","curr_temp":210,"sequence_id":"#","slot_id":2,"tar_temp":230,"target":6}})"},
+        {"ams_change_filament unload", [](MachineObject& m) { return m.command_ams_change_filament(false, "0", "0", 220, 220, 1); }, R"(0 {"print":{"ams_id":0,"command":"ams_change_filament","curr_temp":220,"extruder_id":1,"sequence_id":"#","slot_id":255,"tar_temp":220,"target":255}})"},
+        {"ams_user_setting", [](MachineObject& m) { return m.command_ams_user_settings(true, false, true); }, R"(0 {"print":{"ams_id":-1,"calibrate_remain_flag":true,"command":"ams_user_setting","sequence_id":"#","startup_read_option":true,"tray_read_option":false}})"},
+        {"ams_filament_setting", [](MachineObject& m) {
+             return m.command_ams_filament_settings(0, 3, "GFA00", "GFSA00", "FF0000FF", "PLA", 190, 230, {"FF0000FF", "00FF00FF"}, 1);
+         }, R"(0 {"print":{"ams_id":0,"cols":["FF0000FF","00FF00FF"],"command":"ams_filament_setting","ctype":1,"nozzle_temp_max":230,"nozzle_temp_min":190,"sequence_id":"#","setting_id":"GFSA00","slot_id":3,"tray_color":"FF0000FF","tray_id":3,"tray_info_idx":"GFA00","tray_type":"PLA"}})"},
+        {"ams_control", [](MachineObject& m) { return m.command_ams_control("pause"); }, R"(0 {"print":{"command":"ams_control","param":"pause","sequence_id":"#"}})"},
+        {"auto_stop_ams_dry", [](MachineObject& m) { return m.command_ams_drying_stop(); }, R"(0 {"print":{"command":"auto_stop_ams_dry","sequence_id":"#"}})"},
+        {"extrusion_cali", [](MachineObject& m) { return m.command_start_extrusion_cali(2, 220, 60, 21.5f, "GFSA00"); }, R"(0 {"print":{"bed_temp":60,"command":"extrusion_cali","max_volumetric_speed":21.5,"nozzle_temp":220,"sequence_id":"#","tray_id":2}})"},
+        {"extrusion_cali_set", [](MachineObject& m) { return m.command_extrusion_cali_set(2, "GFSA00", "PLA", 0.02f, 1.4f, 60, 220, 21.5f); }, R"(0 {"print":{"bed_temp":60,"command":"extrusion_cali_set","k_value":0.019999999552965164,"max_volumetric_speed":21.5,"n_coef":1.399999976158142,"nozzle_temp":220,"sequence_id":"#","tray_id":2}})"},
+        {"print_speed", [](MachineObject& m) { return m.command_set_printing_speed(SPEED_LEVEL_SILENCE); }, R"(0 {"print":{"command":"print_speed","param":"1","sequence_id":"#"}})"},
+        {"print_option auto_recovery", [](MachineObject& m) { return m.command_set_printing_option(true); }, R"(0 {"print":{"auto_recovery":true,"command":"print_option","option":1,"sequence_id":"#"}})"},
+        {"print_option nozzle_blob_detect", [](MachineObject& m) { return m.command_nozzle_blob_detect(true); }, R"(0 {"print":{"command":"print_option","nozzle_blob_detect":true,"sequence_id":"#"}})"},
+        {"print_option sound_enable", [](MachineObject& m) { return m.command_set_prompt_sound(false); }, R"(0 {"print":{"command":"print_option","sequence_id":"#","sound_enable":false}})"},
+        {"print_option filament_tangle_detect", [](MachineObject& m) { return m.command_set_filament_tangle_detect(true); }, R"(0 {"print":{"command":"print_option","filament_tangle_detect":true,"sequence_id":"#"}})"},
+        {"print_option auto_switch_filament", [](MachineObject& m) { return m.command_ams_switch_filament(true); }, R"(0 {"print":{"auto_switch_filament":true,"command":"print_option","sequence_id":"#"}})"},
+        {"print_option air_print_detect", [](MachineObject& m) { return m.command_ams_air_print_detect(false); }, R"(0 {"print":{"air_print_detect":false,"command":"print_option","sequence_id":"#"}})"},
+        {"set_extrusion_length", [](MachineObject& m) { return m.command_extruder_control(0, 10.7); }, R"(0 {"print":{"command":"set_extrusion_length","extruder_index":0,"length":10,"sequence_id":"#"}})"},
+        {"get_pa_calibration_result", [](MachineObject& m) { return m.command_get_pa_calibration_result(0.4f); }, R"(0 {"print":{"command":"extrusion_cali_get_result","nozzle_diameter":"0.4","sequence_id":"#"}})"},
+        {"flowrate_get_result", [](MachineObject& m) { return m.command_get_flow_ratio_calibration_result(0.4f); }, R"(0 {"print":{"command":"flowrate_get_result","nozzle_diameter":"0.4","sequence_id":"#"}})"},
+        {"ipcam_record_set", [](MachineObject& m) { return m.command_ipcam_record(true); }, R"(0 {"camera":{"command":"ipcam_record_set","control":"enable","sequence_id":"#"}})"},
+        {"ipcam_timelapse", [](MachineObject& m) { return m.command_ipcam_timelapse(false); }, R"(0 {"camera":{"command":"ipcam_timelapse","control":"disable","sequence_id":"#"}})"},
+        {"ipcam_resolution_set", [](MachineObject& m) { return m.command_ipcam_resolution_set("1080p"); }, R"(0 {"camera":{"command":"ipcam_resolution_set","resolution":"1080p","sequence_id":"#"}})"},
+        {"ipcam_get_media_info", [](MachineObject& m) { return m.command_ipcam_check_timelapse_storage("emmc", 120); }, R"(0 {"camera":{"command":"ipcam_get_media_info","sequence_id":"#","storage":"emmc","sub_command":"is_timelapse_storage_enough","total_layer":120}})"},
+        {"ipcam_delete_oldest_timelapse", [](MachineObject& m) { return m.command_ipcam_delete_oldest_timelapse("sdcard", 120); }, R"(0 {"camera":{"command":"ipcam_delete_oldest_timelapse","sequence_id":"#","storage":"sdcard","total_layer":120}})"},
+        {"xcam_control_set", [](MachineObject& m) { return m.command_xcam_control("first_layer_inspector", true, "medium"); }, R"(0 {"xcam":{"command":"xcam_control_set","control":true,"enable":true,"halt_print_sensitivity":"medium","module_name":"first_layer_inspector","print_halt":true,"sequence_id":"#"}})"},
+        {"xcam spaghetti", [](MachineObject& m) { return m.command_xcam_control_spaghetti_detection(true, "never_halt"); }, R"(0 {"xcam":{"command":"xcam_control_set","control":true,"enable":true,"halt_print_sensitivity":"never_halt","module_name":"spaghetti_detector","print_halt":true,"sequence_id":"#"}})"},
+        {"close_air_filt", [](MachineObject& m) { return m.command_purification_disable(); }, R"(1 {"print":{"command":"close_air_filt","sequence_id":"#"}})"},
+        {"set_door_stat", [](MachineObject& m) { m.command_set_door_open_check(MachineObject::DOOR_OPEN_CHECK_ENABLE_WARNING); return 0; }, R"(0 {"system":{"command":"set_door_stat","config":1,"sequence_id":"#"}})"},
+        {"print_cache_set", [](MachineObject& m) { m.command_set_save_remote_print_file_to_storage(!m.get_save_remote_print_file_to_storage()); return 0; }, R"(0 {"system":{"command":"print_cache_set","config":true,"sequence_id":"#"}})"},
+        {"ledctrl", [](MachineObject& m) { m.GetLamp()->CtrlSetChamberLight(LIGHT::LIGHT_EFFECT_ON); return 0; }, R"(0 {"system":{"command":"ledctrl","interval_time":1000,"led_mode":"on","led_node":"chamber_light","led_off_time":500,"led_on_time":500,"loop_times":1,"sequence_id":"#"}})" "\n" R"(0 {"system":{"command":"ledctrl","interval_time":1000,"led_mode":"on","led_node":"chamber_light2","led_off_time":500,"led_on_time":500,"loop_times":1,"sequence_id":"#"}})"},
+        {"select_extruder", [](MachineObject& m) { return m.GetCtrl()->command_select_extruder(1); }, R"(1 {"print":{"command":"select_extruder","extruder_index":1,"sequence_id":"#"}})"},
+        {"chamber set_ctt", [](MachineObject& m) { return m.GetChamber()->CtrlSetChamberTemp(40); }, R"(1 {"print":{"command":"set_ctt","ctt_val":40,"sequence_id":"#"}})"},
+        {"upgrade start", [](MachineObject& m) { return m.GetUpgrade().lock()->CtrlUpgradeModule("https://example.com/f.bin", "ota", "01.09.00"); }, R"(0 {"upgrade":{"command":"start","module":"ota","sequence_id":"#","src_id":1,"url":"https://example.com/f.bin","version":"01.09.00"}})"},
+        {"ams_reset", [](MachineObject& m) { return m.GetFilaSystem()->CtrlAmsReset(); }, R"(0 {"print":{"command":"ams_reset","sequence_id":"#"}})"},
+        {"ams_filament_drying start", [](MachineObject& m) { return m.GetFilaSystem()->CtrlAmsStartDryingHour(1, "PETG", 65, 8, true, 40, false); }, R"(0 {"print":{"ams_id":1,"close_power_conflict":false,"command":"ams_filament_drying","cooling_temp":40,"duration":8,"filament":"PETG","humidity":0,"mode":1,"rotate_tray":true,"sequence_id":"#","temp":65}})"},
+        {"ams_filament_drying stop", [](MachineObject& m) { return m.GetFilaSystem()->CtrlAmsStopDrying(1); }, R"(0 {"print":{"ams_id":1,"close_power_conflict":false,"command":"ams_filament_drying","cooling_temp":0,"duration":0,"filament":"","humidity":0,"mode":0,"rotate_tray":false,"sequence_id":"#","temp":0}})"},
+        {"heating protect", [](MachineObject& m) { return m.GetPrintOptions()->command_set_against_continued_heating_mode(true); }, R"(0 {"print":{"command":"set_against_continued_heating_mode","enable":true,"sequence_id":"#"}})"},
+        {"options print_option", [](MachineObject& m) { return m.GetPrintOptions()->command_set_printing_option(true, &m); }, R"(0 {"print":{"auto_recovery":true,"command":"print_option","option":1,"sequence_id":"#"}})"},
+        {"options air_purification", [](MachineObject& m) { return m.GetPrintOptions()->command_xcam_control_purify_air_at_print_end(2); }, R"(0 {"print":{"air_purification":2,"command":"print_option","sequence_id":"#"}})"},
+        {"options ipcam_cap_pic_set", [](MachineObject& m) { return m.GetPrintOptions()->command_snapshot_control(1); }, R"(0 {"camera":{"command":"ipcam_cap_pic_set","control":"enable","sequence_id":"#"}})"},
+        {"options nozzle_blob_detect_v2", [](MachineObject& m) { return m.GetPrintOptions()->command_smart_nozzle_blob_detect_mode(2); }, R"(0 {"print":{"command":"print_option","nozzle_blob_detect_v2":2,"sequence_id":"#"}})"},
+        {"options xcam", [](MachineObject& m) { return m.GetPrintOptions()->command_xcam_control_fod_check(true); }, R"(0 {"xcam":{"command":"xcam_control_set","control":true,"enable":true,"module_name":"fod_check","print_halt":true,"sequence_id":"#"}})"},
+    };
+
+    for (const PublishedCommand& command : commands) {
+        DYNAMIC_SECTION(command.name)
+        {
+            ConnectedPrinter p("IDLE");
+            REQUIRE(command.send(p.printer) == 0);
+            REQUIRE_FALSE(p.agent->last_message.empty());
+            CHECK(published_command(p) == command.expected);
+        }
+    }
 }
