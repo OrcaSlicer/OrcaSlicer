@@ -3070,12 +3070,12 @@ void GCodeViewer::update_layers_slider_mode()
 
 void GCodeViewer::update_ranges_colors()
 {
-    // every palette change recolors the whole preview, so only on an actual change
+    // recolors the whole preview, so only on change
     if (m_ui_color_set == ui_color_set())
         return;
     m_ui_color_set = ui_color_set();
 
-    // the view types that are not colored by a range ignore it
+    // view types without a range ignore it
     for (std::size_t type = 0; type < libvgcode::VIEW_TYPES_COUNT; ++type)
         m_viewer.set_color_range_palette(static_cast<libvgcode::EViewType>(type), ui_colors().ranges);
 }

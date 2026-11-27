@@ -39,7 +39,7 @@ enum class AssemblyMode : unsigned char {
     FACE_FACE,
     POINT_POINT,
 };
-// ORCA: the colors of the two selections follow the "Color set" preference
+// ORCA: selection colors follow the color set
 inline const Slic3r::ColorRGBA& selected_1st_color() { return ui_colors().measure_pair[0]; }
 inline const Slic3r::ColorRGBA& selected_2nd_color() { return ui_colors().measure_pair[1]; }
 static const Slic3r::ColorRGBA NEUTRAL_COLOR      = {0.5f, 0.5f, 0.5f, 1.0f};

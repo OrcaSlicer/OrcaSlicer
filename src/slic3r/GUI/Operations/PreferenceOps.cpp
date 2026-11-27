@@ -827,13 +827,12 @@ void apply_preference(const std::string& key)
         if (WebViewPanel* home = WebViewPanel::if_built())
             home->SendCloudProvidersInfo();
     } else if (key == "ui_color_set") {
-        // ORCA: apply the color set change immediately to the currently loaded preview and to the open gizmo
+        // ORCA: apply the color set immediately
         GLCanvas3D::update_ui_colors();
         if (GLCanvas3D* canvas = preview_canvas()) {
             canvas->get_gcode_viewer().update_ranges_colors();
             redraw_preview(*canvas);
         }
-        // the gizmos read the preference when they draw
         if (Plater* plater = wxGetApp().plater()) {
             if (GLCanvas3D* canvas = plater->get_view3D_canvas3D()) {
                 canvas->set_as_dirty();

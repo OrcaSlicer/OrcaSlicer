@@ -67,7 +67,7 @@ public:
     static ColorRGBA GRABBER_UNIFORM_COL;
     static ColorRGBA GRABBER_UNIFORM_HOVER_COL;
 
-    // ORCA: refreshes AXES_COLOR and AXES_HOVER_COLOR after the axis colors changed with the color set
+    // ORCA: refreshes AXES_COLOR and AXES_HOVER_COLOR after a color set change
     static void update_axes_colors();
 
     static void update_render_colors();

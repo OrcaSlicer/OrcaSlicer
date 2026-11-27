@@ -676,7 +676,7 @@ void GLGizmoRotate3D::on_render()
 {
     glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
 
-    // ORCA: the axis colors change with the "Color set" preference
+    // ORCA: the axis colors can change with the color set
     for (unsigned int i = 0; i < 3; ++i)
         m_gizmos[i].set_highlight_color(AXES_COLOR[i]);
 

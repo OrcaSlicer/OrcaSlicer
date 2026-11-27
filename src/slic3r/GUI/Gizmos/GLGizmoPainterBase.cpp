@@ -56,10 +56,8 @@ namespace cereal { class BinaryInputArchive; }
 
 namespace Slic3r::GUI {
 
-// ORCA: the cursor while one of its buttons is held. A sphere this translucent still shows the stroke under it and
-// stands out from the model in the light default brush colors, as the blue and red spheres it replaces did
+// ORCA: opacity of the cursor sphere while painting
 static constexpr float PAINT_CURSOR_OPACITY = 0.5f;
-static const ColorRGBA ERASE_CURSOR_COLOR   = {0.0f, 0.0f, 0.6f, 0.25f};
 
 std::shared_ptr<GLModel> GLGizmoPainterBase::s_sphere = nullptr;
 
@@ -134,8 +132,7 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection, const Mode
 
 void GLGizmoPainterBase::render_triangles(const Selection& selection, const std::vector<const ModelVolume*>& skip) const
 {
-    // ORCA: the two brush colors follow the "Color set" preference. The triangle selectors keep
-    // the colors they were built with, so they are given the current ones.
+    // ORCA: brush colors follow the color set. The selectors keep the colors they were built with, so refresh them
     TriangleSelectorGUI::enforcers_color = ui_colors().enforcer;
     TriangleSelectorGUI::blockers_color  = ui_colors().blocker;
     if (paints_with_brush_colors()) {
@@ -353,7 +350,7 @@ void GLGizmoPainterBase::render_cursor_circle()
         render_color = this->get_cursor_sphere_left_button_color();
     else if (m_button_down == Button::Right)
         render_color = this->get_cursor_sphere_right_button_color();
-    // ORCA: the circle is a thin line, not a sphere over the model, so it is drawn opaque
+    // ORCA: the circle is a thin line, so it is drawn opaque
     if (m_button_down != Button::None)
         render_color.a(1.0f);
 
@@ -1293,14 +1290,13 @@ TriangleSelector::ClippingPlane GLGizmoPainterBase::get_clipping_plane_in_volume
 ColorRGBA TriangleSelectorGUI::enforcers_color = {0.5f, 1.f, 0.5f, 1.f};
 ColorRGBA TriangleSelectorGUI::blockers_color  = {1.f, 0.5f, 0.5f, 1.f};
 
-// ORCA: the color of the cursor while one of its buttons is held: the color the stroke leaves on the model,
-// made translucent. `state` is what the button paints. Dark blue stands for erasing, which Shift
-// does with both buttons, see gizmo_event(). `fixed_color` is for the gizmos that do not paint with the brush colors.
+// ORCA: cursor color while a button is held: the color `state` paints with, or the erase color when erasing.
+// `fixed_color` is for color painting, which does not use the brush colors
 static ColorRGBA cursor_color(EnforcerBlockerType state, bool brush_colors, const ColorRGBA& fixed_color)
 {
-    // Shift as the mouse events report it, which is what gizmo_event() erases by, see ImGuiWrapper::update_mouse_data()
+    // Shift erases with both buttons, see gizmo_event()
     if (state == EnforcerBlockerType::NONE || ImGui::GetIO().KeyShift)
-        return ERASE_CURSOR_COLOR;
+        return ui_colors().erase_cursor;
     if (!brush_colors)
         return fixed_color;
     ColorRGBA color = state == EnforcerBlockerType::BLOCKER ? TriangleSelectorGUI::blockers_color : TriangleSelectorGUI::enforcers_color;
@@ -1310,8 +1306,7 @@ static ColorRGBA cursor_color(EnforcerBlockerType state, bool brush_colors, cons
 
 ColorRGBA GLGizmoPainterBase::get_cursor_sphere_left_button_color() const
 {
-    // ORCA: a gizmo that does not paint with the brush colors hovers in the color it paints with (the selected
-    // filament in color painting), so the cursor keeps that color while painting
+    // ORCA: color painting keeps its hover color, the selected filament, while painting
     ColorRGBA hover_color = get_cursor_hover_color();
     hover_color.a(PAINT_CURSOR_OPACITY);
     return cursor_color(get_left_button_state_type(), paints_with_brush_colors(), hover_color);

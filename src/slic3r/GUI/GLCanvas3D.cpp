@@ -209,11 +209,10 @@ void Slic3r::GUI::GLCanvas3D::load_render_colors()
     RenderColor::colors[RenderCol_3D_Background] = ImGuiWrapper::to_ImVec4(DEFAULT_BG_LIGHT_COLOR);
 }
 
-// ORCA: makes the color set of the "ui_color_set" preference the one in use. The colors are read from ui_colors()
-// when they are drawn, the axis colors are also kept by the gizmos and the bed
+// ORCA: applies the "ui_color_set" preference and refreshes the axis colors kept by the gizmos and the bed
 void Slic3r::GUI::GLCanvas3D::update_ui_colors()
 {
-    // the preference stores the index of the set, nothing stored reads as the default set
+    // stored as the index of the set, nothing stored means the default set
     const AppConfig* config = wxGetApp().app_config;
     set_ui_color_set(config != nullptr ? std::atoi(config->get("ui_color_set").c_str()) : 0);
     GLGizmoBase::update_axes_colors();

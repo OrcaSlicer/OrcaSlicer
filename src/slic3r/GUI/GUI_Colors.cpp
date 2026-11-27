@@ -17,27 +17,27 @@ const char* GetRenderColName(RenderCol idx)
 {
     switch (idx)
     {
-    case RenderCol_3D_Background:       return "3D Background";
-    case RenderCol_Plate_Unselected:    return "Plate Unselected";
-    case RenderCol_Plate_Selected:      return "Plate Selected";
-    case RenderCol_Plate_Default:       return "Plate Default";
-    case RenderCol_Plate_Line_Top:      return "Plate Line Top";
-    case RenderCol_Plate_Line_Bottom:   return "Plate Line Bottom";
-    case RenderCol_Model_Disable:       return "Model Disable";
-    case RenderCol_Model_Unprintable:   return "Model Unprintable";
-    case RenderCol_Model_Neutral:       return "Model Neutral";
-    case RenderCol_Part:                return "Part";
-    case RenderCol_Modifier:            return "Modifier";
-    case RenderCol_Negtive_Volume:      return "Negtive Volume";
-    case RenderCol_Support_Enforcer:    return "Support Enforcer";
-    case RenderCol_Support_Blocker:     return "Support Blocker";
-    case RenderCol_Axis_X:              return "Axis X";
-    case RenderCol_Axis_Y:              return "Axis Y";
-    case RenderCol_Axis_Z:              return "Axis Z";
-    case RenderCol_Grabber_X:           return "Grabber X";
-    case RenderCol_Grabber_Y:           return "Grabber Y";
-    case RenderCol_Grabber_Z:           return "Grabber Z";
-    case RenderCol_Flatten_Plane:       return "Flatten Plane";
+    case RenderCol_3D_Background: return "3D Background";
+    case RenderCol_Plate_Unselected: return "Plate Unselected";
+    case RenderCol_Plate_Selected: return "Plate Selected";
+    case RenderCol_Plate_Default: return "Plate Default";
+    case RenderCol_Plate_Line_Top: return "Plate Line Top";
+    case RenderCol_Plate_Line_Bottom: return "Plate Line Bottom";
+    case RenderCol_Model_Disable: return "Model Disable";
+    case RenderCol_Model_Unprintable: return "Model Unprintable";
+    case RenderCol_Model_Neutral: return "Model Neutral";
+    case RenderCol_Part: return "Part";
+    case RenderCol_Modifier: return "Modifier";
+    case RenderCol_Negtive_Volume: return "Negtive Volume";
+    case RenderCol_Support_Enforcer: return "Support Enforcer";
+    case RenderCol_Support_Blocker: return "Support Blocker";
+    case RenderCol_Axis_X: return "Axis X";
+    case RenderCol_Axis_Y: return "Axis Y";
+    case RenderCol_Axis_Z: return "Axis Z";
+    case RenderCol_Grabber_X: return "Grabber X";
+    case RenderCol_Grabber_Y: return "Grabber Y";
+    case RenderCol_Grabber_Z: return "Grabber Z";
+    case RenderCol_Flatten_Plane: return "Flatten Plane";
     case RenderCol_Flatten_Plane_Hover: return "Flatten Plane Hover";
     }
     return "Unknown";
@@ -58,8 +58,7 @@ static libvgcode::Palette palette(std::initializer_list<const char*> hexes)
     return colors;
 }
 
-// ORCA: every color that depends on the color set. To add a set, add it to UIColorSet, to the choices of the
-// "ui_color_set" preference in PreferenceOps.cpp and here
+// ORCA: colors of every set. To add a set: UIColorSet, the "ui_color_set" choices in PreferenceOps.cpp, and here
 static std::array<UIColors, size_t(UIColorSet::Count)> make_ui_colors()
 {
     std::array<UIColors, size_t(UIColorSet::Count)> sets;
@@ -74,6 +73,7 @@ static std::array<UIColors, size_t(UIColorSet::Count)> make_ui_colors()
     }}; 
     def.enforcer     = rgba("#80FF80");
     def.blocker      = rgba("#FF8080");
+    def.erase_cursor = rgba("#00009940");
     def.overhang     = rgb("#C70000");
     def.measure_pair = {{
         rgba("#40BFBF"), // selected_1st_color
@@ -85,16 +85,11 @@ static std::array<UIColors, size_t(UIColorSet::Count)> make_ui_colors()
     }};
     def.ranges       = libvgcode::DEFAULT_RANGES_COLORS;
 
-    // DEUTAN. Every other set starts as the default one and changes what it needs to.
+    // DEUTAN: starts as the default set and changes what it needs to
     /////////////////////////////////////////////////////////
-    // Brushes: yellow green and brick red over a muted purple overhang marking. The model, the overhangs, the two
-    // brushes and the two brushes over an overhang then all stay apart with protanopia and deuteranopia, which the
-    // default green and red over a red overhang marking do not. The red is much darker than the green as the two
-    // differ only in lightness with a red-green deficiency. The overhang color is weak in blue so that the green,
-    // a yellow with these deficiencies, keeps its hue where the two overlap: against a strong blue it turns into
-    // a grey like the model.
-    // Pairs: blue and green, as yellow tones are taken by the grabber of the cut gizmo.
-    // Ranges: no two of its stops become alike with protanopia, deuteranopia or tritanopia.
+    // Brushes and overhang: stay apart with protanopia and deuteranopia, also where a brush covers an overhang
+    // Pairs: blue and green, as yellow is taken by the grabber of the cut gizmo
+    // Ranges: no two stops look alike with protanopia, deuteranopia or tritanopia
     UIColors& deutan = sets[size_t(UIColorSet::Deutan)];
     deutan              = def;
     deutan.axes         = {{
@@ -136,7 +131,7 @@ const UIColors& ui_colors()    { return UI_COLORS[size_t(s_ui_color_set)]; }
 
 void set_ui_color_set(int idx)
 {
-    // a value that is not a set, as nothing stored is, stands for the default set
+    // unknown values mean the default set
     s_ui_color_set = 0 <= idx && idx < int(UIColorSet::Count) ? UIColorSet(idx) : UIColorSet::Default;
     const std::array<ColorRGB, 3>& axes = ui_colors().axes;
     ColorRGB::set_axes(axes[0], axes[1], axes[2]);

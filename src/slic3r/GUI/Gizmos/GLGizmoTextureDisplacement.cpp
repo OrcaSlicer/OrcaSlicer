@@ -794,8 +794,8 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
     if (show_paint_overlay && (preview_drawn ? paint_feedback : painted_colors_drawn && is_painting())) {
         // GLModel::render() re-sets "uniform_color" from the model's own color just before drawing, so the
         // color is set on the model rather than as a uniform.
-        // ORCA: the tint takes the color of the brush, set by render_triangles() above
-        ColorRGBA tint = TriangleSelectorGUI::enforcers_color;
+        // ORCA: the tint takes the color of the brush
+        ColorRGBA tint = ui_colors().enforcer;
         tint.a(0.38f);
         m_paint_overlay_glmodel.set_color(tint);
         render_paint_overlay(m_paint_overlay_glmodel);

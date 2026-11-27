@@ -251,9 +251,8 @@ protected:
 
     virtual ColorRGBA get_cursor_sphere_left_button_color() const;
     virtual ColorRGBA get_cursor_sphere_right_button_color() const;
-    // ORCA: whether the triangle selectors are colored with the two brush colors of TriangleSelectorGUI,
-    // which follow the "Color set" preference
-    virtual bool paints_with_brush_colors() const { return true; }
+    // ORCA: color painting paints with the filament colors, the other gizmos with the two brush colors
+    bool paints_with_brush_colors() const { return get_painter_type() != PainterGizmoType::MM_SEGMENTATION; }
     // BBS
     virtual ColorRGBA get_cursor_hover_color() const { return { 0.f, 0.f, 0.f, 0.25f }; }
 

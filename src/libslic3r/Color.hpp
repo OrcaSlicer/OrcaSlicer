@@ -71,7 +71,7 @@ public:
     static const ColorRGB ORCA()		{ return {0.0f, 150.f / 255.0f, 136.0f / 255}; }
 	static const ColorRGB WARNING()     { return {241.0f / 255, 117.f / 255.0f, 78.0f / 255}; }
 
-	// ORCA: the axis colors. The GUI replaces them with those of its color set, see GUI::set_ui_color_set()
+	// ORCA: axis colors, replaced by the GUI with those of its color set
 	static const ColorRGB X()           { return { s_axes[0][0], s_axes[0][1], s_axes[0][2] };}
 	static const ColorRGB Y()           { return { s_axes[1][0], s_axes[1][1], s_axes[1][2] };}
 	static const ColorRGB Z()           { return { s_axes[2][0], s_axes[2][1], s_axes[2][2] };}

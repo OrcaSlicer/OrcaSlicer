@@ -81,7 +81,7 @@ namespace Slic3r {
 namespace GUI {
 
 static const ColorRGBA GRABBER_COLOR = ColorRGBA::YELLOW();
-// ORCA: the colors of the two parts follow the "Color set" preference
+// ORCA: part colors follow the color set
 static const ColorRGBA& upper_part_color() { return ui_colors().cut_pair[0]; }
 static const ColorRGBA& lower_part_color() { return ui_colors().cut_pair[1]; }
 static const ColorRGBA MODIFIER_COLOR   = ColorRGBA(0.75f, 0.75f, 0.75f, 0.5f);
@@ -98,7 +98,7 @@ static const ColorRGBA CONNECTOR_ERR_COLOR  = ColorRGBA(1.0f, 0.3f, 0.3f, 0.5f);
 static const ColorRGBA HOVERED_ERR_COLOR    = ColorRGBA(1.0f, 0.3f, 0.3f, 1.0f);
 
 static const ColorRGBA CUT_PLANE_DEF_COLOR  = ColorRGBA(0.9f, 0.9f, 0.9f, 0.5f);
-static const ColorRGBA CUT_PLANE_ERR_COLOR  = ColorRGBA(1.0f, 0.3f, 0.3f, 0.5f); // ORCA: red-green colorblind people tell the invalid plane from the valid one by how dark it is, so it is a darker red
+static const ColorRGBA CUT_PLANE_ERR_COLOR  = ColorRGBA(1.0f, 0.3f, 0.3f, 0.5f); // ORCA: darker red, also visible with red-green colorblindness
 
 const unsigned int AngleResolution = 64;
 const unsigned int ScaleStepsCount = 72;
@@ -2369,7 +2369,7 @@ void GLGizmoCut3D::on_render()
     // check objects visibility
     toggle_model_objects_visibility();
 
-    // ORCA: the two part colors follow the "Color set" preference, which can change while the gizmo is open
+    // ORCA: the color set can change while the gizmo is open
     apply_color_clip_plane_colors();
 
     update_clipper();

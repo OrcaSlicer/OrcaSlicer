@@ -975,7 +975,7 @@ void GLGizmoMeasure::on_render()
     };
 
     auto hovering_color = [this, hover_selection_color]() {
-        // ORCA: a brighter version of the color the selection takes
+        // ORCA: brighter version of the selection color
         return (m_mode == EMode::PointSelection) ? lerp(hover_selection_color(), ColorRGBA::WHITE(), 0.6f) : hover_selection_color();
     };
 
@@ -1720,11 +1720,11 @@ void GLGizmoMeasure::render_dimensioning()
             !(m_measure_mode == EMeasureMode::ONLY_ASSEMBLY && m_assembly_mode == AssemblyMode::FACE_FACE)) {
             auto x_to = dap.from;
             x_to[0]   = dap.to[0];
-            point_point(dap.from, x_to, x_to[0] - dap.from[0], ColorRGBA::RED(), false, false);
+            point_point(dap.from, x_to, x_to[0] - dap.from[0], ColorRGBA::X(), false, false); // ORCA match axis color
             auto y_to = x_to;
             y_to[1]   = dap.to[1];
-            point_point(x_to, y_to, y_to[1] - x_to[1], ColorRGBA::GREEN(), false, false);
-            point_point(y_to, dap.to, dap.to[2] - y_to[2], ColorRGBA::BLUE(), false, false);
+            point_point(x_to, y_to, y_to[1] - x_to[1], ColorRGBA::Y(), false, false);         // ORCA match axis color
+            point_point(y_to, dap.to, dap.to[2] - y_to[2], ColorRGBA::Z(), false, false);     // ORCA match axis color
         }
 
         point_point(dap.from, dap.to, dap.dist, ColorRGBA::WHITE());
