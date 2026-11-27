@@ -1488,6 +1488,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             need_travel_after_change_filament_gcode = true;
         }
 
+        // The last position tracked for the head before the change G-code, in the coordinates the G-code is
+        // written in. A wall the tower prints first is not tracked, so then it is where that wall started.
+        // Taken while the old filament is still the active one, as its extruder offset is part of it.
+        const Vec2d position_before_change_gcode = gcodegen.point_to_gcode(gcodegen.last_pos()) - plate_origin_2d.cast<double>();
+
         std::string toolchange_command;
         if (tcr.priming || (new_filament_id >= 0 && gcodegen.writer().need_toolchange(new_filament_id)))
             // Orca: null-safe, layer-aware nozzle lookup — group_result may be null on
@@ -1523,7 +1528,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 wipe_next_start_point_str = start_pos_str;
             } else {
                 // BBS:change travel_path
-                Vec3f gcode_last_pos;
+                // An axis the change G-code does not name in a G0 to G3 move is taken to be where it was.
+                Vec3f gcode_last_pos(static_cast<float>(position_before_change_gcode.x()), static_cast<float>(position_before_change_gcode.y()), 0.f);
                 GCodeProcessor::get_last_position_from_gcode(toolchange_gcode_str, gcode_last_pos);
                 Vec2f       gcode_last_pos2d{gcode_last_pos[0], gcode_last_pos[1]};
                 Point       gcode_last_pos2d_object = gcodegen.gcode_to_point(gcode_last_pos2d.cast<double>() + plate_origin_2d.cast<double>());

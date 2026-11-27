@@ -122,7 +122,7 @@ modules:
         # No branch and no tag: flatpak-builder checks that a named branch's tip is the pinned
         # commit, which fails once the fork's branch moves past it. With the commit alone it
         # fetches as much history as the commit needs on its own.
-        commit: b44c39c100975a0ac0e46f937aa3f3eae5e18631
+        commit: 89844cb1f80b17a5916d5274cd88317cac3e2a3c
 
   # OrcaSlicer C++ dependencies (built offline with pre-downloaded archives)
   - name: orca_deps
@@ -416,7 +416,7 @@ modules:
       # this build uses the default Makefile generator, so it is not available here.)
       - cmake --build build_flatpak -j"${FLATPAK_BUILDER_N_JOBS:-$(nproc)}" --target
           libslic3r_tests fff_print_tests sla_print_tests libnest2d_tests slic3rutils_tests
-          filament_group_tests
+          automation_tests filament_group_tests
 
     cleanup:
       - /include

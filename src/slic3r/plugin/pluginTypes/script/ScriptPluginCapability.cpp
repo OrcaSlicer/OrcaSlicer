@@ -17,9 +17,16 @@ void ScriptPluginCapability::RegisterBindings(pybind11::module_& module)
 
     auto script = module.def_submodule("script", "Script Plugins API");
 
-    py::class_<ScriptPluginCapability, PluginCapabilityInterface, PyScriptPluginCapabilityTrampoline, std::shared_ptr<ScriptPluginCapability>>(script, "ScriptPluginCapabilityBase")
+    py::class_<ScriptPluginCapability, PluginCapabilityInterface, PyScriptPluginCapabilityTrampoline,
+               std::shared_ptr<ScriptPluginCapability>>(
+        script, "ScriptPluginCapabilityBase",
+        "Base for a script capability: an action the user runs from the Plugins dialog or the speed dial.")
         .def(py::init<>())
-        .def("get_type", &ScriptPluginCapability::get_type)
-        .def("execute", &ScriptPluginCapability::execute);
+        .def("get_type", &ScriptPluginCapability::get_type, "Return PluginType.Script.")
+        .def("execute", &ScriptPluginCapability::execute,
+             "Required. Called with no arguments when the user runs the script, on a worker thread rather than\n"
+             "the UI thread; it may be an async def. Return an ExecutionResult: Success and Skipped show its\n"
+             "message, or a default text, to the user, and the Plugins dialog reports RecoverableError and\n"
+             "FatalError as errors with the message. A raised exception is reported as an error.");
 }
 } // namespace Slic3r

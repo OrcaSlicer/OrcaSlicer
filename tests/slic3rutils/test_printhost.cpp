@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -15,7 +16,11 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <catch2/generators/catch_generators_range.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include "libslic3r/Config.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "slic3r/GUI/Operations/PrinterOps.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
 #include "slic3r/Utils/Flashforge.hpp"
 #include "slic3r/Utils/Http.hpp"
@@ -380,4 +385,34 @@ TEST_CASE("A successful upload finishes without an error", "[PrintHost][Lifecycl
     CHECK(run.errors.empty());
     CHECK(run.events == std::vector<LifecycleEvent>{LifecycleEvent::UploadStarted, LifecycleEvent::UploadFinished});
     CHECK(run.codes == std::vector<LifecycleEvtCode>{LifecycleEvtCode::Ok, LifecycleEvtCode::Ok});
+}
+
+TEST_CASE("A print host is tested only with an address and a test of its kind", "[PrintHost]")
+{
+    const auto code = [](const PrintHost* host, const std::string& address) {
+        const std::optional<GUI::Ops::Refusal> refusal = GUI::Ops::host_test_refusal(host, address);
+        return refusal ? std::string(refusal->code) : std::string();
+    };
+    // No host of the printer's kind.
+    CHECK(code(nullptr, "192.168.1.20") == "no_print_host");
+
+    // The connection settings a host reads, at their defaults: an OctoPrint host with no address.
+    const std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(
+        {"host_type", "print_host", "printhost_apikey", "printhost_cafile", "printhost_ssl_ignore_revoke"}));
+    config->set_key_value("host_type", new ConfigOptionEnum<PrintHostType>(htOctoPrint));
+    const std::unique_ptr<PrintHost> octoprint(PrintHost::get_print_host(config.get()));
+    REQUIRE(octoprint);
+    CHECK(code(octoprint.get(), "") == "no_print_host");
+    CHECK(code(octoprint.get(), "192.168.1.20").empty());
+
+    // A cloud host gets its own address from the connection dialog, so one without is refused too.
+    config->set_key_value("host_type", new ConfigOptionEnum<PrintHostType>(htSimplyPrint));
+    const std::unique_ptr<PrintHost> simplyprint(PrintHost::get_print_host(config.get()));
+    REQUIRE(simplyprint);
+    CHECK(simplyprint->is_cloud());
+    CHECK(code(simplyprint.get(), "") == "no_print_host");
+
+    // A kind of host with no test.
+    const TestPrintHost untestable;
+    CHECK(code(&untestable, "192.168.1.20") == "host_cannot_be_tested");
 }

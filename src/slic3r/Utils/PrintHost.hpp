@@ -159,6 +159,10 @@ public:
     // the upload is reported through error_fn and makes the upload fail.
     static bool upload_job(PrintHostJob &job, PrintHost::ProgressFn progress_fn, PrintHost::ErrorFn error_fn, PrintHost::InfoFn info_fn);
 
+    // The percentage a job's row shows while its bytes go out. It stops at 99: the host may still refuse the
+    // file once the last byte is sent, so only an upload() that returned success completes the row.
+    static int sent_percent(const Http::Progress &progress);
+
 private:
     struct priv;
     std::shared_ptr<priv> p;

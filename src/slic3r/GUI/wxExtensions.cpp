@@ -71,19 +71,26 @@ void msw_rescale_menu(wxMenu* menu)
 #endif /* __WXMSW__ */
 #endif /* no __WXGTK__ */
 
-void enable_menu_item(wxUpdateUIEvent& evt, std::function<bool()> const cb_condition, wxMenuItem* item, wxWindow* win)
+// A menu item's wxEVT_UPDATE_UI handler, bound to `win` for the item's id: enables the item as `cb_condition`
+// says and, on macOS, gives it the icon of that state. The item is looked up in the menu that sent the event,
+// which is the one holding it (wxMenuBase::UpdateUI(), wxMenu::HandleCommandUpdateStatus()), rather than kept by
+// the handler: the handler stays bound to `win` after its menu, and the item with it, is gone.
+void enable_menu_item(wxUpdateUIEvent& evt, std::function<bool()> const cb_condition, wxWindow* win)
 {
     const bool enable = cb_condition();
     evt.Enable(enable);
 
 #ifdef __WXOSX__
-    const auto it = msw_menuitem_bitmaps.find(item->GetId());
-    if (it != msw_menuitem_bitmaps.end())
-    {
-        const wxBitmap& item_icon = create_scaled_bitmap(it->second, win, 16, !enable);
-        if (item_icon.IsOk())
-            item->SetBitmap(item_icon);
-    }
+    const auto it = msw_menuitem_bitmaps.find(evt.GetId());
+    if (it == msw_menuitem_bitmaps.end())
+        return;
+    const auto* menu = dynamic_cast<const wxMenu*>(evt.GetEventObject());
+    wxMenuItem* item = menu != nullptr ? menu->FindItem(evt.GetId()) : nullptr;
+    if (item == nullptr)
+        return;
+    const wxBitmap& item_icon = create_scaled_bitmap(it->second, win, 16, !enable);
+    if (item_icon.IsOk())
+        item->SetBitmap(item_icon);
 #endif // __WXOSX__
 }
 
@@ -111,8 +118,8 @@ wxMenuItem* append_menu_item(wxMenu* menu, int id, const wxString& string, const
         menu->Bind(wxEVT_MENU, cb, id);
 
     if (parent) {
-        parent->Bind(wxEVT_UPDATE_UI, [cb_condition, item, parent](wxUpdateUIEvent& evt) {
-            enable_menu_item(evt, cb_condition, item, parent); }, id);
+        parent->Bind(wxEVT_UPDATE_UI, [cb_condition, parent](wxUpdateUIEvent& evt) {
+            enable_menu_item(evt, cb_condition, parent); }, id);
     }
 
     return item;
@@ -156,8 +163,8 @@ wxMenuItem* append_submenu(wxMenu* menu, wxMenu* sub_menu, int id, const wxStrin
         menu->Insert(insert_pos, item);
 
     if (parent) {
-        parent->Bind(wxEVT_UPDATE_UI, [cb_condition, item, parent](wxUpdateUIEvent& evt) {
-            enable_menu_item(evt, cb_condition, item, parent); }, id);
+        parent->Bind(wxEVT_UPDATE_UI, [cb_condition, parent](wxUpdateUIEvent& evt) {
+            enable_menu_item(evt, cb_condition, parent); }, id);
     }
 
     return item;
