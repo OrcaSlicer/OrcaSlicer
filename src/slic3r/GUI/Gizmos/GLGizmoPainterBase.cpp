@@ -1302,7 +1302,7 @@ ColorRGBA TriangleSelectorGUI::enforcers_color = ENFORCERS_COLOR_DEFAULT;
 ColorRGBA TriangleSelectorGUI::blockers_color  = BLOCKERS_COLOR_DEFAULT;
 
 // ORCA: the color of the cursor while one of its buttons is held: the color the stroke leaves on the model,
-// as translucent as the cursor is. `state` is what the button paints. White stands for erasing, which Shift
+// as translucent as the cursor is. `state` is what the button paints. Dark blue stands for erasing, which Shift
 // does with both buttons, see gizmo_event(). `fixed_color` is for the gizmos that do not paint with the brush colors.
 static ColorRGBA cursor_color(EnforcerBlockerType state, bool brush_colors, const ColorRGBA& fixed_color)
 {
@@ -1317,7 +1317,11 @@ static ColorRGBA cursor_color(EnforcerBlockerType state, bool brush_colors, cons
 
 ColorRGBA GLGizmoPainterBase::get_cursor_sphere_left_button_color() const
 {
-    return cursor_color(get_left_button_state_type(), paints_with_brush_colors(), { 0.0f, 0.0f, 1.0f, 0.25f });
+    // ORCA: a gizmo that does not paint with the brush colors hovers in the color it paints with (the selected
+    // filament in color painting), so the cursor keeps that color while painting
+    ColorRGBA hover_color = get_cursor_hover_color();
+    hover_color.a(0.5f);
+    return cursor_color(get_left_button_state_type(), paints_with_brush_colors(), hover_color);
 }
 
 ColorRGBA GLGizmoPainterBase::get_cursor_sphere_right_button_color() const
