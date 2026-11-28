@@ -7,6 +7,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include <cstddef>
+#include <initializer_list>
 #include <limits>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Layer.hpp"
@@ -1063,6 +1064,62 @@ static StringObjectException validate_on_two_nozzle_areas(double left_max, doubl
     print.apply(model, config);
     REQUIRE(print.has_wipe_tower() == (filaments == 2));
     return print.validate();
+}
+
+// Two cubes on two nozzles, one per filament, so every layer changes nozzle on a Type2 tower:
+// the estimate validation sees, and the tower generation then prints.
+static std::pair<float, float> two_nozzle_type2_tower_depths(double filament_change_length, const char *wall_type = "rectangle",
+                                                             std::initializer_list<ConfigBase::SetDeserializeItem> extra = {})
+{
+    DynamicPrintConfig config = tower_estimate_config(wall_type);
+    config.set_num_extruders(2);
+    const std::string length = std::to_string(filament_change_length);
+    config.set_deserialize_strict({
+        { "wipe_tower_type",           "type2" },
+        { "nozzle_diameter",           "0.4,0.4" },
+        { "printer_extruder_id",       "1,2" },
+        { "printer_extruder_variant",  "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_printable_height", "0,0" },
+        { "filament_map_mode",         "Manual" },
+        { "filament_map",              "1,2" },
+        { "filament_change_length",    length + "," + length },
+        { "wipe_tower_x",              "120" },
+        { "wipe_tower_y",              "120" } });
+    config.set_deserialize_strict(extra);
+    size_flush_to_nozzles(config);
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides = { {}, { { "extruder", "2" } } };
+    TriangleMesh second = cube(20);
+    second.translate(30.f, 0.f, 0.f);
+    Print print;
+    Model model;
+    init_print({ cube(20), std::move(second) }, print, model, config, &overrides, false);
+    print.apply(model, config);
+    const float estimated = print.wipe_tower_data(2).depth;
+    print.process();
+    return { estimated, print.wipe_tower_data().depth };
+}
+
+TEST_CASE("A two-nozzle Type2 tower is sized without the filament change length", "[WipeTower]")
+{
+    // Only the Type1 planner rams the filament change length. The Type2 tower prints the same
+    // with or without it, and the estimate placement and validation use must follow.
+    const auto [estimated, printed]                 = two_nozzle_type2_tower_depths(0.);
+    const auto [estimated_long, printed_long]       = two_nozzle_type2_tower_depths(100.);
+    CHECK_THAT(printed_long, Catch::Matchers::WithinAbs(printed, 1e-4));
+    CHECK_THAT(estimated_long, Catch::Matchers::WithinAbs(estimated, 1e-4));
+    CHECK(estimated + 1e-4 >= printed);
+}
+
+TEST_CASE("A two-nozzle Type2 tower is estimated with each filament's minimal purge", "[WipeTower]")
+{
+    // The planner purges at least the filament's minimal purge at every change, so a prime volume
+    // below it must not shrink the estimate under the tower that is printed.
+    const char *wall_type = GENERATE("rectangle", "rib");
+    CAPTURE(wall_type);
+    const auto [estimated, printed] = two_nozzle_type2_tower_depths(0., wall_type, {
+        { "prime_volume",                          "10" },
+        { "filament_minimal_purge_on_wipe_tower",  "60,60" } });
+    CHECK(estimated + 1e-4 >= printed);
 }
 
 TEST_CASE("A prime tower is rejected when the extruders share no printable area", "[WipeTower]")

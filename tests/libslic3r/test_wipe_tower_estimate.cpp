@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -265,9 +266,11 @@ TEST_CASE("A rib wall squares the tower and caps the rib width", "[WipeTowerEsti
     // The extra rib length runs along the diagonal and grows the footprint by its projection.
     config.set_key_value("wipe_tower_extra_rib_length", new ConfigOptionFloat(4.));
     CHECK_THAT(estimate(config, 3, 0.2, 5.).depth, WithinAbs((8. + 4.) / std::sqrt(2.) + body, 1e-5));
-    // A tiny tower caps the rib width at half its depth: 5 mm body, 2.5 mm rib.
+    // A tiny tower caps the rib width at half its depth: 5 mm body, 2.5 mm rib. The planner purges
+    // at least the minimal purge, so that goes too.
     config.set_key_value("wipe_tower_extra_rib_length", new ConfigOptionFloat(0.));
     config.set_key_value("prime_volume", new ConfigOptionFloat(5.));
+    config.set_key_value("filament_minimal_purge_on_wipe_tower", new ConfigOptionFloats({0.}));
     CHECK_THAT(estimate(config, 2, 0.2, 5.).depth, WithinAbs(2.5 / std::sqrt(2.) + 5., 1e-5));
 }
 
@@ -348,14 +351,18 @@ TEST_CASE("A Bambu Lab printer always gets the Type1 planner", "[WipeTowerEstima
     CHECK(resolve_wipe_tower_type(config) == WipeTowerType::Type2);
 }
 
-TEST_CASE("A dual nozzle purges every filament plus the filament change", "[WipeTowerEstimate]") {
+TEST_CASE("A Type2 tower on two nozzles purges every filament and nothing for the filament change", "[WipeTowerEstimate]") {
+    // The Type2 planner purges the prime volume at each change; only Type1 rams the filament
+    // change length, and it plans that per filament.
     DynamicPrintConfig config = make_config();
     config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
-    config.set_key_value("filament_change_length", new ConfigOptionFloats({10., 10.}));
-    config.set_key_value("filament_diameter", new ConfigOptionFloats({1.75, 1.75}));
-    // Two purges of 100 mm3 plus one 10 mm filament change: (200 + 10 * pi * 1.75^2 / 4) / (0.2 * 50).
-    const double change_volume = 10. * PI * 1.75 * 1.75 / 4.;
-    CHECK_THAT(estimate(config, 2, 0.2, 5.).depth, WithinAbs((200. + change_volume) / 10., 1e-9));
+    config.set_key_value("filament_diameter", new ConfigOptionFloats({31.22, 31.22}));
+    // Two purges of 100 mm3: 200 / (0.2 * 50).
+    for (const double change_length : {0., 10.}) {
+        CAPTURE(change_length);
+        config.set_key_value("filament_change_length", new ConfigOptionFloats({change_length, change_length}));
+        CHECK_THAT(estimate(config, 2, 0.2, 5.).depth, WithinAbs(200. / 10., 1e-9));
+    }
 }
 
 TEST_CASE("The shipped defaults size the tower from the flush matrix", "[WipeTowerEstimate]") {
