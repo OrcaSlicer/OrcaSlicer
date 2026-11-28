@@ -315,6 +315,17 @@ std::vector<Preference> build_table()
                                     "immediately.")});
     delay.unit    = L("sec");
     delay.own_row = true;
+    // ORCA: install-wide override for setups that keep getting interference travel back from
+    // presets, .3mf projects and version upgrades (OrcaSlicer#17866). Stored in the app
+    // configuration, so a printer/filament/process switch or an upgrade cannot turn it back on.
+    t.checkbox(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, L("Disable interference travel everywhere"),
+               {L("Keep \"Reduce infill retraction\" switched off for every slice on this OrcaSlicer - in the editor and on the "
+                  "command line - whatever the printer, filament and process presets ask for, and whatever a .3mf project carries "
+                  "with it."),
+                L("Turn this on when travel moves over already printed material leave blobs and burnt crumbs on the print or knock "
+                  "tall parts over: every such travel then retracts (and z-hops) first, which can add a few minutes to a print."),
+                L("The setting is stored in the OrcaSlicer configuration file, so it survives a version upgrade. It takes effect "
+                  "from the next slice.")});
     t.checkbox("enable_primitive_size_dialog", L("Show options when adding a primitive"),
                {L("If enabled, a dialog asks for the dimensions of a primitive shape before it is added.")});
     t.checkbox("enable_high_low_temp_mixed_printing", L("Remove mixed temperature restriction"),

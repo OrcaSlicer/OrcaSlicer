@@ -144,6 +144,11 @@ void AppConfig::set_defaults()
         if (get("auto_slice_after_change").empty())
             set_bool("auto_slice_after_change", false);
 
+        // ORCA: install-wide override for interference travel (OrcaSlicer#17866). Off by default:
+        // the retraction (and z-hop) reduction is a genuine time saver for tolerant filaments.
+        if (get(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL).empty())
+            set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, false);
+
         if (get("auto_slice_change_delay_seconds").empty())
             set("auto_slice_change_delay_seconds", "1");
 
@@ -771,6 +776,37 @@ void AppConfig::set_defaults()
     erase("app", "object_settings_pos");
     erase("app", "object_settings_size");
     erase("app", "severity_level");
+}
+
+// ORCA: OrcaSlicer#17866. The options that let a travel move cross already printed material
+// without retracting (and without z-hop) first. Forced install-wide while the
+// "Disable interference travel everywhere" preference is on.
+const std::vector<std::pair<std::string, bool>> &interference_travel_forced_options()
+{
+    static const std::vector<std::pair<std::string, bool>> forced = {
+        {"reduce_infill_retraction", false},
+    };
+    return forced;
+}
+
+void AppConfig::apply_print_config_overrides(DynamicPrintConfig &config) const
+{
+    if (!this->get_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL))
+        return;
+    for (const auto &[key, value] : interference_travel_forced_options()) {
+        // has(): SLA configurations do not carry the FFF options; never add keys to them.
+        if (!config.has(key))
+            continue;
+        const bool current = config.opt_bool(key);
+        if (current == value)
+            continue;
+        config.set_key_value(key, new ConfigOptionBool(value));
+        // Transparency: the preset UI still shows the preset's value, so leave a trace in the
+        // log explaining why the produced G-code differs from what the presets ask for.
+        BOOST_LOG_TRIVIAL(info) << "OrcaSlicer#17866: install-wide preference \"Disable interference "
+                                   "travel everywhere\" forced " << key << " = " << (value ? "true" : "false")
+                                << " for this slice (configuration asked for " << (current ? "true" : "false") << ").";
+    }
 }
 
 #ifdef WIN32
