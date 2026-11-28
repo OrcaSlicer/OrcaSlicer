@@ -138,10 +138,10 @@ std::optional<ColorSelection> normalize_color_selection(const ColorSelection& se
         if (!normalize_color(*solid, options.allow_alpha))
             return std::nullopt;
     } else {
-        auto& gradient = std::get<ColorGradient>(normalized);
-        if (!options.supports_gradient(gradient.size()))
+        auto& multi = std::get<ColorMulti>(normalized);
+        if (!options.supports_gradient(multi.colors.size()))
             return std::nullopt;
-        for (ColorRGBA& color : gradient)
+        for (ColorRGBA& color : multi.colors)
             if (!normalize_color(color, options.allow_alpha))
                 return std::nullopt;
     }
@@ -160,30 +160,33 @@ std::optional<ColorSelection> color_selection_from_json(const nlohmann::json& va
         ColorRGBA solid;
         if (parse_color((*colors)[0], solid))
             return normalize_color_selection(solid, options);
-    } else if (*type == "gradient" && options.supports_gradient(colors->size())) {
-        ColorGradient gradient(colors->size());
-        for (std::size_t i = 0; i < gradient.size(); ++i)
-            if (!parse_color((*colors)[i], gradient[i]))
+    } else if ((*type == "gradient" || *type == "coextruded") && options.supports_gradient(colors->size())) {
+        ColorMulti multi{std::vector<ColorRGBA>(colors->size()), *type == "gradient"};
+        for (std::size_t i = 0; i < multi.colors.size(); ++i)
+            if (!parse_color((*colors)[i], multi.colors[i]))
                 return std::nullopt;
-        return normalize_color_selection(gradient, options);
+        return normalize_color_selection(multi, options);
     }
     return std::nullopt;
 }
 
 nlohmann::json color_selection_to_json(const ColorSelection& selection)
 {
-    const auto normalized = normalize_color_selection(selection, {true, true});
+    const auto normalized = normalize_color_selection(selection, COLOR_PICKER_ALL_CAPABILITIES);
     if (!normalized)
         throw std::invalid_argument("Invalid color selection channels");
     if (const auto* solid = std::get_if<ColorRGBA>(&*normalized))
         return {{"type", "solid"}, {"colors", {rgba_hex(*solid)}}};
+    const auto& multi = std::get<ColorMulti>(*normalized);
     nlohmann::json colors = nlohmann::json::array();
-    for (const ColorRGBA& color : std::get<ColorGradient>(*normalized))
+    for (const ColorRGBA& color : multi.colors)
         colors.push_back(rgba_hex(color));
-    return {{"type", "gradient"}, {"colors", std::move(colors)}};
+    return {{"type", multi.gradient ? "gradient" : "coextruded"}, {"colors", std::move(colors)}};
 }
 
-std::optional<std::vector<ColorSelection>> color_favorites_from_json(const nlohmann::json& values)
+// Saving rejects the whole list on an invalid entry; loading (skip_invalid) drops just that entry so one
+// bad or unknown stored color does not discard the user's other favorites.
+std::optional<std::vector<ColorSelection>> color_favorites_from_json(const nlohmann::json& values, bool skip_invalid = false)
 {
     if (!values.is_array() || values.size() > 24)
         return std::nullopt;
@@ -191,9 +194,12 @@ std::optional<std::vector<ColorSelection>> color_favorites_from_json(const nlohm
     favorites.reserve(values.size());
     std::set<std::string> seen;
     for (const auto& value : values) {
-        const auto selection = color_selection_from_json(value, {true, true});
-        if (!selection)
+        const auto selection = color_selection_from_json(value, COLOR_PICKER_ALL_CAPABILITIES);
+        if (!selection) {
+            if (skip_invalid)
+                continue;
             return std::nullopt;
+        }
         if (seen.insert(color_selection_to_json(*selection).dump()).second)
             favorites.push_back(*selection);
     }
@@ -245,7 +251,7 @@ ColorPickerFavoritesState load_color_picker_favorites(AppConfig& config)
         if (config.get("color_picker", "version") != "1")
             return {{}, false};
         const auto values = nlohmann::json::parse(config.get("color_picker", "favorites"), nullptr, false);
-        const auto favorites = color_favorites_from_json(values);
+        const auto favorites = color_favorites_from_json(values, true);
         return {favorites ? *favorites : std::vector<ColorSelection>{}, true};
     }
 
@@ -275,7 +281,8 @@ ColorPickerFavoritesState load_color_picker_favorites(AppConfig& config)
 
 std::optional<ColorSelection> filament_color_picker_selection(const FilamentColorPickerValue& value)
 {
-    return color_selection_from_json({{"type", value.gradient ? "gradient" : "solid"}, {"colors", value.colors}}, {true, true});
+    const char* type = value.gradient ? "gradient" : value.colors.size() > 1 ? "coextruded" : "solid";
+    return color_selection_from_json({{"type", type}, {"colors", value.colors}}, COLOR_PICKER_ALL_CAPABILITIES);
 }
 
 ColorSelection filament_color_picker_initial(const FilamentColorPickerValue& value)
@@ -348,6 +355,9 @@ nlohmann::json color_picker_ui_strings()
         {"Gradient start", _u8L("Gradient start")},
         {"Gradient end", _u8L("Gradient end")},
         {"Gradient color", _u8L("Gradient color")},
+        // TRN: Co-extruded filament has two or more solid colors side by side along its length (e.g. dual color silk).
+        {"Add co-extruded color", _u8L("Add co-extruded color")},
+        {"Co-extruded color", _u8L("Co-extruded color")},
         {"Add color", _u8L("Add color")},
         {"Remove color", _u8L("Remove color")},
         {"Saturation", _u8L("Saturation")},

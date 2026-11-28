@@ -1309,6 +1309,71 @@ TEST_CASE("A project filament storing one value for a per-variant key applies it
     check_double_vector(loaded->config.option<ConfigOptionFloats>("pressure_advance")->values, {0.016, 0.016});
 }
 
+TEST_CASE("A project's edited process keeps the preset's compatible printers unless the project stores a list", "[Preset][Bundle][Regression]")
+{
+    enum class Project { NoList, CompatiblePrintersKey, StoredList };
+    const Project     project        = GENERATE(Project::NoList, Project::CompatiblePrintersKey, Project::StoredList);
+    const bool        inherits_system = GENERATE(false, true);
+    const std::string local_printer  = GENERATE(as<std::string>{}, "My Printer", "Other Printer");
+    CAPTURE(project, inherits_system, local_printer);
+    PresetBundle bundle;
+    add_inmemory_preset(bundle.printers, "My Printer");
+    if (inherits_system) {
+        Preset &parent   = add_inmemory_preset(bundle.prints, "System Process");
+        parent.is_system = true;
+        parent.config.option<ConfigOptionStrings>("compatible_printers", true)->values = {"System Printer"};
+    }
+    Preset &user = add_inmemory_preset(bundle.prints, "My Process", inherits_system ? "System Process" : "");
+    user.config.option<ConfigOptionStrings>("compatible_printers", true)->values = {local_printer};
+    user.config.option<ConfigOptionFloat>("layer_height", true)->value          = 0.2;
+
+    DynamicPrintConfig config = published_pla_file_config();
+    config.opt_string("print_settings_id", true)        = "My Process";
+    config.opt_string("printer_settings_id", true)      = "My Printer";
+    config.opt<ConfigOptionFloat>("layer_height")->value = 0.28;
+    if (project == Project::CompatiblePrintersKey)
+        config.option<ConfigOptionStrings>("compatible_printers", true)->values = {"Other Printer"};
+    if (project == Project::StoredList)
+        config.option<ConfigOptionStrings>("print_compatible_printers", true)->values = {"Project Printer"};
+    if (inherits_system) {
+        config.set_key_value("inherits_group", new ConfigOptionStrings({"System Process", "", ""}));
+        config.set_key_value("different_settings_to_system",
+                             new ConfigOptionStrings({project == Project::StoredList ? "compatible_printers;layer_height" : "layer_height", "", ""}));
+    }
+    Preset::normalize(config);
+    bundle.load_config_model("test.3mf", std::move(config));
+
+    const Preset &edited = bundle.prints.get_edited_preset();
+    REQUIRE(edited.name == "My Process");
+    CHECK_THAT(edited.config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.28, 1e-6));
+    const std::vector<std::string> expected = project == Project::StoredList     ? std::vector<std::string>{"Project Printer"} :
+                                              local_printer == "My Printer"      ? std::vector<std::string>{local_printer} :
+                                                                                   std::vector<std::string>{};
+    CHECK(edited.config.option<ConfigOptionStrings>("compatible_printers")->values == expected);
+}
+
+TEST_CASE("A project's edited process missing locally loads over its system parent with the project's empty compatible printers", "[Preset][Bundle][Regression]")
+{
+    PresetBundle bundle;
+    Preset      &parent = add_inmemory_preset(bundle.prints, "System Process");
+    parent.is_system    = true;
+    parent.config.option<ConfigOptionStrings>("compatible_printers", true)->values = {"System Printer"};
+    parent.config.option<ConfigOptionFloat>("layer_height", true)->value          = 0.2;
+
+    DynamicPrintConfig config = published_pla_file_config();
+    config.opt_string("print_settings_id", true)        = "Their Process";
+    config.opt<ConfigOptionFloat>("layer_height")->value = 0.28;
+    config.set_key_value("inherits_group", new ConfigOptionStrings({"System Process", "", ""}));
+    config.set_key_value("different_settings_to_system", new ConfigOptionStrings({"compatible_printers;layer_height", "", ""}));
+    Preset::normalize(config);
+    bundle.load_config_model("test.3mf", std::move(config));
+
+    const Preset &edited = bundle.prints.get_edited_preset();
+    REQUIRE(edited.name == "System Process");
+    CHECK_THAT(edited.config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.28, 1e-6));
+    CHECK(edited.config.option<ConfigOptionStrings>("compatible_printers")->values.empty());
+}
+
 TEST_CASE("A project's edited filament keeps the preset's compatible printers and processes", "[Preset][Bundle][Regression]")
 {
     enum class Load { FirstSlotSelected, FirstSlotParentSelected, LaterSlotEmbedded, LaterSlotCopied };

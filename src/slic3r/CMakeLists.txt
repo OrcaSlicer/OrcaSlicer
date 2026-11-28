@@ -934,6 +934,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/BBLPrinterAgent.hpp
     Utils/BBLNetworkPlugin.cpp
     Utils/BBLNetworkPlugin.hpp
+    Utils/OrcaMqttConnection.cpp
+    Utils/OrcaMqttConnection.hpp
     Utils/Obico.cpp
     Utils/Obico.hpp
     Utils/OctoPrint.cpp
@@ -1101,6 +1103,7 @@ else()
 endif()
 
 target_link_libraries(libslic3r_gui libslic3r libslic3r_automation cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto LibDataChannel::LibDataChannel noise::noise pybind11::embed)
+target_include_directories(libslic3r_gui SYSTEM PRIVATE ${ASYNC_MQTT_INCLUDE_DIR})
 
 # MCP recordings encode their frames with libjpeg directly. libslic3r links it privately, and imported
 # targets are scoped to the directory that found them.

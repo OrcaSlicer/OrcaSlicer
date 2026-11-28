@@ -619,7 +619,9 @@ void FilamentPickerDialog::BindEvents()
                 colors.emplace_back(wxString::FromUTF8(color));
                 m_cur_filament_color.m_colors.insert(colors.back());
             }
-            m_cur_filament_color.m_color_type = m_ordered_color->gradient ? FilamentColor::ColorType::GRADIENT_CLR : FilamentColor::ColorType::SINGLE_CLR;
+            m_cur_filament_color.m_color_type = m_ordered_color->gradient           ? FilamentColor::ColorType::GRADIENT_CLR :
+                                                m_ordered_color->colors.size() > 1 ? FilamentColor::ColorType::MULTI_CLR :
+                                                                                     FilamentColor::ColorType::SINGLE_CLR;
             UpdateCustomColorPreview(colors, m_ordered_color->gradient);
             UpdateButtonStates(nullptr);
         });

@@ -6346,6 +6346,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             if (!print_compatible_printers.empty()) {
                 ConfigOptionStrings* compatible_printers = config.option<ConfigOptionStrings>("compatible_printers", true);
                 compatible_printers->values = print_compatible_printers;
+            } else {
+                // Without a stored list, load_external_preset does not apply compatible_printers over the local process the project names.
+                config.erase("compatible_printers");
             }
 
             load_preset(this->prints, 0, "print_settings_id", print_different_keys_set, std::string());
@@ -6357,6 +6360,10 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             //BBS: add config related logs
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load printer preset from printer_settings_id");
             load_preset(this->printers, num_filaments + 1, "printer_settings_id", printer_different_keys_set, std::string());
+            // Resets an edited process to the project's empty list when its local list leaves out the project's printer.
+            if (print_compatible_printers.empty() && this->prints.current_is_dirty() &&
+                !is_compatible_with_printer(this->prints.get_edited_preset_with_vendor_profile(), this->printers.get_edited_preset_with_vendor_profile()))
+                this->prints.get_edited_preset().config.option<ConfigOptionStrings>("compatible_printers", true)->values.clear();
 
             // 3) Now load the filaments. If there are multiple filament presets, split them and load them.
             auto old_filament_profile_names = config.option<ConfigOptionStrings>("filament_settings_id", true);
