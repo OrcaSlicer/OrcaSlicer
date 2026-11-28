@@ -210,7 +210,7 @@ private:
     PickingModel m_plate_settings_icon;
     PickingModel m_plate_filament_map_icon;
     PickingModel m_plate_name_edit_icon;
-    PickingModel m_move_front_icon;
+    PickingModel m_arrange_plates_icon;
     PickingModel m_imex_mode_icon;
     GLModel      m_imex_warn_icon;   // warning badge: IMEX parallel mode + multi-material conflict
     GLModel m_plate_idx_icon;
@@ -734,6 +734,8 @@ public:
     //load pattern box data from file
     int load_pattern_box_data(std::string filename);
 
+    // Bed type, print sequence or spiral mode set on the plate itself, which its settings icon shows.
+    bool has_custom_settings() const;
     std::vector<int> get_first_layer_print_sequence() const;
     std::vector<LayerPrintSequence> get_other_layers_print_sequence() const;
     void set_first_layer_print_sequence(const std::vector<int> &sorted_filaments);
@@ -823,8 +825,8 @@ class PartPlateList : public ObjectBase
     GLTexture m_logo_texture;
     GLTexture m_del_texture;
     GLTexture m_del_hovered_texture;
-    GLTexture m_move_front_hovered_texture;
-    GLTexture m_move_front_texture;
+    GLTexture m_arrange_plates_hovered_texture;
+    GLTexture m_arrange_plates_texture;
     GLTexture m_arrange_texture;
     GLTexture m_arrange_hovered_texture;
     GLTexture m_orient_texture;
@@ -1020,8 +1022,8 @@ public:
     //get the plate cols
     int get_plate_cols() { return m_plate_cols; }
 
-    //move the plate to position index
-    int move_plate_to_index(int old_index, int new_index);
+    // Moves the plates with their objects; new_order[k] is the current index of the plate going to k.
+    int reorder_plates(const std::vector<int>& new_order);
     // Orca: custom G-codes are keyed by plate index; re-key them by plate ID after plates are reordered.
     std::vector<ObjectID> get_plate_ids() const;
     void remap_custom_gcodes(const std::vector<ObjectID>& plate_ids_before);

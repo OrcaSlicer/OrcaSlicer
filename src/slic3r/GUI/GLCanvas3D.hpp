@@ -110,6 +110,8 @@ struct KeyChord;
 class RetinaHelper;
 #endif
 
+class PlateArrangementDialog;
+
 class Size
 {
     int m_width{ 0 };
@@ -783,6 +785,7 @@ private:
     std::vector<std::unique_ptr<IMToolbarItem>> m_plate_switcher_items;
     unsigned m_plate_switcher_version{ unsigned(-1) };
     bool     m_plate_switcher_scrollbar{ false };
+    std::unique_ptr<PlateArrangementDialog> m_plate_arrangement_dialog;
     mutable GLToolbar m_assemble_view_toolbar;
     mutable IMReturnToolbar m_return_toolbar;
     mutable Vec2i32 m_canvas_toolbar_pos = {140, 5};
@@ -1238,6 +1241,8 @@ public:
     //BBS: GUI refactor: GLToolbar
     void _update_select_plate_toolbar_stats_item(bool force_selected = false);
     void reset_select_plate_toolbar_selection();
+    // Orca: opens or closes the plate arrangement dialog, building it the first time.
+    void toggle_plate_arrangement_dialog();
     void enable_select_plate_toolbar(bool enable);
     void enable_assemble_view_toolbar(bool enable);
     void enable_return_toolbar(bool enable);
