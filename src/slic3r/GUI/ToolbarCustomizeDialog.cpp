@@ -166,10 +166,11 @@ public:
         btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
         sizer->Add(btns, 0, wxEXPAND);
 
-        // Alt+Up and Alt+Down move the selected row, so rows can be reordered without the mouse; Tab selects a
-        // row by focusing its box.
+        // Alt+Up and Alt+Down move the selected row, so rows can be reordered without the mouse; Tab, Up and Down
+        // select a row by focusing its box.
         Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
-            if (e.GetKeyCode() == WXK_TAB)
+            // Up and Down without Alt move the focus between the boxes, as Tab does.
+            if (e.GetKeyCode() == WXK_TAB || ((e.GetKeyCode() == WXK_UP || e.GetKeyCode() == WXK_DOWN) && e.GetModifiers() == wxMOD_NONE))
                 m_tabbing = true;
             const KeyChord chord = KeyChord::from_event(e);
             if (chord == move_up_key() || chord == move_down_key()) {
@@ -262,6 +263,8 @@ private:
         // the focus on. Alt+Up and Alt+Down move rows from the keyboard.
         m_move_up->SetCanFocus(false);
         m_move_down->SetCanFocus(false);
+        press_on_double_click(m_move_up);
+        press_on_double_click(m_move_down);
         // TRN Tooltip of the Move up button in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Up".
         m_move_up->SetToolTip(format_wxstr(_L("Move up (%1%)"), from_u8(move_up_key().display())));
         // TRN Tooltip of the Move down button in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Down".
@@ -272,6 +275,17 @@ private:
         lists->Add(actions, 0, wxRIGHT, FromDIP(16));
     }
 
+
+    // Button reacts to a press only, and on Windows the second of two quick clicks comes as a double click, so
+    // without this a fast second click on a Move button was lost. Not the row arrows: their row moves away after the first.
+    static void press_on_double_click(Button* btn)
+    {
+        btn->Bind(wxEVT_LEFT_DCLICK, [btn](wxMouseEvent& e) {
+            wxMouseEvent down(e);
+            down.SetEventType(wxEVT_LEFT_DOWN);
+            btn->GetEventHandler()->ProcessEvent(down);
+        });
+    }
 
     static KeyChord move_up_key() { return {WXK_UP, wxMOD_ALT}; }
     static KeyChord move_down_key() { return {WXK_DOWN, wxMOD_ALT}; }
@@ -412,6 +426,15 @@ private:
 
     // Ctrl+click adds or removes a row, Shift+click selects the rows from the last one clicked; both within one list.
     void click_row(const std::string& key, const wxMouseEvent& e)
+    {
+        select_clicked(key, e);
+        // So Space toggles the clicked row's box, not the box that had the focus before. Not a row Ctrl+click
+        // deselected: focusing it would select it.
+        if (is_selected(key))
+            m_rows.at(key).check->SetFocus();
+    }
+
+    void select_clicked(const std::string& key, const wxMouseEvent& e)
     {
         const bool main = m_rows.at(key).main;
         if (e.CmdDown()) {
@@ -554,13 +577,16 @@ private:
                 sizer->Insert(i, row.panel, row_flags());
                 follow_in_tab_order(list_panel, i);
                 if (row.model.kind == ToolbarRowKind::Header) {
-                    row.name->SetLabel(group_label(row.model.group));
-                    // A longer name after Rename needs a wider row.
-                    row.name->InvalidateBestSize();
-                    const int width = row.name->GetBestSize().x + FromDIP(6);
-                    if (width > row.name->GetMinSize().x) {
-                        row.name->SetMinSize(wxSize(width, row.name->GetMinSize().y));
-                        grew = true;
+                    // A longer name after Rename needs a wider row. Measured from the text: the best size is never
+                    // below the min size, so measuring it would widen the row on every sync.
+                    const wxString label = group_label(row.model.group);
+                    if (row.name->GetLabel() != label) {
+                        row.name->SetLabel(label);
+                        const int width = row.name->GetTextExtent(row.name->GetLabelText()).x + FromDIP(6);
+                        if (width > row.name->GetMinSize().x) {
+                            row.name->SetMinSize(wxSize(width, row.name->GetMinSize().y));
+                            grew = true;
+                        }
                     }
                 } else
                     row.check->SetValue(list(main).hidden.count(row.model.id) == 0);
@@ -659,7 +685,8 @@ private:
         // focus moved while the rows are synced, when the other list's rows may still hold old group numbers.
         check->Bind(wxEVT_SET_FOCUS, [this, key](wxFocusEvent& e) {
             m_focused_row = key;
-            if (m_tabbing && !m_syncing)
+            // A selected row stays as it is, so focusing a row of a multiple selection keeps the selection.
+            if (m_tabbing && !m_syncing && !is_selected(key))
                 select_row(key);
             e.Skip();
         });
@@ -787,7 +814,7 @@ private:
     std::string              m_anchor;              // the row Shift+click selects from
     std::string              m_focused_row;         // the row whose box last took the focus
     std::string              m_hovered;             // the row under the pointer, drawn with a border
-    bool                     m_tabbing{false};      // Tab has been pressed, so focusing a box selects its row
+    bool                     m_tabbing{false};      // Tab, Up or Down has been pressed, so focusing a box selects its row
     bool                     m_syncing{false};      // the rows are being brought in line with m_working
     int                      m_name_height{0};      // row name height measured when the dialog was built
     int                      m_measured_height{0};  // tallest row name built so far

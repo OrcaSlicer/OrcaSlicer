@@ -3133,8 +3133,11 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
             throw ToolFailure("The toolbar item is gone");
         // A hidden item has no icon to click, and pressing a hidden toggable one disables the rest. An item folded into
         // its group's button is not hidden: the group's list shows it.
-        if (!tb.is_item_visible(t.name))
+        if (!tb.is_item_visible(t.name)) {
+            if (!t.canvas->is_toolbar_item_available(t.name))
+                throw ToolFailure("The toolbar item " + t.name + " is not on the toolbar for the current printer");
             throw ToolFailure("The toolbar item " + t.name + " is hidden; show it in View > Customize Toolbar");
+        }
         if (item->is_disabled())
             throw ToolFailure("The toolbar item " + t.name + " is disabled");
         // The toolbar ignores actions while another togglable item is pressed.
