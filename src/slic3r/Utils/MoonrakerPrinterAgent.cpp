@@ -6,6 +6,7 @@
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
 #include "bambu_networking.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Preset.hpp"
@@ -1337,6 +1338,26 @@ bool MoonrakerPrinterAgent::init_device_info(const std::string& dev_id, const st
     device_info.dev_id     = dev_id;
     device_info.version    = "";
     device_info.dev_name   = device_info.dev_id;
+
+    // A saved connection must not inherit an unrelated edited preset's identity.
+    if (const auto* app_config = GUI::wxGetApp().app_config) {
+        const auto& machines = app_config->get_local_machines();
+        const auto saved = machines.find(dev_id);
+        if (saved != machines.end() && saved->second.printer_agent_id == get_agent_info().id) {
+            const auto& machine = saved->second;
+            device_info.model_id = machine.printer_type;
+            device_info.model_name = machine.printer_type;
+            device_info.dev_name = machine.dev_name;
+            for (const auto& vendor : preset_bundle->vendors)
+                for (const auto& model : vendor.second.models)
+                    if (!machine.printer_type.empty() &&
+                        (model.model_id == machine.printer_type || model.id == machine.printer_type || model.name == machine.printer_type)) {
+                        device_info.model_name = model.name;
+                        if (!model.model_id.empty()) device_info.model_id = model.model_id;
+                        return true;
+                    }
+        }
+    }
 
     return true;
 }
