@@ -4875,7 +4875,7 @@ void MainFrame::load_printer_url()
                     machine = machines.begin()->second;
             }
             if (machine && !machine->get_dev_ip().empty())
-                cfg.opt_string("print_host") = machine->get_dev_ip();
+                cfg.opt_string("print_host") = machine->get_web_ui_host();
         }
     }
     wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));

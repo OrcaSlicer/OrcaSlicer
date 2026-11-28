@@ -109,6 +109,24 @@ TEST_CASE("A saved print host without a port connects on the port in its dev_id"
     }
 }
 
+TEST_CASE("The web interface of a Moonraker-based printer opens on the default HTTP port", "[DeviceAccess]")
+{
+    const std::string host = GENERATE(as<std::string>{}, "192.0.2.10", "[2001:db8::10]");
+    MachineObject machine(nullptr, nullptr, "test", host + ":7125", host + ":7125");
+    machine.printer_agent_id = GENERATE(as<std::string>{}, MOONRAKER_PRINTER_AGENT_ID, QIDI_PRINTER_AGENT_ID,
+                                        SNAPMAKER_PRINTER_AGENT_ID, CREALITYPRINT_PRINTER_AGENT_ID);
+
+    REQUIRE(machine.get_web_ui_host() == host);
+}
+
+TEST_CASE("Other printers open their web interface at the saved address", "[DeviceAccess]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test_dev", "192.0.2.10:8080");
+    machine.printer_agent_id = GENERATE(as<std::string>{}, "", BBL_PRINTER_AGENT_ID, ORCA_PRINTER_AGENT_ID, "plugin");
+
+    REQUIRE(machine.get_web_ui_host() == "192.0.2.10:8080");
+}
+
 TEST_CASE("Other printer agents require an access code", "[DeviceAccess]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test_dev", "127.0.0.1");

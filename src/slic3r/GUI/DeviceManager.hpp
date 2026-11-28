@@ -203,6 +203,8 @@ public:
 
     std::string get_dev_ip() const { return dev_ip; }
     void set_dev_ip(std::string ip) { dev_ip = ip;  }
+    // The address of the printer's web interface, for when the printer preset has no print host.
+    std::string get_web_ui_host() const;
 
     std::string get_dev_id() const { return dev_id; }
     void set_dev_id(std::string val) { dev_id = val; }
