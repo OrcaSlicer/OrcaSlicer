@@ -19,6 +19,12 @@ if (TARGET OpenVDB::openvdb)
 endif()
 
 option(BUILD_SHARED_LIBS "Build shared libs" OFF)
+option(USE_SLIC3R_CONSOLE_LOG "Enable console logging in RelWithDebInfo builds" OFF)
+
+# SolveSpace constraint solver (2D sketch solver backbone), built in deps/SLVS.
+if (SLIC3R_CAD)
+    find_package(SLVS REQUIRED)
+endif ()
 
 set(lisbslic3r_sources
     AABBMesh.cpp
@@ -75,10 +81,20 @@ set(lisbslic3r_sources
     Arrange.hpp
     BlacklistedLibraryCheck.cpp
     BlacklistedLibraryCheck.hpp
+    BoostPolygonTraits.hpp
     BoundingBox.cpp
     BoundingBox.hpp
     BridgeDetector.cpp
     BridgeDetector.hpp
+    BeltBrim.cpp
+    BeltBrim.hpp
+    BeltGCode.cpp
+    BeltGCode.hpp
+    BeltPurge.cpp
+    BeltSliceStrategy.cpp
+    BeltSliceStrategy.hpp
+    BeltTransform.cpp
+    BeltTransform.hpp
     Brim.cpp
     BrimEarsPoint.hpp
     Brim.hpp
@@ -88,18 +104,18 @@ set(lisbslic3r_sources
     calib.hpp
     Circle.cpp
     Circle.hpp
-    clipper.cpp
-    clipper.hpp
     ClipperUtils.cpp
     ClipperUtils.hpp
-    Clipper2Utils.cpp
-    Clipper2Utils.hpp
+    ClipperZUtils.cpp
     ClipperZUtils.hpp
     Color.cpp
     Color.hpp
     CommonDefs.hpp
     Config.cpp
     Config.hpp
+    ConnectedBodies.cpp
+    ConnectedBodies.hpp
+    ContourZ.cpp
     CustomGCode.cpp
     CustomGCode.hpp
     CutUtils.cpp
@@ -112,6 +128,8 @@ set(lisbslic3r_sources
     Emboss.hpp
     EmbossShape.hpp
     enum_bitmask.hpp
+    ExclusionVolumeGeometry.cpp
+    ExclusionVolumeGeometry.hpp
     Execution/Execution.hpp
     Execution/ExecutionSeq.hpp
     Execution/ExecutionTBB.hpp
@@ -145,8 +163,12 @@ set(lisbslic3r_sources
     Fill/FillBase.hpp
     Fill/FillConcentric.cpp
     Fill/FillConcentric.hpp
+    Fill/FillSpiralInset.cpp
+    Fill/FillSpiralInset.hpp
     Fill/FillConcentricInternal.cpp
     Fill/FillConcentricInternal.hpp
+    Fill/FillCornerSmoothing.cpp
+    Fill/FillCornerSmoothing.hpp
     Fill/Fill.cpp
     Fill/FillCrossHatch.cpp
     Fill/FillCrossHatch.hpp
@@ -163,6 +185,8 @@ set(lisbslic3r_sources
     Fill/FillPlanePath.hpp
     Fill/FillRectilinear.cpp
     Fill/FillRectilinear.hpp
+    Fill/AdaptiveInfillField.cpp
+    Fill/AdaptiveInfillField.hpp
     Fill/FillTpmsD.cpp
     Fill/FillTpmsD.hpp
     Fill/FillTpmsFK.cpp
@@ -175,6 +199,17 @@ set(lisbslic3r_sources
     Fill/Lightning/Layer.hpp
     Fill/Lightning/TreeNode.cpp
     Fill/Lightning/TreeNode.hpp
+    FilamentMixer.cpp
+    FilamentMixer.hpp
+    FilamentMixerModel.hpp
+    ColorDecomposeRecipe.cpp
+    ColorDecomposeRecipe.hpp
+    TexturePainting.hpp
+    TexturePainting.cpp
+    TextureToColor/TextureToColor.hpp
+    TextureToColor/TextureToColor.cpp
+    TextureToColor/ColorUtils.hpp
+    TextureToColor/ColorUtils.cpp
     Flow.cpp
     Flow.hpp
     FlushVolCalc.cpp
@@ -183,11 +218,21 @@ set(lisbslic3r_sources
     Format/3mf.hpp
     Format/AMF.cpp
     Format/AMF.hpp
+    Format/ImportNames.cpp
+    Format/ImportNames.hpp
+    Format/AssembleList.cpp
+    Format/AssembleList.hpp
+    Format/DRC.cpp
+    Format/DRC.hpp
     Format/bbs_3mf.cpp
     Format/bbs_3mf.hpp
+    Format/ProjectStrategy.hpp
     format.hpp
     Format/OBJ.cpp
     Format/OBJ.hpp
+    Format/AssimpImport.hpp
+    Format/AssimpImport.cpp
+    Format/ResourcePathUtils.hpp
     Format/objparser.cpp
     Format/objparser.hpp
     Format/SL1.cpp
@@ -206,10 +251,22 @@ set(lisbslic3r_sources
     GCode/AdaptivePAProcessor.hpp
     GCode/AvoidCrossingPerimeters.cpp
     GCode/AvoidCrossingPerimeters.hpp
+    GCode/BeltBackTransform.cpp
+    GCode/BeltBackTransform.hpp
+    GCode/MachineFrameTransform.cpp
+    GCode/MachineFrameTransform.hpp
+    GCode/BeltKinematics.cpp
+    GCode/BeltKinematics.hpp
+    GCode/MachineKinematics.cpp
+    GCode/MachineKinematics.hpp
     GCode/ConflictChecker.cpp
     GCode/ConflictChecker.hpp
     GCode/CoolingBuffer.cpp
     GCode/CoolingBuffer.hpp
+    GCode/ExclusionVolumePathCheck.cpp
+    GCode/ExclusionVolumePathCheck.hpp
+    GCode/ExclusionVolumeTravelAvoidance.cpp
+    GCode/ExclusionVolumeTravelAvoidance.hpp
     GCode/TimelapsePosPicker.cpp
     GCode/TimelapsePosPicker.hpp
     GCode.cpp
@@ -218,11 +275,12 @@ set(lisbslic3r_sources
     GCode/FanMover.hpp
     GCode/GCodeProcessor.cpp
     GCode/GCodeProcessor.hpp
+    GCode/GCodeStatistics.cpp
+    GCode/GCodeStatistics.hpp
+    GCode/ElegooGCodeProcessorHelper.cpp
     GCode.hpp
     GCode/PchipInterpolatorHelper.cpp
     GCode/PchipInterpolatorHelper.hpp
-    GCode/PostProcessor.cpp
-    GCode/PostProcessor.hpp
     GCode/PressureEqualizer.cpp
     GCode/PressureEqualizer.hpp
     GCode/PrintExtents.cpp
@@ -233,22 +291,31 @@ set(lisbslic3r_sources
     GCode/RetractWhenCrossingPerimeters.hpp
     GCode/SeamPlacer.cpp
     GCode/SeamPlacer.hpp
-    #GCodeSender.cpp
-    #GCodeSender.hpp
+    GCode/SeamContour.cpp
+    GCode/SeamContour.hpp
+    GCode/PreciseSeam.cpp
+    GCode/PreciseSeam.hpp
+    GCode/PreciseSeamInternal.hpp
     GCode/SmallAreaInfillFlowCompensator.cpp
     GCode/SmallAreaInfillFlowCompensator.hpp
     GCode/SpiralVase.cpp
     GCode/SpiralVase.hpp
+    GCode/WipePathHelpers.cpp
+    GCode/WipePathHelpers.hpp
     GCode/ThumbnailData.cpp
     GCode/ThumbnailData.hpp
     GCode/Thumbnails.cpp
     GCode/Thumbnails.hpp
     GCode/ToolOrdering.cpp
     GCode/ToolOrdering.hpp
+    GCode/OrderingStrategies.cpp
+    GCode/OrderingStrategies.hpp
     GCode/WipeTower2.cpp
     GCode/WipeTower2.hpp
     GCode/WipeTower.cpp
     GCode/WipeTower.hpp
+    GCode/WipeTowerEstimate.cpp
+    GCode/WipeTowerEstimate.hpp
     GCodeWriter.cpp
     GCodeWriter.hpp
     Geometry/ArcWelder.hpp
@@ -272,11 +339,21 @@ set(lisbslic3r_sources
     Geometry/VoronoiUtils.cpp
     Geometry/VoronoiUtils.hpp
     Geometry/VoronoiVisualUtils.hpp
+    IMEXArrange.cpp
+    IMEXArrange.hpp
+    IMEXHelpers.cpp
+    IMEXHelpers.hpp
+    IMEXZones.cpp
+    IMEXZones.hpp
+    InstanceLock.cpp
+    InstanceLock.hpp
     Int128.hpp
     KDTreeIndirect.hpp
     Layer.cpp
     Layer.hpp
     LayerRegion.cpp
+    LayOnFace.cpp
+    LayOnFace.hpp
     libslic3r.cpp
     libslic3r.h
     Line.cpp
@@ -319,6 +396,8 @@ set(lisbslic3r_sources
     Optimize/Optimizer.hpp
     Orient.cpp
     Orient.hpp
+    ParallelForFirstError.hpp
+    ParallelResolve.hpp
     ParameterUtils.cpp
     ParameterUtils.hpp
     pchheader.cpp
@@ -341,10 +420,15 @@ set(lisbslic3r_sources
     Polyline.hpp
     PresetBundle.cpp
     PresetBundle.hpp
+    PrinterBedAssets.hpp
+    PresetCacheFormat.cpp
+    PresetCacheFormat.hpp
     Preset.cpp
     Preset.hpp
     PrincipalComponents2D.cpp
     PrincipalComponents2D.hpp
+    PublishSettings.cpp
+    PublishSettings.hpp
     PrintApply.cpp
     PrintBase.cpp
     PrintBase.hpp
@@ -362,8 +446,6 @@ set(lisbslic3r_sources
     QuadricEdgeCollapse.cpp
     QuadricEdgeCollapse.hpp
     Semver.cpp
-    Shape/TextShape.cpp
-    Shape/TextShape.hpp
     ShortEdgeCollapse.cpp
     ShortEdgeCollapse.hpp
     ShortestPath.cpp
@@ -404,7 +486,6 @@ set(lisbslic3r_sources
     SLA/SupportTreeBuildsteps.hpp
     SLA/SupportTree.cpp
     SLA/SupportTree.hpp
-    #SLA/SupportTreeIGL.cpp
     SLA/SupportTreeMesher.cpp
     SLA/SupportTreeMesher.hpp
     SlicesToTriangleMesh.cpp
@@ -413,6 +494,10 @@ set(lisbslic3r_sources
     SlicingAdaptive.hpp
     Slicing.cpp
     Slicing.hpp
+    SourceDateEpoch.cpp
+    SourceDateEpoch.hpp
+    Support/BeltFloorContext.cpp
+    Support/BeltFloorContext.hpp
     Support/SupportCommon.cpp
     Support/SupportCommon.hpp
     Support/SupportLayer.hpp
@@ -439,6 +524,30 @@ set(lisbslic3r_sources
     Tesselate.cpp
     Tesselate.hpp
     TextConfiguration.hpp
+    TextureDisplacement.cpp
+    TextureDisplacement.hpp
+    TextureBake/TextureBakeIndex.cpp
+    TextureBake/TextureBakeIndex.hpp
+    TextureBake/TextureBakeSubdivide.cpp
+    TextureBake/TextureBakeSubdivide.hpp
+    TextureBake/TextureBakeRegularize.cpp
+    TextureBake/TextureBakeRegularize.hpp
+    TextureBake/TextureBakeRelocate.cpp
+    TextureBake/TextureBakeRelocate.hpp
+    TextureBake/TextureBakeFlip.cpp
+    TextureBake/TextureBakeFlip.hpp
+    TextureBake/TextureBakeDebug.cpp
+    TextureBake/TextureBakeDebug.hpp
+    TextureBake/TextureBakeDisplace.cpp
+    TextureBake/TextureBakeDisplace.hpp
+    TextureBake/TextureBakeDecimate.cpp
+    TextureBake/TextureBakeDecimate.hpp
+    TextureBake/TextureBakeRepair.cpp
+    TextureBake/TextureBakeRepair.hpp
+    TextureBake/TextureBakePipeline.cpp
+    TextureBake/TextureBakePipeline.hpp
+    TextureBake/TextureBakeMesh.cpp
+    TextureBake/TextureBakeMesh.hpp
     Thread.cpp
     Thread.hpp
     Time.cpp
@@ -447,6 +556,8 @@ set(lisbslic3r_sources
     Timer.hpp
     TriangleMesh.cpp
     TriangleMesh.hpp
+    TriangleMeshDeal.cpp
+    TriangleMeshDeal.hpp
     TriangleMeshSlicer.cpp
     TriangleMeshSlicer.hpp
     TriangleSelector.cpp
@@ -465,11 +576,36 @@ set(lisbslic3r_sources
     FilamentGroup.cpp
     FilamentGroupUtils.hpp
     FilamentGroupUtils.cpp
+    MultiNozzleUtils.hpp
+    MultiNozzleUtils.cpp
     GCode/ToolOrderUtils.hpp
     GCode/ToolOrderUtils.cpp
     FlushVolPredictor.hpp
     FlushVolPredictor.cpp
 )
+
+# Parametric Design/CAD kernel. Needs the OCCT toolkits TKFillet, TKOffset and TKBool and the
+# vendored SolveSpace solver; both are pulled in only when SLIC3R_CAD is ON.
+if (SLIC3R_CAD)
+    list(APPEND lisbslic3r_sources
+            CAD/GeometryEngine.cpp
+            CAD/GeometryEngine.hpp
+            CAD/SketchEngine.cpp
+            CAD/SketchEngine.hpp
+            CAD/SketchConstraints.cpp
+            CAD/SketchConstraints.hpp
+            CAD/SketchSolver.cpp
+            CAD/SketchSolver.hpp
+            CAD/SketchInference.cpp
+            CAD/SketchInference.hpp
+            CAD/SketchImport.cpp
+            CAD/SketchImport.hpp
+            CAD/CadDocument.cpp
+            CAD/CadDocument.hpp
+            CAD/ThreadStandards.cpp
+            CAD/ThreadStandards.hpp
+        )
+endif ()
 
 if (APPLE)
     list(APPEND lisbslic3r_sources
@@ -479,7 +615,7 @@ if (APPLE)
         )
 endif ()
 
-add_library(libslic3r STATIC ${lisbslic3r_sources} 
+add_library(libslic3r STATIC ${lisbslic3r_sources}
     "${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h"
     ${OpenVDBUtils_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
@@ -491,14 +627,20 @@ set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE ON CACHE BOOL "" FORCE)
 
 cmake_policy(PUSH)
 cmake_policy(SET CMP0011 NEW)
-find_package(CGAL REQUIRED)
+# CGAL's config resets policies (cmake_minimum_required ...3.31), so a plain SET
+# can't reach it; the default opts its Boost lookup into BoostConfig (CMP0167).
+set(CMAKE_POLICY_DEFAULT_CMP0167 NEW)
+find_package(CGAL 6.2 REQUIRED)
 find_package(OpenCV REQUIRED core)
+find_package(assimp REQUIRED)
+unset(CMAKE_POLICY_DEFAULT_CMP0167)
 cmake_policy(POP)
 
-add_library(libslic3r_cgal STATIC 
+add_library(libslic3r_cgal STATIC
     CutSurface.hpp CutSurface.cpp
     IntersectionPoints.hpp IntersectionPoints.cpp
     MeshBoolean.hpp MeshBoolean.cpp
+    MeshRepair.hpp MeshRepair.cpp
     TryCatchSignal.hpp TryCatchSignal.cpp
     Triangulation.hpp Triangulation.cpp
 )
@@ -520,7 +662,15 @@ if (_opts)
     target_compile_options(libslic3r_cgal PRIVATE "${_opts_bad}")
 endif()
 
-target_link_libraries(libslic3r_cgal PRIVATE ${_cgal_tgt} eigen admesh libigl mcut boost_libs)
+if (IS_CLANG_CL)
+    # CGAL passes /fp:strict /fp:except-. clang-cl reports the second as overriding part of
+    # the first; the settings cc1 receives are the same ones MSVC produces from that pair.
+    target_compile_options(libslic3r_cgal PRIVATE -Wno-overriding-option)
+endif ()
+
+# Lets CGAL algorithms given CGAL::Parallel_if_available_tag run on TBB.
+target_compile_definitions(libslic3r_cgal PRIVATE CGAL_LINKED_WITH_TBB)
+target_link_libraries(libslic3r_cgal PRIVATE ${_cgal_tgt} admesh libigl mcut boost_libs TBB::tbb)
 
 if (MSVC AND "${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # 32 bit MSVC workaround
     target_compile_definitions(libslic3r_cgal PRIVATE CGAL_DO_NOT_USE_MPZF)
@@ -529,8 +679,19 @@ endif ()
 encoding_check(libslic3r)
 
 target_compile_definitions(libslic3r PUBLIC -DUSE_TBB -DTBB_USE_CAPTURED_EXCEPTION=0)
-target_include_directories(libslic3r PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+# CGAL changes Kd_tree's member layout when TBB is enabled. Match libslic3r_cgal
+# in every consumer so inline constructors/destructors cannot mix the two layouts.
+target_compile_definitions(libslic3r PUBLIC CGAL_LINKED_WITH_TBB)
+if (USE_SLIC3R_CONSOLE_LOG)
+    target_compile_definitions(libslic3r PRIVATE $<$<CONFIG:RelWithDebInfo>:SLIC3R_CONSOLE_LOG>)
+endif()
+target_include_directories(libslic3r PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/TextureToColor PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(libslic3r SYSTEM PUBLIC ${EXPAT_INCLUDE_DIRS})
+if (WIN32)
+    # Expat is linked statically; upstream headers declare the API __declspec(dllimport)
+    # unless XML_STATIC is defined.
+    target_compile_definitions(libslic3r PUBLIC XML_STATIC)
+endif()
 
 # Find the OCCT and related libraries
 set(OpenCASCADE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/occt")
@@ -538,13 +699,12 @@ find_package(OpenCASCADE REQUIRED)
 target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 
 find_package(JPEG REQUIRED)
+find_package(Draco REQUIRED)
 
+# deps/OCCT/OCCT.cmake builds exactly these toolkits; keep its _occt_toolkits list in step.
 set(OCCT_LIBS
-    TKXDESTEP
-    TKSTEP
-    TKSTEP209
-    TKSTEPAttr
-    TKSTEPBase
+    TKDESTEP
+    TKDE
     TKXCAF
     TKXSBase
     TKVCAF
@@ -567,23 +727,75 @@ set(OCCT_LIBS
     TKMath
     TKernel
 )
+# The CAD kernel is the only consumer of TKFillet (BRepFilletAPI), TKOffset (BRepOffsetAPI)
+# and TKBool, which the other two need.
+#
+# PREPEND, never append: this list is single-pass static link order, dependents before
+# dependencies — note TKernel, which everything needs, is deliberately last. TKOffset
+# references BRepAlgo_Loop, which TKBool defines, so TKOffset must come BEFORE TKBool.
+# Appending put it after, and a strictly single-pass linker (the Flatpak build) failed with
+#     libTKOffset.a(BRepOffset_MakeLoops.cxx.o): undefined reference to
+#     `BRepAlgo_Loop::BRepAlgo_Loop()'
+# while the ordinary Linux, macOS and Windows links resolved it anyway. Use set() rather
+# than list(PREPEND), which needs CMake 3.15 and this project supports 3.13.
+if (SLIC3R_CAD)
+    set(OCCT_LIBS TKFillet TKOffset TKBool ${OCCT_LIBS})
+    # deps is configured separately, so its SLIC3R_CAD can differ from ours. deps/OCCT/OCCT.cmake
+    # builds the three CAD toolkits together under SLIC3R_CAD, so one absent toolkit proves it
+    # was OFF there; fail here rather than at link time.
+    if (NOT TARGET TKFillet)
+        message(FATAL_ERROR
+            "SLIC3R_CAD is ON, but the dependencies in ${CMAKE_PREFIX_PATH} were built with "
+            "SLIC3R_CAD=OFF (OpenCASCADE has no TKFillet). Rebuild the dependencies with -DSLIC3R_CAD=ON, "
+            "or configure this project with -DSLIC3R_CAD=OFF.")
+    endif ()
+endif ()
+# Published for the Windows packaging step in the top-level CMakeLists.txt.
+set(OCCT_LIBS "${OCCT_LIBS}" CACHE INTERNAL "OCCT toolkits linked by libslic3r")
+# OCCT built with BUILD_USE_PCH exports the precompiled headers of TKernel, TKMath, TKBRep
+# and TKBool to consumers, so CMake would merge them into libslic3r's own precompiled header
+# (pulling <windows.h> into every libslic3r source on Windows). They only speed up OCCT's
+# own build; keep them out of ours. OpenCASCADE_LIBRARIES lists every installed toolkit, so
+# this also covers toolkits reached only through another toolkit's link interface.
+foreach (_occt_lib IN LISTS OpenCASCADE_LIBRARIES OCCT_LIBS)
+    if (TARGET ${_occt_lib})
+        set_property(TARGET ${_occt_lib} PROPERTY INTERFACE_PRECOMPILE_HEADERS "")
+    endif ()
+endforeach ()
+if (WIN32)
+    # OCCT installs RelWithDebInfo and Debug builds to bin/occti and bin/occtd, so each build
+    # type's DLL directory is read from the imported target, falling back to the first installed
+    # build, as CMake does when linking.
+    get_target_property(_occt_configs TKernel IMPORTED_CONFIGURATIONS)
+    list(GET _occt_configs 0 _occt_fallback)
+    foreach (_build_config IN ITEMS DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+        set(_occt_config ${_occt_fallback})
+        if (_build_config IN_LIST _occt_configs)
+            set(_occt_config ${_build_config})
+        endif ()
+        get_target_property(_occt_dll TKernel IMPORTED_LOCATION_${_occt_config})
+        get_filename_component(_occt_bin "${_occt_dll}" DIRECTORY)
+        set(OCCT_BIN_DIR_${_build_config} "${_occt_bin}" CACHE INTERNAL "OCCT DLL directory for ${_build_config} builds")
+    endforeach ()
+endif ()
 
 target_link_libraries(libslic3r
     PUBLIC
+        Eigen3::Eigen
         admesh
         libigl
         libnest2d
         miniz
         opencv_world
+        assimp::assimp
     PRIVATE
         ${CMAKE_DL_LIBS}
         ${EXPAT_LIBRARIES}
         ${OCCT_LIBS}
         boost_libs
         cereal::cereal
-        clipper
         Clipper2
-        eigen
+        draco::draco
         glu-libtess
         JPEG::JPEG
         libslic3r_cgal
@@ -599,14 +811,6 @@ target_link_libraries(libslic3r
         OpenSSL::Crypto
     )
 
-if(NOT WIN32)
-    # Link freetype for OCCT dependency (CAD operations need font rendering)
-    target_link_libraries(libslic3r PRIVATE ${FREETYPE_LIBRARIES})
-    if (NOT APPLE)
-        target_link_libraries(libslic3r PRIVATE fontconfig)
-    endif()
-endif()
-
 if (APPLE)
     find_library(FOUNDATION Foundation REQUIRED)
     find_library(MODELIO ModelIO REQUIRED)
@@ -615,7 +819,13 @@ endif ()
 
 if (TARGET OpenVDB::openvdb)
     target_link_libraries(libslic3r PRIVATE OpenVDB::openvdb)
+    # PUBLIC so code linking libslic3r (e.g. the SLA tests) can tell whether hollowing works.
+    target_compile_definitions(libslic3r PUBLIC SLIC3R_HAS_OPENVDB)
 endif()
+
+if (SLIC3R_CAD)
+    target_link_libraries(libslic3r PUBLIC SLVS::slvs)
+endif ()
 
 if(WIN32)
     target_link_libraries(libslic3r PRIVATE Psapi.lib bcrypt.lib)
@@ -624,6 +834,13 @@ endif()
 if(SLIC3R_PROFILE)
     target_link_libraries(libslic3r PRIVATE Shiny)
 endif()
+
+if (WIN32)
+    # Public, since BlacklistedLibraryCheck.hpp includes windows.h. Empty
+    # WIN32_LEAN_AND_MEAN matches the sources that define it themselves; bare
+    # NOMINMAX matches the one libigl already passes.
+    target_compile_definitions(libslic3r PUBLIC "WIN32_LEAN_AND_MEAN=" "NOMINMAX")
+endif ()
 
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r pchheader.hpp FORCEINCLUDE)

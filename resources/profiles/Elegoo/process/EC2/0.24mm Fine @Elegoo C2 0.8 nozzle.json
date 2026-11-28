@@ -1,0 +1,10 @@
+{
+	"type": "process",
+	"name": "0.24mm Fine @Elegoo C2 0.8 nozzle",
+	"inherits": "0.40mm Standard @Elegoo C2 0.8 nozzle",
+	"from": "system",
+	"setting_id": "aGRzp98JewtyCnJ5",
+	"instantiation": "true",
+	"initial_layer_print_height": "0.3",
+	"layer_height": "0.24"
+}

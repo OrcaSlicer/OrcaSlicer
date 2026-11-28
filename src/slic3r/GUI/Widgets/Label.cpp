@@ -1,10 +1,29 @@
 #include "libslic3r/Utils.hpp"
 #include "Label.hpp"
 #include "StaticBox.hpp"
+#include <wx/font.h>
+#include <string>
+#include <wx/dlimpexp.h>
+#include <wx/dc.h>
+#include <wx/arrstr.h>
+#include <wx/dynarray.h>
+#include <cstddef>
+#include <algorithm>
+#include <wx/chartype.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/colour.h>
 #include <wx/intl.h> // For wxLocale
 #include <wx/dcclient.h>
+#include <wx/language.h>
 #include <wx/settings.h>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
+#include <wx/string.h>
+#include <wx/stattext.h>
+#ifdef __linux__
+#include <fontconfig/fontconfig.h>
+#endif
 
 
 wxFont Label::sysFont(int size, bool bold)
@@ -58,27 +77,48 @@ wxFont Label::Body_10;
 wxFont Label::Body_9;
 wxFont Label::Body_8;
 
+// Check if a font family is already available via fontconfig.
+#ifdef __linux__
+static bool fc_font_available(const char *family_name)
+{
+    FcPattern *pat = FcPatternCreate();
+    if (!pat)
+        return false;
+    FcPatternAddString(pat, FC_FAMILY, (const FcChar8 *) family_name);
+    FcResult res;
+    FcPattern *match = FcFontMatch(nullptr, pat, &res);
+    bool available = false;
+    if (match) {
+        FcChar8 *matched_family = nullptr;
+        if (FcPatternGetString(match, FC_FAMILY, 0, &matched_family) == FcResultMatch && matched_family)
+            available = (strcasecmp((const char *) matched_family, family_name) == 0);
+        FcPatternDestroy(match);
+    }
+    FcPatternDestroy(pat);
+    return available;
+}
+#endif
+
 void Label::initSysFont()
 {
 #if defined(__linux__) || defined(_WIN32)
-    const std::string &resource_path = Slic3r::resources_dir();
-    wxString font_path = wxString::FromUTF8(resource_path + "/fonts/HarmonyOS_Sans_SC_Bold.ttf");
-    bool result = wxFont::AddPrivateFont(font_path);
-    // BOOST_LOG_TRIVIAL(info) << boost::format("add font of HarmonyOS_Sans_SC_Bold returns %1%")%result;
-    printf("add font of HarmonyOS_Sans_SC_Bold returns %d\n", result);
-    font_path = wxString::FromUTF8(resource_path + "/fonts/HarmonyOS_Sans_SC_Regular.ttf");
-    result = wxFont::AddPrivateFont(font_path);
-    // BOOST_LOG_TRIVIAL(info) << boost::format("add font of HarmonyOS_Sans_SC_Regular returns %1%")%result;
-    printf("add font of HarmonyOS_Sans_SC_Regular returns %d\n", result);
-    // Adding NanumGothic Regular and Bold
-    font_path = wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Regular.ttf");
-    result = wxFont::AddPrivateFont(font_path);
-    // BOOST_LOG_TRIVIAL(info) << boost::format("add font of NanumGothic-Regular returns %1%")%result;
-    printf("add font of NanumGothic-Regular returns %d\n", result);
-    font_path = wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Bold.ttf");
-    result = wxFont::AddPrivateFont(font_path);
-    // BOOST_LOG_TRIVIAL(info) << boost::format("add font of NanumGothic-Bold returns %1%")%result;
-    printf("add font of NanumGothic-Bold returns %d\n", result);
+    // On Linux, skip AddPrivateFont for fonts already known to fontconfig
+    // (e.g. installed system-wide in a Flatpak).  Calling AddPrivateFont
+    // triggers a Pango crash in ensure_faces() on Pango >= 1.48 (GNOME 49+),
+    // because FcConfigAppFontAddFile invalidates Pango's cached font map.
+    bool load_fonts = true;
+#ifdef __linux__
+    load_fonts = !fc_font_available("HarmonyOS Sans SC") || !fc_font_available("NanumGothic") || !fc_font_available("Sarabun");
+#endif
+    if (load_fonts) {
+        const std::string &resource_path = Slic3r::resources_dir();
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/HarmonyOS_Sans_SC_Bold.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/HarmonyOS_Sans_SC_Regular.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Regular.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Bold.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/Sarabun-Medium.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/Sarabun-SemiBold.ttf"));
+    }
 #endif
     Head_48 = Label::sysFont(48, true);
     Head_32 = Label::sysFont(32, true);
@@ -273,7 +313,7 @@ Label::Label(wxWindow *parent, wxFont const &font, wxString const &text, long st
     SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
     SetForegroundColour("#262E30");
     if (style & LB_PROPAGATE_MOUSE_EVENT) {
-        for (auto evt : { wxEVT_LEFT_UP, wxEVT_LEFT_DOWN })
+        for (auto evt : { wxEVT_LEFT_UP, wxEVT_LEFT_DOWN, wxEVT_LEFT_DCLICK}) // ORCA also propagete LEFT_DCLICK event that used on sidebar titlebars
             Bind(evt, [this] (auto & e) { GetParent()->GetEventHandler()->ProcessEventLocally(e); });
     };
     if (style & LB_AUTO_WRAP) {

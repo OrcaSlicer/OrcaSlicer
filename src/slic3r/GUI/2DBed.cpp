@@ -3,12 +3,33 @@
 
 #include "3DBed.hpp"
 #include "PartPlate.hpp"
+#include "I18N.hpp"
 
+#include <vector>
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <wx/colour.h>
+#include <wx/brush.h>
+#include <algorithm>
+#include "libslic3r/Color.hpp"
+#include <string>
+#include <cstddef>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/dcbuffer.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/wx.h>
+#include <wx/gdicmn.h>
+#include <wx/peninfobase.h>
+#include <wx/font.h>
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {
@@ -222,7 +243,7 @@ void Bed_2D::repaint(const std::vector<Vec2d>& shape)
 	dc.DrawText(origin_label, origin_label_x, origin_label_y);
 
     // ORCA add grid size value as information for large scale beds
-    auto grid_label = wxString("1x1 Grid: " + std::to_string(step) + " mm");
+    auto grid_label = wxString::Format(_L("1x1 Grid: %d mm"), step);
     Point draw_bb = to_pixels(Vec2d(
         std::min(m_pos(0),bb.min(0)),
         std::min(m_pos(1),bb.min(1))

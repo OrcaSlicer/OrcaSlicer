@@ -9,6 +9,7 @@
 #include "../project_to_line.h"
 #include "../EPS.h"
 #include "../Hit.h"
+#include "../parallel_for.h"
 #include "../Timer.h"
 #include <iostream>
 
@@ -18,10 +19,10 @@ template <
   typename DerivedSD,
   typename Derivedflag>
 IGL_INLINE void igl::embree::bone_visible(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedF> & F,
-  const Eigen::PlainObjectBase<DerivedSD> & s,
-  const Eigen::PlainObjectBase<DerivedSD> & d,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedSD> & s,
+  const Eigen::MatrixBase<DerivedSD> & d,
   Eigen::PlainObjectBase<Derivedflag>  & flag)
 {
   // "double sided lighting"
@@ -40,11 +41,11 @@ template <
   typename DerivedSD,
   typename Derivedflag>
 IGL_INLINE void igl::embree::bone_visible(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedF> & F,
   const EmbreeIntersector & ei,
-  const Eigen::PlainObjectBase<DerivedSD> & s,
-  const Eigen::PlainObjectBase<DerivedSD> & d,
+  const Eigen::MatrixBase<DerivedSD> & s,
+  const Eigen::MatrixBase<DerivedSD> & d,
   Eigen::PlainObjectBase<Derivedflag>  & flag)
 {
   using namespace std;
@@ -52,9 +53,8 @@ IGL_INLINE void igl::embree::bone_visible(
   flag.resize(V.rows());
   const double sd_norm = (s-d).norm();
   // Embree seems to be parallel when constructing but not when tracing rays
-#pragma omp parallel for
   // loop over mesh vertices
-  for(int v = 0;v<V.rows();v++)
+  parallel_for(V.rows(),[&](const int v)
   {
     const Vector3d Vv = V.row(v);
     // Project vertex v onto line segment sd
@@ -86,7 +86,9 @@ IGL_INLINE void igl::embree::bone_visible(
         projv = d;
       }
     }
-    igl::Hit hit;
+    // This could use double, but I'm not sure this function is popular enough
+    // to spend time fixing.
+    igl::Hit<float> hit;
     // perhaps 1.0 should be 1.0-epsilon, or actually since we checking the
     // incident face, perhaps 1.0 should be 1.0+eps
     const Vector3d dir = (Vv-projv)*1.0;
@@ -135,11 +137,11 @@ IGL_INLINE void igl::embree::bone_visible(
       // no hit so vectex v is visible
       flag(v) = true;
     }
-  }
+  },10000);
 }
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::embree::bone_visible<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, 3, 1, 0, 3, 1>, Eigen::Matrix<bool, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, 3, 1, 0, 3, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, 3, 1, 0, 3, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<bool, -1, 1, 0, -1, 1> >&);
-template void igl::embree::bone_visible<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<bool, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<bool, -1, 1, 0, -1, 1> >&);
+template void igl::embree::bone_visible<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, 3, 1, 0, 3, 1>, Eigen::Matrix<bool, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 3, 1, 0, 3, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 3, 1, 0, 3, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<bool, -1, 1, 0, -1, 1> >&);
+template void igl::embree::bone_visible<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<bool, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<bool, -1, 1, 0, -1, 1> >&);
 #endif

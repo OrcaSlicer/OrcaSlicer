@@ -11,14 +11,12 @@
 #include <Eigen/Dense>
 namespace igl
 {
-  // Find *combinatorially* unique simplices in F.  **Order independent**
-  //
-  // Inputs:
-  //   F  #F by simplex-size list of simplices
-  // Outputs:
-  //   FF  #FF by simplex-size list of unique simplices in F
-  //   IA  #FF index vector so that FF == sort(F(IA,:),2);
-  //   IC  #F index vector so that sort(F,2) == FF(IC,:);
+  /// Find *combinatorially* unique simplices in F.  **Order independent**
+  ///
+  /// @param[in] F  #F by simplex-size list of simplices
+  /// @param[out] FF  #FF by simplex-size list of unique simplices in F
+  /// @param[out] IA  #FF index vector so that FF == sort(F(IA,:),2);
+  /// @param[out] IC  #F index vector so that sort(F,2) == FF(IC,:);
   template <
     typename DerivedF,
     typename DerivedFF,
@@ -29,6 +27,7 @@ namespace igl
     Eigen::PlainObjectBase<DerivedFF>& FF,
     Eigen::PlainObjectBase<DerivedIA>& IA,
     Eigen::PlainObjectBase<DerivedIC>& IC);
+  /// \overload
   template <
     typename DerivedF,
     typename DerivedFF>

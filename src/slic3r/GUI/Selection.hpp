@@ -5,8 +5,21 @@
 #include "GUI_Geometry.hpp"
 #include "GLModel.hpp"
 
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Point.hpp"
+#include <functional>
+#include <map>
+#include <memory>
+#include "libslic3r/BoundingBox.hpp"
+#include <array>
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Color.hpp"
 #include <set>
 #include <optional>
+#include <vector>
+#include <utility>
+#include <string>
 
 namespace Slic3r {
 
@@ -181,6 +194,7 @@ private:
     GLModel m_arrow;
     GLModel m_curved_arrow;
     GLModel m_box;
+    bool m_auto_drop = true;
     struct Planes
     {
         std::array<Vec3f, 2> check_points{ Vec3f::Zero(), Vec3f::Zero() };
@@ -232,11 +246,19 @@ public:
     void add_curr_plate();
     void add_object_from_idx(std::vector<int>& object_idxs);
     void remove_curr_plate();
-    void clone(int numbers = 1);
+    // Pastes `numbers` copies of the selection, in one "Selection-clone" undo step. `pasted(done)` is called after each
+    // copy; returning false stops there, and clone() returns false.
+    bool clone(int numbers = 1, const std::function<bool(int done)>& pasted = {});
     void center();
+    bool can_center() const;
     void drop();
+    bool can_drop() const;
+    // Lowest world Z that drop() moves to the bed; whole objects count model parts only, as auto drop does.
+    double get_drop_min_z() const;
     void center_plate(const int plate_idx);
     void set_printable(bool printable);
+    bool get_auto_drop() const;
+    void set_auto_drop(bool enabled);
 
     void add_all();
     void remove_all();
@@ -286,7 +308,7 @@ public:
 
     bool requires_uniform_scale() const;
 
-    // Returns the the object id if the selection is from a single object, otherwise is -1
+    // Returns the object id if the selection is from a single object, otherwise is -1
     int get_object_idx() const;
     // Returns the instance id if the selection is from a single object and from a single instance, otherwise is -1
     int get_instance_idx() const;
@@ -336,7 +358,11 @@ public:
     void flattening_rotate(const Vec3d& normal);
     void scale(const Vec3d& scale, TransformationType transformation_type);
 #if ENABLE_ENHANCED_PRINT_VOLUME_FIT
-    void scale_to_fit_print_volume(const BuildVolume& volume);
+    // bed_center is the centre of the plate the selection is on: every plate shares the
+    // bed size, but each sits at its own origin. print_volumes are the candidate boxes the
+    // selection may be fitted into (e.g. the bed minus rectangular exclusion zones); the one
+    // allowing the largest scale is used.
+    void scale_to_fit_print_volume(const BuildVolume& volume, const Vec2d& bed_center, const std::vector<BoundingBoxf3>& print_volumes);
 #else
     void scale_to_fit_print_volume(const DynamicPrintConfig& config);
 #endif // ENABLE_ENHANCED_PRINT_VOLUME_FIT
@@ -345,7 +371,8 @@ public:
 
     void translate(unsigned int object_idx, const Vec3d& displacement);
     void translate(unsigned int object_idx, unsigned int instance_idx, const Vec3d& displacement);
-    void translate(unsigned int object_idx, unsigned int instance_idx, unsigned int volume_idx, const Vec3d &displacement);
+    // local: true (default) if displacement is already in instance-local space; false treats it as world-space delta (L^-1 applied).
+    void translate(unsigned int object_idx, unsigned int instance_idx, unsigned int volume_idx, const Vec3d &displacement, bool local = true);
 
     void rotate(unsigned int object_idx, unsigned int instance_idx, const Transform3d &overwrite_tran);
     void rotate(unsigned int object_idx, unsigned int instance_idx, unsigned int volume_idx, const Transform3d &overwrite_tran);
@@ -370,7 +397,12 @@ public:
 
     void render_bounding_box(const BoundingBoxf3& box, const ColorRGB& color, float scale) {
         m_scale_factor = scale;
-        render_bounding_box(box, Transform3d::Identity(), color);
+        render_bounding_box(box, Transform3d::Identity(), get_auto_drop(), color);
+    }
+
+    void render_bounding_box(const BoundingBoxf3& box, const Transform3d& trafo, const ColorRGB& color, float scale) {
+        m_scale_factor = scale;
+        render_bounding_box(box, trafo, get_auto_drop(), color);
     }
 
     //BBS
@@ -390,6 +422,8 @@ public:
     std::vector<unsigned int> get_volume_idxs_from_instance(unsigned int object_idx, unsigned int instance_idx) const;
     // returns the idx of the volume corresponding to the volume with the given idxs
     std::vector<unsigned int> get_volume_idxs_from_volume(unsigned int object_idx, unsigned int instance_idx, unsigned int volume_idx) const;
+    // returns the list of idxs of the volumes of all instances on the given plate or overlapping it. (fully inside, oversized or partly outside)
+    std::vector<unsigned int> get_volume_idxs_from_plate(const int plate_idx) const;
     // returns the list of idxs of the volumes contained in the selection but not in the given list
     std::vector<unsigned int> get_missing_volume_idxs_from(const std::vector<unsigned int>& volume_idxs) const;
     // returns the list of idxs of the volumes contained in the given list but not in the selection
@@ -414,7 +448,7 @@ private:
         m_bounding_sphere.reset();
     }
     void render_synchronized_volumes();
-    void render_bounding_box(const BoundingBoxf3& box, const Transform3d& trafo, const ColorRGB& color);
+    void render_bounding_box(const BoundingBoxf3& box, const Transform3d& trafo, const bool auto_drop, const ColorRGB& color);
     void render_sidebar_position_hints(const std::string& sidebar_field, GLShaderProgram& shader, const Transform3d& matrix);
     void render_sidebar_rotation_hints(const std::string& sidebar_field, GLShaderProgram& shader, const Transform3d& matrix);
     //BBS: GUI refactor: add uniform_scale from gizmo

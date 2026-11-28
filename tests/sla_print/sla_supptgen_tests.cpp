@@ -1,8 +1,20 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include "test_utils.hpp"
 
-#include <libslic3r/ExPolygon.hpp>
+#include <cstddef>
+#include <iterator>
 #include <libslic3r/BoundingBox.hpp>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/SLA/SupportPoint.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/SLA/SpatIndex.hpp"
+#include <limits>
+#include "libslic3r/SLA/SupportPointGenerator.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/SLA/Hollowing.hpp"
 
 #include "sla_test_utils.hpp"
 
@@ -13,7 +25,7 @@ TEST_CASE("Overhanging point should be supported", "[SupGen]") {
     // Pyramid with 45 deg slope
     TriangleMesh mesh = make_pyramid(10.f, 10.f);
     mesh.rotate_y(float(PI));
-    mesh.WriteOBJFile("Pyramid.obj");
+    write_debug_obj("sla_supptgen/Pyramid.obj", mesh);
 
     sla::SupportPoints pts = calc_support_pts(mesh);
 
@@ -55,7 +67,7 @@ TEST_CASE("Overhanging horizontal surface should be supported", "[SupGen]") {
 
     TriangleMesh mesh = make_cube(width, depth, height);
     mesh.translate(0., 0., 5.); // lift up
-    mesh.WriteOBJFile("Cuboid.obj");
+    write_debug_obj("sla_supptgen/Cuboid.obj", mesh);
 
     sla::SupportPointGenerator::Config cfg;
     sla::SupportPoints pts = calc_support_pts(mesh, cfg);
@@ -81,7 +93,7 @@ TEST_CASE("Overhanging edge should be supported", "[SupGen]") {
     TriangleMesh mesh = make_prism(width, depth, height);
     mesh.rotate_y(float(PI)); // rotate on its back
     mesh.translate(0., 0., height);
-    mesh.WriteOBJFile("Prism.obj");
+    write_debug_obj("sla_supptgen/Prism.obj", mesh);
 
     sla::SupportPointGenerator::Config cfg;
     sla::SupportPoints pts = calc_support_pts(mesh, cfg);
@@ -101,12 +113,14 @@ TEST_CASE("Overhanging edge should be supported", "[SupGen]") {
     REQUIRE(ddiff > - 0.1 * cfg.minimal_distance);
 }
 
+#ifdef SLIC3R_HAS_OPENVDB
+// Needs a real hollow interior, which only exists when built with OpenVDB.
 TEST_CASE("Hollowed cube should be supported from the inside", "[SupGen][Hollowed]") {
     TriangleMesh mesh = make_cube(20., 20., 20.);
 
     hollow_mesh(mesh, HollowingConfig{});
 
-    mesh.WriteOBJFile("cube_hollowed.obj");
+    write_debug_obj("sla_supptgen/cube_hollowed.obj", mesh);
 
     auto bb = mesh.bounding_box();
     auto h  = float(bb.max.z() - bb.min.z());
@@ -119,6 +133,7 @@ TEST_CASE("Hollowed cube should be supported from the inside", "[SupGen][Hollowe
 
     REQUIRE(!pts.empty());
 }
+#endif // SLIC3R_HAS_OPENVDB
 
 TEST_CASE("Two parallel plates should be supported", "[SupGen][Hollowed]")
 {
@@ -129,7 +144,7 @@ TEST_CASE("Two parallel plates should be supported", "[SupGen][Hollowed]")
     mesh_high.translate(0., 0., 10.); // lift up
     mesh.merge(mesh_high);
 
-    mesh.WriteOBJFile("parallel_plates.obj");
+    write_debug_obj("sla_supptgen/parallel_plates.obj", mesh);
 
     sla::SupportPointGenerator::Config cfg;
     sla::SupportPoints pts = calc_support_pts(mesh, cfg);

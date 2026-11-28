@@ -1,0 +1,117 @@
+{
+    "type": "filament",
+    "name": "Bambu PPA-CF @BBL X2D 0.4 nozzle",
+    "inherits": "Bambu PPA-CF @base",
+    "from": "system",
+    "setting_id": "GFSN06_05",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "counter_coef_2": [
+        "-0.0036"
+    ],
+    "counter_coef_3": [
+        "-0.0075"
+    ],
+    "counter_limit_max": [
+        "-0.0975"
+    ],
+    "counter_limit_min": [
+        "-0.0075"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_extruder_compatibility": [
+        "8"
+    ],
+    "filament_flow_ratio": [
+        "0.96",
+        "0.96",
+        "0.96",
+        "0.96",
+        "0.96",
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "8",
+        "8",
+        "8",
+        "8",
+        "8",
+        "8"
+    ],
+    "filament_printable": [
+        "1"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_tower_interface_print_temp": [
+        "290"
+    ],
+    "hole_coef_2": [
+        "-0.0051"
+    ],
+    "hole_coef_3": [
+        "0.1702"
+    ],
+    "hole_limit_max": [
+        "0.17"
+    ],
+    "hole_limit_min": [
+        "0.04"
+    ],
+    "include": [
+        "fdm_filament_template_direct_bowden_e3d"
+    ],
+    "nozzle_temperature": [
+        "290",
+        "290",
+        "290",
+        "290",
+        "290",
+        "290"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "290",
+        "290",
+        "290",
+        "290",
+        "290",
+        "290"
+    ],
+    "retraction_distances_when_ec": [
+        "3",
+        "3",
+        "3",
+        "4",
+        "4",
+        "4"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20",
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.4 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

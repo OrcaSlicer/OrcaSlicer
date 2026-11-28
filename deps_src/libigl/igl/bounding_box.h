@@ -11,18 +11,19 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Build a triangle mesh of the bounding box of a given list of vertices
-  // 
-  // Inputs:
-  //   V  #V by dim list of rest domain positions
-  // Outputs:
-  //   BV  2^dim by dim list of bounding box corners positions
-  //   BF  #BF by dim list of simplex facets 
+  /// Build a triangle mesh of the bounding box of a given list of vertices
+  /// 
+  /// @param[in]  V  #V by dim list of rest domain positions
+  /// @param[out] BV  2^dim by dim list of bounding box corners positions
+  /// @param[out] BF  #BF by dim list of simplex facets 
   template <typename DerivedV, typename DerivedBV, typename DerivedBF>
   IGL_INLINE void bounding_box(
     const Eigen::MatrixBase<DerivedV>& V,
     Eigen::PlainObjectBase<DerivedBV>& BV,
     Eigen::PlainObjectBase<DerivedBF>& BF);
+  /// \overload \brief With padding.
+  /// 
+  /// @param[in]  pad  padding offset
   template <typename DerivedV, typename DerivedBV, typename DerivedBF>
   IGL_INLINE void bounding_box(
     const Eigen::MatrixBase<DerivedV>& V,

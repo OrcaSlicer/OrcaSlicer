@@ -1,14 +1,14 @@
 {
-    "type": "filament",
-    "name": "Panchroma PLA @System",
-    "inherits": "Panchroma PLA @base",
-    "from": "system",
-    "setting_id": "OGFSPM001",
-    "instantiation": "true",
-    "filament_flow_ratio": [
-        "0.95"
-    ],
-    "filament_max_volumetric_speed": [
-        "16"
-    ]
+	"type": "filament",
+	"name": "Panchroma PLA @System",
+	"inherits": "Panchroma PLA @base",
+	"from": "system",
+	"setting_id": "N9Iv6n4e22ZTLiDa",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_max_volumetric_speed": [
+		"16"
+	]
 }

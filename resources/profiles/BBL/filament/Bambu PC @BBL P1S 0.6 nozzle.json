@@ -11,6 +11,22 @@
     "eng_plate_temp_initial_layer": [
         "100"
     ],
+    "filament_flow_ratio": [
+        "0.94",
+        "0.945"
+    ],
+    "filament_retraction_length": [
+        "nil",
+        "0.45"
+    ],
+    "filament_z_hop": [
+        "nil",
+        "0.6"
+    ],
+    "filament_z_hop_types": [
+        "nil",
+        "Spiral Lift"
+    ],
     "hot_plate_temp": [
         "100"
     ],

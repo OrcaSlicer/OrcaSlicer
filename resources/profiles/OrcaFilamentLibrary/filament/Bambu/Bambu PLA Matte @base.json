@@ -1,32 +1,39 @@
 {
-    "type": "filament",
-    "name": "Bambu PLA Matte @base",
-    "inherits": "fdm_filament_pla",
-    "from": "system",
-    "filament_id": "OGFA01",
-    "instantiation": "false",
-    "filament_cost": [
-        "24.99"
-    ],
-    "filament_density": [
-        "1.32"
-    ],
-    "filament_flow_ratio": [
-        "0.98"
-    ],
-    "filament_vendor": [
-        "Bambu Lab"
-    ],
-    "filament_scarf_seam_type": [
-        "none"
-    ],
-    "filament_scarf_height": [
-        "5%"
-    ],
-    "filament_scarf_gap": [
-        "0%"
-    ],
-    "filament_scarf_length": [
-        "10"
-    ]
+	"type": "filament",
+	"name": "Bambu PLA Matte @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OFXIbw5D",
+	"instantiation": "false",
+	"filament_cost": [
+		"15.99"
+	],
+	"filament_density": [
+		"1.32"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
+	"filament_flow_ratio": [
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98"
+	],
+	"filament_vendor": [
+		"Bambu Lab"
+	],
+	"filament_scarf_height": [
+		"5%"
+	],
+	"filament_scarf_gap": [
+		"0%"
+	]
 }

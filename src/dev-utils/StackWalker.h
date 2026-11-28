@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include <tchar.h>
 #include <vector>
+#include <cstddef>
 
 namespace textconv_helper
 {

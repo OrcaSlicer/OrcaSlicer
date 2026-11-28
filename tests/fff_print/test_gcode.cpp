@@ -1,22 +1,1045 @@
-#include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
-#include <memory>
+#include <catch2/catch_message.hpp>
+#include <catch2/catch_tostring.hpp>
+#include <boost/filesystem/operations.hpp>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/calib.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/ModelArrange.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 
-#include "libslic3r/GCode.hpp"
+#include "test_helpers.hpp"
+#include "test_utils.hpp"
+
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <cstddef>
+#include <fstream>
+#include <initializer_list>
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
+#include <ios>
+#include <regex>
+#include <set>
+#include <map>
+#include <math.h>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using namespace Slic3r;
 
-SCENARIO("Origin manipulation", "[GCode]") {
-	Slic3r::GCode gcodegen;
-	WHEN("set_origin to (10,0)") {
-    	gcodegen.set_origin(Vec2d(10,0));
-    	REQUIRE(gcodegen.origin() == Vec2d(10, 0));
+TEST_CASE("Kobra 2 layer-change templates do not emit numeric commands", "[GCode][Kobra2][Regression]")
+{
+    const char *template_key = GENERATE("before_layer_change_gcode", "layer_change_gcode");
+    const std::string profile_path = std::string(PROFILES_DIR) + "/Anycubic/machine/Anycubic Kobra 2 0.4 nozzle.json";
+    // CI test artifacts may omit the shipped profiles.
+    if (!boost::filesystem::exists(profile_path))
+        SKIP("shipped profile not present: " << profile_path);
+
+    DynamicPrintConfig machine;
+    ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Enable};
+    std::map<std::string, std::string> metadata;
+    std::string reason;
+    machine.load_from_json(profile_path, substitutions, false, metadata, reason);
+    INFO("profile: " << profile_path << "\nload reason: " << reason);
+    REQUIRE(machine.has(template_key));
+    REQUIRE_FALSE(machine.opt_string(template_key).empty());
+
+    auto config = Test::multifilament_config(1, {
+        {"gcode_flavor", "marlin"},
+        {"layer_height", "0.2"},
+        {"first_layer_height", "0.2"},
+        {"use_relative_e_distances", "0"},
+        {"machine_start_gcode", ""},
+        {"machine_end_gcode", ""},
+        {"before_layer_change_gcode", ""},
+        {"layer_change_gcode", ""},
+    });
+    // Exercise each shipped template separately through a real G-code export.
+    config.set_key_value(template_key, machine.option(template_key)->clone());
+    const std::string gcode = Test::slice({Test::cube(1.)}, config);
+    INFO("template: " << template_key);
+    REQUIRE(gcode.find(";LAYER_CHANGE") != std::string::npos);
+
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        const auto command = line.cmd();
+        if (!command.empty()) {
+            INFO("executable line: " << line.raw());
+            CHECK_FALSE(std::isdigit(static_cast<unsigned char>(command.front())));
+        }
+    });
+}
+
+TEST_CASE("ORCA_SOURCE_DATE_EPOCH makes custom G-code print the same time and random numbers on every export", "[GCode]")
+{
+    const ScopedEnvVar epoch("ORCA_SOURCE_DATE_EPOCH", "1000000000"); // 2001-09-09 01:46:40 UTC
+    const auto config = Test::multifilament_config(1, {
+        {"layer_height", "0.2"},
+        {"first_layer_height", "0.2"},
+        {"layer_change_gcode", "; clock [timestamp] roll {random(0, 1000000)}"},
+    });
+    const auto clock_lines = [&config]() {
+        std::vector<std::string> lines;
+        // A 2 mm cube at 0.2 mm layers changes layer several times, so random() is drawn several times.
+        std::istringstream gcode(Test::slice({Test::cube(2.)}, config));
+        for (std::string line; std::getline(gcode, line);)
+            if (line.rfind("; clock ", 0) == 0)
+                lines.push_back(line);
+        return lines;
+    };
+
+    const std::vector<std::string> first = clock_lines();
+    REQUIRE(first.size() > 1);
+    for (const std::string &line : first)
+        CHECK(line.rfind("; clock 20010909-014640 roll ", 0) == 0);
+    // The sequence still advances from layer to layer. Only its starting point is fixed.
+    CHECK(std::set<std::string>(first.begin(), first.end()).size() > 1);
+    CHECK(clock_lines() == first);
+}
+
+TEST_CASE("Klipper object labels name each copy without the characters Klipper cannot parse", "[GCode]")
+{
+    const auto [name, label] = GENERATE(table<std::string, std::string>({
+        {"my part (2)", "my_part_2"},
+        {"(cube)", "cube"},
+    }));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"gcode_flavor", "klipper"}, {"exclude_object", "1"}});
+    Print print;
+    Model model;
+    Test::init_print(std::vector<TriangleMesh>{Test::cube(20.)}, print, model, config, nullptr, false, 2);
+    model.objects.front()->name = name;
+    arrange_objects(model, BoundingBox{Point::new_scale(0., 0.), Point::new_scale(500., 500.)},
+                    ArrangeParams{scaled(min_object_distance(config))});
+    print.apply(model, config);
+
+    const std::string gcode = Test::gcode(print);
+    for (const char *copy : {"0", "1"}) {
+        const std::string instance_label = label + "_id_0_copy_" + copy;
+        INFO(instance_label);
+        CHECK(gcode.find("EXCLUDE_OBJECT_DEFINE NAME=" + instance_label + " ") != std::string::npos);
+        CHECK(gcode.find("EXCLUDE_OBJECT_START NAME=" + instance_label + "\n") != std::string::npos);
     }
-	WHEN("set_origin to (10,0) and translate by (5, 5)") {
-		gcodegen.set_origin(Vec2d(10,0));
-		gcodegen.set_origin(gcodegen.origin() + Vec2d(5, 5));
-		THEN("origin returns reference to point") {
-    		REQUIRE(gcodegen.origin() == Vec2d(15,5));
-    	}
+}
+
+// The outline written to EXCLUDE_OBJECT_DEFINE is simplified with exclude_object_tolerance. A larger value must
+// leave fewer points, which keeps the exclude-object array small on printers that stall while parsing it.
+TEST_CASE("A larger exclude object tolerance writes fewer outline points", "[GCode]")
+{
+    const auto slice_with_tolerance = [](const std::string &tolerance) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"gcode_flavor", "klipper"}, {"exclude_object", "1"},
+                                       {"exclude_object_tolerance", tolerance}});
+        // Default facet angle (2 degrees): 180 hull points, well inside either tolerance.
+        return Test::slice({make_cylinder(20., 5.)}, config);
+    };
+    // Points of the POLYGON=[[x,y],...] on the first EXCLUDE_OBJECT_DEFINE line.
+    const auto polygon_points = [](const std::string &gcode) {
+        const size_t define = gcode.find("EXCLUDE_OBJECT_DEFINE");
+        REQUIRE(define != std::string::npos);
+        const size_t begin = gcode.find("POLYGON=", define);
+        REQUIRE(begin != std::string::npos);
+        const std::string polygon = gcode.substr(begin, gcode.find('\n', begin) - begin);
+        size_t points = 1;
+        for (size_t pos = polygon.find("],["); pos != std::string::npos; pos = polygon.find("],[", pos + 1))
+            ++points;
+        return points;
+    };
+
+    const size_t fine   = polygon_points(slice_with_tolerance("0.1"));
+    const size_t coarse = polygon_points(slice_with_tolerance("0.4"));
+    INFO("points at 0.1 mm: " << fine << ", at 0.4 mm: " << coarse);
+    CHECK(coarse >= 4);
+    CHECK(coarse < fine);
+}
+
+// Existing profiles must keep writing the outlines they wrote when the tolerance was a constant 0.1 mm.
+TEST_CASE("The exclude object tolerance defaults to the former fixed 0.1 mm", "[GCode]")
+{
+    CHECK_THAT(DynamicPrintConfig::full_print_config().opt_float("exclude_object_tolerance"),
+               Catch::Matchers::WithinAbs(0.1, 1e-9));
+}
+
+TEST_CASE("The filament flow ratio scales the extruded length once", "[GCode]")
+{
+    // Retraction off, so every positive relative E move is extrusion and scales with the ratio.
+    auto extruded_length = [](double flow_ratio) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({ { "use_relative_e_distances", "1" }, { "retraction_length", "0" }, { "wipe", "0" } });
+        config.set_key_value("filament_flow_ratio", new ConfigOptionFloatsNullable{ flow_ratio });
+        double total = 0.;
+        GCodeReader reader;
+        reader.parse_buffer(Test::slice({ Test::cube(20) }, config),
+                            [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+                                if ((line.cmd_is("G1") || line.cmd_is("G2") || line.cmd_is("G3")) && line.has_e() && line.e() > 0.f)
+                                    total += line.e();
+                            });
+        return total;
+    };
+
+    const double full = extruded_length(1.);
+    REQUIRE(full > 0.);
+    CHECK_THAT(extruded_length(0.9) / full, Catch::Matchers::WithinRel(0.9, 1e-3));
+}
+
+TEST_CASE("Retract after outer wall retracts on a travel shorter than the threshold", "[GCode]")
+{
+    const bool enabled = GENERATE(false, true);
+    CAPTURE(enabled);
+    // Inner-outer-inner order puts a short travel between the outer wall and the next inner wall;
+    // the 5 mm threshold alone would skip its retraction.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor", "marlin2" },
+        { "layer_height", "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        { "wall_loops", "3" },
+        { "wall_sequence", "inner-outer-inner wall" },
+        { "top_shell_layers", "0" },
+        { "bottom_shell_layers", "0" },
+        { "sparse_infill_density", "0%" },
+        { "retraction_length", "0.8" },
+        { "retraction_minimum_travel", "5" },
+        { "retract_when_changing_layer", "0" },
+        { "wipe", "0" },
+        { "z_hop", "0" },
+        { "gcode_comments", "1" },
+        { "machine_start_gcode", "" },
+        { "machine_end_gcode", "" },
+        { "retract_after_outer_wall", enabled ? "1" : "0" },
+    });
+    const std::string output = Test::slice({ make_cube(10., 10., 1.) }, config);
+
+    const std::string &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    ExtrusionRole role = erNone;
+    ExtrusionRole last_extruded = erNone;
+    double retraction = 0.;
+    size_t exits = 0;
+    size_t entries = 0;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(role_tag) == 0)
+            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+        if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            if (last_extruded == erExternalPerimeter && role != erExternalPerimeter) {
+                REQUIRE(role == erPerimeter);
+                ++exits;
+                CHECK_THAT(retraction, Catch::Matchers::WithinAbs(enabled ? 0.8 : 0., 0.00005));
+            } else if (last_extruded == erPerimeter && role == erExternalPerimeter) {
+                // The short travel from an inner wall to the outer wall keeps the threshold.
+                ++entries;
+                CHECK_THAT(retraction, Catch::Matchers::WithinAbs(0., 0.00005));
+            }
+            last_extruded = role;
+            retraction = 0.;
+        } else if (line.retracting(self)) {
+            retraction -= line.dist_E(self);
+        }
+    });
+    // The 1 mm cube has five 0.2 mm layers, each printing an inner wall, the outer wall and another inner wall.
+    REQUIRE(exits == 5);
+    REQUIRE(entries == 5);
+}
+
+TEST_CASE("Retract after outer wall retracts on a layer change that follows the outer wall", "[GCode]")
+{
+    const bool enabled = GENERATE(false, true);
+    CAPTURE(enabled);
+    // Inner/outer order ends every layer with the outer wall. Without a retraction on layer change, only
+    // this option retracts on the short travel to the next layer; the 5 mm threshold alone would skip it.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor", "marlin2" },
+        { "layer_height", "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        { "wall_loops", "2" },
+        { "wall_sequence", "inner wall/outer wall" },
+        { "top_shell_layers", "0" },
+        { "bottom_shell_layers", "0" },
+        { "sparse_infill_density", "0%" },
+        { "skirt_loops", "0" },
+        { "brim_type", "no_brim" },
+        { "retraction_length", "0.8" },
+        { "retraction_minimum_travel", "5" },
+        { "retract_when_changing_layer", "0" },
+        { "wipe", "0" },
+        { "z_hop", "0" },
+        { "gcode_comments", "1" },
+        { "machine_start_gcode", "" },
+        { "machine_end_gcode", "" },
+        { "retract_after_outer_wall", enabled ? "1" : "0" },
+    });
+    const std::string output = Test::slice({ make_cube(10., 10., 1.) }, config);
+
+    const std::string &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    ExtrusionRole role = erNone;
+    ExtrusionRole last_extruded = erNone;
+    double last_z = 0.;
+    double retraction = 0.;
+    double travel = 0.;
+    size_t layer_changes = 0;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(role_tag) == 0)
+            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+        if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            // The first extrusion on a new layer closes the travel that left the layer below.
+            if (last_extruded != erNone && self.z() - last_z > EPSILON) {
+                ++layer_changes;
+                REQUIRE(last_extruded == erExternalPerimeter);
+                REQUIRE(role == erPerimeter);
+                REQUIRE(travel < 5.);
+                CHECK_THAT(retraction, Catch::Matchers::WithinAbs(enabled ? 0.8 : 0., 0.00005));
+            }
+            last_extruded = role;
+            last_z = self.z();
+            retraction = 0.;
+            travel = 0.;
+        } else {
+            if (line.retracting(self))
+                retraction -= line.dist_E(self);
+            travel += line.dist_XY(self);
+        }
+    });
+    // The 1 mm cube has five 0.2 mm layers, so four layer changes.
+    REQUIRE(layer_changes == 4);
+}
+
+TEST_CASE("Retract after outer wall tells walls apart by wall index on a full overhang", "[GCode]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+    // A 10 mm plate on a 2 mm pillar: the plate's first layer prints all three walls in mid air, so every
+    // path there has the overhang role. Only the outer wall may skip the 5 mm threshold.
+    TriangleMesh mesh = make_cube(2., 2., 1.);
+    TriangleMesh plate = make_cube(10., 10., 0.4);
+    plate.translate(-4.f, -4.f, 1.f);
+    mesh.merge(plate);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor", "marlin2" },
+        { "wall_generator", wall_generator },
+        { "layer_height", "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        { "wall_loops", "3" },
+        { "wall_sequence", "inner-outer-inner wall" },
+        { "detect_overhang_wall", "1" },
+        { "extra_perimeters_on_overhangs", "0" },
+        { "top_shell_layers", "0" },
+        { "bottom_shell_layers", "0" },
+        { "sparse_infill_density", "0%" },
+        { "retraction_length", "0.8" },
+        { "retraction_minimum_travel", "5" },
+        { "retract_when_changing_layer", "0" },
+        { "wipe", "0" },
+        { "z_hop", "0" },
+        { "gcode_comments", "1" },
+        { "machine_start_gcode", "" },
+        { "machine_end_gcode", "" },
+        { "retract_after_outer_wall", "1" },
+    });
+    const std::string output = Test::slice({ mesh }, config);
+
+    // Walls on the plate's first layer (1.0 to 1.2 mm) in print order, with what follows each of them.
+    struct Wall { double length = 0.; ExtrusionRole role = erNone; double retraction = 0.; double travel = 0.; };
+    std::vector<Wall> walls;
+    const std::string &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    ExtrusionRole role = erNone;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(role_tag) == 0)
+            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+        if (std::abs(self.z() - 1.2) > 0.001)
+            return;
+        if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            // Other extrusions on the layer, if any appear, are not walls.
+            if (!is_perimeter(role))
+                return;
+            // A travel separates one wall from the next.
+            if (walls.empty() || walls.back().travel > EPSILON)
+                walls.emplace_back();
+            walls.back().length += line.dist_XY(self);
+            walls.back().role = role;
+        } else if (!walls.empty()) {
+            if (line.retracting(self))
+                walls.back().retraction -= line.dist_E(self);
+            walls.back().travel += line.dist_XY(self);
+        }
+    });
+
+    REQUIRE(walls.size() == 3);
+    // The outer wall is the longest loop, printed between the two inner walls.
+    const auto outer = std::max_element(walls.begin(), walls.end(),
+                                        [](const Wall &a, const Wall &b) { return a.length < b.length; });
+    REQUIRE(outer == walls.begin() + 1);
+    for (const Wall &wall : walls)
+        REQUIRE(wall.role == erOverhangPerimeter);
+    for (size_t i = 0; i + 1 < walls.size(); ++i) {
+        CAPTURE(i);
+        REQUIRE(walls[i].travel < 5.);
+        CHECK_THAT(walls[i].retraction, Catch::Matchers::WithinAbs(i == 1 ? 0.8 : 0., 0.00005));
+    }
+}
+
+TEST_CASE("Retract after outer wall is on by default", "[GCode]")
+{
+    const DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    CHECK(config.opt_bool("retract_after_outer_wall"));
+}
+
+// Firmwares read the compatibility header lines (Anycubic's GoKlipper heats the bed with
+// first_layer_bed_temperature), so they must describe the filament the plate prints, not filament 1.
+TEST_CASE("The G-code header names the first layer temperatures of the filament the plate prints", "[GCode]")
+{
+    const std::string formula = GENERATE("by_first_filament", "by_highest_temp");
+    DYNAMIC_SECTION("bed_temperature_formula " << formula) {
+        // Filament 1: bed 60, nozzle 200. Filament 2: bed 100, nozzle 250. Everything prints with filament 2.
+        DynamicPrintConfig config = Test::multifilament_config(2, {
+            {"bed_temperature_formula", formula},
+            // Authored 1..n as PresetBundle writes it; the all-1s default collapses every per-filament value
+            // to filament 1.
+            {"filament_self_index", "1,2"},
+            {"filament_extruder_variant", "Direct Drive Standard;Direct Drive Standard"},
+            {"enable_prime_tower", 0},
+            {"nozzle_temperature_initial_layer", "200,250"},
+            {"nozzle_temperature", "200,250"},
+            {"supertack_plate_temp_initial_layer", "60,100"},
+            {"cool_plate_temp_initial_layer", "60,100"},
+            {"textured_cool_plate_temp_initial_layer", "60,100"},
+            {"eng_plate_temp_initial_layer", "60,100"},
+            {"hot_plate_temp_initial_layer", "60,100"},
+            {"textured_plate_temp_initial_layer", "60,100"},
+            {"sparse_infill_filament_id", 2},
+            {"internal_solid_filament_id", 2},
+            {"top_surface_filament_id", 2},
+            {"bottom_surface_filament_id", 2},
+            {"outer_wall_filament_id", 2},
+            {"inner_wall_filament_id", 2},
+            {"skirt_loops", 0},
+            {"brim_type", "no_brim"},
+        });
+        const std::string gcode = Test::slice({Test::cube(20)}, config);
+
+        const auto header_value = [&gcode](const std::string& key) {
+            const std::string token = "; " + key + " = ";
+            const size_t pos = gcode.find(token);
+            REQUIRE(pos != std::string::npos);
+            return std::stoi(gcode.substr(pos + token.size()));
+        };
+        CHECK(header_value("first_layer_bed_temperature") == 100);
+        CHECK(header_value("first_layer_temperature") == 250);
+    }
+}
+
+// Printing by object reassigns the initial filament to each object's first filament while it emits the objects, so
+// the header must still name the filament the print starts with: the firmware heats the bed for the first object.
+TEST_CASE("The G-code header names the first object's filament when printing by object", "[GCode]")
+{
+    // Filament 1: bed 60, nozzle 200. Filament 2: bed 100, nozzle 250. Object 1 prints with filament 2, object 2
+    // with filament 1.
+    DynamicPrintConfig config = Test::multifilament_config(2, {
+        {"print_sequence", "by object"},
+        {"bed_temperature_formula", "by_first_filament"},
+        {"filament_self_index", "1,2"},
+        {"filament_extruder_variant", "Direct Drive Standard;Direct Drive Standard"},
+        {"enable_prime_tower", 0},
+        {"nozzle_temperature_initial_layer", "200,250"},
+        {"nozzle_temperature", "200,250"},
+        {"supertack_plate_temp_initial_layer", "60,100"},
+        {"cool_plate_temp_initial_layer", "60,100"},
+        {"textured_cool_plate_temp_initial_layer", "60,100"},
+        {"eng_plate_temp_initial_layer", "60,100"},
+        {"hot_plate_temp_initial_layer", "60,100"},
+        {"textured_plate_temp_initial_layer", "60,100"},
+        {"skirt_loops", 0},
+        {"brim_type", "no_brim"},
+    });
+    const std::string gcode = Test::slice_with_object_overrides({Test::cube(20), Test::cube(20)}, config,
+                                                                {{{"extruder", "2"}}, {{"extruder", "1"}}});
+
+    // Filament 2 starts and filament 1 follows, so the last object's filament differs from the first one's.
+    const size_t first_t1 = gcode.find("\nT1");
+    const size_t first_t0 = gcode.find("\nT0");
+    REQUIRE(first_t1 != std::string::npos);
+    REQUIRE(first_t0 != std::string::npos);
+    REQUIRE(first_t1 < first_t0);
+
+    const auto header_value = [&gcode](const std::string& key) {
+        const std::string token = "; " + key + " = ";
+        const size_t pos = gcode.find(token);
+        REQUIRE(pos != std::string::npos);
+        return std::stoi(gcode.substr(pos + token.size()));
+    };
+    CHECK(header_value("first_layer_bed_temperature") == 100);
+    CHECK(header_value("first_layer_temperature") == 250);
+}
+
+// A filament that starts above the first layer, such as a support interface, never touches the bed. Heating the
+// bed to its temperature would soften the filament the part stands on, so only first layer filaments count.
+TEST_CASE("The highest temperature bed formula ignores filaments that start above the first layer", "[GCode]")
+{
+    // Filament 1: bed 65 on the first layer, 60 after it. Filament 2: bed 100. A 30 mm cap on a 10 mm tall stem prints
+    // with filament 1 and is supported from the bed, the support with filament 1 and its interface under the cap
+    // with filament 2.
+    TriangleMesh mesh = make_cube(10, 10, 10);
+    mesh.translate(10, 10, 0);
+    TriangleMesh cap = make_cube(30, 30, 2);
+    cap.translate(0, 0, 10);
+    mesh.merge(cap);
+    DynamicPrintConfig config = Test::multifilament_config(2, {
+        {"bed_temperature_formula", "by_highest_temp"},
+        {"enable_prime_tower", 0},
+        {"enable_support", 1},
+        {"support_filament", 1},
+        {"support_interface_filament", 2},
+        {"supertack_plate_temp_initial_layer", "65,100"},
+        {"cool_plate_temp_initial_layer", "65,100"},
+        {"textured_cool_plate_temp_initial_layer", "65,100"},
+        {"eng_plate_temp_initial_layer", "65,100"},
+        {"hot_plate_temp_initial_layer", "65,100"},
+        {"textured_plate_temp_initial_layer", "65,100"},
+        {"supertack_plate_temp", "60,100"},
+        {"cool_plate_temp", "60,100"},
+        {"textured_cool_plate_temp", "60,100"},
+        {"eng_plate_temp", "60,100"},
+        {"hot_plate_temp", "60,100"},
+        {"textured_plate_temp", "60,100"},
+        {"skirt_loops", 0},
+        {"brim_type", "no_brim"},
+    });
+    const std::string gcode = Test::slice({mesh}, config);
+    REQUIRE(gcode.find("\nT1") != std::string::npos);
+
+    std::vector<int> bed_temps;
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line);)
+        if (line.rfind("M140 S", 0) == 0 || line.rfind("M190 S", 0) == 0)
+            bed_temps.push_back(std::stoi(line.substr(6)));
+    INFO("bed temperatures: " << Catch::Detail::stringify(bed_temps));
+    REQUIRE_FALSE(bed_temps.empty());
+    CHECK(bed_temps.front() == 65);
+    CHECK(std::find(bed_temps.begin(), bed_temps.end(), 60) != bed_temps.end());
+    CHECK(std::find(bed_temps.begin(), bed_temps.end(), 100) == bed_temps.end());
+}
+
+TEST_CASE("Object label comments number each object and copy with or without exclude object", "[GCode]")
+{
+    // repetier has no exclude-object commands, so set_object_info() writes nothing for it.
+    // BBL printers write M624/M625 skip blocks whatever exclude_object is set to.
+    const auto [flavor, exclude_object, bbl] = GENERATE(table<std::string, std::string, bool>({
+        {"marlin2", "0", false},
+        {"klipper", "0", false},
+        {"klipper", "1", false},
+        {"repetier", "1", false},
+        {"marlin2", "0", true},
+    }));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"gcode_flavor", flavor}, {"exclude_object", exclude_object}, {"gcode_label_objects", "1"}});
+    Print print;
+    print.is_BBL_printer() = bbl;
+    Model model;
+    Test::init_print(std::vector<TriangleMesh>{Test::cube(20.), Test::cube(20.)}, print, model, config, nullptr, false, 2);
+    arrange_objects(model, BoundingBox{Point::new_scale(0., 0.), Point::new_scale(500., 500.)},
+                    ArrangeParams{scaled(min_object_distance(config))});
+    print.apply(model, config);
+
+    const std::string gcode = Test::gcode(print);
+    INFO(flavor << ", exclude_object " << exclude_object << ", BBL " << bbl);
+    for (const char *label : {"id:0 copy 0", "id:0 copy 1", "id:1 copy 0", "id:1 copy 1"}) {
+        INFO(label);
+        CHECK(gcode.find("; printing object object.stl " + std::string(label) + "\n") != std::string::npos);
+    }
+    if (bbl)
+        for (const PrintObject *object : print.objects())
+            for (const PrintInstance &instance : object->instances()) {
+                const std::string label_id = std::to_string(instance.model_instance->get_labeled_id());
+                INFO("label id " << label_id);
+                CHECK(gcode.find("; start printing object, unique label id: " + label_id + "\nM624 ") != std::string::npos);
+                CHECK(gcode.find("; stop printing object, unique label id: " + label_id + "\nM625\n") != std::string::npos);
+            }
+}
+
+TEST_CASE("Sparse infill only arc fitting emits arcs in the sparse infill alone", "[GCode]")
+{
+    const auto arcs_per_type = [](const char *arc_fitting) {
+        // 360 facets keep the walls and the concentric infill within the resolution of a circle, so both fit arcs.
+        const std::string gcode = Test::slice({ make_cylinder(25.0, 10.0, 2.0 * PI / 360.0) }, {
+            { "enable_arc_fitting",    arc_fitting },
+            { "sparse_infill_pattern", "concentric" },
+            { "sparse_infill_density", "20%" },
+            { "z_hop",                 "0" },
+        });
+        std::map<std::string, size_t> arcs;
+        std::istringstream input(gcode);
+        std::string line, type;
+        while (std::getline(input, line)) {
+            if (line.rfind(";TYPE:", 0) == 0)
+                type = line.substr(6);
+            else if (line.rfind("G2 ", 0) == 0 || line.rfind("G3 ", 0) == 0)
+                ++arcs[type];
+        }
+        return arcs;
+    };
+
+    CHECK(arcs_per_type("enabled").count("Outer wall") == 1);
+
+    const std::map<std::string, size_t> sparse_only = arcs_per_type("sparse_infill");
+    CHECK(sparse_only.count("Sparse infill") == 1);
+    for (const auto &[type, count] : sparse_only) {
+        INFO(type << ": " << count << " arcs");
+        CHECK(type == "Sparse infill");
+    }
+
+    CHECK(arcs_per_type("disabled").empty());
+}
+
+TEST_CASE("Exported moves use the decimal places selected by the G-code precision option, and supports use the standard ones", "[GCode]")
+{
+    const bool high_precision = GENERATE(false, true);
+    CAPTURE(high_precision);
+    // The pressure equalizer rewrites moves after the writer has formatted them.
+    const std::string gcode = Test::slice({ Test::TestMesh::overhang }, {
+        { "high_precision_gcode",                high_precision },
+        { "max_volumetric_extrusion_rate_slope", 10 },
+        { "enable_support",                      1 },
+        { "use_relative_e_distances",            1 },
+    });
+
+    // Trailing zeros are not written, so the longest fraction per axis shows the precision in use.
+    // Only the extrusions of a support are counted apart: its travels that change Z, and the travel to the object
+    // path after it, keep the precision of the option.
+    std::map<char, size_t> max_decimals;
+    std::map<char, size_t> max_support_decimals;
+    size_t support_extrusions = 0;
+    bool in_support = false;
+    std::istringstream input(gcode);
+    std::string line;
+    while (std::getline(input, line)) {
+        if (line.rfind(";TYPE:", 0) == 0)
+            in_support = line.rfind(";TYPE:Support", 0) == 0;
+        if (line.rfind("G1 ", 0) != 0 && line.rfind("G2 ", 0) != 0 && line.rfind("G3 ", 0) != 0)
+            continue;
+        std::istringstream words(line.substr(0, line.find(';')));
+        std::string word;
+        words >> word;
+        std::map<char, std::string> values;
+        while (words >> word)
+            values[word.front()] = word.substr(1);
+        // With relative E distances, a positive E on an XY move is an extrusion.
+        const bool extrusion = (values.count('X') || values.count('Y')) && values.count('E') && values['E'].front() != '-';
+        const bool support_extrusion = in_support && extrusion;
+        support_extrusions += support_extrusion;
+        for (const auto &[axis, value] : values) {
+            const size_t point = value.find('.');
+            size_t &decimals = (support_extrusion ? max_support_decimals : max_decimals)[axis];
+            decimals = std::max(decimals, point == std::string::npos ? size_t(0) : value.size() - point - 1);
+        }
+    }
+
+    const size_t xyz_decimals = high_precision ? 4 : 3;
+    const size_t e_decimals   = high_precision ? 6 : 5;
+    CHECK(max_decimals['X'] == xyz_decimals);
+    CHECK(max_decimals['Y'] == xyz_decimals);
+    CHECK(max_decimals['Z'] <= xyz_decimals);
+    CHECK(max_decimals['E'] == e_decimals);
+    CHECK(max_decimals['F'] <= 3);
+    // Supports are removed after printing, so they keep the standard precision.
+    REQUIRE(support_extrusions > 0);
+    CHECK(max_support_decimals['X'] == 3);
+    CHECK(max_support_decimals['Y'] == 3);
+    CHECK(max_support_decimals['E'] == 5);
+}
+
+TEST_CASE("An exported G-code's settings load back as the settings it was sliced with", "[GCode]")
+{
+    // Two filaments, so the config block carries the flush matrix already multiplied by flush_multiplier.
+    const double file_multiplier = GENERATE(0.5, 0.);
+    // The config block leaves prime_volume_mode out, so the receiver's choice has to survive the load.
+    const PrimeVolumeMode mode = GENERATE(PrimeVolumeMode::pvmDefault, PrimeVolumeMode::pvmFast);
+    CAPTURE(file_multiplier, int(mode));
+    const DynamicPrintConfig config = Test::multifilament_config(2, {
+        { "flush_multiplier", std::to_string(file_multiplier) },
+        { "printable_area", "0x0,250x0,250x210,0x210" },
+        { "printable_height", "180" },
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::vector<TriangleMesh>{ Test::cube(20.) }, print, model, config, nullptr, false);
+    ScopedTemporaryFile file(".gcode");
+    {
+        std::ofstream os(file.string(), std::ios::binary);
+        os << Test::gcode(print);
+        REQUIRE(os.good());
+    }
+
+    PresetBundle bundle;
+    bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value = mode;
+    const std::vector<double> fast_multiplier = bundle.project_config.option<ConfigOptionFloats>("flush_multiplier_fast")->values;
+    ConfigSubstitutions substitutions;
+    bundle.load_config_model(file.string(), bundle.config_from_gcode(file.string(), ForwardCompatibilitySubstitutionRule::Enable, substitutions));
+
+    const DynamicPrintConfig &printer = bundle.printers.get_edited_preset().config;
+    CHECK(printer.opt_serialize("printable_area") == config.opt_serialize("printable_area"));
+    CHECK_THAT(printer.opt_float("printable_height"), Catch::Matchers::WithinAbs(180., 1e-6));
+    // The multipliers stay with the project after the file is closed and scale every table the app recalculates,
+    // so they are the file's own and, for Fast mode, which the block leaves out, the receiver's.
+    const std::vector<double> &multiplier = bundle.project_config.option<ConfigOptionFloats>("flush_multiplier")->values;
+    const std::vector<double> &fast_after = bundle.project_config.option<ConfigOptionFloats>("flush_multiplier_fast")->values;
+    REQUIRE(multiplier.size() == 1);
+    REQUIRE(fast_multiplier.size() == 1);
+    REQUIRE(fast_after.size() == 1);
+    CHECK_THAT(multiplier[0], Catch::Matchers::WithinAbs(file_multiplier, 1e-9));
+    CHECK_THAT(fast_after[0], Catch::Matchers::WithinAbs(fast_multiplier[0], 1e-9));
+    // The purge between the two filaments is what the slice used: 280 at the file's multiplier.
+    const std::vector<double> &matrix = bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
+    REQUIRE(matrix.size() == 4);
+    const double slicing_multiplier = mode == PrimeVolumeMode::pvmFast ? fast_after[0] : multiplier[0];
+    CHECK_THAT(matrix[1] * slicing_multiplier, Catch::Matchers::WithinAbs(280. * file_multiplier, 1e-6));
+    CHECK(bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value == mode);
+}
+
+TEST_CASE("Z hop follows the lift settings of the filament printing", "[GCode]")
+{
+    // One nozzle, two filaments. Filament 2 overrides one lift setting; filament 1 keeps the printer's default,
+    // which lifts on every layer.
+    auto [key, value] = GENERATE(table<std::string, std::string>({
+        {"filament_retract_lift_above", "nil,1"},             // only lift Z above 1 mm
+        {"filament_retract_lift_enforce", "nil,Bottom Only"}, // only lift on the first layer
+    }));
+    const int filament = GENERATE(1, 2);
+    CAPTURE(key, filament);
+    DynamicPrintConfig config = Test::multifilament_config(2, {
+        // each filament its own variant column, as in a real preset
+        {"filament_self_index", "1,2"},
+        {"filament_extruder_variant", "Direct Drive Standard;Direct Drive Standard"},
+        {"z_hop", "0.6"},
+        {key, value},
+        {"layer_height", "0.2"},
+        {"initial_layer_print_height", "0.2"},
+        {"enable_prime_tower", 0},
+    });
+    Print print;
+    Model model;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides(2, {{"extruder", std::to_string(filament)}});
+    // Two objects, so every layer travels between them with a retraction.
+    Test::init_print({Test::cube(20), Test::cube(20)}, print, model, config, &overrides);
+
+    // The heights of the layers with a move that lifts Z above the layer.
+    std::set<double>   lift_layers;
+    double             layer_z = 0.;
+    std::istringstream lines(Test::gcode(print));
+    std::string        line;
+    const std::regex   z_word(R"(\bZ([-0-9.]+))");
+    while (std::getline(lines, line)) {
+        if (line.rfind(";Z:", 0) == 0) {
+            layer_z = std::stod(line.substr(3));
+            continue;
+        }
+        // Skip the start G-code, which lifts the nozzle before the first layer.
+        if (layer_z <= 0. || (line.rfind("G1 ", 0) != 0 && line.rfind("G0 ", 0) != 0))
+            continue;
+        const std::string move = line.substr(0, line.find(';'));
+        std::smatch       match;
+        if (std::regex_search(move, match, z_word) && std::stod(match[1]) > layer_z + 0.3)
+            lift_layers.insert(layer_z);
+    }
+
+    REQUIRE_FALSE(lift_layers.empty());
+    const double first = *lift_layers.begin();
+    const double last  = *lift_layers.rbegin();
+    if (filament == 1) {
+        CHECK(first < 0.2 + EPSILON);
+        CHECK(last > 1.);
+    } else if (key == "filament_retract_lift_above")
+        CHECK(first > 1. - EPSILON);
+    else
+        CHECK(last < 0.2 + EPSILON);
+}
+
+// With lifts enforced on top surfaces only, nothing lifts before a top surface is printed. The
+// role of the last fill decides it, and the first travel of the print comes before any fill, so
+// that role must start empty rather than hold whatever was in memory. On glibc the test fills new
+// memory with the byte of a top solid infill role, so a missing initial value always shows.
+TEST_CASE("A lift enforced on top surfaces only never lifts before the first top surface", "[GCode]")
+{
+    DynamicPrintConfig config = Test::multifilament_config(1, {
+        {"filament_retract_lift_enforce", "Top Only"},
+        {"z_hop", "0.6"},
+        {"retraction_length", "1"},
+        {"layer_height", "0.2"},
+        {"initial_layer_print_height", "0.2"},
+    });
+#if defined(__GLIBC__)
+    mallopt(M_PERTURB, int(erTopSolidInfill) ^ 0xff);
+#endif
+    Print print;
+    Model model;
+    // Two objects, so the first layer travels between them with a retraction.
+    Test::init_print({Test::cube(20), Test::cube(20)}, print, model, config);
+    const std::string gcode = Test::gcode(print);
+#if defined(__GLIBC__)
+    mallopt(M_PERTURB, 0);
+#endif
+
+    double             layer_z = 0.;
+    size_t             first_layer_lifts = 0;
+    std::istringstream lines(gcode);
+    std::string        line;
+    const std::regex   z_word(R"(\bZ([-0-9.]+))");
+    while (std::getline(lines, line)) {
+        if (line.rfind(";Z:", 0) == 0) {
+            layer_z = std::stod(line.substr(3));
+            continue;
+        }
+        if (layer_z <= 0. || layer_z > 0.2 + EPSILON || (line.rfind("G1 ", 0) != 0 && line.rfind("G0 ", 0) != 0))
+            continue;
+        const std::string move = line.substr(0, line.find(';'));
+        std::smatch       match;
+        first_layer_lifts += std::regex_search(move, match, z_word) && std::stod(match[1]) > layer_z + 0.3;
+    }
+    CHECK(layer_z > 0.2); // the print has more than the first layer
+    CHECK(first_layer_lifts == 0);
+}
+
+// A temperature tower re-targets the hotend at every layer. On a multi-tool printer that
+// command has to name the tool printing the tower: a bare M104 goes to whichever tool the
+// firmware considers active, which the first-layer M109 right before it already addresses by
+// tool index. A single-tool printer keeps the bare form.
+TEST_CASE("The temperature tower steps the temperature of the tool printing it", "[GCode][Calib]")
+{
+    const bool multi_tool = GENERATE(false, true);
+    DYNAMIC_SECTION((multi_tool ? "two direct drive tools, the tower on the second one (filament 2 -> T1)" : "one tool")) {
+        DynamicPrintConfig config = multi_tool ?
+            Test::multifilament_config(2, {
+                {"nozzle_diameter", "0.4,0.4"},
+                {"printer_extruder_id", "1,2"},
+                {"printer_extruder_variant", "Direct Drive Standard,Direct Drive Standard"},
+                {"extruder_printable_height", "0,0"},
+                {"filament_self_index", "1,2"},
+                {"single_extruder_multi_material", 0},
+                {"enable_prime_tower", 0},
+                {"nozzle_temperature_initial_layer", "230,230"},
+                {"nozzle_temperature", "230,230"},
+            }) :
+            DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            {"skirt_loops", 0},
+            {"brim_type", "no_brim"},
+            // Without the end G-code's heater-off M104 S0, every temperature command after the
+            // first layer change is the tower's.
+            {"machine_end_gcode", ""},
+        });
+        if (multi_tool)
+            Test::size_flush_to_nozzles(config);
+
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{"extruder", multi_tool ? 2 : 1}}};
+        Print print;
+        Model model;
+        // A 20 mm cube at the default 0.2 mm layer height is 100 layers, more than ten per band.
+        Test::init_print({Test::cube(20)}, print, model, config, &overrides);
+        Calib_Params params;
+        params.mode  = CalibMode::Calib_Temp_Tower;
+        params.start = 230;
+        params.end   = 190;
+        params.step  = 5;
+        print.set_calib_params(params);
+        const std::string gcode = Test::gcode(print);
+
+        const size_t layers_begin = gcode.find(";LAYER_CHANGE");
+        REQUIRE(layers_begin != std::string::npos);
+        const std::regex      temperature_command(R"(^M10[49] S(\d+)(?: T(\d+))?)");
+        std::set<int>         temperatures;
+        std::set<std::string> tools;
+        std::istringstream    stream(gcode.substr(layers_begin));
+        for (std::string line; std::getline(stream, line);) {
+            std::smatch m;
+            if (!std::regex_search(line, m, temperature_command))
+                continue;
+            temperatures.insert(std::stoi(m[1]));
+            tools.insert(m[2].matched ? m[2].str() : "none");
+        }
+        // Every 5 degree band from the start to the end temperature, and nothing else.
+        CHECK(temperatures == std::set<int>{190, 195, 200, 205, 210, 215, 220, 225, 230});
+        CHECK(tools == std::set<std::string>{multi_tool ? "1" : "none"});
+    }
+}
+
+namespace {
+
+constexpr double filament_diameter = 1.75;
+constexpr double max_volumetric_speed = 20.;
+constexpr double layer_height = 0.2;
+
+// A 20mm cube sliced at 0.2mm layers with volumetric speeds `enabled` and `extra` applied last.
+std::string volumetric_speed_gcode(bool enabled, std::initializer_list<ConfigBase::SetDeserializeItem> extra)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"enable_volumetric_speeds", enabled ? "1" : "0"},
+        {"filament_diameter", filament_diameter},
+        {"filament_max_volumetric_speed", max_volumetric_speed},
+        {"layer_height", layer_height},
+        {"initial_layer_print_height", layer_height},
+        {"slow_down_for_layer_cooling", "0"},
+        {"slow_down_layers", "0"},
+        {"enable_arc_fitting", "0"},
+    });
+    config.set_deserialize_strict(extra);
+    return Test::slice({Test::cube(20.)}, config);
+}
+
+// For each extrusion move longer than 1mm of `role` above the first layer: its feed rate (mm/s) and extruded flow (mm³/s).
+std::vector<std::pair<double, double>> role_speeds_and_flows(const std::string &gcode, std::string_view role)
+{
+    const double filament_area = 0.25 * M_PI * filament_diameter * filament_diameter;
+    std::vector<std::pair<double, double>> moves;
+    bool in_role = false;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view comment = line.comment();
+        if (comment.find("TYPE:") != std::string_view::npos)
+            in_role = comment.substr(comment.find("TYPE:") + 5) == role;
+        if (in_role && line.extruding(self) && line.dist_XY(self) > 1. && line.new_Z(self) > 1.5 * layer_height) {
+            const double speed = line.new_F(self) / Test::MM_PER_MIN;
+            moves.emplace_back(speed, line.dist_E(self) * filament_area / line.dist_XY(self) * speed);
+        }
+    });
+    return moves;
+}
+
+} // namespace
+
+TEST_CASE("Volumetric speeds print each feature at its configured flow", "[GCode]")
+{
+    const auto [key, role] = GENERATE(table<std::string, std::string>({
+        {"outer_wall_volumetric_flow", "Outer wall"},
+        {"inner_wall_volumetric_flow", "Inner wall"},
+        {"sparse_infill_volumetric_flow", "Sparse infill"},
+        {"internal_solid_infill_volumetric_flow", "Internal solid infill"},
+        {"top_surface_volumetric_flow", "Top surface"},
+    }));
+    INFO(key);
+    const double flow = 6.;
+    const auto moves = role_speeds_and_flows(volumetric_speed_gcode(true, {{key, flow}}), role);
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves)
+        CHECK_THAT(extruded_flow, Catch::Matchers::WithinRel(flow, 0.01));
+}
+
+TEST_CASE("A volumetric speed in percent is a share of the filament's max volumetric speed, which caps it", "[GCode]")
+{
+    const auto [value, expected_flow] = GENERATE(table<std::string, double>({
+        {"50%", 0.5 * max_volumetric_speed},
+        {"300%", max_volumetric_speed},
+        {"40", max_volumetric_speed},
+    }));
+    INFO(value);
+    const auto moves = role_speeds_and_flows(volumetric_speed_gcode(true, {{"outer_wall_volumetric_flow", value}}), "Outer wall");
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves)
+        CHECK_THAT(extruded_flow, Catch::Matchers::WithinRel(expected_flow, 0.01));
+}
+
+TEST_CASE("Volumetric speeds are ignored while disabled", "[GCode]")
+{
+    const double outer_wall_speed = 50.;
+    const auto moves = role_speeds_and_flows(
+        volumetric_speed_gcode(false, {{"outer_wall_speed", outer_wall_speed}, {"outer_wall_volumetric_flow", "2"}}), "Outer wall");
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves)
+        CHECK_THAT(speed, Catch::Matchers::WithinRel(outer_wall_speed, 0.001));
+}
+
+TEST_CASE("The max external volumetric speed limits outer walls but not inner walls", "[GCode]")
+{
+    // At 200mm/s both walls would extrude well above the external limit and below the filament limit.
+    const double max_external = 5.;
+    const std::string gcode = volumetric_speed_gcode(false, {{"filament_max_external_volumetric_speed", max_external},
+                                                             {"outer_wall_speed", 200.},
+                                                             {"inner_wall_speed", 200.}});
+    const auto outer_wall = role_speeds_and_flows(gcode, "Outer wall");
+    const auto inner_wall = role_speeds_and_flows(gcode, "Inner wall");
+
+    REQUIRE_FALSE(outer_wall.empty());
+    REQUIRE_FALSE(inner_wall.empty());
+    for (const auto &[speed, extruded_flow] : outer_wall)
+        CHECK_THAT(extruded_flow, Catch::Matchers::WithinRel(max_external, 0.01));
+    for (const auto &[speed, extruded_flow] : inner_wall)
+        CHECK(extruded_flow > 2. * max_external);
+}
+
+TEST_CASE("The max external volumetric speed limits top surfaces only when they are not ironed", "[GCode]")
+{
+    const auto [ironing_type, limited] = GENERATE(table<std::string, bool>({
+        {"no ironing", true},
+        {"top", false},
+    }));
+    INFO(ironing_type);
+    const double max_external = 5.;
+    const auto moves = role_speeds_and_flows(volumetric_speed_gcode(false, {{"filament_max_external_volumetric_speed", max_external},
+                                                                            {"top_surface_speed", 200.},
+                                                                            {"ironing_type", ironing_type}}),
+                                             "Top surface");
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves) {
+        if (limited)
+            CHECK_THAT(extruded_flow, Catch::Matchers::WithinRel(max_external, 0.01));
+        else
+            CHECK(extruded_flow > 2. * max_external);
+    }
+}
+
+// Resonance avoidance moves an outer wall in the upper half of its band up to the band's top. When the
+// volumetric limit keeps the wall below that top, the boost would exceed the limit, so the wall drops to
+// the band's bottom instead.
+TEST_CASE("Resonance avoidance keeps outer walls within their volumetric speed limit", "[GCode]")
+{
+    static constexpr double min_avoided = 40., max_avoided = 90.;
+    const auto [limit_key, limit, outer_wall_speed, expected_speed] = GENERATE(table<std::string, double, double, double>({
+        // 6 mm3/s caps a 0.2 mm wall at about 75-80 mm/s, in the upper half of the band.
+        {"filament_max_external_volumetric_speed", 6., 200., min_avoided},
+        {"filament_max_volumetric_speed", 6., 200., min_avoided},
+        // 10 mm3/s allows the top of the band, so a 75 mm/s wall is still boosted to it.
+        {"filament_max_external_volumetric_speed", 10., 75., max_avoided},
+    }));
+    INFO(limit_key << " = " << limit << ", outer wall " << outer_wall_speed << " mm/s");
+    const auto moves = role_speeds_and_flows(volumetric_speed_gcode(false, {{limit_key, limit},
+                                                                            {"outer_wall_speed", outer_wall_speed},
+                                                                            {"resonance_avoidance", "1"},
+                                                                            {"min_resonance_avoidance_speed", min_avoided},
+                                                                            {"max_resonance_avoidance_speed", max_avoided}}),
+                                             "Outer wall");
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves) {
+        CHECK(extruded_flow <= limit * 1.01);
+        CHECK_THAT(speed, Catch::Matchers::WithinAbs(expected_speed, 0.5));
     }
 }

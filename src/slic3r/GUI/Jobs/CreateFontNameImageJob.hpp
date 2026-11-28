@@ -1,9 +1,13 @@
 #ifndef slic3r_CreateFontNameImageJob_hpp_
 #define slic3r_CreateFontNameImageJob_hpp_
 
+#include <cstddef>
+#include <memory>
+#include <atomic>
+#include <exception>
 #include <vector>
 #include <string>
-#include <GL/glew.h>
+#include <glad/gl.h>
 #include <wx/string.h>
 #include <wx/fontenc.h>
 #include "Job.hpp"

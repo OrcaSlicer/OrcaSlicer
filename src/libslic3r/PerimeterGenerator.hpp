@@ -1,13 +1,24 @@
 #ifndef slic3r_PerimeterGenerator_hpp_
 #define slic3r_PerimeterGenerator_hpp_
 
+#include "Point.hpp"
+#include "Surface.hpp"
 #include "libslic3r.h"
+#include <functional>
+#include <cstddef>
+#include <boost/container_hash/hash.hpp>
+#include <optional>
+#include <utility>
 #include <vector>
 #include "Layer.hpp"
 #include "Flow.hpp"
 #include "Polygon.hpp"
 #include "PrintConfig.hpp"
-#include "SurfaceCollection.hpp"
+#include "Config.hpp"
+#include "ExPolygon.hpp"
+
+namespace Slic3r { class ExtrusionEntityCollection; }
+namespace Slic3r { class SurfaceCollection; }
 
 namespace Slic3r {
 struct FuzzySkinConfig
@@ -21,6 +32,10 @@ struct FuzzySkinConfig
     int           noise_octaves;
     double        noise_persistence;
     FuzzySkinMode mode;
+    int           ripples_per_layer;
+    double        ripple_offset;
+    int           layers_between_ripple_offset;
+    int           layer_id;
 
     bool operator==(const FuzzySkinConfig& r) const
     {
@@ -32,7 +47,10 @@ struct FuzzySkinConfig
             && noise_scale == r.noise_scale
             && noise_octaves == r.noise_octaves
             && noise_persistence == r.noise_persistence
-            && mode == r.mode;
+            && mode == r.mode
+            && ripples_per_layer == r.ripples_per_layer
+            && ripple_offset == r.ripple_offset
+            && layers_between_ripple_offset == r.layers_between_ripple_offset;
     }
 
     bool operator!=(const FuzzySkinConfig& r) const { return !(*this == r); }
@@ -52,6 +70,10 @@ template<> struct hash<Slic3r::FuzzySkinConfig>
         boost::hash_combine(seed, std::hash<double>{}(c.noise_scale));
         boost::hash_combine(seed, std::hash<int>{}(c.noise_octaves));
         boost::hash_combine(seed, std::hash<double>{}(c.noise_persistence));
+        boost::hash_combine(seed, std::hash<Slic3r::FuzzySkinMode>{}(c.mode));
+        boost::hash_combine(seed, std::hash<int>{}(c.ripples_per_layer));
+        boost::hash_combine(seed, std::hash<double>{}(c.ripple_offset));
+        boost::hash_combine(seed, std::hash<int>{}(c.layers_between_ripple_offset));
         return seed;
     }
 };
@@ -92,7 +114,10 @@ public:
 
     bool                                            has_fuzzy_skin = false;
     bool                                            has_fuzzy_hole = false;
-    std::unordered_map<FuzzySkinConfig, ExPolygons> regions_by_fuzzify;
+    // Preserve construction order so overlap precedence remains deterministic.
+    std::vector<std::pair<FuzzySkinConfig, ExPolygons>> regions_by_fuzzify;
+    // Area resting on the layer below, where fuzzy skin is allowed. Unset means no restriction.
+    std::optional<ExPolygons>                       fuzzy_supported_area;
     
     PerimeterGenerator(
         // Input:
@@ -105,6 +130,7 @@ public:
         const PrintObjectConfig*    object_config,
         const PrintConfig*          print_config,
         const bool                  spiral_mode,
+        const double                model_rotation_rad,
         // Output:
         // Loops with the external thin walls
         ExtrusionEntityCollection*  loops,
@@ -120,6 +146,7 @@ public:
             config(config), object_config(object_config), print_config(print_config),
             m_spiral_vase(spiral_mode),
             m_scaled_resolution(scaled<double>(print_config->resolution.value > EPSILON ? print_config->resolution.value : EPSILON)),
+            m_model_rotation_rad(model_rotation_rad),
             loops(loops), gap_fill(gap_fill), fill_surfaces(fill_surfaces), fill_no_overlap(fill_no_overlap),
             m_ext_mm3_per_mm(-1), m_mm3_per_mm(-1), m_mm3_per_mm_overhang(-1), m_ext_mm3_per_mm_smaller_width(-1)
         {}
@@ -135,6 +162,10 @@ public:
     //BBS
     double      smaller_width_ext_mm3_per_mm()   const { return m_ext_mm3_per_mm_smaller_width; }
     Polygons    lower_slices_polygons() const { return m_lower_slices_polygons; }
+    // ORCA: the slices less the slivers the wall generator prints nothing for, so they never count as support.
+    ExPolygons  printable_slices(const ExPolygons &slices) const;
+    // ORCA: whether this layer prints its outer walls first for the brim, see brim_puts_outer_walls_first().
+    bool        outer_walls_first_for_brim() const;
 
 private:
     std::vector<Polygons>     generate_lower_polygons_series(float width);
@@ -145,6 +176,7 @@ private:
 private:
     bool        m_spiral_vase;
     double      m_scaled_resolution;
+    double      m_model_rotation_rad;
     double      m_ext_mm3_per_mm;
     double      m_mm3_per_mm;
     double      m_mm3_per_mm_overhang;
@@ -152,6 +184,10 @@ private:
     double      m_ext_mm3_per_mm_smaller_width;
     Polygons    m_lower_slices_polygons;
 };
+
+// ORCA: a brim against the outer walls makes the first layer print them first, whatever the wall sequence, so the
+// brim runs straight on into the outer wall. Auto, ear and painted brims may leave the outer walls bare.
+bool brim_puts_outer_walls_first(BrimType brim_type, double brim_width);
 
 }
 

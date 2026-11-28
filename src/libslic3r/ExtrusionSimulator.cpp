@@ -3,6 +3,9 @@
 //#undef SLIC3R_DEBUG
 //#define NDEBUG
 
+#include <boost/geometry/core/cs.hpp>
+#include <algorithm>
+#include <boost/multi_array/base.hpp>
 #include <cmath>
 #include <cassert>
 
@@ -12,9 +15,17 @@
 #include <boost/geometry/geometries/point_xy.hpp>
 
 #include <boost/multi_array.hpp>
+#include <cstring>
+#include <vector>
+#include <cstddef>
+#include <utility>
 
+#include "Point.hpp"
+#include "BoundingBox.hpp"
+#include "ExtrusionEntity.hpp"
 #include "libslic3r.h"
 #include "ExtrusionSimulator.hpp"
+#include "Polyline.hpp"
 
 #ifndef M_PI
 #define M_PI 3.1415926535897932384626433832795
@@ -962,7 +973,7 @@ void ExtrusionSimulator::extrude_to_accumulator(const ExtrusionPath &path, const
 	w = scale_(path.mm3_per_mm / path.height) * scalex;
 	// printf("scalex: %f, scaley: %f\n", scalex, scaley);
 	// printf("bbox: %d,%d %d,%d\n", bbox.min.x(), bbox.min.y, bbox.max.x(), bbox.max.y);
-	for (Points::const_iterator it = path.polyline.points.begin(); it != path.polyline.points.end(); ++ it) {
+	for (Points3::const_iterator it = path.polyline.points.begin(); it != path.polyline.points.end(); ++ it) {
 		// printf("point %d,%d\n", it->x+shift.x(), it->y+shift.y);
 		ExtrusionPoint ept;
 		ept.center = V2f(float((*it)(0)+shift.x()-bbox.min.x()) * scalex, float((*it)(1)+shift.y()-bbox.min.y()) * scaley);

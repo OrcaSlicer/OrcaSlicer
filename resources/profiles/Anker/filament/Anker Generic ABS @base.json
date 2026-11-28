@@ -1,8 +1,0 @@
-{
-    "type": "filament",
-    "name": "Anker Generic ABS @base",
-    "inherits": "fdm_filament_abs",
-    "from": "system",
-    "filament_id": "GFB99",
-    "instantiation": "false"
-}

@@ -41,6 +41,9 @@
     "nozzle_temperature_initial_layer": [
         "245"
     ],
+    "overhang_fan_speed": [
+        "50"
+    ],
     "pre_start_fan_time": [
         "2"
     ],

@@ -17,6 +17,9 @@
     "full_fan_speed_layer": [
         "2"
     ],
+    "additional_fan_full_speed_layer": [
+        "2"
+    ],
     "nozzle_temperature": [
         "290"
     ],

@@ -1,10 +1,27 @@
 {
-    "type": "filament",
-    "name": "Generic PLA @System",
-    "renamed_from": "My Generic PLA",
-    "inherits": "fdm_filament_pla",
-    "from": "system",
-    "setting_id": "OGFSA04",
-    "instantiation": "true",
-    "compatible_printers": []
+	"type": "filament",
+	"name": "Generic PLA @System",
+	"renamed_from": "My Generic PLA",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "RcBNzytWgwRrwXXz",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
+	"filament_max_volumetric_speed": [
+		"12",
+		"21",
+		"40",
+		"12",
+		"21",
+		"30"
+	]
 }

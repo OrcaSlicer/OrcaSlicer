@@ -1,6 +1,13 @@
 #pragma once
+#include <cmath>
+#include <array>
 #include <iostream>
 #include <ctime>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/matx.hpp>
+#include <opencv2/core.hpp>
+#include <vector>
+#include <opencv2/imgproc.hpp>
 
 #include "opencv2/opencv.hpp"
 #include "libslic3r/Color.hpp"

@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PLA-CF @Qidi Q2C 0.4 nozzle",
+	"inherits": "QIDI PLA-CF@Q2C-Series",
+	"from": "system",
+	"setting_id": "n8Oq2FaJ7D6LodTC",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.034"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
+}

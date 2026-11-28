@@ -11,6 +11,7 @@
         "8000",
         "8000"
     ],
+    "enable_tower_interface_features": "1",
     "initial_layer_speed": [
         "40",
         "40",

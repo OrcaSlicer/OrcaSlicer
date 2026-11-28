@@ -1,4 +1,18 @@
 #include "DailyTips.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <string>
+#include <functional>
+#include <imgui.h>
+#include "slic3r/GUI/GLTexture.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include <cstdint>
+#include <cstddef>
+#include <memory>
+#include "slic3r/GUI/HintNotification.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -147,7 +161,7 @@ void DailyTipsDataRenderer::render_img(const ImVec2& start_pos, const ImVec2& si
 
 bool has_cjk(const std::string &text)
 {
-    for (size_t i = 0; i < text.size() - 2; ++i) {
+    for (size_t i = 0; i + 2 < text.size(); ++i) {
         unsigned char c1 = text[i];
         unsigned char c2 = text[i + 1];
         unsigned char c3 = text[i + 2];
@@ -202,7 +216,7 @@ void DailyTipsDataRenderer::render_text(const ImVec2& start_pos, const ImVec2& s
 
     // wiki
     if (!m_data.wiki_url.empty()) {
-        std::string tips_line = _u8L("For more information, please check out Wiki");
+        std::string tips_line = _u8L("For more information, please check out our Wiki");
         std::string wiki_part_text = _u8L("Wiki");
         std::string first_part_text = tips_line.substr(0, tips_line.find(wiki_part_text));
         ImVec2 wiki_part_size = ImGui::CalcTextSize(wiki_part_text.c_str());
@@ -213,7 +227,7 @@ void DailyTipsDataRenderer::render_text(const ImVec2& start_pos, const ImVec2& s
         ImVec2 link_start_pos = ImGui::GetCursorScreenPos();
         imgui.text(first_part_text);
 
-        ImColor HyperColor = ImColor(31, 142, 234, (int)(255 * m_fade_opacity)).Value;
+        ImColor HyperColor = ImColor(0, 150, 136, (int)(255 * m_fade_opacity)).Value; // ORCA match color of hyperlinks
         ImVec2 wiki_part_rect_min = ImVec2(link_start_pos.x + first_part_size.x, link_start_pos.y);
         ImVec2 wiki_part_rect_max = wiki_part_rect_min + wiki_part_size;
         ImGui::PushStyleColor(ImGuiCol_Text, HyperColor.Value);
@@ -245,7 +259,6 @@ DailyTipsPanel::DailyTipsPanel(bool can_expand, DailyTipsLayout layout)
     m_width(0),
     m_height(0),
     m_can_expand(can_expand),
-    m_layout(layout),
     m_uid(DailyTipsPanel::uid++),
     m_dailytips_renderer(std::make_unique<DailyTipsDataRenderer>(layout))
 {
@@ -263,8 +276,9 @@ void DailyTipsPanel::set_position(const ImVec2& pos)
 void DailyTipsPanel::set_size(const ImVec2& size)
 {
     m_width = size.x;
-    m_height = size.y;
-    m_content_height = m_height - m_footer_height;
+    //Orca: Keep the requested content height so expanding a collapsed panel restores its full size.
+    m_content_height = size.y - m_footer_height;
+    m_height = m_can_expand && !m_is_expanded ? m_footer_height : size.y;
 }
 
 void DailyTipsPanel::set_can_expand(bool can_expand)

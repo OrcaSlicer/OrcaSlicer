@@ -13,12 +13,11 @@ namespace igl
 {
   namespace matlab
   {
-    // Simply throw an error if (i+1)<rhs 
-    //
-    // Input:
-    //   i  index of current arg
-    //   nrhs  total number of args
-    //   name of current arg
+    /// Simply throw an error if (i+1)<rhs 
+    ///
+    /// @param[in] i  index of current arg
+    /// @param[in] nrhs  total number of args
+    /// @param[in] name of current arg
     IGL_INLINE void requires_arg(const int i, const int nrhs, const char *name);
   }
 }

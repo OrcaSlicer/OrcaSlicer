@@ -9,8 +9,17 @@
 //BBS set font size
 #include "Widgets/Label.hpp"
 
+#include <wx/bookctrl.h>
+#include <cmath>
+#include <cstddef>
+#include <algorithm>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/colour.h>
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
 
 wxDEFINE_EVENT(wxCUSTOMEVT_TABBOOK_SEL_CHANGED, wxCommandEvent);
 
@@ -204,7 +213,7 @@ void TabButtonsListCtrl::SetFooterText(const wxString& text)
         m_footer_text->SetForegroundColour(wxColour(128, 128, 128));
         m_footer_text->SetFont(Label::Body_10);
         int em = em_unit(this);
-        m_sizer->Add(m_footer_text, 0, wxALIGN_CENTER_HORIZONTAL | wxBOTTOM, em / 2);
+        m_sizer->Add(m_footer_text, 0, wxALL, FromDIP(18)); // ORCA reduce / match left margin buttons on sidebars
     } else {
         m_footer_text->SetLabel(text);
     }

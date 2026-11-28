@@ -14,6 +14,10 @@
 
 #pragma once
 
+// OrcaSlicer: let automation (the MCP server) record items through the test-engine hooks, which
+// ImGuiWrapper implements. ImGui calls them only while ImGuiContext::TestEngineHookItems is set.
+#define IMGUI_ENABLE_TEST_ENGINE
+
 //---- Define assertion handler. Defaults to calling assert().
 // If your macro uses multiple statements, make sure is enclosed in a 'do { .. } while (0)' block so it can be used as a single statement.
 //#define IM_ASSERT(_EXPR)  MyAssert(_EXPR)
@@ -153,8 +157,8 @@ namespace ImGui
 //    const wchar_t CustomSupportsMarker     = 0x1D;
 //    const wchar_t CustomSeamMarker         = 0x1E;
 //    const wchar_t MmuSegmentationMarker    = 0x1F;
-    const wchar_t HorizontalHide           = 0xB1;
-    const wchar_t HorizontalShow           = 0xB2;
+    //const wchar_t HorizontalHide           = 0xB1; // ORCA use FoldButtonIcon / UnfoldButtonIcon
+    //const wchar_t HorizontalShow           = 0xB2;
 
     // Do not forget use following letters only in wstring
     //BBS use 08xx to avoid unicode character which may be used

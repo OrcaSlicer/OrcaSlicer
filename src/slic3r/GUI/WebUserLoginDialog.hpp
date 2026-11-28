@@ -1,4 +1,9 @@
 #pragma once
+#include <wx/setup.h>
+#include <memory>
+#include <wx/string.h>
+#include <string>
+#include <wx/event.h>
 #ifndef slic3r_ZWebUserLogin_HEAD_
 #define slic3r_ZWebUserLogin_HEAD_
 
@@ -28,12 +33,14 @@
 #include <wx/tbarbase.h>
 #include "wx/textctrl.h"
 
+#include "slic3r/Utils/ICloudServiceAgent.hpp"
+
 namespace Slic3r { namespace GUI {
 
 class ZUserLogin : public wxDialog
 {
 public:
-    ZUserLogin();
+    explicit ZUserLogin(std::shared_ptr<ICloudServiceAgent> cloud_agent);
     virtual ~ZUserLogin();
 
     void load_url(wxString &url);
@@ -71,6 +78,7 @@ private:
     wxWebView *m_browser;
 
     std::string m_AutotestToken;
+    int m_loopback_port { 0 };
 
 #if wxUSE_WEBVIEW_IE
     wxMenuItem *m_script_object_el;
@@ -82,6 +90,9 @@ private:
     wxString m_response_js;
 
     wxString m_bbl_user_agent;
+
+    std::shared_ptr<ICloudServiceAgent> m_cloud_agent;
+    int ensure_loopback_port();
 
     DECLARE_EVENT_TABLE()
 };

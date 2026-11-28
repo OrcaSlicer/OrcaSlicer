@@ -16,25 +16,22 @@ namespace igl
   {
     namespace cgal
     {
-      // Given two segments S1 and S2 find the points on each of closest
-      // approach and the squared distance thereof.
-      // 
-      // Inputs:
-      //   S1  first segment
-      //   S2  second segment
-      // Outputs:
-      //   P1  point on S1 closest to S2
-      //   P2  point on S2 closest to S1
-      //   d  distance betwee P1 and S2
-      // Returns true if the closest approach is unique.
+      /// Given two segments S1 and S2 find the points on each of closest
+      /// approach and the squared distance thereof.
+      /// 
+      /// @param[in] S1  first segment
+      /// @param[in] S2  second segment
+      /// @param[oout] P1  point on S1 closest to S2
+      /// @param[oout] P2  point on S2 closest to S1
+      /// @param[oout] d  distance betwee P1 and S2
+      /// @return true if the closest approach is unique.
       template < typename Kernel>
       IGL_INLINE bool segment_segment_squared_distance(
-          const CGAL::Segment_3<Kernel> & S1,
-          const CGAL::Segment_3<Kernel> & S2,
-          CGAL::Point_3<Kernel> & P1,
-          CGAL::Point_3<Kernel> & P2,
-          typename Kernel::FT & d
-          );
+        const CGAL::Segment_3<Kernel> & S1,
+        const CGAL::Segment_3<Kernel> & S2,
+        CGAL::Point_3<Kernel> & P1,
+        CGAL::Point_3<Kernel> & P2,
+        typename Kernel::FT & d);
 
     }
   }

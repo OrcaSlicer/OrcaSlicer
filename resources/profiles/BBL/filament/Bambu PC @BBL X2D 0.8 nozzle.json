@@ -1,0 +1,128 @@
+{
+    "type": "filament",
+    "name": "Bambu PC @BBL X2D 0.8 nozzle",
+    "inherits": "Bambu PC @base",
+    "from": "system",
+    "setting_id": "GFSC00_37",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "counter_coef_2": [
+        "0.0081"
+    ],
+    "counter_coef_3": [
+        "0.0183"
+    ],
+    "counter_limit_max": [
+        "0.2208"
+    ],
+    "counter_limit_min": [
+        "0.0183"
+    ],
+    "fan_max_speed": [
+        "40",
+        "40",
+        "40",
+        "40"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "0.94",
+        "0.94",
+        "0.94",
+        "0.94"
+    ],
+    "filament_max_volumetric_speed": [
+        "18",
+        "35",
+        "18",
+        "18"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_retraction_length": [
+        "0.4",
+        "nil",
+        "nil",
+        "nil"
+    ],
+    "filament_tower_interface_print_temp": [
+        "260"
+    ],
+    "filament_wipe": [
+        "1",
+        "nil",
+        "1",
+        "nil"
+    ],
+    "filament_wipe_distance": [
+        "1",
+        "nil",
+        "1",
+        "nil"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift",
+        "nil",
+        "Spiral Lift",
+        "nil"
+    ],
+    "hole_coef_2": [
+        "0.0009"
+    ],
+    "hole_coef_3": [
+        "0.0725"
+    ],
+    "hole_limit_max": [
+        "0.095"
+    ],
+    "hole_limit_min": [
+        "0.0725"
+    ],
+    "include": [
+        "fdm_filament_template_direct_bowden"
+    ],
+    "nozzle_temperature": [
+        "260",
+        "260",
+        "260",
+        "260"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270",
+        "270",
+        "270",
+        "270"
+    ],
+    "retraction_distances_when_ec": [
+        "3",
+        "3",
+        "4",
+        "4"
+    ],
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

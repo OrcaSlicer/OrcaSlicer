@@ -12,19 +12,17 @@
 #include <Eigen/Geometry>
 namespace igl
 {
-  // Determine whether a ray origin+t*dir and box intersect within the ray's parameterized
-  // range (t0,t1)
-  //
-  // Inputs:
-  //   source  3-vector origin of ray
-  //   dir  3-vector direction of ray
-  //   box  axis aligned box
-  //   t0  hit only if hit.t less than t0
-  //   t1  hit only if hit.t greater than t1
-  // Outputs:
-  //   tmin  minimum of interval of overlap within [t0,t1]
-  //   tmax  maximum of interval of overlap within [t0,t1]
-  // Returns true if hit
+  /// Determine whether a ray origin+t*dir and box intersect within the ray's parameterized
+  /// range (t0,t1)
+  ///
+  /// @param[in] source  3-vector origin of ray
+  /// @param[in] dir  3-vector direction of ray
+  /// @param[in] box  axis aligned box
+  /// @param[in] t0  hit only if hit.t less than t0
+  /// @param[in] t1  hit only if hit.t greater than t1
+  /// @param[out] tmin  minimum of interval of overlap within [t0,t1]
+  /// @param[out] tmax  maximum of interval of overlap within [t0,t1]
+  /// @return true if hit
   template <
     typename Derivedsource,
     typename Deriveddir,
@@ -32,6 +30,21 @@ namespace igl
   IGL_INLINE bool ray_box_intersect(
     const Eigen::MatrixBase<Derivedsource> & source,
     const Eigen::MatrixBase<Deriveddir> & dir,
+    const Eigen::AlignedBox<Scalar,3> & box,
+    const Scalar & t0,
+    const Scalar & t1,
+    Scalar & tmin,
+    Scalar & tmax);
+  /// \overload
+  /// \brief same with direction inverse precomputed
+  template <
+    typename Derivedsource,
+    typename Deriveddir,
+    typename Scalar>
+  IGL_INLINE bool ray_box_intersect(
+    const Eigen::MatrixBase<Derivedsource> & source,
+    const Eigen::MatrixBase<Deriveddir> & inv_dir,
+    const Eigen::MatrixBase<Deriveddir> & inv_dir_pad,
     const Eigen::AlignedBox<Scalar,3> & box,
     const Scalar & t0,
     const Scalar & t1,

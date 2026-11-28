@@ -1,11 +1,17 @@
 #ifndef PERFORMCSGMESHBOOLEANS_HPP
 #define PERFORMCSGMESHBOOLEANS_HPP
 
+#include <cstddef>
 #include <stack>
+#include <utility>
+#include <tuple>
 #include <vector>
+
+#include <boost/log/trivial.hpp>
 
 #include "CSGMesh.hpp"
 
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Execution/ExecutionTBB.hpp"
 //#include "libslic3r/Execution/ExecutionSeq.hpp"
 #include "libslic3r/MeshBoolean.hpp"

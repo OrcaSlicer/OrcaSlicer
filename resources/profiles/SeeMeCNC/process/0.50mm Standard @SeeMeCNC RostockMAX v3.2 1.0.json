@@ -1,0 +1,21 @@
+{
+	"type": "process",
+	"name": "0.50mm Standard @SeeMeCNC RostockMAX v3.2 1.0",
+	"inherits": "SeeMeCNC process base 1.0mm",
+	"from": "System",
+	"setting_id": "J2qJC7GJoWtapiaV",
+	"instantiation": "true",
+	"print_settings_id": "0.50mm Standard @SeeMeCNC RostockMAX v3.2 1.0",
+	"compatible_printers": [
+		"SeeMeCNC RostockMAX v3.2 1.0 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"alternate_extra_wall": "0",
+	"counterbore_hole_bridging": "none",
+	"initial_layer_print_height": "0.3",
+	"layer_height": "0.5",
+	"precise_z_height": "0",
+	"skirt_distance": "2",
+	"skirt_loops": "0",
+	"spiral_mode": "0"
+}

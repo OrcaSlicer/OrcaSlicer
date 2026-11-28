@@ -2,15 +2,56 @@
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
+#include <algorithm>
+#include <sstream>
+#include <iterator>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include "libslic3r/Config.hpp"
+#include <cstddef>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <slic3r/GUI/Widgets/LabeledCheckBox.hpp>
+#include "slic3r/GUI/Widgets/LabeledStaticBox.hpp"
+#include "slic3r/GUI/Widgets/RadioGroup.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "libslic3r/calib.hpp"
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include "slic3r/GUI/wxExtensions.hpp"
 #include <wx/dcgraph.h>
 #include "MainFrame.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Preset.hpp"
+#include "format.hpp"
+#include "PresetComboBoxes.hpp"
+#include "Tab.hpp"
 #include "Widgets/DialogButtons.hpp"
-#include "Widgets/HyperLink.hpp"
+#include <memory>
 #include <string>
 #include <vector>
+#include <cmath>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <wx/dialog.h>
+#include <wx/valtext.h>
+#include <wx/tglbtn.h>
+#include <wx/utils.h>
+#include <wx/event.h>
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Utils.hpp"
+#include "Plater.hpp"
 
 namespace Slic3r { namespace GUI {
+
+std::vector<InputShaperType> input_shaper_types_for_flavor(GCodeFlavor flavor);
 
 namespace {
 
@@ -31,29 +72,29 @@ int GetTextMax(wxWindow* parent, const std::vector<wxString>& labels)
     return text_size.x + parent->FromDIP(10);
 }
 
-std::vector<std::string> get_shaper_type_values()
+LabeledCheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
 {
-    if (auto* preset_bundle = wxGetApp().preset_bundle) {
-        auto printer_config = &preset_bundle->printers.get_edited_preset().config;
-        if (auto* gcode_flavor_option = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")) {
-            switch (gcode_flavor_option->value) {
-            case GCodeFlavor::gcfKlipper:
-                return {"Default", "ZV", "MZV", "ZVD", "EI", "2HUMP_EI", "3HUMP_EI"};
-            case GCodeFlavor::gcfRepRapFirmware:
-                return {"Default", "MZV", "ZVD", "ZVDD", "ZVDDD", "EI2", "EI3", "DAA"};
-            case GCodeFlavor::gcfMarlinFirmware:
-                return {"ZV"};
-            default:
-                break;
-            }
-        }
-    }
-    return {"Default"};
+    auto cb   = new LabeledCheckBox(parent, _L("Auto-scale for nozzle"));
+    cb->SetValue(true);
+    cb->SetToolTip(_L("This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
+                      "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter"
+                      " and an appropriate layer height, making the test both accurate and easy to read.\n"
+                      "Turn scaling off only if you wish to print the reference model exactly as-is."));
+    settings_sizer->Add(cb, 0, wxLEFT | wxTOP, parent->FromDIP(3));
+    return cb;
+}
+
+// The printer the tests run on: the edited printer preset, or an empty config before the presets load.
+const DynamicPrintConfig& edited_printer_config()
+{
+    static const DynamicPrintConfig none;
+    const auto* preset_bundle = wxGetApp().preset_bundle;
+    return preset_bundle != nullptr ? preset_bundle->printers.get_edited_preset().config : none;
 }
 
 std::vector<wxString> make_shaper_type_labels()
 {
-    auto values = get_shaper_type_values();
+    auto values = shaper_type_values(edited_printer_config());
     if (values.empty())
         values.emplace_back("");
 
@@ -64,10 +105,131 @@ std::vector<wxString> make_shaper_type_labels()
     return labels;
 }
 
+// ORCA-Belt: PA Line / PA Pattern have belt plumbing in place (drawn on the
+// belt surface via BeltKinematics world-coordinates mode) but are not
+// validated yet — belt printers are restricted to the PA Tower for now.
+bool is_belt_printer_selected()
+{
+    if (auto* preset_bundle = wxGetApp().preset_bundle) {
+        const auto& cfg = preset_bundle->printers.get_edited_preset().config;
+        const auto* opt = cfg.option<ConfigOptionBool>("belt_printer");
+        return opt != nullptr && opt->value;
+    }
+    return false;
+}
+
+}
+
+int calib_filament_extruder(size_t filament_id)
+{
+    PresetBundle&       bundle  = *wxGetApp().preset_bundle;
+    const Plater&       plater  = *wxGetApp().plater();
+    const auto*         nozzles = bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+    return bed_exclusion_extruder_for_filament(filament_id, plater.get_global_filament_map(), plater.get_global_filament_map_mode(),
+                                               bundle.is_bbl_vendor(), false, nozzles != nullptr ? nozzles->size() : 1);
+}
+
+CalibFilamentSelector::CalibFilamentSelector(wxWindow* parent) : m_parent(parent)
+{
+    m_sizer     = new wxBoxSizer(wxHORIZONTAL);
+    auto* label = new wxStaticText(parent, wxID_ANY, _L("Filament: "));
+    m_combo     = new ::ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, parent->FromDIP(wxSize(260, -1)), 0, nullptr,
+                                 wxCB_READONLY);
+    m_sizer->Add(label, 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
+    m_sizer->Add(m_combo, 1, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
+    refresh();
+    m_combo->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& event) {
+        if (m_on_change)
+            m_on_change();
+        event.Skip();
+    });
+    // The dialogs are reused, so the list follows the project's filaments each time one opens.
+    parent->Bind(wxEVT_SHOW, [this](wxShowEvent& event) {
+        if (event.IsShown()) {
+            refresh();
+            if (m_on_change)
+                m_on_change();
+            m_parent->GetSizer()->SetSizeHints(m_parent);
+        }
+        event.Skip();
+    });
+}
+
+void CalibFilamentSelector::refresh()
+{
+    const PresetBundle& bundle = *wxGetApp().preset_bundle;
+    const size_t count = std::min(bundle.num_physical_filaments(), bundle.filament_presets.size());
+    const auto*  nozzles = bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+    const bool   multi_extruder = nozzles != nullptr && nozzles->size() > 1;
+
+    int selection = m_combo->GetSelection();
+    if (selection < 0 || size_t(selection) >= count) {
+        // Start on the filament the filament tab has open.
+        Tab* tab  = wxGetApp().get_tab(Preset::TYPE_FILAMENT);
+        selection = tab != nullptr ? tab->get_combo_box()->get_filament_idx() : 0;
+    }
+
+    m_combo->Clear();
+    const std::vector<wxBitmap*> icons = get_extruder_color_icons(true);
+    for (size_t i = 0; i < count; ++i) {
+        const Preset* preset = bundle.filaments.find_preset(bundle.filament_presets[i]);
+        wxString      name   = wxString::FromUTF8(preset != nullptr ? preset->label(false) : bundle.filament_presets[i]);
+        if (const int extruder = calib_filament_extruder(i); multi_extruder && extruder >= 0)
+            // TRN %1% is a filament preset name, %2% the number of the extruder that prints it.
+            name = format_wxstr(_L("%1% (Extruder %2%)"), name, extruder + 1);
+        m_combo->Append(name, i < icons.size() && icons[i] != nullptr ? *icons[i] : wxNullBitmap);
+    }
+    if (count > 0)
+        m_combo->SetSelection(std::clamp(selection, 0, int(count) - 1));
+    m_sizer->ShowItems(count > 1);
+}
+
+int CalibFilamentSelector::filament_id() const { return std::max(m_combo->GetSelection(), 0); }
+
+int CalibFilamentSelector::extruder_id() const { return std::max(calib_filament_extruder(size_t(filament_id())), 0); }
+
+void CalibFilamentSelector::apply_to(Calib_Params& params) const
+{
+    params.filament_id = filament_id();
+    params.extruder_id = extruder_id();
+}
+
+const Preset* CalibFilamentSelector::preset() const
+{
+    // find_preset() returns the edited copy of the preset the filament tab has open.
+    const PresetBundle& bundle = *wxGetApp().preset_bundle;
+    const size_t        id     = size_t(filament_id());
+    return id < bundle.filament_presets.size() ? bundle.filaments.find_preset(bundle.filament_presets[id], true) : nullptr;
+}
+
+std::vector<std::string> shaper_type_values(const DynamicPrintConfig& printer)
+{
+    const ConfigOptionDef* def = printer.def()->get("input_shaping_type");
+    if (const auto* gcode_flavor_option = printer.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")) {
+        auto types = input_shaper_types_for_flavor(gcode_flavor_option->value);
+        if (!types.empty()) {
+            std::vector<std::string> values;
+            values.reserve(types.size());
+            for (InputShaperType type : types) {
+                if (type == InputShaperType::Disable)
+                    continue;
+                const size_t idx = static_cast<size_t>(type);
+                if (def && idx < def->enum_values.size())
+                    values.push_back(def->enum_values[idx]);
+                else
+                    values.push_back(std::to_string(static_cast<int>(type)));
+            }
+            if (!values.empty())
+                return values;
+        }
+    }
+    if (def && !def->enum_values.empty())
+        return {def->enum_values.front()};
+    return {"Default"};
 }
 
 PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("PA Calibration"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("PA Calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -75,6 +237,8 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Extruder type Radio Group
     auto labeled_box_type = new LabeledStaticBox(this, _L("Extruder type"));
@@ -102,7 +266,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     int text_max = GetTextMax(this, std::vector<wxString>{start_pa_str, end_pa_str, PA_step_str, sp_accel_str, sp_speed_str, cb_print_no_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
@@ -123,7 +287,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto end_PA_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_pa_text = new wxStaticText(this, wxID_ANY, end_pa_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiEndPA = new TextInput(this, "", "", "", wxDefaultPosition, ti_size, wxTE_PROCESS_ENTER);
-    m_tiStartPA->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiEndPA->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_PA_sizer->Add(end_pa_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_PA_sizer->Add(m_tiEndPA  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(end_PA_sizer, 0, wxLEFT, FromDIP(3));
@@ -132,7 +296,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto PA_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto PA_step_text = new wxStaticText(this, wxID_ANY, PA_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiPAStep = new TextInput(this, "", "", "", wxDefaultPosition, ti_size, wxTE_PROCESS_ENTER);
-    m_tiStartPA->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiPAStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     PA_step_sizer->Add(PA_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     PA_step_sizer->Add(m_tiPAStep  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(PA_step_sizer, 0, wxLEFT, FromDIP(3));
@@ -140,7 +304,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     // Print Numbers
     wxBoxSizer* cb_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto cb_title = new wxStaticText(this, wxID_ANY, cb_print_no_str, wxDefaultPosition, st_size, 0);
-    m_cbPrintNum = new CheckBox(this);
+    m_cbPrintNum = new ::CheckBox(this);
     m_cbPrintNum->SetValue(false);
     m_cbPrintNum->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         (m_params.print_numbers) = (m_params.print_numbers) ? false : true;
@@ -177,8 +341,15 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/pressure-advance-calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -196,6 +367,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 PA_Calibration_Dlg::~PA_Calibration_Dlg() {
@@ -208,47 +380,15 @@ void PA_Calibration_Dlg::reset_params() {
     bool isDDE = m_rbExtruderType->GetSelection() == 0 ? true : false;
     int method = m_rbMethod->GetSelection();
 
-    m_tiStartPA->GetTextCtrl()->SetValue(wxString::FromDouble(0.0));
-
-    switch (method) {
-        case 1:
-            m_params.mode = CalibMode::Calib_PA_Line;
-            m_tiEndPA->GetTextCtrl()->SetValue(wxString::FromDouble(0.1));
-            m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(0.002));
-            m_cbPrintNum->SetValue(true);
-            m_cbPrintNum->Enable(true);
-            m_tiBMAccels->Enable(false);
-            m_tiBMSpeeds->Enable(false);
-            break;
-        case 2:
-            m_params.mode = CalibMode::Calib_PA_Pattern;
-            m_tiEndPA->GetTextCtrl()->SetValue(wxString::FromDouble(0.08));
-            m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(0.005));
-            m_cbPrintNum->SetValue(true);
-            m_cbPrintNum->Enable(false);
-            m_tiBMAccels->Enable(true);
-            m_tiBMSpeeds->Enable(true);
-            break;
-        default:
-            m_params.mode = CalibMode::Calib_PA_Tower;
-            m_tiEndPA->GetTextCtrl()->SetValue(wxString::FromDouble(0.1));
-            m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(0.002));
-            m_cbPrintNum->SetValue(false);
-            m_cbPrintNum->Enable(false);
-            m_tiBMAccels->Enable(false);
-            m_tiBMSpeeds->Enable(false);
-            break;
-    }
-
-    if (!isDDE) {
-        m_tiEndPA->GetTextCtrl()->SetValue(wxString::FromDouble(1.0));
-
-        if (m_params.mode == CalibMode::Calib_PA_Pattern) {
-            m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(0.05));
-        } else {
-            m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(0.02));
-        }
-    }
+    m_params.mode = method == 1 ? CalibMode::Calib_PA_Line : method == 2 ? CalibMode::Calib_PA_Pattern : CalibMode::Calib_PA_Tower;
+    const Calib_Params defaults = calib_default_params(m_params.mode, edited_printer_config(), !isDDE);
+    m_tiStartPA->GetTextCtrl()->SetValue(wxString::FromDouble(defaults.start));
+    m_tiEndPA->GetTextCtrl()->SetValue(wxString::FromDouble(defaults.end));
+    m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(defaults.step));
+    m_cbPrintNum->SetValue(defaults.print_numbers);
+    m_cbPrintNum->Enable(m_params.mode == CalibMode::Calib_PA_Line);
+    m_tiBMAccels->Enable(m_params.mode == CalibMode::Calib_PA_Pattern);
+    m_tiBMSpeeds->Enable(m_params.mode == CalibMode::Calib_PA_Pattern);
 }
 
 void PA_Calibration_Dlg::on_start(wxCommandEvent& event) {
@@ -256,11 +396,6 @@ void PA_Calibration_Dlg::on_start(wxCommandEvent& event) {
     read_double = m_tiStartPA->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
     read_double = read_double && m_tiEndPA->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
     read_double = read_double && m_tiPAStep->GetTextCtrl()->GetValue().ToDouble(&m_params.step);
-    if (!read_double || m_params.start < 0 || m_params.step < 10 * EPSILON || m_params.end < m_params.start + m_params.step) {
-        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart PA: >= 0.0\nEnd PA: > Start PA\nPA step: >= 0.001"), wxEmptyString, wxICON_WARNING | wxOK);
-        msg_dlg.ShowModal();
-        return;
-    }
 
     switch (m_rbMethod->GetSelection()) {
         case 1:
@@ -272,24 +407,35 @@ void PA_Calibration_Dlg::on_start(wxCommandEvent& event) {
         default:
             m_params.mode = CalibMode::Calib_PA_Tower;
     }
-
     m_params.print_numbers = m_cbPrintNum->GetValue();
     ParseStringValues(m_tiBMAccels->GetTextCtrl()->GetValue().ToStdString(), m_params.accelerations);
     ParseStringValues(m_tiBMSpeeds->GetTextCtrl()->GetValue().ToStdString(), m_params.speeds);
 
-    if (!m_params.accelerations.empty() && !m_params.speeds.empty()) {
-        // Guard against swapped inputs by ensuring acceleration magnitudes exceed speeds.
-        const double min_accel = *std::min_element(m_params.accelerations.begin(), m_params.accelerations.end());
-        const double max_speed = *std::max_element(m_params.speeds.begin(), m_params.speeds.end());
-        if (min_accel <= max_speed) {
-            MessageDialog msg_dlg(nullptr,
-                _L("Acceleration values must be greater than speed values.\nPlease verify the inputs."),
-                wxEmptyString, wxICON_WARNING | wxOK);
-            msg_dlg.ShowModal();
-            return;
-        }
+    const CalibParamsError error = read_double ? check_calib_params(m_params, edited_printer_config()) : CalibParamsError::Range;
+    if (error == CalibParamsError::Range) {
+        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart PA: >= 0.0\nEnd PA: > Start PA\nPA step: >= 0.001"), wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
     }
 
+    // ORCA-Belt: backstop in case the selection slipped past the UI guards.
+    if (error == CalibParamsError::BeltMethod) {
+        MessageDialog msg_dlg(nullptr, _L("PA Line and PA Pattern tests are not enabled yet on belt printers.\nPlease use the PA Tower method instead."),
+                              wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+
+    // Guards against swapped inputs: accelerations must exceed speeds.
+    if (error == CalibParamsError::AccelBelowSpeed) {
+        MessageDialog msg_dlg(nullptr,
+            _L("Acceleration values must be greater than speed values.\nPlease verify the inputs."),
+            wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+
+    m_filament->apply_to(m_params);
     m_plater->calib_pa(m_params);
     EndModal(wxID_OK);
 
@@ -299,6 +445,9 @@ void PA_Calibration_Dlg::on_extruder_type_changed(wxCommandEvent& event) {
     event.Skip();
 }
 void PA_Calibration_Dlg::on_method_changed(wxCommandEvent& event) {
+    // ORCA-Belt: only the PA Tower method is enabled on belt printers so far.
+    if (is_belt_printer_selected() && m_rbMethod->GetSelection() != 0)
+        m_rbMethod->SetSelection(0, true);
     PA_Calibration_Dlg::reset_params();
     event.Skip();
 }
@@ -309,26 +458,25 @@ void PA_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 }
 
 void PA_Calibration_Dlg::on_show(wxShowEvent& event) {
+    // ORCA-Belt: the dialog is cached across printer switches, so refresh the
+    // belt restriction on every show.
+    if (is_belt_printer_selected()) {
+        m_rbMethod->SetSelection(0);
+        const wxString tip = _L("Not enabled yet on belt printers — use the PA Tower method instead.");
+        m_rbMethod->SetRadioTooltip(1, tip);
+        m_rbMethod->SetRadioTooltip(2, tip);
+    } else {
+        m_rbMethod->SetRadioTooltip(1, wxEmptyString);
+        m_rbMethod->SetRadioTooltip(2, wxEmptyString);
+    }
     PA_Calibration_Dlg::reset_params();
+    event.Skip();
 }
 
 // Temp calib dlg
 //
-enum FILAMENT_TYPE : int
-{
-    tPLA = 0,
-    tABS_ASA,
-    tPETG,
-    tPCTG,
-    tTPU,
-    tTPU_AMS,
-    tPA_CF,
-    tPET_CF,
-    tCustom
-};
-
 Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Temperature calibration"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Temperature calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -336,14 +484,19 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
-    // Method Radio Group
-    auto labeled_box_method = new LabeledStaticBox(this, _L("Filament type"));
-    auto method_box = new wxStaticBoxSizer(labeled_box_method, wxHORIZONTAL);
-
-	m_rbFilamentType = new RadioGroup(this, { _L("PLA"), _L("ABS/ASA"), _L("PETG"), _L("PCTG"), _L("TPU"), _L("PA-CF"), _L("PET-CF"), _L("Custom") }, wxVERTICAL, 2);
-    method_box->Add(m_rbFilamentType, 0, wxALL | wxEXPAND, FromDIP(4));
-    v_sizer->Add(method_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+    // Belt temperature-tower model: Standard (sectioned tower) vs Overhang (engraved
+    // inverted-L provini that stress overhang quality per temperature). Only affects
+    // belt printers; the upright tower ignores it, so the picker is only shown on
+    // belts. The dialog is cached across printer switches, so visibility is toggled
+    // per-show in on_show() rather than gated here at construction time.
+    auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
+    m_model_box = new wxStaticBoxSizer(labeled_box_model, wxHORIZONTAL);
+    m_rbModel = new RadioGroup(this, { _L_CONTEXT("Standard", "Test model"), _L_CONTEXT("Overhang", "Test model") }, wxVERTICAL);
+    m_model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
+    v_sizer->Add(m_model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
     wxString start_temp_str = _L("Start temp: ");
@@ -351,8 +504,9 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     wxString temp_step_str  = _L("Temp step: ");
     int text_max = GetTextMax(this, std::vector<wxString>{start_temp_str, end_temp_str, temp_step_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_Temp_Tower, edited_printer_config());
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
     wxStaticBoxSizer* settings_sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
@@ -362,7 +516,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     // start temp
     auto start_temp_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_temp_text = new wxStaticText(this, wxID_ANY, start_temp_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStart = new TextInput(this, std::to_string(230), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
+    m_tiStart = new TextInput(this, wxString::FromDouble(defaults.start), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
     m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     start_temp_sizer->Add(start_temp_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     start_temp_sizer->Add(m_tiStart      , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -371,8 +525,8 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     // end temp
     auto end_temp_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_temp_text = new wxStaticText(this, wxID_ANY, end_temp_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiEnd = new TextInput(this, std::to_string(190), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiEnd = new TextInput(this, wxString::FromDouble(defaults.end), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
+    m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_temp_sizer->Add(end_temp_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_temp_sizer->Add(m_tiEnd      , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(end_temp_sizer, 0, wxLEFT, FromDIP(3));
@@ -381,11 +535,14 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     auto temp_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto temp_step_text = new wxStaticText(this, wxID_ANY, temp_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiStep = new TextInput(this, wxString::FromDouble(5), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     m_tiStep->Enable(false);
     temp_step_sizer->Add(temp_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     temp_step_sizer->Add(m_tiStep      , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(temp_step_sizer, 0, wxLEFT, FromDIP(3));
+
+    // Resize the model to the nozzle diameter (recommended)
+    m_cbResize = add_scale_checkbox(this, settings_sizer);
 
     settings_sizer->AddSpacer(FromDIP(5));
 
@@ -395,36 +552,69 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/temp-calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/temp_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &Temp_Calibration_Dlg::on_start, this);
 
-    m_rbFilamentType->Connect(wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler(Temp_Calibration_Dlg::on_filament_type_changed), NULL, this);
+    // Start from the recommended range of the filament being calibrated; keep typed temperatures until it changes.
+    m_filament->set_on_change([this, last_filament = std::string()]() mutable {
+        const Preset*     preset   = m_filament->preset();
+        const std::string filament = preset != nullptr ? preset->name : std::string();
+        if (filament == last_filament)
+            return;
+        last_filament = filament;
+        // In the tower's 5 °C steps, or PLA's range when the filament's leaves no room for a test.
+        int         start_temp = 230;
+        int         end_temp   = 190;
+        const auto* low        = preset != nullptr ? preset->config.option<ConfigOptionInts>("nozzle_temperature_range_low") : nullptr;
+        const auto* high       = preset != nullptr ? preset->config.option<ConfigOptionInts>("nozzle_temperature_range_high") : nullptr;
+        if (low != nullptr && high != nullptr && !low->values.empty() && !high->values.empty()) {
+            const int lo = std::max((low->values.front() + 4) / 5 * 5, 155);
+            const int hi = std::min(high->values.front() / 5 * 5, 500);
+            if (hi >= lo + 5) {
+                start_temp = hi;
+                end_temp   = lo;
+            }
+        }
+        m_tiStart->GetTextCtrl()->SetValue(std::to_string(start_temp));
+        m_tiEnd->GetTextCtrl()->SetValue(std::to_string(end_temp));
+    });
+
+    // Refresh the belt-only model picker on every show — the dialog is cached and
+    // reused across printer switches.
+    this->Connect(wxEVT_SHOW, wxShowEventHandler(Temp_Calibration_Dlg::on_show));
+    m_model_box->ShowItems(is_belt_printer_selected());
 
     wxGetApp().UpdateDlgDarkUI(this);
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 
     auto validate_text = [](TextInput* ti){
         unsigned long t = 0;
         if(!ti->GetTextCtrl()->GetValue().ToULong(&t))
             return;
-        if(t> 350 || t < 170){
-            MessageDialog msg_dlg(nullptr, wxString::Format(L"Supported range: 170%s - 350%s",
+        if (const unsigned long clamped = (unsigned long) clamp_calib_temp(double(t)); clamped != t) {
+            // TRN %s is the temperature unit
+            MessageDialog msg_dlg(nullptr, wxString::Format(_L("Supported range: 170%s - 500%s"),
                 _L("\u2103" /* °C */), _L("\u2103" /* °C */)),
                 wxEmptyString, wxICON_WARNING | wxOK);
             msg_dlg.ShowModal();
-            if(t > 350)
-                t = 350;
-            else
-                t = 170;
+            t = clamped;
         }
-        t = (t / 5) * 5;
+        t = (unsigned long) round_calib_temp(double(t));
         ti->GetTextCtrl()->SetValue(std::to_string(t));
     };
 
@@ -441,69 +631,40 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
 }
 
-Temp_Calibration_Dlg::~Temp_Calibration_Dlg() {
-    // Disconnect Events
-    m_rbFilamentType->Disconnect(wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler(Temp_Calibration_Dlg::on_filament_type_changed), NULL, this);
-}
-
 void Temp_Calibration_Dlg::on_start(wxCommandEvent& event) {
     bool read_long = false;
     unsigned long start=0,end=0;
     read_long = m_tiStart->GetTextCtrl()->GetValue().ToULong(&start);
     read_long = read_long && m_tiEnd->GetTextCtrl()->GetValue().ToULong(&end);
 
-    if (!read_long || start > 350 || end < 170  || end > (start - 5)) {
-        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart temp: <= 350\nEnd temp: >= 170\nStart temp >= End temp + 5"), wxEmptyString, wxICON_WARNING | wxOK);
-        msg_dlg.ShowModal();
-        return;
-    }
     m_params.start = start;
     m_params.end = end;
     m_params.mode = CalibMode::Calib_Temp_Tower;
+    if (!read_long || check_calib_params(m_params, edited_printer_config()) != CalibParamsError::None) {
+        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart temp: <= 500\nEnd temp: >= 155\nStart temp >= End temp + 5"), wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+    m_params.nozzle_based_resize = m_cbResize->GetValue();
+    // Picker only exists on belt printers; default non-belt to the Standard model.
+    m_params.test_model = m_rbModel ? m_rbModel->GetSelection() : 0;
+    m_filament->apply_to(m_params);
     m_plater->calib_temp(m_params);
     EndModal(wxID_OK);
 
 }
 
-void Temp_Calibration_Dlg::on_filament_type_changed(wxCommandEvent& event) {
-    int selection = event.GetSelection();
-    unsigned long start = 0, end = 0;
-    switch(selection)
-    {
-        case tABS_ASA:
-            start = 270;
-            end = 230;
-            break;
-        case tPETG:
-            start = 250;
-            end = 230;
-            break;
-        case tPCTG:
-            start = 280;
-            end = 240;
-            break;
-        case tTPU:
-        case tTPU_AMS:
-            start = 240;
-            end = 210;
-            break;
-        case tPA_CF:
-            start = 320;
-            end = 280;
-            break;
-        case tPET_CF:
-            start = 320;
-            end = 280;
-            break;
-        case tPLA:
-        case tCustom:
-            start = 230;
-            end = 190;
-            break;
+void Temp_Calibration_Dlg::on_show(wxShowEvent& event) {
+    // ORCA-Belt: the dialog is cached across printer switches, so refresh the
+    // belt-only "Test model" picker on every show. The Overhang model only
+    // applies to belt printers; hide it (and resize the dialog) otherwise.
+    const bool belt = is_belt_printer_selected();
+    if (m_model_box->AreAnyItemsShown() != belt) {
+        m_model_box->ShowItems(belt);
+        Layout();
+        Fit();
+        GetSizer()->SetSizeHints(this);
     }
-
-    m_tiEnd->GetTextCtrl()->SetValue(std::to_string(end));
-    m_tiStart->GetTextCtrl()->SetValue(std::to_string(start));
     event.Skip();
 }
 
@@ -518,7 +679,7 @@ void Temp_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 //
 
 MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Max volumetric speed test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Max volumetric speed test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -526,14 +687,16 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
     wxString start_vol_str = _L("Start volumetric speed: ");
     wxString end_vol_str   = _L("End volumetric speed: ");
-    wxString vol_step_str  = _L("Step") + ": ";
+    wxString vol_step_str  = _L_CONTEXT("Step", "Increment") + ": ";
     int text_max = GetTextMax(this, std::vector<wxString>{start_vol_str, end_vol_str, vol_step_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
@@ -544,7 +707,8 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     // start vol
     auto start_vol_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_vol_text = new wxStaticText(this, wxID_ANY, start_vol_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStart = new TextInput(this, std::to_string(5), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_Vol_speed_Tower, edited_printer_config());
+    m_tiStart = new TextInput(this, wxString::FromDouble(defaults.start), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
     m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
     start_vol_sizer->Add(start_vol_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -554,8 +718,8 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     // end vol
     auto end_vol_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_vol_text = new wxStaticText(this, wxID_ANY, end_vol_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiEnd = new TextInput(this, std::to_string(20), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiEnd = new TextInput(this, wxString::FromDouble(defaults.end), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
+    m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_vol_sizer->Add(end_vol_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_vol_sizer->Add(m_tiEnd     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(end_vol_sizer, 0, wxLEFT, FromDIP(3));
@@ -563,8 +727,8 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     // vol step
     auto vol_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto vol_step_text = new wxStaticText(this, wxID_ANY, vol_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStep = new TextInput(this, wxString::FromDouble(0.5), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiStep = new TextInput(this, wxString::FromDouble(defaults.step), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
+    m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     vol_step_sizer->Add(vol_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     vol_step_sizer->Add(m_tiStep     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(vol_step_sizer, 0, wxLEFT, FromDIP(3));
@@ -575,8 +739,15 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/volumetric-speed-calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/volumetric_speed_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -587,6 +758,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 MaxVolumetricSpeed_Test_Dlg::~MaxVolumetricSpeed_Test_Dlg() {
@@ -599,13 +771,14 @@ void MaxVolumetricSpeed_Test_Dlg::on_start(wxCommandEvent& event) {
     read_double = read_double && m_tiEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
     read_double = read_double && m_tiStep->GetTextCtrl()->GetValue().ToDouble(&m_params.step);
 
-    if (!read_double || m_params.start <= 0 || m_params.step <= 0 || m_params.end < (m_params.start + m_params.step)) {
+    m_params.mode = CalibMode::Calib_Vol_speed_Tower;
+    if (!read_double || check_calib_params(m_params, edited_printer_config()) != CalibParamsError::None) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nstart > 0\nstep >= 0\nend > start + step"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    m_params.mode = CalibMode::Calib_Vol_speed_Tower;
+    m_filament->apply_to(m_params);
     m_plater->calib_max_vol_speed(m_params);
     EndModal(wxID_OK);
 
@@ -622,7 +795,7 @@ void MaxVolumetricSpeed_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 //
 
 VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("VFA test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE)
+    : DPIDialog(parent, id, _L("VFA test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE)
     , m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
@@ -631,14 +804,16 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
     wxString start_str    = _L("Start speed: ");
     wxString end_vol_str  = _L("End speed: ");
-    wxString vol_step_str = _L("Step") + ": ";
+    wxString vol_step_str = _L_CONTEXT("Step", "Increment") + ": ";
     int text_max = GetTextMax(this, std::vector<wxString>{start_str, end_vol_str, vol_step_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
@@ -649,7 +824,8 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     // start vol
     auto start_vol_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_vol_text = new wxStaticText(this, wxID_ANY, start_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStart = new TextInput(this, std::to_string(40), _L("mm/s"), "", wxDefaultPosition, ti_size);
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_VFA_Tower, edited_printer_config());
+    m_tiStart = new TextInput(this, wxString::FromDouble(defaults.start), _L("mm/s"), "", wxDefaultPosition, ti_size);
     m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
     start_vol_sizer->Add(start_vol_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -659,8 +835,8 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     // end vol
     auto end_vol_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_vol_text = new wxStaticText(this, wxID_ANY, end_vol_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiEnd = new TextInput(this, std::to_string(200), _L("mm/s"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiEnd = new TextInput(this, wxString::FromDouble(defaults.end), _L("mm/s"), "", wxDefaultPosition, ti_size);
+    m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_vol_sizer->Add(end_vol_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_vol_sizer->Add(m_tiEnd     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(end_vol_sizer, 0, wxLEFT, FromDIP(3));
@@ -668,11 +844,23 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     // vol step
     auto vol_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto vol_step_text = new wxStaticText(this, wxID_ANY, vol_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStep = new TextInput(this, wxString::FromDouble(10), _L("mm/s"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiStep = new TextInput(this, wxString::FromDouble(defaults.step), _L("mm/s"), "", wxDefaultPosition, ti_size);
+    m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     vol_step_sizer->Add(vol_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     vol_step_sizer->Add(m_tiStep     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(vol_step_sizer, 0, wxLEFT, FromDIP(3));
+
+    // Resize the model to the nozzle diameter (recommended)
+    m_cbResize = add_scale_checkbox(this, settings_sizer);
+
+    // Auto-adjust parameters to the filament's max volumetric speed
+    auto auto_adjust_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_cbAutoAdjust = new LabeledCheckBox(this, _L("Auto-adjust to max volumetric speed"));
+    m_cbAutoAdjust->SetValue(true);
+    m_cbAutoAdjust->SetToolTip(_L("If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer "
+                                  "height (keeping standard values and staying within the machine's limits) to reach it. If even the "
+                                  "minimum layer height is not enough, lower the end speed instead."));
+    settings_sizer->Add(m_cbAutoAdjust, 0, wxLEFT | wxTOP, FromDIP(3));
 
     settings_sizer->AddSpacer(FromDIP(5));
 
@@ -682,8 +870,15 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/vfa-calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/vfa_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -694,6 +889,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 VFA_Test_Dlg::~VFA_Test_Dlg()
@@ -708,13 +904,82 @@ void VFA_Test_Dlg::on_start(wxCommandEvent& event)
     read_double = read_double && m_tiEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
     read_double = read_double && m_tiStep->GetTextCtrl()->GetValue().ToDouble(&m_params.step);
 
-    if (!read_double || m_params.start <= 10 || m_params.step <= 0 || m_params.end < (m_params.start + m_params.step)) {
+    m_params.mode = CalibMode::Calib_VFA_Tower;
+    if (!read_double || check_calib_params(m_params, edited_printer_config()) != CalibParamsError::None) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nstart > 10\nstep >= 0\nend > start + step"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    m_params.mode = CalibMode::Calib_VFA_Tower;
+    // If the requested end speed would exceed the filament's maximum volumetric speed, the slicer clamps the
+    // outer wall speed, so the upper blocks of the tower would all print at the same (clamped) speed instead of
+    // the requested one. Depending on the "Auto-adjust" option, either fix it automatically or just warn.
+    m_filament->apply_to(m_params);
+    m_params.vfa_layer_height    = 0.0; // 0 = auto (nozzle/2); overridden below when auto-adjusting
+    m_params.nozzle_based_resize = m_cbResize->GetValue();
+    if (const auto* preset_bundle = wxGetApp().preset_bundle) {
+        const auto& printer_config  = preset_bundle->printers.get_edited_preset().config;
+        const bool    auto_adjust     = m_cbAutoAdjust->GetValue();
+        const Preset* filament        = m_filament->preset();
+        const auto&   filament_config = (filament != nullptr ? *filament : preset_bundle->filaments.get_edited_preset()).config;
+        const VfaSpeedFit fit = fit_vfa_speed(m_params, printer_config, preset_bundle->prints.get_edited_preset().config, filament_config,
+                                              auto_adjust,
+                                              vfa_candidate_layer_heights(preset_bundle->prints, printer_config, m_params.extruder_id));
+
+        auto confirm_clamp = [&](const wxString& question) -> bool {
+            MessageDialog msg_dlg(nullptr,
+                wxString::Format(_L("The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
+                                    "(%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and "
+                                    "layer height.\nSpeeds above this will be clamped, so the upper blocks of the tower "
+                                    "will not print at the requested speed.\n\n%s"),
+                                 m_params.end, fit.max_vol_speed, fit.speed_limit, question),
+                _L("VFA test"), wxICON_WARNING | wxYES_NO | wxNO_DEFAULT);
+            return msg_dlg.ShowModal() == wxID_YES;
+        };
+
+        switch (fit.kind) {
+        case VfaSpeedFit::ReducedLayerHeight: {
+            // Reducing the layer height is enough to reach the requested end speed.
+            m_params.vfa_layer_height = fit.layer_height;
+            MessageDialog msg_dlg(nullptr,
+                wxString::Format(_L("The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
+                                    "(%.1f mm³/s) at the default layer height (%.2f mm).\n\n"
+                                    "The layer height has been reduced to %.2f mm (a value used by this printer's "
+                                    "profiles) so the tower can reach the requested speed."),
+                                 m_params.end, fit.max_vol_speed, fit.default_lh, fit.layer_height),
+                _L("VFA test"), wxICON_INFORMATION | wxOK);
+            msg_dlg.ShowModal();
+            break;
+        }
+        case VfaSpeedFit::LoweredEnd: {
+            // Even the smallest available layer height cannot reach the end speed: propose a lower end speed.
+            MessageDialog msg_dlg(nullptr,
+                wxString::Format(_L("Even at the smallest layer height used by this printer's profiles (%.2f mm) the "
+                                    "end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
+                                    "(%.1f mm³/s).\n\n"
+                                    "The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n\n"
+                                    "Continue?"),
+                                 fit.layer_height, m_params.end, fit.max_vol_speed, fit.layer_height, fit.end),
+                _L("VFA test"), wxICON_WARNING | wxYES_NO | wxNO_DEFAULT);
+            if (msg_dlg.ShowModal() != wxID_YES)
+                return;
+            m_params.end              = fit.end;
+            m_params.vfa_layer_height = fit.layer_height;
+            break;
+        }
+        case VfaSpeedFit::Clamped:
+            // No compatible process profiles to draw layer heights from, auto-adjust off, or resizing disabled
+            // (which forbids changing the layer height): warn and let the user decide.
+            if (!confirm_clamp(auto_adjust && m_params.nozzle_based_resize ? _L("Continue anyway?")
+                               : m_params.nozzle_based_resize
+                                   ? _L("Enable \"Auto-adjust\" to fix this automatically, or continue anyway?")
+                                   : _L("Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?")))
+                return;
+            break;
+        case VfaSpeedFit::Fits: break;
+        }
+    }
+
     m_plater->calib_VFA(m_params);
     EndModal(wxID_OK);
 }
@@ -731,7 +996,7 @@ void VFA_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect)
 //
 
 Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Retraction test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Retraction"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -739,14 +1004,16 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
     wxString start_length_str = _L("Start retraction length: ");
     wxString end_length_str   = _L("End retraction length: ");
-    wxString length_step_str  = _L("Step") + ": ";
+    wxString length_step_str  = _L_CONTEXT("Step", "Increment") + ": ";
     int text_max = GetTextMax(this, std::vector<wxString>{start_length_str, end_length_str, length_step_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
@@ -757,7 +1024,8 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     // start length
     auto start_length_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_length_text = new wxStaticText(this, wxID_ANY, start_length_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStart = new TextInput(this, std::to_string(0), _L("mm"), "", wxDefaultPosition, ti_size);
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_Retraction_tower, edited_printer_config());
+    m_tiStart = new TextInput(this, wxString::FromDouble(defaults.start), _L("mm"), "", wxDefaultPosition, ti_size);
     m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
     start_length_sizer->Add(start_length_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -767,8 +1035,8 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     // end length
     auto end_length_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_length_text = new wxStaticText(this, wxID_ANY, end_length_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiEnd = new TextInput(this, std::to_string(2), _L("mm"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiEnd = new TextInput(this, wxString::FromDouble(defaults.end), _L("mm"), "", wxDefaultPosition, ti_size);
+    m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_length_sizer->Add(end_length_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_length_sizer->Add(m_tiEnd        , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(end_length_sizer, 0, wxLEFT, FromDIP(3));
@@ -776,8 +1044,8 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     // length step
     auto length_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto length_step_text = new wxStaticText(this, wxID_ANY, length_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStep = new TextInput(this, wxString::FromDouble(0.1), _L("mm"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiStep = new TextInput(this, wxString::FromDouble(defaults.step), _L("mm"), "", wxDefaultPosition, ti_size);
+    m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     length_step_sizer->Add(length_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     length_step_sizer->Add(m_tiStep        , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(length_step_sizer, 0, wxLEFT, FromDIP(3));
@@ -790,8 +1058,15 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/retraction-calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/retraction_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -802,6 +1077,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Retraction_Test_Dlg::~Retraction_Test_Dlg() {
@@ -814,13 +1090,14 @@ void Retraction_Test_Dlg::on_start(wxCommandEvent& event) {
     read_double = read_double && m_tiEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
     read_double = read_double && m_tiStep->GetTextCtrl()->GetValue().ToDouble(&m_params.step);
 
-    if (!read_double || m_params.start < 0 || m_params.step <= 0 || m_params.end < (m_params.start + m_params.step)) {
+    m_params.mode = CalibMode::Calib_Retraction_tower;
+    if (!read_double || check_calib_params(m_params, edited_printer_config()) != CalibParamsError::None) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nstart > 0\nstep >= 0\nend > start + step"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    m_params.mode = CalibMode::Calib_Retraction_tower;
+    m_filament->apply_to(m_params);
     m_plater->calib_retraction(m_params);
     EndModal(wxID_OK);
 
@@ -836,7 +1113,7 @@ void Retraction_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 //
 
 Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Input shaping Frequency test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Input shaping Frequency test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -850,12 +1127,14 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Model selection
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
     auto model_box = new wxStaticBoxSizer(labeled_box_model, wxHORIZONTAL);
 
-    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower") }, wxHORIZONTAL);
+    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower") }, wxVERTICAL);
     model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
@@ -868,18 +1147,18 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     m_rbType->SetSelection(0);
 
     // Determine firmware-specific note
-    wxString firmware_note = "Please ensure the selected type is compatible with your firmware version.";
+    wxString firmware_note = _L("Please ensure the selected type is compatible with your firmware version.");
     if (gcode_flavor_option) {
         switch (gcode_flavor_option->value) {
         case GCodeFlavor::gcfMarlinFirmware:
         case GCodeFlavor::gcfMarlinLegacy:
-            firmware_note = "Marlin version => 2.1.2\nFixed-Time motion not yet implemented.";
+            firmware_note = _L("Marlin version => 2.1.2\nFixed-Time motion not yet implemented.");
             break;
         case GCodeFlavor::gcfKlipper:
-            firmware_note = "Klipper version => 0.9.0";
+            firmware_note = _L("Klipper version => 0.9.0");
             break;
         case GCodeFlavor::gcfRepRapFirmware:
-            firmware_note = "RepRap firmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.";
+            firmware_note = _L("RepRapFirmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.");
             break;
         default:
             break;
@@ -893,11 +1172,11 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     v_sizer->Add(type_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
-    wxString x_axis_str = reprap_firmware ? _L("Frequency (Start / End): ") : "X " + _L("Start / End") + ": ";
-    wxString y_axis_str = "Y " + _L("Start / End") + ": ";
+    wxString x_axis_str = reprap_firmware ? _L("Frequency (Start / End): ") : _L("X Start / End: ");
+    wxString y_axis_str = _L("Y Start / End: ");
     int text_max = GetTextMax(this, std::vector<wxString>{x_axis_str, y_axis_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Frequency settings"));
@@ -905,12 +1184,14 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     settings_sizer->AddSpacer(FromDIP(5));
 
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_Input_shaping_freq, edited_printer_config());
+
     // X axis frequencies
     auto x_freq_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_x_text = new wxStaticText(this, wxID_ANY, x_axis_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiFreqStartX = new TextInput(this, std::to_string(15) , _L("Hz"), "", wxDefaultPosition, ti_size);
+    m_tiFreqStartX = new TextInput(this, wxString::FromDouble(defaults.freqStartX), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqStartX->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    m_tiFreqEndX   = new TextInput(this, std::to_string(110), _L("Hz"), "", wxDefaultPosition, ti_size);
+    m_tiFreqEndX   = new TextInput(this, wxString::FromDouble(defaults.freqEndX), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqEndX->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     
     x_freq_sizer->Add(start_x_text  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -921,9 +1202,9 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     // Y axis frequencies
     auto y_freq_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_y_text = new wxStaticText(this, wxID_ANY, y_axis_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiFreqStartY = new TextInput(this, std::to_string(15) , "Hz", "", wxDefaultPosition, ti_size);
+    m_tiFreqStartY = new TextInput(this, wxString::FromDouble(defaults.freqStartY), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqStartY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    m_tiFreqEndY =   new TextInput(this, std::to_string(110), "Hz", "", wxDefaultPosition, ti_size);
+    m_tiFreqEndY =   new TextInput(this, wxString::FromDouble(defaults.freqEndY), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqEndY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
     y_freq_sizer->Add(start_y_text  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -939,15 +1220,15 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
         m_tiFreqEndY->Hide();
         settings_sizer->Hide(y_freq_sizer);
         start_x_text->SetLabel(_L("Frequency (Start / End): "));
-        m_tiFreqStartX->GetTextCtrl()->SetToolTip(_L("RepRap firmware uses the same frequency range for both axes."));
-        m_tiFreqEndX->GetTextCtrl()->SetToolTip(_L("RepRap firmware uses the same frequency range for both axes."));
+        m_tiFreqStartX->GetTextCtrl()->SetToolTip(_L("RepRapFirmware uses the same frequency range for both axes."));
+        m_tiFreqEndX->GetTextCtrl()->SetToolTip(_L("RepRapFirmware uses the same frequency range for both axes."));
     }
 
     // Damping Factor
     wxString damping_factor_str = _L("Damp: ");
     auto damping_factor_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto damping_factor_text = new wxStaticText(this, wxID_ANY, damping_factor_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiDampingFactor = new TextInput(this, wxString::Format("%.3f", 0.15), "", "", wxDefaultPosition, ti_size);
+    m_tiDampingFactor = new TextInput(this, wxString::Format("%.3f", defaults.start), "", "", wxDefaultPosition, ti_size);
     m_tiDampingFactor->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     
     damping_factor_sizer->Add(damping_factor_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -958,6 +1239,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     auto note_text = new wxStaticText(this, wxID_ANY, _L("Recommended: Set Damp to 0.\nThis will use the printer's default or saved value."), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
     note_text->SetForegroundColour(wxColour(128, 128, 128));
+    note_text->Wrap(FromDIP(350));
     settings_sizer->Add(note_text, 0, wxALL, FromDIP(5));
 
     settings_sizer->AddSpacer(FromDIP(5));
@@ -968,8 +1250,15 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/input-shaping-calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/input_shaping_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -980,6 +1269,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Input_Shaping_Freq_Test_Dlg::~Input_Shaping_Freq_Test_Dlg() {
@@ -1008,23 +1298,21 @@ void Input_Shaping_Freq_Test_Dlg::on_start(wxCommandEvent& event) {
     }
     read_double = read_double && m_tiDampingFactor->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
 
-    if (!read_double ||
-        m_params.freqStartX < 0 || m_params.freqEndX > 500 ||
-        (!reprap_firmware && (m_params.freqStartY < 0 || m_params.freqEndY > 500)) ||
-        m_params.freqStartX >= m_params.freqEndX ||
-        (!reprap_firmware && m_params.freqStartY >= m_params.freqEndY)) {
+    m_params.mode = CalibMode::Calib_Input_shaping_freq;
+    const CalibParamsError error = read_double ? check_calib_params(m_params, edited_printer_config()) : CalibParamsError::Range;
+    if (error == CalibParamsError::Range) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\n(0 < FreqStart < FreqEnd < 500)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    if (m_params.start < 0 || m_params.start >= 1) {
+    if (error == CalibParamsError::Damping) {
         MessageDialog msg_dlg(nullptr, _L("Please input a valid damping factor (0 < Damping/zeta factor <= 1)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    auto shaper_values = get_shaper_type_values();
+    auto shaper_values = shaper_type_values(edited_printer_config());
     int type_selection = m_rbType->GetSelection();
     if (shaper_values.empty()) {
         m_params.shaper_type.clear();
@@ -1034,11 +1322,10 @@ void Input_Shaping_Freq_Test_Dlg::on_start(wxCommandEvent& event) {
         m_params.shaper_type = shaper_values[static_cast<size_t>(type_selection)];
     }
 
-    m_params.mode = CalibMode::Calib_Input_shaping_freq;
-    
     // Set model type based on selection
     m_params.test_model = m_rbModel->GetSelection() == 0 ? 0 : 1; // 0 = Ringing Tower, 1 = Fast Tower
     
+    m_filament->apply_to(m_params);
     m_plater->calib_input_shaping_freq(m_params);
     EndModal(wxID_OK);
 }
@@ -1052,7 +1339,7 @@ void Input_Shaping_Freq_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 //
 
 Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Input shaping Damp test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Input shaping Damp test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -1066,12 +1353,14 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Model selection
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
     auto model_box = new wxStaticBoxSizer(labeled_box_model, wxHORIZONTAL);
 
-    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower") }, wxHORIZONTAL);
+    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower") }, wxVERTICAL);
     model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
@@ -1084,18 +1373,18 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     m_rbType->SetSelection(0);
 
     // Determine firmware-specific note
-    wxString firmware_note = "Check firmware compatibility.";
+    wxString firmware_note = _L("Check firmware compatibility.");
     if (gcode_flavor_option) {
         switch (gcode_flavor_option->value) {
         case GCodeFlavor::gcfMarlinFirmware:
         case GCodeFlavor::gcfMarlinLegacy:
-            firmware_note = "Marlin version => 2.1.2\nFixed-Time motion not yet implemented.";
+            firmware_note = _L("Marlin version => 2.1.2\nFixed-Time motion not yet implemented.");
             break;
         case GCodeFlavor::gcfKlipper:
-            firmware_note = "Klipper version => 0.9.0";
+            firmware_note = _L("Klipper version => 0.9.0");
             break;
         case GCodeFlavor::gcfRepRapFirmware:
-            firmware_note = "RepRap firmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.";
+            firmware_note = _L("RepRapFirmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.");
             break;
         default:
             break;
@@ -1109,11 +1398,11 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     v_sizer->Add(type_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
-    wxString freq_str = reprap_firmware ? _L("Frequency: ") : _L("Frequency") + " X / Y: ";
-    wxString damp_str = _L("Damp") + " " + _L("Start / End") + ": ";
+    wxString freq_str = reprap_firmware ? _L("Frequency: ") : _L("Frequency X / Y: ");
+    wxString damp_str = _L("Damp (Start / End): ");
     int text_max = GetTextMax(this, std::vector<wxString>{freq_str, damp_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Frequency settings"));
@@ -1121,11 +1410,13 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
 
     settings_sizer->AddSpacer(FromDIP(5));
 
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_Input_shaping_damp, edited_printer_config());
+
     auto freq_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto freq_text = new wxStaticText(this, wxID_ANY, freq_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiFreqX = new TextInput(this, std::to_string(30), _L("Hz"), "", wxDefaultPosition, ti_size);
+    m_tiFreqX = new TextInput(this, wxString::FromDouble(defaults.freqStartX), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqX->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    m_tiFreqY = new TextInput(this, std::to_string(30), _L("Hz"), "", wxDefaultPosition, ti_size);
+    m_tiFreqY = new TextInput(this, wxString::FromDouble(defaults.freqStartY), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     freq_sizer->Add(freq_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     freq_sizer->Add(m_tiFreqX, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1136,15 +1427,15 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
         m_tiFreqY->GetTextCtrl()->SetValue(m_tiFreqX->GetTextCtrl()->GetValue());
         m_tiFreqY->Hide();
         freq_text->SetLabel(freq_str);
-        m_tiFreqX->GetTextCtrl()->SetToolTip(_L("RepRap firmware uses the same frequency for both axes."));
+        m_tiFreqX->GetTextCtrl()->SetToolTip(_L("RepRapFirmware uses the same frequency for both axes."));
     }
 
     // Damping Factor Start and End
     auto damp_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto damp_text = new wxStaticText(this, wxID_ANY, damp_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiDampingFactorStart = new TextInput(this, wxString::Format("%.3f", 0.00), "", "", wxDefaultPosition, ti_size);
+    m_tiDampingFactorStart = new TextInput(this, wxString::Format("%.3f", defaults.start), "", "", wxDefaultPosition, ti_size);
     m_tiDampingFactorStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    m_tiDampingFactorEnd   = new TextInput(this, wxString::Format("%.3f", 0.40), "", "", wxDefaultPosition, ti_size);
+    m_tiDampingFactorEnd   = new TextInput(this, wxString::Format("%.3f", defaults.end), "", "", wxDefaultPosition, ti_size);
     m_tiDampingFactorEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     damp_sizer->Add(damp_text             , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     damp_sizer->Add(m_tiDampingFactorStart, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1166,8 +1457,15 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/input-shaping-calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/input_shaping_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1178,6 +1476,7 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Input_Shaping_Damp_Test_Dlg::~Input_Shaping_Damp_Test_Dlg() {
@@ -1202,22 +1501,21 @@ void Input_Shaping_Damp_Test_Dlg::on_start(wxCommandEvent& event) {
     read_double = read_double && m_tiDampingFactorStart->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
     read_double = read_double && m_tiDampingFactorEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
 
-    if (!read_double ||
-        m_params.freqStartX < 0 || m_params.freqStartX > 500 ||
-        (!reprap_firmware && (m_params.freqStartY < 0 || m_params.freqStartY > 500))) {
+    m_params.mode = CalibMode::Calib_Input_shaping_damp;
+    const CalibParamsError error = read_double ? check_calib_params(m_params, edited_printer_config()) : CalibParamsError::Range;
+    if (error == CalibParamsError::Range) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\n(0 < Freq < 500)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    if (m_params.start < 0 || m_params.end > 1
-        || m_params.start >= m_params.end) {
+    if (error == CalibParamsError::Damping) {
         MessageDialog msg_dlg(nullptr, _L("Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    auto shaper_values = get_shaper_type_values();
+    auto shaper_values = shaper_type_values(edited_printer_config());
     int type_selection = m_rbType->GetSelection();
     if (shaper_values.empty()) {
         m_params.shaper_type.clear();
@@ -1227,11 +1525,10 @@ void Input_Shaping_Damp_Test_Dlg::on_start(wxCommandEvent& event) {
         m_params.shaper_type = shaper_values[static_cast<size_t>(type_selection)];
     }
 
-    m_params.mode = CalibMode::Calib_Input_shaping_damp;
-    
     // Set model type based on selection
     m_params.test_model = m_rbModel->GetSelection() == 0 ? 0 : 1; // 0 = Ringing Tower, 1 = Fast Tower
     
+    m_filament->apply_to(m_params);
     m_plater->calib_input_shaping_damp(m_params);
     EndModal(wxID_OK);
 }
@@ -1245,7 +1542,7 @@ void Input_Shaping_Damp_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 //
 
 Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Cornering test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Cornering test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -1253,18 +1550,21 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Model selection
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
     auto model_box = new wxStaticBoxSizer(labeled_box_model, wxHORIZONTAL);
 
-    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower"), _L("SCV-V2") }, wxHORIZONTAL);
+    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower"), _L("SCV-V2") }, wxVERTICAL);
     model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
     wxString start_jd_str = _L("Start: ");
     wxString end_jd_str   = _L("End: ");
+    int text_max = GetTextMax(this, std::vector<wxString>{start_jd_str, end_jd_str});
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Cornering settings"));
     wxStaticBoxSizer* settings_sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
@@ -1277,80 +1577,67 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
         ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
         : nullptr;
 
-    wxString start_value_str;
-    wxString end_value_str;
-    wxString units_str;
+    // Junction Deviation in mm, or Classic Jerk in mm/s.
+    const bool         junction_deviation = has_junction_deviation(edited_printer_config());
+    const Calib_Params defaults           = calib_default_params(CalibMode::Calib_Cornering, edited_printer_config());
+    const wxString     start_value_str    = wxString::Format("%.3f", defaults.start);
+    const wxString     end_value_str      = wxString::Format("%.3f", defaults.end);
+    const wxString     units_str          = junction_deviation ? "mm" : "mm/s";
 
-    if (gcode_flavor_option &&
-        gcode_flavor_option->value == GCodeFlavor::gcfMarlinFirmware &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation") &&
-        !preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values.empty() &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values[0] > 0) {
-            // Using Junction Deviation (mm)
-            start_value_str = wxString::Format("%.3f", 0.000);
-            end_value_str   = wxString::Format("%.3f", 0.250);
-            units_str = "mm";
-        } else {
-            // Using Classic Jerk (mm/s)
-                start_value_str = wxString::Format("%.3f", 1.0);
-                end_value_str   = wxString::Format("%.3f", 15.0);
-                units_str = "mm/s";
-        }
-
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
-
-    // Start and End cornering on same row
-    auto cornering_row_sizer = new wxBoxSizer(wxHORIZONTAL);
 
     // Start cornering
     auto start_jd_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto start_jd_text = new wxStaticText(this, wxID_ANY, start_jd_str, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    auto start_jd_text = new wxStaticText(this, wxID_ANY, start_jd_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiJDStart = new TextInput(this, start_value_str, units_str, "", wxDefaultPosition, ti_size);
     m_tiJDStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     start_jd_sizer->Add(start_jd_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     start_jd_sizer->Add(m_tiJDStart  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    cornering_row_sizer->Add(start_jd_sizer, 0, wxLEFT, FromDIP(3));
+    settings_sizer->Add(start_jd_sizer, 0, wxLEFT, FromDIP(3));
 
     // End cornering
     auto end_jd_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto end_jd_text = new wxStaticText(this, wxID_ANY, end_jd_str, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    auto end_jd_text = new wxStaticText(this, wxID_ANY, end_jd_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiJDEnd = new TextInput(this, end_value_str, units_str, "", wxDefaultPosition, ti_size);
     m_tiJDEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_jd_sizer->Add(end_jd_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
        end_jd_sizer->Add(m_tiJDEnd  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    cornering_row_sizer->Add(end_jd_sizer, 0, wxLEFT, FromDIP(3));
-
-    settings_sizer->Add(cornering_row_sizer, 0, wxLEFT, FromDIP(3));
+    settings_sizer->Add(end_jd_sizer, 0, wxLEFT, FromDIP(3));
 
     settings_sizer->AddSpacer(FromDIP(5));
 
     // Add note about cornering based on GCode Flavor
-    wxString note_msg = _L("Note: Lower values = sharper corners but slower speeds.\n");
+    wxString note_msg = _L("Note: Lower values = sharper corners but slower speeds.");
+    auto note_text = new wxStaticText(this, wxID_ANY, note_msg, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    note_text->SetForegroundColour(wxColour(128, 128, 128));
+    note_text->Wrap(FromDIP(300));
+    settings_sizer->Add(note_text, 0, wxALL, FromDIP(5));
+
     if (gcode_flavor_option) {
+        wxString note_msg_2;
         switch (gcode_flavor_option->value) {
             case GCodeFlavor::gcfMarlinFirmware: {
-                // Check if machine_max_junction_deviation is set and > 0
-                const auto* max_jd_option = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation");
-                if (max_jd_option && !max_jd_option->values.empty() && max_jd_option->values[0] > 0) {
-                    note_msg += _L("Marlin 2 Junction Deviation detected:\nTo test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to 0.");
+                if (junction_deviation) {
+                    note_msg_2 += _L("Marlin 2 Junction Deviation detected:\nTo test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to 0.");
                 } else {
-                    note_msg += _L("Marlin 2 Classic Jerk detected:\nTo test Junction Deviation, set 'Maximum Junction Deviation' in Motion ability to a value > 0.");
+                    note_msg_2 += _L("Marlin 2 Classic Jerk detected:\nTo test Junction Deviation, set 'Maximum Junction Deviation' in Motion ability to a value > 0.");
                 }
                 break;
             }
             case GCodeFlavor::gcfRepRapFirmware:
-                note_msg += _L("RepRap detected: Jerk in mm/s.\nOrcaSlicer will convert the values to mm/min when necessary.");
+                note_msg_2 += _L("RepRap detected: Jerk in mm/s.\nOrcaSlicer will convert the values to mm/min when necessary.");
                 break;
             default:
                 break;
         }
+        if(!note_msg_2.empty()){
+            auto note_text_2 = new wxStaticText(this, wxID_ANY, note_msg_2, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+            note_text_2->SetForegroundColour(wxColour(128, 128, 128));
+            note_text_2->Wrap(FromDIP(300));
+            settings_sizer->Add(note_text_2, 0, wxALL, FromDIP(5));
+        }
     }
-
-    auto note_text = new wxStaticText(this, wxID_ANY, note_msg,
-                                    wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    note_text->SetForegroundColour(wxColour(128, 128, 128));
-    note_text->Wrap(FromDIP(300));
-    settings_sizer->Add(note_text, 0, wxALL, FromDIP(5));
 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
@@ -1358,8 +1645,15 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto dlg_btns = new DialogButtons(this, {"OK"});
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/cornering-calib");
-    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/cornering_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1370,6 +1664,7 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Cornering_Test_Dlg::~Cornering_Test_Dlg() {
@@ -1381,25 +1676,11 @@ void Cornering_Test_Dlg::on_start(wxCommandEvent& event) {
     read_double = m_tiJDStart->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
     read_double = read_double && m_tiJDEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
 
-    // Get max values based on GCode Flavor
-    double max_end_value = 100.0;
-    double warning_threshold = 20.0;
-    const auto* preset_bundle = wxGetApp().preset_bundle;
-    const auto* gcode_flavor_option = (preset_bundle != nullptr)
-        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
-        : nullptr;
+    // Junction Deviation (mm) or Classic Jerk (mm/s) limits.
+    const auto [max_end_value, warning_threshold] = cornering_end_limits(edited_printer_config());
 
-    if (gcode_flavor_option &&
-        gcode_flavor_option->value == GCodeFlavor::gcfMarlinFirmware &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation") &&
-        !preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values.empty() &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values[0] > 0) {
-            // Using Junction Deviation (mm)
-            max_end_value = 1.0;
-            warning_threshold = 0.3;
-    }
-
-    if (!read_double || m_params.start < 0 || m_params.end > max_end_value || m_params.start >= m_params.end) {
+    m_params.mode = CalibMode::Calib_Cornering;
+    if (!read_double || check_calib_params(m_params, edited_printer_config()) != CalibParamsError::None) {
         wxString error_msg = wxString::Format(_L("Please input valid values:\n(0 <= Cornering <= %s)"), wxString::Format("%.3f", max_end_value));
         MessageDialog msg_dlg(nullptr, error_msg, wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
@@ -1410,11 +1691,10 @@ void Cornering_Test_Dlg::on_start(wxCommandEvent& event) {
         msg_dlg.ShowModal();
     }
 
-    m_params.mode = CalibMode::Calib_Cornering;
-
     // Set model type based on selection
     m_params.test_model = m_rbModel->GetSelection();
 
+    m_filament->apply_to(m_params);
     m_plater->Calib_Cornering(m_params);
     EndModal(wxID_OK);
 }
@@ -1422,6 +1702,124 @@ void Cornering_Test_Dlg::on_start(wxCommandEvent& event) {
 void Cornering_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
     this->Refresh();
     Fit();
+}
+
+// FlowRateCalibrationDialog
+//
+FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowID id, Plater* plater)
+    : DPIDialog(parent, id, _L("Flow Ratio Calibration"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+{
+    SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
+    SetForegroundColour(wxColour("#363636"));
+    SetFont(Label::Body_14);
+
+    wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
+    SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+    // Type selection
+    auto labeled_box_type = new LabeledStaticBox(this, _L("Calibration Test Type"));
+    auto type_box = new wxStaticBoxSizer(labeled_box_type, wxVERTICAL);
+
+    m_rbType = new RadioGroup(this, { _L("Pass 1 (Coarse)"), _L("Pass 2 (Fine)"), _L("YOLO (Recommended)"), _L("YOLO (Perfectionist)") }, wxVERTICAL, 1);
+    m_rbType->SetSelection(2); // Default to YOLO Recommended
+    type_box->Add(m_rbType, 0, wxALL | wxEXPAND, FromDIP(4));
+    v_sizer->Add(type_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+    // Settings
+    auto stb = new LabeledStaticBox(this, _L("Settings"));
+    auto settings_sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
+
+    wxString pattern_str = _L("Top Surface Pattern");
+    int text_max = GetTextMax(this, std::vector<wxString>{pattern_str});
+
+    settings_sizer->AddSpacer(FromDIP(5));
+
+    auto st_size = wxSize(text_max, -1);
+    auto ti_size = FromDIP(wxSize(120, -1));
+
+    // Top surface pattern
+    auto pattern_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto pattern_text  = new wxStaticText(this, wxID_ANY, pattern_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
+
+    // ORCA: Use ComboBox with icons instead of RadioGroup
+    m_rbPattern = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, ti_size, 0, nullptr, wxCB_READONLY);
+    
+    boost::filesystem::path image_path(Slic3r::resources_dir());
+    image_path /= "images";
+
+    auto add_pattern_item = [&](const std::string& name, const wxString& label) {
+        auto icon_name = "param_" + name;
+        if (boost::filesystem::exists(image_path / (icon_name + ".svg"))) {
+            // Using 24px icon size to match other settings (Field.cpp uses 24)
+            ScalableBitmap bm(this, icon_name, 24);
+            m_rbPattern->Append(label, bm.bmp());
+        } else {
+            m_rbPattern->Append(label);
+        }
+    };
+
+    add_pattern_item("archimedeanchords", _L("Archimedean Chords"));
+    add_pattern_item("monotonic", _L("Monotonic"));
+    m_rbPattern->SetSelection(0); // Default to Archimedean Chords
+    // ORCA: explicit set value to ensure display on Windows
+    m_rbPattern->SetValue(m_rbPattern->GetString(0));
+    m_rbPattern->GetDropDown().SetUseContentWidth(true);
+
+    pattern_sizer->Add(pattern_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    pattern_sizer->Add(m_rbPattern , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    settings_sizer->Add(pattern_sizer, 0, wxLEFT, FromDIP(3));
+
+    v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+    v_sizer->AddSpacer(FromDIP(5));
+
+    auto dlg_btns = new DialogButtons(this, {"OK"});
+
+    auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/flow_ratio_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+    bottom_sizer->AddStretchSpacer();
+    bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
+    v_sizer->Add(bottom_sizer, 0, wxEXPAND);
+
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &FlowRateCalibrationDialog::on_start, this);
+
+    wxGetApp().UpdateDlgDarkUI(this);
+
+    Layout();
+    Fit();
+    v_sizer->SetSizeHints(this);
+}
+
+FlowRateCalibrationDialog::~FlowRateCalibrationDialog() {
+    // Disconnect Events
+}
+
+void FlowRateCalibrationDialog::on_start(wxCommandEvent& event) {
+    int type = m_rbType->GetSelection();
+    int patternIdx = m_rbPattern->GetSelection();
+    
+    InfillPattern pattern = ipArchimedeanChords;
+    if (patternIdx == 1) pattern = ipMonotonic;
+    
+    bool is_linear = (type >= 2);
+    int pass = (type % 2) + 1;
+
+    m_plater->calib_flowrate(is_linear, pass, pattern, m_filament->filament_id(), m_filament->extruder_id());
+    EndModal(wxID_OK);
+}
+
+void FlowRateCalibrationDialog::on_dpi_changed(const wxRect& suggested_rect) {
+    this->Refresh();
 }
 
 }} // namespace Slic3r::GUI

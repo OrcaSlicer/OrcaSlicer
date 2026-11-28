@@ -1,12 +1,24 @@
 #ifndef slic3r_EdgeGrid_hpp_
 #define slic3r_EdgeGrid_hpp_
 
+#include <cstddef>
+#include <cassert>
+#include <limits>
+#include <cstdlib>
+#include <algorithm>
 #include <stdint.h>
 #include <math.h>
+#include <vector>
+#include <utility>
+#include <string>
 
+#include "Line.hpp"
 #include "Point.hpp"
 #include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
+#include "libslic3r.h"
+#include "Polygon.hpp"
+#include "Polyline.hpp"
 
 namespace Slic3r {
 namespace EdgeGrid {
@@ -224,6 +236,8 @@ public:
 						iy += 1;
 						assert(iy <= iyb);
 					}
+					if (ix < 0 || iy < 0 || ix >= (int64_t)m_cols || iy >= (int64_t)m_rows)
+						return; 
 					if (! visitor(iy, ix))
 						return;
 				} while (ix != ixb || iy != iyb);
@@ -245,6 +259,8 @@ public:
 						iy -= 1;
 						assert(iy >= iyb);
 					}
+					if (ix < 0 || iy < 0 || ix >= (int64_t)m_cols || iy >= (int64_t)m_rows)
+						return; 
 					if (! visitor(iy, ix))
 						return;
 				} while (ix != ixb || iy != iyb);
@@ -270,6 +286,8 @@ public:
 						iy += 1;
 						assert(iy <= iyb);
 					}
+					if (ix < 0 || iy < 0 || ix >= (int64_t)m_cols || iy >= (int64_t)m_rows)
+						return; 
 					if (! visitor(iy, ix))
 						return;
 				} while (ix != ixb || iy != iyb);
@@ -307,6 +325,8 @@ public:
 						iy -= 1;
 						assert(iy >= iyb);
 					}
+					if (ix < 0 || iy < 0 || ix >= (int64_t)m_cols || iy >= (int64_t)m_rows)
+						return; 
 					if (! visitor(iy, ix))
 						return;
 				} while (ix != ixb || iy != iyb);

@@ -2,19 +2,24 @@
 #define _STEP_MESH_DIALOG_H_
 
 #include <thread>
+#include <wx/event.h>
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 #include "libslic3r/Format/STEP.hpp"
 #include "Widgets/Button.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
+#include "GeometryImportDialog.hpp"
 class Button;
+class RadioGroup;
 
 class StepMeshDialog : public Slic3r::GUI::DPIDialog
 {
 public:
-    StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double linear_init, double angle_init);
+    StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double linear_init, double angle_init,
+                   Slic3r::GUI::GeometryImportOptions* import_options = nullptr);
     ~StepMeshDialog() override;
     void on_dpi_changed(const wxRect& suggested_rect) override;
-    inline double get_linear_defletion() {
+    inline double get_linear_deflection() {
         double value;
         if (m_linear_last.ToDouble(&value)) {
             return value;
@@ -22,7 +27,7 @@ public:
             return m_last_linear;
         }
     }
-    inline double get_angle_defletion() {
+    inline double get_angle_deflection() {
         double value;
         if (m_angle_last.ToDouble(&value)) {
             return value;
@@ -34,9 +39,16 @@ public:
         return m_split_compound_checkbox->GetValue();
     }
 private:
+    // A non-null context defers all preference writes until the whole import is ready.
+    Slic3r::GUI::GeometryImportOptions* m_import_options = nullptr;
+    LabeledCheckBox* m_keep_names_checkbox = nullptr;
+    LabeledCheckBox* m_sort_names_checkbox = nullptr;
+    // Item 0 loads as an assembly, item 1 as a single object.
+    RadioGroup* m_load_mode = nullptr;
     Slic3r::Step& m_file;
-    wxCheckBox* m_checkbox = nullptr;
-    wxCheckBox* m_split_compound_checkbox = nullptr;
+    LabeledCheckBox* m_checkbox = nullptr;
+    LabeledCheckBox* m_split_compound_checkbox = nullptr;
+    LabeledCheckBox* m_save_default_checkbox = nullptr;
     wxString m_linear_last;
     wxString m_angle_last;
     wxStaticText* mesh_face_number_text;

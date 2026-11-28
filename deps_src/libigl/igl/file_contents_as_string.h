@@ -12,15 +12,15 @@
 #include <string>
 namespace igl
 {
-  // Read a files contents as plain text into a given string
-  // Inputs:
-  //   file_name  path to file to be read
-  // Outputs:
-  //   content  output string containing contents of the given file
-  // Returns true on succes, false on error
+  /// Read a files contents as plain text into a given string
+  ///
+  /// @param[in] file_name  path to file to be read
+  /// @param[out] content  output string containing contents of the given file
+  /// @return true on succes, false on error
   IGL_INLINE bool file_contents_as_string(
     const std::string file_name,
     std::string & content);
+  /// \overload
   IGL_INLINE std::string file_contents_as_string(
     const std::string file_name);
 }

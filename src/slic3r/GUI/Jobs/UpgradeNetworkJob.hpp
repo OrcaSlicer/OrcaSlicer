@@ -3,11 +3,14 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
+#include <exception>
 #include <functional>
 #include "Job.hpp"
+#include <string>
+#include <wx/event.h>
 #include <wx/window.h>
 
-namespace fs = boost::filesystem;
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {
@@ -27,7 +30,6 @@ class UpgradeNetworkJob : public Job
     wxWindow *           m_event_handle{nullptr};
     std::function<void()> m_success_fun{nullptr};
     bool                m_job_finished{ false };
-    int                 m_print_job_completed_id = 0;
 
     InstallProgressFn pro_fn { nullptr };
 

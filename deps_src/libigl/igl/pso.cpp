@@ -1,5 +1,5 @@
 #include "pso.h"
-#include <cassert>
+#include "IGL_ASSERT.h"
 #include <Eigen/StdVector>
 #include <vector>
 #include <iostream>
@@ -39,7 +39,7 @@ IGL_INLINE Scalar igl::pso(
 {
   const int dim = LB.size();
   assert(UB.size() == dim && "UB should match LB size");
-  assert(P.size() == dim && "P should match LB size");
+  IGL_ASSERT(P.size() == dim && "P should match LB size");
   typedef std::vector<DerivedX,Eigen::aligned_allocator<DerivedX> > VectorList;
   VectorList position(population);
   VectorList best_position(population);

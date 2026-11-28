@@ -7,6 +7,34 @@
     "filament_type": [
         "EVA"
     ],
+    "filament_dev_chamber_drying_bed_temperature": [
+        "70"
+    ],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "12",
+        "12",
+        "12"
+    ],
+    "filament_dev_ams_drying_ams_limitations": [
+        "1",
+        "0"
+    ],
+    "filament_dev_ams_drying_heat_distortion_temperature": [
+        "45"
+    ],
+    "filament_dev_drying_cooling_temperature": [
+        "40"
+    ],
+    "filament_dev_ams_drying_temperature": [
+        "45",
+        "45",
+        "45",
+        "45"
+    ],
+    "filament_dev_drying_softening_temperature": [
+        "50"
+    ],
     "supertack_plate_temp": [
         "0"
     ],

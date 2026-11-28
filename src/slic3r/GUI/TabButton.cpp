@@ -1,8 +1,20 @@
 #include "TabButton.hpp"
 #include "Widgets/Label.hpp"
 
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <wx/anybutton.h>
+#include <wx/colour.h>
+#include <utility>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/checklst.h>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/dc.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 
 BEGIN_EVENT_TABLE(TabButton, StaticBox)
 
@@ -20,7 +32,7 @@ const static wxColour TAB_BUTTON_BG    = wxColour("#FEFFFF");
 const static wxColour TAB_BUTTON_SEL   = wxColour("#BFE1DE"); // ORCA
 
 TabButton::TabButton()
-    : paddingSize(43, 16)
+    : paddingSize(18, 16) // ORCA reduce / match left margin buttons on sidebars
     , text_color(*wxBLACK)
 {
     background_color = StateColor(
@@ -163,7 +175,7 @@ void TabButton::render(wxDC &dc)
 
     auto text = GetLabel();
     if (!text.IsEmpty()) {
-        pt.x = paddingSize.x;
+        pt.x = FromDIP(paddingSize.x); // ORCA match padding on scaling
         pt.y = rcContent.y + (rcContent.height - textSize.y) / 2;
         dc.SetFont(GetFont());
         dc.SetTextForeground(text_color.colorForStates(states));
@@ -182,6 +194,7 @@ void TabButton::render(wxDC &dc)
         pt.y = (size.y - showimg.GetHeight()) / 2;
         dc.DrawBitmap(showimg, pt);
     }
+
 }
 
 void TabButton::messureSize()

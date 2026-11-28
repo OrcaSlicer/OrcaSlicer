@@ -19,6 +19,7 @@
                 "nl": "Oranje",
                 "es": "Naranja"
             },
+            "color_code": "A0",
             "fila_color": [
                 "#FF6A13FF"
             ]
@@ -42,6 +43,7 @@
                 "nl": "Pompoenoranje",
                 "es": "Naranja calabaza"
             },
+            "color_code": "A1",
             "fila_color": [
                 "#FF9016FF"
             ]
@@ -65,6 +67,7 @@
                 "nl": "Blauwgrijs",
                 "es": "Gris azulado"
             },
+            "color_code": "B1",
             "fila_color": [
                 "#5B6579FF"
             ]
@@ -88,6 +91,7 @@
                 "nl": "Kobaltblauw",
                 "es": "Azul cobalto"
             },
+            "color_code": "B3",
             "fila_color": [
                 "#0056B8FF"
             ]
@@ -111,6 +115,7 @@
                 "nl": "Turkoois",
                 "es": "Turquesa"
             },
+            "color_code": "B5",
             "fila_color": [
                 "#00B1B7FF"
             ]
@@ -134,6 +139,7 @@
                 "nl": "Cyaan",
                 "es": "Cian"
             },
+            "color_code": "B8",
             "fila_color": [
                 "#0086D6FF"
             ]
@@ -157,6 +163,7 @@
                 "nl": "Blauw",
                 "es": "Azul"
             },
+            "color_code": "B9",
             "fila_color": [
                 "#0A2989FF"
             ]
@@ -180,6 +187,7 @@
                 "nl": "Grijs",
                 "es": "Gris"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#8E9089FF"
             ]
@@ -203,6 +211,7 @@
                 "nl": "Zilver",
                 "es": "Plateado"
             },
+            "color_code": "D1",
             "fila_color": [
                 "#A6A9AAFF"
             ]
@@ -226,6 +235,7 @@
                 "nl": "Lichtgrijs",
                 "es": "Gris claro"
             },
+            "color_code": "D2",
             "fila_color": [
                 "#D1D3D5FF"
             ]
@@ -249,31 +259,9 @@
                 "nl": "Donkergrijs",
                 "es": "Gris oscuro"
             },
+            "color_code": "D3",
             "fila_color": [
                 "#545454FF"
-            ]
-        },
-        {
-            "fila_color_code": "10500",
-            "fila_id": "GFA00",
-            "fila_color_type": "单色",
-            "fila_type": "PLA Basic",
-            "fila_color_name": {
-                "de": "Grün",
-                "sv": "Grön",
-                "pt": "Verde",
-                "ko": "그린",
-                "ja": "グリーン",
-                "en": "Green",
-                "it": "Verde",
-                "fr": "Vert",
-                "hu": "Zöld",
-                "zh": "墨绿",
-                "nl": "Groen",
-                "es": "Verde"
-            },
-            "fila_color": [
-                "#164B35FF"
             ]
         },
         {
@@ -295,6 +283,7 @@
                 "nl": "Maretakgroen",
                 "es": "Verde muérdago"
             },
+            "color_code": "G2",
             "fila_color": [
                 "#3F8E43FF"
             ]
@@ -318,6 +307,7 @@
                 "nl": "Felgroen",
                 "es": "Verde brillante"
             },
+            "color_code": "G3",
             "fila_color": [
                 "#BECF00FF"
             ]
@@ -341,6 +331,7 @@
                 "nl": "Bamboegroen",
                 "es": "Verde bambú"
             },
+            "color_code": "G6",
             "fila_color": [
                 "#00AE42FF"
             ]
@@ -364,6 +355,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -387,9 +379,10 @@
                 "nl": "Vleugje noordpool",
                 "es": "Susurro ártico"
             },
+            "color_code": "M0",
             "fila_color": [
-                "#FFFFFFFF",
-                "#9CDBD9FF"
+                "#9CDBD9FF",
+                "#FFFFFFFF"
             ]
         },
         {
@@ -411,6 +404,7 @@
                 "nl": "Zonnebries",
                 "es": "Brisa solar"
             },
+            "color_code": "M1",
             "fila_color": [
                 "#E94B3CFF",
                 "#FFFFFFFF"
@@ -435,6 +429,7 @@
                 "nl": "Van oceaanblauw naar weidegroen",
                 "es": "Del océano a la pradera"
             },
+            "color_code": "M2",
             "fila_color": [
                 "#307FE2FF",
                 "#54FF9BFF"
@@ -459,6 +454,7 @@
                 "nl": "Roze citrus",
                 "es": "Rosa cítrico"
             },
+            "color_code": "M3",
             "fila_color": [
                 "#F78F77FF",
                 "#E4505AFF"
@@ -483,9 +479,10 @@
                 "nl": "Muntlimoen",
                 "es": "Lima menta"
             },
+            "color_code": "M4",
             "fila_color": [
-                "#4EC939FF",
-                "#B6FF43FF"
+                "#B6FF43FF",
+                "#4EC939FF"
             ]
         },
         {
@@ -507,6 +504,7 @@
                 "nl": "Bosbessenkauwgum",
                 "es": "Chicle de arándano"
             },
+            "color_code": "M5",
             "fila_color": [
                 "#6FCAEFFF",
                 "#8573DDFF"
@@ -531,6 +529,7 @@
                 "nl": "Schemerlicht",
                 "es": "Resplandor del crepúsculo"
             },
+            "color_code": "M6",
             "fila_color": [
                 "#CE4406FF",
                 "#ED9558FF"
@@ -555,9 +554,10 @@
                 "nl": "Suikerspinwolk",
                 "es": "Nube de algodón de azúcar"
             },
+            "color_code": "M7",
             "fila_color": [
-                "#8EC9E9FF",
-                "#E7C1D5FF"
+                "#E7C1D5FF",
+                "#8EC9E9FF"
             ]
         },
         {
@@ -579,6 +579,7 @@
                 "nl": "Bruin",
                 "es": "Marrón"
             },
+            "color_code": "N0",
             "fila_color": [
                 "#9D432CFF"
             ]
@@ -602,6 +603,7 @@
                 "nl": "Chocoladebruin",
                 "es": "Marrón cacao"
             },
+            "color_code": "N1",
             "fila_color": [
                 "#6F5034FF"
             ]
@@ -625,6 +627,7 @@
                 "nl": "Beige",
                 "es": "Beis"
             },
+            "color_code": "P0",
             "fila_color": [
                 "#F7E6DEFF"
             ]
@@ -648,6 +651,7 @@
                 "nl": "Roze",
                 "es": "Rosa"
             },
+            "color_code": "P1",
             "fila_color": [
                 "#F55A74FF"
             ]
@@ -671,6 +675,7 @@
                 "nl": "Indigopaars",
                 "es": "Púrpura índigo"
             },
+            "color_code": "P2",
             "fila_color": [
                 "#482960FF"
             ]
@@ -694,6 +699,7 @@
                 "nl": "Paars",
                 "es": "Púrpura"
             },
+            "color_code": "P5",
             "fila_color": [
                 "#5E43B7FF"
             ]
@@ -717,6 +723,7 @@
                 "nl": "Magenta",
                 "es": "Magenta"
             },
+            "color_code": "P6",
             "fila_color": [
                 "#EC008CFF"
             ]
@@ -740,6 +747,7 @@
                 "nl": "Rood",
                 "es": "Rojo"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#C12E1FFF"
             ]
@@ -763,6 +771,7 @@
                 "nl": "Kastanjerood",
                 "es": "Rojo granate"
             },
+            "color_code": "R2",
             "fila_color": [
                 "#9D2235FF"
             ]
@@ -786,6 +795,7 @@
                 "nl": "Felroze",
                 "es": "Rosa fucsia"
             },
+            "color_code": "R3",
             "fila_color": [
                 "#F5547CFF"
             ]
@@ -809,6 +819,7 @@
                 "nl": "Jadewit",
                 "es": "Blanco jade"
             },
+            "color_code": "W1",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -832,6 +843,7 @@
                 "nl": "Geel",
                 "es": "Amarillo"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#F4EE2AFF"
             ]
@@ -855,6 +867,7 @@
                 "nl": "Zonnebloemgeel",
                 "es": "Amarillo girasol"
             },
+            "color_code": "Y2",
             "fila_color": [
                 "#FEC600FF"
             ]
@@ -878,6 +891,7 @@
                 "nl": "Bronskleurig",
                 "es": "Bronce"
             },
+            "color_code": "Y3",
             "fila_color": [
                 "#847D48FF"
             ]
@@ -901,6 +915,7 @@
                 "nl": "Goud",
                 "es": "Dorado"
             },
+            "color_code": "Y4",
             "fila_color": [
                 "#E4BD68FF"
             ]
@@ -924,6 +939,7 @@
                 "nl": "Mandarijnoranje",
                 "es": "Naranja Mandarina"
             },
+            "color_code": "A2",
             "fila_color": [
                 "#F99963FF"
             ]
@@ -947,6 +963,7 @@
                 "nl": "Hemelsblauw",
                 "es": "Azul cielo"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#56B7E6FF"
             ]
@@ -970,6 +987,7 @@
                 "nl": "Marineblauw",
                 "es": "Azul marino"
             },
+            "color_code": "B3",
             "fila_color": [
                 "#0078BFFF"
             ]
@@ -993,6 +1011,7 @@
                 "nl": "IJsblauw",
                 "es": "Azul hielo"
             },
+            "color_code": "B4",
             "fila_color": [
                 "#A3D8E1FF"
             ]
@@ -1016,6 +1035,7 @@
                 "nl": "Donkerblauw",
                 "es": "Azul oscuro"
             },
+            "color_code": "B6",
             "fila_color": [
                 "#042F56FF"
             ]
@@ -1039,6 +1059,7 @@
                 "nl": "Nardogrijs",
                 "es": "Gris nardo"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#757575FF"
             ]
@@ -1062,6 +1083,7 @@
                 "nl": "Asgrijs",
                 "es": "Gris ceniza"
             },
+            "color_code": "D3",
             "fila_color": [
                 "#9B9EA0FF"
             ]
@@ -1085,6 +1107,7 @@
                 "nl": "Appelgroen",
                 "es": "Verde manzana"
             },
+            "color_code": "G0",
             "fila_color": [
                 "#C2E189FF"
             ]
@@ -1108,6 +1131,7 @@
                 "nl": "Grasgroen",
                 "es": "Verde hierba"
             },
+            "color_code": "G1",
             "fila_color": [
                 "#61C680FF"
             ]
@@ -1131,6 +1155,7 @@
                 "nl": "Donkergroen",
                 "es": "Verde oscuro"
             },
+            "color_code": "G7",
             "fila_color": [
                 "#68724DFF"
             ]
@@ -1154,6 +1179,7 @@
                 "nl": "Donkergrijs",
                 "es": "Carbón"
             },
+            "color_code": "K1",
             "fila_color": [
                 "#000000FF"
             ]
@@ -1177,6 +1203,7 @@
                 "nl": "Donkerchocoladebruin",
                 "es": "Chocolate oscuro"
             },
+            "color_code": "N0",
             "fila_color": [
                 "#4D3324FF"
             ]
@@ -1200,6 +1227,7 @@
                 "nl": "Lattebruin",
                 "es": "Marrón Latte"
             },
+            "color_code": "N1",
             "fila_color": [
                 "#D3B7A7FF"
             ]
@@ -1223,6 +1251,7 @@
                 "nl": "Donkerbruin",
                 "es": "Marrón oscuro"
             },
+            "color_code": "N2",
             "fila_color": [
                 "#7D6556FF"
             ]
@@ -1246,6 +1275,7 @@
                 "nl": "Karamel",
                 "es": "Caramelo"
             },
+            "color_code": "N3",
             "fila_color": [
                 "#AE835BFF"
             ]
@@ -1269,6 +1299,7 @@
                 "nl": "Sakura-roze",
                 "es": "Rosa sakura"
             },
+            "color_code": "P3",
             "fila_color": [
                 "#E8AFCFFF"
             ]
@@ -1292,6 +1323,7 @@
                 "nl": "Lilapaars",
                 "es": "Púrpura lila"
             },
+            "color_code": "P4",
             "fila_color": [
                 "#AE96D4FF"
             ]
@@ -1315,6 +1347,7 @@
                 "nl": "Scharlakenrood",
                 "es": "Rojo escarlata"
             },
+            "color_code": "R1",
             "fila_color": [
                 "#DE4343FF"
             ]
@@ -1338,6 +1371,7 @@
                 "nl": "Terracotta",
                 "es": "Terracota"
             },
+            "color_code": "R2",
             "fila_color": [
                 "#B15533FF"
             ]
@@ -1361,6 +1395,7 @@
                 "nl": "Pruim",
                 "es": "Ciruela"
             },
+            "color_code": "R3",
             "fila_color": [
                 "#950051FF"
             ]
@@ -1384,6 +1419,7 @@
                 "nl": "Donkerrood",
                 "es": "Rojo oscuro"
             },
+            "color_code": "R4",
             "fila_color": [
                 "#BB3D43FF"
             ]
@@ -1407,6 +1443,7 @@
                 "nl": "Ivoorwit",
                 "es": "Blanco marfil"
             },
+            "color_code": "W2",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -1430,6 +1467,7 @@
                 "nl": "Beenwit",
                 "es": "Blanco hueso"
             },
+            "color_code": "W3",
             "fila_color": [
                 "#CBC6B8FF"
             ]
@@ -1453,6 +1491,7 @@
                 "nl": "Citroengeel",
                 "es": "Amarillo limón"
             },
+            "color_code": "Y2",
             "fila_color": [
                 "#F7D959FF"
             ]
@@ -1476,6 +1515,7 @@
                 "nl": "Woestijnbruin",
                 "es": "Arena del desierto"
             },
+            "color_code": "Y3",
             "fila_color": [
                 "#E8DBB7FF"
             ]
@@ -1499,6 +1539,7 @@
                 "nl": "Blauw",
                 "es": "Azul"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#147BD1FF"
             ]
@@ -1522,6 +1563,7 @@
                 "nl": "Zilver",
                 "es": "Plateado"
             },
+            "color_code": "D1",
             "fila_color": [
                 "#EAECEBFF"
             ]
@@ -1545,6 +1587,7 @@
                 "nl": "Groen",
                 "es": "Verde"
             },
+            "color_code": "G1",
             "fila_color": [
                 "#4CE4A0FF"
             ]
@@ -1568,6 +1611,7 @@
                 "nl": "Koperkleurig",
                 "es": "Cobre"
             },
+            "color_code": "N4",
             "fila_color": [
                 "#5E4B3CFF"
             ]
@@ -1591,6 +1635,7 @@
                 "nl": "Roze",
                 "es": "Rosa"
             },
+            "color_code": "P3",
             "fila_color": [
                 "#EEB1C1FF"
             ]
@@ -1614,6 +1659,7 @@
                 "nl": "Paars",
                 "es": "Púrpura"
             },
+            "color_code": "P5",
             "fila_color": [
                 "#854CE4FF"
             ]
@@ -1637,6 +1683,7 @@
                 "nl": "Vergulde roos",
                 "es": "Rosa dorado"
             },
+            "color_code": "T1",
             "fila_color": [
                 "#FF9425FF",
                 "#C16784FF"
@@ -1661,6 +1708,7 @@
                 "nl": "Middernachtblauw",
                 "es": "Resplandor de medianoche"
             },
+            "color_code": "T2",
             "fila_color": [
                 "#0047BBFF",
                 "#7D1B49FF"
@@ -1685,9 +1733,10 @@
                 "nl": "Neonstad",
                 "es": "Ciudad de neón"
             },
+            "color_code": "T3",
             "fila_color": [
-                "#BB22A3FF",
-                "#0047BBFF"
+                "#0047BBFF",
+                "#BB22A3FF"
             ]
         },
         {
@@ -1709,9 +1758,10 @@
                 "nl": "Blauw Hawaï",
                 "es": "Azul Hawái"
             },
+            "color_code": "T4",
             "fila_color": [
-                "#70C884FF",
-                "#418FDEFF"
+                "#418FDEFF",
+                "#70C884FF"
             ]
         },
         {
@@ -1733,6 +1783,7 @@
                 "nl": "Fluwelen zonsverduistering (zwart-rood)",
                 "es": "Eclipse de terciopelo (negro-rojo)"
             },
+            "color_code": "T5",
             "fila_color": [
                 "#000000FF",
                 "#A34342FF"
@@ -1757,6 +1808,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -1780,6 +1832,7 @@
                 "nl": "Goud",
                 "es": "Dorado"
             },
+            "color_code": "Y4",
             "fila_color": [
                 "#E5B03DFF"
             ]
@@ -1803,6 +1856,7 @@
                 "nl": "Babyblauw",
                 "es": "Azul bebé"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#A8C6EEFF"
             ]
@@ -1826,6 +1880,7 @@
                 "nl": "Blauw",
                 "es": "Azul"
             },
+            "color_code": "B1",
             "fila_color": [
                 "#008BDAFF"
             ]
@@ -1849,6 +1904,7 @@
                 "nl": "Titaangrijs",
                 "es": "Gris titán"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#5F6367FF"
             ]
@@ -1872,6 +1928,7 @@
                 "nl": "Zilver",
                 "es": "Plateado"
             },
+            "color_code": "D1",
             "fila_color": [
                 "#C8C8C8FF"
             ]
@@ -1895,6 +1952,7 @@
                 "nl": "Snoepgroen",
                 "es": "Verde caramelo"
             },
+            "color_code": "G0",
             "fila_color": [
                 "#018814FF"
             ]
@@ -1918,6 +1976,7 @@
                 "nl": "Munt",
                 "es": "Menta"
             },
+            "color_code": "G1",
             "fila_color": [
                 "#96DCB9FF"
             ]
@@ -1941,6 +2000,7 @@
                 "nl": "Paars",
                 "es": "Púrpura"
             },
+            "color_code": "P0",
             "fila_color": [
                 "#8671CBFF"
             ]
@@ -1964,6 +2024,7 @@
                 "nl": "Snoeprood",
                 "es": "Rojo caramelo"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#D02727FF"
             ]
@@ -1987,6 +2048,7 @@
                 "nl": "Roségoud",
                 "es": "Oro rosa"
             },
+            "color_code": "R1",
             "fila_color": [
                 "#BA9594FF"
             ]
@@ -2010,6 +2072,7 @@
                 "nl": "Roze",
                 "es": "Rosa"
             },
+            "color_code": "R2",
             "fila_color": [
                 "#F7ADA6FF"
             ]
@@ -2033,6 +2096,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -2056,6 +2120,7 @@
                 "nl": "Champagne",
                 "es": "Champán"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#F3CFB2FF"
             ]
@@ -2079,6 +2144,7 @@
                 "nl": "Goud",
                 "es": "Dorado"
             },
+            "color_code": "Y1",
             "fila_color": [
                 "#F4A925FF"
             ]
@@ -2102,6 +2168,7 @@
                 "nl": "Wit marmer",
                 "es": "Mármol blanco"
             },
+            "color_code": "D4",
             "fila_color": [
                 "#F7F3F0FF"
             ]
@@ -2125,6 +2192,7 @@
                 "nl": "Rood graniet",
                 "es": "Granate rojo"
             },
+            "color_code": "R5",
             "fila_color": [
                 "#AD4E38FF"
             ]
@@ -2148,6 +2216,7 @@
                 "nl": "Sprankelend koningspaars",
                 "es": "Púrpura real brillante"
             },
+            "color_code": "B7",
             "fila_color": [
                 "#483D8BFF"
             ]
@@ -2171,6 +2240,7 @@
                 "nl": "Sprankelend leigrijs",
                 "es": "Gris pizarra brillante"
             },
+            "color_code": "D5",
             "fila_color": [
                 "#8E9089FF"
             ]
@@ -2194,6 +2264,7 @@
                 "nl": "Sprankelend alpengroen",
                 "es": "Verde alpino brillante"
             },
+            "color_code": "G3",
             "fila_color": [
                 "#3F5443FF"
             ]
@@ -2217,6 +2288,7 @@
                 "nl": "Sprankelend onyxzwart",
                 "es": "Negro ónix brillante"
             },
+            "color_code": "K2",
             "fila_color": [
                 "#2D2B28FF"
             ]
@@ -2240,6 +2312,7 @@
                 "nl": "Sprankelend karmozijnrood",
                 "es": "Rojo carmesí brillante"
             },
+            "color_code": "R2",
             "fila_color": [
                 "#792B36FF"
             ]
@@ -2263,6 +2336,7 @@
                 "nl": "Sprankelend klassiek goud",
                 "es": "Dorado clásico brillante"
             },
+            "color_code": "Y1",
             "fila_color": [
                 "#CEA629FF"
             ]
@@ -2286,6 +2360,7 @@
                 "nl": "Oranje",
                 "es": "Naranja"
             },
+            "color_code": "A0",
             "fila_color": [
                 "#FF7F41FF"
             ]
@@ -2309,6 +2384,7 @@
                 "nl": "Lichtblauw",
                 "es": "Azul claro"
             },
+            "color_code": "B4",
             "fila_color": [
                 "#0085ADFF"
             ]
@@ -2332,6 +2408,7 @@
                 "nl": "Lavendelblauw",
                 "es": "Azul lavanda"
             },
+            "color_code": "B5",
             "fila_color": [
                 "#6667ABFF"
             ]
@@ -2355,6 +2432,7 @@
                 "nl": "Grijs",
                 "es": "Gris"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#515A6CFF"
             ]
@@ -2378,6 +2456,7 @@
                 "nl": "Zilver",
                 "es": "Plateado"
             },
+            "color_code": "D1",
             "fila_color": [
                 "#898D8DFF"
             ]
@@ -2401,6 +2480,7 @@
                 "nl": "Dennengroen",
                 "es": "Verde pino"
             },
+            "color_code": "G4",
             "fila_color": [
                 "#00482BFF"
             ]
@@ -2424,6 +2504,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#25282AFF"
             ]
@@ -2447,6 +2528,7 @@
                 "nl": "Vermiljoenrood",
                 "es": "Rojo bermellón"
             },
+            "color_code": "R3",
             "fila_color": [
                 "#DD3C22FF"
             ]
@@ -2470,6 +2552,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W3",
             "fila_color": [
                 "#F9F7F4FF"
             ]
@@ -2493,6 +2576,7 @@
                 "nl": "Geel",
                 "es": "Amarillo"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#FEDB00FF"
             ]
@@ -2516,6 +2600,7 @@
                 "nl": "Grijs",
                 "es": "Gris"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#CDCECAFF"
             ]
@@ -2539,6 +2624,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -2562,6 +2648,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -2585,6 +2672,7 @@
                 "nl": "Oranje gloed",
                 "es": "Naranja brillante"
             },
+            "color_code": "A0",
             "fila_color": [
                 "#FF9D5BFF"
             ]
@@ -2608,6 +2696,7 @@
                 "nl": "Blauwe gloed",
                 "es": "Azul brillante"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#7AC0E9FF"
             ]
@@ -2631,6 +2720,7 @@
                 "nl": "Groene gloed",
                 "es": "Verde brillante"
             },
+            "color_code": "G0",
             "fila_color": [
                 "#A1FFACFF"
             ]
@@ -2654,6 +2744,7 @@
                 "nl": "Roze gloed",
                 "es": "Rosa brillante"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#F17B8FFF"
             ]
@@ -2677,6 +2768,7 @@
                 "nl": "Gele gloed",
                 "es": "Amarillo brillante"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#F8FF80FF"
             ]
@@ -2700,6 +2792,7 @@
                 "nl": "UV-kleurverandering: wit naar koraal",
                 "es": "De blanco a coral (Cambia con los rayos UV)"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -2723,6 +2816,7 @@
                 "nl": "Paars",
                 "es": "Púrpura"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#594177FF"
             ]
@@ -2746,6 +2840,7 @@
                 "nl": "Groen",
                 "es": "Verde"
             },
+            "color_code": "G0",
             "fila_color": [
                 "#3B665EFF"
             ]
@@ -2769,6 +2864,7 @@
                 "nl": "Nevelig",
                 "es": "Nebulosa"
             },
+            "color_code": "G1",
             "fila_color": [
                 "#424379FF"
             ]
@@ -2792,6 +2888,7 @@
                 "nl": "Bruin",
                 "es": "Marrón"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#684A43FF"
             ]
@@ -2815,6 +2912,7 @@
                 "nl": "Klassieke berk",
                 "es": "Abedul clásico"
             },
+            "color_code": "G0",
             "fila_color": [
                 "#918669FF"
             ]
@@ -2838,6 +2936,7 @@
                 "nl": "Walnootzwart",
                 "es": "Nogal negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#4F3F24FF"
             ]
@@ -2861,6 +2960,7 @@
                 "nl": "Modderbruin",
                 "es": "Marrón arcilla"
             },
+            "color_code": "N0",
             "fila_color": [
                 "#995F11FF"
             ]
@@ -2884,6 +2984,7 @@
                 "nl": "Rozenhout",
                 "es": "Palo de rosa"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#4C241CFF"
             ]
@@ -2907,6 +3008,7 @@
                 "nl": "Wit eiken",
                 "es": "Roble blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#D6CCA3FF"
             ]
@@ -2930,6 +3032,7 @@
                 "nl": "Okergeel",
                 "es": "Amarillo ocre"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#C98935FF"
             ]
@@ -2953,6 +3056,7 @@
                 "nl": "Koningsblauw",
                 "es": "Azul real"
             },
+            "color_code": "B6",
             "fila_color": [
                 "#2842ADFF"
             ]
@@ -2976,6 +3080,7 @@
                 "nl": "Jeansblauw",
                 "es": "Azul vaquero"
             },
+            "color_code": "B9",
             "fila_color": [
                 "#6e88bcFF"
             ]
@@ -2999,6 +3104,7 @@
                 "nl": "Lavagrijs",
                 "es": "Gris lava"
             },
+            "color_code": "D6",
             "fila_color": [
                 "#4d5054FF"
             ]
@@ -3022,6 +3128,7 @@
                 "nl": "Matchagroen",
                 "es": "Verde matcha"
             },
+            "color_code": "G7",
             "fila_color": [
                 "#5c9748FF"
             ]
@@ -3045,6 +3152,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -3068,6 +3176,7 @@
                 "nl": "Irispaars",
                 "es": "Púrpura iris"
             },
+            "color_code": "P7",
             "fila_color": [
                 "#69398EFF"
             ]
@@ -3091,6 +3200,7 @@
                 "nl": "Wijnrood",
                 "es": "Rojo burdeos"
             },
+            "color_code": "R4",
             "fila_color": [
                 "#951e23FF"
             ]
@@ -3114,6 +3224,7 @@
                 "nl": "Oranje",
                 "es": "Naranja"
             },
+            "color_code": "A0",
             "fila_color": [
                 "#FF6A13FF"
             ]
@@ -3137,6 +3248,7 @@
                 "nl": "Blauw",
                 "es": "Azul"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#0A2CA5FF"
             ]
@@ -3160,6 +3272,7 @@
                 "nl": "Azuurblauw",
                 "es": "Azul celeste"
             },
+            "color_code": "B4",
             "fila_color": [
                 "#489FDFFF"
             ]
@@ -3183,6 +3296,7 @@
                 "nl": "Marineblauw",
                 "es": "Azul marino oscuro"
             },
+            "color_code": "B6",
             "fila_color": [
                 "#0C2340FF"
             ]
@@ -3206,6 +3320,7 @@
                 "nl": "Munt",
                 "es": "Menta"
             },
+            "color_code": "B8",
             "fila_color": [
                 "#7AE1BFFF"
             ]
@@ -3229,6 +3344,7 @@
                 "nl": "Zilver",
                 "es": "Plateado"
             },
+            "color_code": "D1",
             "fila_color": [
                 "#87909AFF"
             ]
@@ -3252,6 +3368,7 @@
                 "nl": "Bamboegroen",
                 "es": "Verde bambú"
             },
+            "color_code": "G6",
             "fila_color": [
                 "#00AE42FF"
             ]
@@ -3275,6 +3392,7 @@
                 "nl": "Olijf",
                 "es": "Oliva"
             },
+            "color_code": "G7",
             "fila_color": [
                 "#789D4AFF"
             ]
@@ -3298,6 +3416,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -3321,6 +3440,7 @@
                 "nl": "Lavendel",
                 "es": "Lavanda"
             },
+            "color_code": "P4",
             "fila_color": [
                 "#7248BDFF"
             ]
@@ -3344,6 +3464,7 @@
                 "nl": "Paars",
                 "es": "Púrpura"
             },
+            "color_code": "P6",
             "fila_color": [
                 "#AF1685FF"
             ]
@@ -3367,6 +3488,7 @@
                 "nl": "Rood",
                 "es": "Rojo"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#D32941FF"
             ]
@@ -3390,6 +3512,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -3413,6 +3536,7 @@
                 "nl": "Geel",
                 "es": "Amarillo"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#FCE900FF"
             ]
@@ -3436,6 +3560,7 @@
                 "nl": "Feloranjegeel",
                 "es": "Amarillo mandarina"
             },
+            "color_code": "Y1",
             "fila_color": [
                 "#FFC72CFF"
             ]
@@ -3459,6 +3584,7 @@
                 "nl": "Beige",
                 "es": "Beis"
             },
+            "color_code": "Y2",
             "fila_color": [
                 "#DFD1A7FF"
             ]
@@ -3482,6 +3608,7 @@
                 "nl": "Blauw",
                 "es": "Azul"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#2140B4FF"
             ]
@@ -3505,6 +3632,7 @@
                 "nl": "Grijs",
                 "es": "Gris"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#8A949EFF"
             ]
@@ -3528,6 +3656,7 @@
                 "nl": "Groen",
                 "es": "Verde"
             },
+            "color_code": "G0",
             "fila_color": [
                 "#00A6A0FF"
             ]
@@ -3551,6 +3680,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -3574,6 +3704,7 @@
                 "nl": "Rood",
                 "es": "Rojo"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#E02928FF"
             ]
@@ -3597,6 +3728,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFAF2FF"
             ]
@@ -3620,6 +3752,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#F5F1DDFF"
             ]
@@ -3643,6 +3776,7 @@
                 "nl": "Oranje",
                 "es": "Naranja"
             },
+            "color_code": "A0",
             "fila_color": [
                 "#F48438FF"
             ]
@@ -3666,6 +3800,7 @@
                 "nl": "Blauw",
                 "es": "Azul"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#0C3B95FF"
             ]
@@ -3689,6 +3824,7 @@
                 "nl": "Grijs",
                 "es": "Gris"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#C6C6C6FF"
             ]
@@ -3712,6 +3848,7 @@
                 "nl": "Groen",
                 "es": "Verde"
             },
+            "color_code": "G0",
             "fila_color": [
                 "#61BF36FF"
             ]
@@ -3735,6 +3872,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -3758,6 +3896,7 @@
                 "nl": "Rood",
                 "es": "Rojo"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#E83100FF"
             ]
@@ -3781,6 +3920,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -3804,6 +3944,7 @@
                 "nl": "Geel",
                 "es": "Amarillo"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#FFE133FF"
             ]
@@ -3827,6 +3968,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -3850,8 +3992,9 @@
                 "nl": "Helder zwart",
                 "es": "Negro transparente"
             },
+            "color_code": "C0",
             "fila_color": [
-                "#00000080"
+                "#68686580"
             ]
         },
         {
@@ -3873,8 +4016,9 @@
                 "nl": "Transparant",
                 "es": "Translúcido"
             },
+            "color_code": "C1",
             "fila_color": [
-                "#FFFFFF00"
+                "#00000000"
             ]
         },
         {
@@ -3896,8 +4040,9 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
-                "#686865FF"
+                "#000000FF"
             ]
         },
         {
@@ -3919,6 +4064,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -3942,6 +4088,7 @@
                 "nl": "Grijs",
                 "es": "Gris"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#A8A8AAFF"
             ]
@@ -3965,6 +4112,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -3988,353 +4136,9 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
-            ]
-        },
-        {
-            "fila_color_code": "30300",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Orange",
-                "sv": "Orange",
-                "pt": "Laranja",
-                "ko": "오렌지",
-                "ja": "オレンジ",
-                "en": "Orange",
-                "it": "Arancione",
-                "fr": "Orange",
-                "hu": "Narancssárga",
-                "zh": "橙色",
-                "nl": "Oranje",
-                "es": "Naranja"
-            },
-            "fila_color": [
-                "#FF671FFF"
-            ]
-        },
-        {
-            "fila_color_code": "30602",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Blauer See",
-                "sv": "Sjöblå",
-                "pt": "Lago Azul",
-                "ko": "레이크 블루",
-                "ja": "レイク ブルー",
-                "en": "Lake Blue",
-                "it": "Blu lago",
-                "fr": "Bleu lac",
-                "hu": "Vízkék",
-                "zh": "湖蓝",
-                "nl": "Meerblauw",
-                "es": "Azul Lago"
-            },
-            "fila_color": [
-                "#0069B1FF"
-            ]
-        },
-        {
-            "fila_color_code": "30601",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Blau-Grau",
-                "sv": "Blågrå",
-                "pt": "Azul-Cinza",
-                "ko": "블루 그레이",
-                "ja": "ブルー グレー",
-                "en": "Blue Gray",
-                "it": "Grigio blu",
-                "fr": "Bleu gris",
-                "hu": "Kékesszürke",
-                "zh": "灰蓝",
-                "nl": "Blauwgrijs",
-                "es": "Gris azulado"
-            },
-            "fila_color": [
-                "#688197FF"
-            ]
-        },
-        {
-            "fila_color_code": "30700",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Lila",
-                "sv": "Lila",
-                "pt": "Roxo",
-                "ko": "퍼플",
-                "ja": "パープル",
-                "en": "Purple",
-                "it": "Viola",
-                "fr": "Violet",
-                "hu": "Lila",
-                "zh": "紫色",
-                "nl": "Paars",
-                "es": "Púrpura"
-            },
-            "fila_color": [
-                "#9E007EFF"
-            ]
-        },
-        {
-            "fila_color_code": "30600",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Blau",
-                "sv": "Blå",
-                "pt": "Azul",
-                "ko": "블루",
-                "ja": "ブルー",
-                "en": "Blue",
-                "it": "Blu",
-                "fr": "Bleu",
-                "hu": "Kék",
-                "zh": "蓝色",
-                "nl": "Blauw",
-                "es": "Azul"
-            },
-            "fila_color": [
-                "#001489FF"
-            ]
-        },
-        {
-            "fila_color_code": "30103",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Durchsichtig",
-                "sv": "Genomskinlig",
-                "pt": "Transparente",
-                "ko": "투명",
-                "ja": "トランスペアレント",
-                "en": "Transparent",
-                "it": "Trasparente",
-                "fr": "Transparent",
-                "hu": "Áttetsző",
-                "zh": "透明",
-                "nl": "Transparant",
-                "es": "Translúcido"
-            },
-            "fila_color": [
-                "#FFFFFF00"
-            ]
-        },
-        {
-            "fila_color_code": "30102",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Grau",
-                "sv": "Grå",
-                "pt": "Cinza",
-                "ko": "그레이",
-                "ja": "グレー",
-                "en": "Gray",
-                "it": "Grigio",
-                "fr": "Gris",
-                "hu": "Szürke",
-                "zh": "灰色",
-                "nl": "Grijs",
-                "es": "Gris"
-            },
-            "fila_color": [
-                "#9EA2A2FF"
-            ]
-        },
-        {
-            "fila_color_code": "30500",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Grün",
-                "sv": "Grön",
-                "pt": "Verde",
-                "ko": "그린",
-                "ja": "グリーン",
-                "en": "Green",
-                "it": "Verde",
-                "fr": "Vert",
-                "hu": "Zöld",
-                "zh": "绿色",
-                "nl": "Groen",
-                "es": "Verde"
-            },
-            "fila_color": [
-                "#009639FF"
-            ]
-        },
-        {
-            "fila_color_code": "30501",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Limettengrün",
-                "sv": "Limegrön",
-                "pt": "Verde-limão",
-                "ko": "라임 그린",
-                "ja": "ライム グリーン",
-                "en": "Lime Green",
-                "it": "Verde lime",
-                "fr": "Vert citron",
-                "hu": "Limezöld",
-                "zh": "柠檬绿",
-                "nl": "Limoengroen",
-                "es": "Verde lima"
-            },
-            "fila_color": [
-                "#7CD82BFF"
-            ]
-        },
-        {
-            "fila_color_code": "30101",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Schwarz",
-                "sv": "Svart",
-                "pt": "Preto",
-                "ko": "블랙",
-                "ja": "ブラック",
-                "en": "Black",
-                "it": "Nero",
-                "fr": "Noir",
-                "hu": "Fekete",
-                "zh": "黑色",
-                "nl": "Zwart",
-                "es": "Negro"
-            },
-            "fila_color": [
-                "#000000FF"
-            ]
-        },
-        {
-            "fila_color_code": "30200",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Rot",
-                "sv": "Röd",
-                "pt": "Vermelho",
-                "ko": "레드",
-                "ja": "レッド",
-                "en": "Red",
-                "it": "Rosso",
-                "fr": "Rouge",
-                "hu": "Piros",
-                "zh": "红色",
-                "nl": "Rood",
-                "es": "Rojo"
-            },
-            "fila_color": [
-                "#D6001CFF"
-            ]
-        },
-        {
-            "fila_color_code": "30100",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Weiß",
-                "sv": "Vit",
-                "pt": "Branco",
-                "ko": "화이트",
-                "ja": "ホワイト",
-                "en": "White",
-                "it": "Bianco",
-                "fr": "Blanc",
-                "hu": "Fehér",
-                "zh": "白色",
-                "nl": "Wit",
-                "es": "Blanco"
-            },
-            "fila_color": [
-                "#FFFFFFFF"
-            ]
-        },
-        {
-            "fila_color_code": "30104",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Natur",
-                "sv": "Natur",
-                "pt": "Natureza",
-                "ko": "네이처",
-                "ja": "ネイチャー",
-                "en": "Nature",
-                "it": "Naturale",
-                "fr": "Nature",
-                "hu": "Natúr",
-                "zh": "自然色",
-                "nl": "Natuurlijk",
-                "es": "Naturaleza"
-            },
-            "fila_color": [
-                "#F9F7F2FF"
-            ]
-        },
-        {
-            "fila_color_code": "30400",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Gelb",
-                "sv": "Gul",
-                "pt": "Amarelo",
-                "ko": "옐로우",
-                "ja": "イエロー",
-                "en": "Yellow",
-                "it": "Giallo",
-                "fr": "Jaune",
-                "hu": "Sárga",
-                "zh": "黄色",
-                "nl": "Geel",
-                "es": "Amarillo"
-            },
-            "fila_color": [
-                "#FCE300FF"
-            ]
-        },
-        {
-            "fila_color_code": "30401",
-            "fila_id": "GFG00",
-            "fila_color_type": "单色",
-            "fila_type": "PETG Basic",
-            "fila_color_name": {
-                "de": "Gold",
-                "sv": "Guld",
-                "pt": "Dourado",
-                "ko": "골드",
-                "ja": "ゴールド",
-                "en": "Gold",
-                "it": "Oro",
-                "fr": "Doré",
-                "hu": "Arany",
-                "zh": "金色",
-                "nl": "Goud",
-                "es": "Dorado"
-            },
-            "fila_color": [
-                "#B28B33FF"
             ]
         },
         {
@@ -4356,6 +4160,7 @@
                 "nl": "Doorschijnend oranje",
                 "es": "Naranja translúcido"
             },
+            "color_code": "A0",
             "fila_color": [
                 "#FF911A80"
             ]
@@ -4379,6 +4184,7 @@
                 "nl": "Doorschijnend lichtblauw",
                 "es": "Azul claro translúcido"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#61B0FF80"
             ]
@@ -4402,8 +4208,9 @@
                 "nl": "Helder",
                 "es": "Transparente"
             },
+            "color_code": "C0",
             "fila_color": [
-                "#FFFFFF00"
+                "#00000000"
             ]
         },
         {
@@ -4425,6 +4232,7 @@
                 "nl": "Doorschijnend grijs",
                 "es": "Gris translúcido"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#8E8E8E80"
             ]
@@ -4448,6 +4256,7 @@
                 "nl": "Doorschijnend olijf",
                 "es": "Oliva translúcido"
             },
+            "color_code": "G0",
             "fila_color": [
                 "#748C4580"
             ]
@@ -4471,6 +4280,7 @@
                 "nl": "Doorschijnend blauwgroen",
                 "es": "Verde azulado translúcido"
             },
+            "color_code": "G1",
             "fila_color": [
                 "#77EDD780"
             ]
@@ -4494,6 +4304,7 @@
                 "nl": "Doorschijnend bruin",
                 "es": "Marrón translúcido"
             },
+            "color_code": "N0",
             "fila_color": [
                 "#C9A38180"
             ]
@@ -4517,6 +4328,7 @@
                 "nl": "Doorschijnend paars",
                 "es": "Púrpura translúcido"
             },
+            "color_code": "P0",
             "fila_color": [
                 "#D6ABFF80"
             ]
@@ -4540,6 +4352,7 @@
                 "nl": "Doorschijnend roze",
                 "es": "Rosa translúcido"
             },
+            "color_code": "P1",
             "fila_color": [
                 "#F9C1BD80"
             ]
@@ -4563,6 +4376,7 @@
                 "nl": "Oranje",
                 "es": "Naranja"
             },
+            "color_code": "A0",
             "fila_color": [
                 "#F75403FF"
             ]
@@ -4586,6 +4400,7 @@
                 "nl": "Blauw",
                 "es": "Azul"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#002E96FF"
             ]
@@ -4609,6 +4424,7 @@
                 "nl": "Meerblauw",
                 "es": "Azul Lago"
             },
+            "color_code": "B1",
             "fila_color": [
                 "#1F79E5FF"
             ]
@@ -4632,6 +4448,7 @@
                 "nl": "Grijs",
                 "es": "Gris"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#ADB1B2FF"
             ]
@@ -4655,6 +4472,7 @@
                 "nl": "Donkergrijs",
                 "es": "Gris oscuro"
             },
+            "color_code": "D1",
             "fila_color": [
                 "#515151FF"
             ]
@@ -4678,6 +4496,7 @@
                 "nl": "Groen",
                 "es": "Verde"
             },
+            "color_code": "G0",
             "fila_color": [
                 "#00AE42FF"
             ]
@@ -4701,6 +4520,7 @@
                 "nl": "Limoengroen",
                 "es": "Verde lima"
             },
+            "color_code": "G1",
             "fila_color": [
                 "#6EE53CFF"
             ]
@@ -4724,6 +4544,7 @@
                 "nl": "Bosgroen",
                 "es": "Verde bosque"
             },
+            "color_code": "G2",
             "fila_color": [
                 "#39541AFF"
             ]
@@ -4747,6 +4568,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -4770,6 +4592,7 @@
                 "nl": "Pindabruin",
                 "es": "Marrón cacahuete"
             },
+            "color_code": "N1",
             "fila_color": [
                 "#875718FF"
             ]
@@ -4793,6 +4616,7 @@
                 "nl": "Rood",
                 "es": "Rojo"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#BC0900FF"
             ]
@@ -4816,6 +4640,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -4839,6 +4664,7 @@
                 "nl": "Geel",
                 "es": "Amarillo"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#FFD00BFF"
             ]
@@ -4862,6 +4688,7 @@
                 "nl": "Roomkleurig",
                 "es": "Crema"
             },
+            "color_code": "Y1",
             "fila_color": [
                 "#F9DFB9FF"
             ]
@@ -4885,6 +4712,7 @@
                 "nl": "Indigoblauw",
                 "es": "Azul índigo"
             },
+            "color_code": "B6",
             "fila_color": [
                 "#324585FF"
             ]
@@ -4908,6 +4736,7 @@
                 "nl": "Titaangrijs",
                 "es": "Gris titán"
             },
+            "color_code": "D6",
             "fila_color": [
                 "#565656FF"
             ]
@@ -4931,6 +4760,7 @@
                 "nl": "Malachietgroen",
                 "es": "Verde malaquita"
             },
+            "color_code": "G7",
             "fila_color": [
                 "#16b08eFF"
             ]
@@ -4954,6 +4784,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -4977,6 +4808,7 @@
                 "nl": "Violetpaars",
                 "es": "Violeta púrpura"
             },
+            "color_code": "P7",
             "fila_color": [
                 "#583061FF"
             ]
@@ -5000,6 +4832,7 @@
                 "nl": "Steenrood",
                 "es": "Rojo ladrillo"
             },
+            "color_code": "R4",
             "fila_color": [
                 "#9f332aFF"
             ]
@@ -5023,6 +4856,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -5046,6 +4880,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -5069,6 +4904,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -5092,6 +4928,7 @@
                 "nl": "Blauw",
                 "es": "Azul"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#75AED8FF"
             ]
@@ -5115,6 +4952,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#EAEAE4FF"
             ]
@@ -5138,6 +4976,7 @@
                 "nl": "Grijs",
                 "es": "Gris"
             },
+            "color_code": "D1",
             "fila_color": [
                 "#353533FF"
             ]
@@ -5161,6 +5000,7 @@
                 "nl": "Limoen",
                 "es": "Lima"
             },
+            "color_code": "G0",
             "fila_color": [
                 "#C5ED48FF"
             ]
@@ -5184,6 +5024,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -5207,6 +5048,7 @@
                 "nl": "Bruin",
                 "es": "Marrón"
             },
+            "color_code": "N0",
             "fila_color": [
                 "#5B492FFF"
             ]
@@ -5230,6 +5072,7 @@
                 "nl": "Oranje",
                 "es": "Naranja"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#FF4800FF"
             ]
@@ -5253,54 +5096,9 @@
                 "nl": "Geel",
                 "es": "Amarillo"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#FFCE00FF"
-            ]
-        },
-        {
-            "fila_color_code": "65101",
-            "fila_id": "GFS02",
-            "fila_color_type": "单色",
-            "fila_type": "Support for PLA",
-            "fila_color_name": {
-                "de": "Schwarz",
-                "sv": "Svart",
-                "pt": "Preto",
-                "ko": "블랙",
-                "ja": "ブラック",
-                "en": "Black",
-                "it": "Nero",
-                "fr": "Noir",
-                "hu": "Fekete",
-                "zh": "黑色",
-                "nl": "Zwart",
-                "es": "Negro"
-            },
-            "fila_color": [
-                "#000000FF"
-            ]
-        },
-        {
-            "fila_color_code": "65100",
-            "fila_id": "GFS02",
-            "fila_color_type": "单色",
-            "fila_type": "Support for PLA",
-            "fila_color_name": {
-                "de": "Weiß",
-                "sv": "Vit",
-                "pt": "Branco",
-                "ko": "화이트",
-                "ja": "ホワイト",
-                "en": "White",
-                "it": "Bianco",
-                "fr": "Blanc",
-                "hu": "Fehér",
-                "zh": "白色",
-                "nl": "Wit",
-                "es": "Blanco"
-            },
-            "fila_color": [
-                "#FFFFFFFF"
             ]
         },
         {
@@ -5322,6 +5120,7 @@
                 "nl": "Groen",
                 "es": "Verde"
             },
+            "color_code": "G1",
             "fila_color": [
                 "#C0DF16FF"
             ]
@@ -5345,6 +5144,7 @@
                 "nl": "Helder",
                 "es": "Transparente"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#F0F1A880"
             ]
@@ -5368,6 +5168,7 @@
                 "nl": "Natuurlijk",
                 "es": "Naturaleza"
             },
+            "color_code": "C0",
             "fila_color": [
                 "#00000000"
             ]
@@ -5391,6 +5192,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -5414,6 +5216,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -5437,6 +5240,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -5460,6 +5264,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -5483,6 +5288,7 @@
                 "nl": "Blauw",
                 "es": "Azul"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#0072CEFF"
             ]
@@ -5506,6 +5312,7 @@
                 "nl": "Grijs",
                 "es": "Gris"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#898D8DFF"
             ]
@@ -5529,6 +5336,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#101820FF"
             ]
@@ -5552,6 +5360,7 @@
                 "nl": "Rood",
                 "es": "Rojo"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#C8102EFF"
             ]
@@ -5575,6 +5384,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -5598,6 +5408,7 @@
                 "nl": "Geel",
                 "es": "Amarillo"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#F3E600FF"
             ]
@@ -5621,6 +5432,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -5644,6 +5456,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -5667,6 +5480,7 @@
                 "nl": "Blauw",
                 "es": "Azul"
             },
+            "color_code": "B0",
             "fila_color": [
                 "#5898DDFF"
             ]
@@ -5690,6 +5504,7 @@
                 "nl": "Grijs",
                 "es": "Gris"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#939393FF"
             ]
@@ -5713,6 +5528,7 @@
                 "nl": "Neongroen",
                 "es": "Verde neón"
             },
+            "color_code": "G0",
             "fila_color": [
                 "#90FF1AFF"
             ]
@@ -5736,6 +5552,7 @@
                 "nl": "Zwart",
                 "es": "Negro"
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -5759,6 +5576,7 @@
                 "nl": "Rood",
                 "es": "Rojo"
             },
+            "color_code": "R0",
             "fila_color": [
                 "#ED0000FF"
             ]
@@ -5782,6 +5600,7 @@
                 "nl": "Wit",
                 "es": "Blanco"
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -5805,6 +5624,7 @@
                 "nl": "Geel",
                 "es": "Amarillo"
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#F9EF41FF"
             ]
@@ -5828,6 +5648,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -5851,6 +5672,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#EFE255FF"
             ]
@@ -5874,6 +5696,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -5897,6 +5720,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "B0",
             "fila_color": [
                 "#4DAFDAFF"
             ]
@@ -5920,6 +5744,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "R0",
             "fila_color": [
                 "#C6001AFF"
             ]
@@ -5943,6 +5768,7 @@
                 "nl": "Grijs",
                 "es": "Gris"
             },
+            "color_code": "D0",
             "fila_color": [
                 "#999D9DFF"
             ]
@@ -5966,6 +5792,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "R0",
             "fila_color": [
                 "#B5001180"
             ]
@@ -5989,6 +5816,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "R1",
             "fila_color": [
                 "#F5B6CD80"
             ]
@@ -6012,6 +5840,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "A0",
             "fila_color": [
                 "#F74E0280"
             ]
@@ -6035,6 +5864,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#F5DBAB80"
             ]
@@ -6058,6 +5888,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "G0",
             "fila_color": [
                 "#96D8AF80"
             ]
@@ -6081,6 +5912,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "B0",
             "fila_color": [
                 "#B8CDE980"
             ]
@@ -6104,6 +5936,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "B1",
             "fila_color": [
                 "#0047BB80"
             ]
@@ -6127,6 +5960,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "B2",
             "fila_color": [
                 "#009FA180"
             ]
@@ -6150,6 +5984,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "P0",
             "fila_color": [
                 "#8344B080"
             ]
@@ -6173,6 +6008,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "P1",
             "fila_color": [
                 "#B8ACD680"
             ]
@@ -6196,9 +6032,10 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "M1",
             "fila_color": [
-                "#00918BFF",
-                "#F772A4FF"
+                "#F772A4FF",
+                "#00918BFF"
             ]
         },
         {
@@ -6220,6 +6057,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "M4",
             "fila_color": [
                 "#7F3696FF",
                 "#006EC9FF"
@@ -6244,6 +6082,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "M8",
             "fila_color": [
                 "#EC984CFF",
                 "#6CD4BCFF",
@@ -6270,6 +6109,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -6293,6 +6133,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "W1",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -6316,6 +6157,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "A1",
             "fila_color": [
                 "#F68B1BFF"
             ]
@@ -6339,6 +6181,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "G0",
             "fila_color": [
                 "#C3E2D6FF"
             ]
@@ -6362,9 +6205,10 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "M0",
             "fila_color": [
-                "#FFFFFFFF",
-                "#40B6E4FF"
+                "#40B6E4FF",
+                "#FFFFFFFF"
             ]
         },
         {
@@ -6386,6 +6230,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "M1",
             "fila_color": [
                 "#D21B3CFF",
                 "#F1AAA8FF"
@@ -6410,6 +6255,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "W1",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -6433,6 +6279,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "K0",
             "fila_color": [
                 "#000000FF"
             ]
@@ -6456,6 +6303,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "D0",
             "fila_color": [
                 "#AFB1AEFF"
             ]
@@ -6479,6 +6327,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "D1",
             "fila_color": [
                 "#959698FF"
             ]
@@ -6502,6 +6351,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "W0",
             "fila_color": [
                 "#FFFFFFFF"
             ]
@@ -6525,6 +6375,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "A0",
             "fila_color": [
                 "#DC3A27FF"
             ]
@@ -6548,6 +6399,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "Y0",
             "fila_color": [
                 "#F4D53FFF"
             ]
@@ -6571,6 +6423,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "B0",
             "fila_color": [
                 "#009BD8FF"
             ]
@@ -6594,6 +6447,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "D2",
             "fila_color": [
                 "#43403DFF"
             ]
@@ -6617,6 +6471,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "Y1",
             "fila_color": [
                 "#B39B84FF"
             ]
@@ -6640,6 +6495,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "G2",
             "fila_color": [
                 "#1D7C6AFF"
             ]
@@ -6663,6 +6519,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "B2",
             "fila_color": [
                 "#39699EFF"
             ]
@@ -6686,6 +6543,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "N3",
             "fila_color": [
                 "#AA6443FF"
             ]
@@ -6709,6 +6567,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "B1",
             "fila_color": [
                 "#004EA8FF"
             ]
@@ -6732,6 +6591,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "Y1",
             "fila_color": [
                 "#FFB549FF"
             ]
@@ -6755,6 +6615,7 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "G1",
             "fila_color": [
                 "#00BB31FF"
             ]
@@ -6778,10 +6639,1021 @@
                 "nl": "",
                 "es": ""
             },
+            "color_code": "A1",
             "fila_color": [
                 "#FF671FFF"
             ]
+        },
+        {
+            "fila_color_code": "16700",
+            "fila_id": "GFA18",
+            "fila_color_type": "单色",
+            "fila_type": "PLA Lite",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Matte Beige",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "浅肤色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "P0",
+            "fila_color": [
+                "#ECC3B2FF"
+            ]
+        },
+        {
+            "fila_color_code": "16800",
+            "fila_id": "GFA18",
+            "fila_color_type": "单色",
+            "fila_type": "PLA Lite",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Cocoa Brown",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "棕色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "N0",
+            "fila_color": [
+                "#745335FF"
+            ]
+        },
+        {
+            "fila_color_code": "16102",
+            "fila_id": "GFA18",
+            "fila_color_type": "单色",
+            "fila_type": "PLA Lite",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Dark Gray",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "深灰",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "D1",
+            "fila_color": [
+                "#8c8b8cFF"
+            ]
+        },
+        {
+            "fila_color_code": "13913",
+            "fila_id": "GFA05",
+            "fila_color_type": "多拼色",
+            "fila_type": "PLA Silk",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Mystic Magenta",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "北极光",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "T7",
+            "fila_color": [
+                "#720062FF",
+                "#3a913fFF"
+            ]
+        },
+        {
+            "fila_color_code": "13916",
+            "fila_id": "GFA05",
+            "fila_color_type": "多拼色",
+            "fila_type": "PLA Silk",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Phantom Blue",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "幻影蓝",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "T9",
+            "fila_color": [
+                "#00629bFF",
+                "#000000FF"
+            ]
+        },
+        {
+            "fila_color_code": "51601",
+            "fila_id": "GFU03",
+            "fila_color_type": "单色",
+            "fila_type": "TPU 90A",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Crystal Blue",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "水晶蓝",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "B1",
+            "fila_color": [
+                "#7eb4e180"
+            ]
+        },
+        {
+            "fila_color_code": "51106",
+            "fila_id": "GFU03",
+            "fila_color_type": "单色",
+            "fila_type": "TPU 90A",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Quicksilver",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "水银色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "D0",
+            "fila_color": [
+                "#9ea2a2FF"
+            ]
+        },
+        {
+            "fila_color_code": "51201",
+            "fila_id": "GFU04",
+            "fila_color_type": "单色",
+            "fila_type": "TPU 85A",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Rose Beige/Flesh",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "肤色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "P0",
+            "fila_color": [
+                "#F3CFB2FF"
+            ]
+        },
+        {
+            "fila_color_code": "51700",
+            "fila_id": "GFU03",
+            "fila_color_type": "单色",
+            "fila_type": "TPU 90A",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Grape Jelly",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "果冻紫",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "P1",
+            "fila_color": [
+                "#D6ABFF80"
+            ]
+        },
+        {
+            "fila_color_code": "51107",
+            "fila_id": "GFU04",
+            "fila_color_type": "单色",
+            "fila_type": "TPU 85A",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Black",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "黑色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "K0",
+            "fila_color": [
+                "#000000FF"
+            ]
+        },
+        {
+            "fila_color_code": "51501",
+            "fila_id": "GFU04",
+            "fila_color_type": "单色",
+            "fila_type": "TPU 85A",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Lime Green",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "苹果绿",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "G1",
+            "fila_color": [
+                "#CDEA80FF"
+            ]
+        },
+        {
+            "fila_color_code": "51800",
+            "fila_id": "GFU03",
+            "fila_color_type": "单色",
+            "fila_type": "TPU 90A",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Cocoa Brown",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "皮革棕",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "N0",
+            "fila_color": [
+                "#5C4738FF"
+            ]
+        },
+        {
+            "fila_color_code": "30105",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Black",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "黑色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "K00",
+            "fila_color": [
+                "#000000FF"
+            ]
+        },
+        {
+            "fila_color_code": "30106",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "White",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "白色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "W00",
+            "fila_color": [
+                "#FFFFFFFF"
+            ]
+        },
+        {
+            "fila_color_code": "30107",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Gray",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "灰色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "D00",
+            "fila_color": [
+                "#7F7E83FF"
+            ]
+        },
+        {
+            "fila_color_code": "30402",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Yellow",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "黄色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "Y00",
+            "fila_color": [
+                "#FCE300FF"
+            ]
+        },
+        {
+            "fila_color_code": "30201",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Red",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "红色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "R00",
+            "fila_color": [
+                "#D6001CFF"
+            ]
+        },
+        {
+            "fila_color_code": "30603",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Reflex Blue",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "深蓝色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "B00",
+            "fila_color": [
+                "#001489FF"
+            ]
+        },
+        {
+            "fila_color_code": "30800",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Dark Brown",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "深棕色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "N00",
+            "fila_color": [
+                "#4f2c1dFF"
+            ]
+        },
+        {
+            "fila_color_code": "30502",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Green",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "绿色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "G00",
+            "fila_color": [
+                "#009639FF"
+            ]
+        },
+        {
+            "fila_color_code": "30301",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Orange",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "橙色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "A00",
+            "fila_color": [
+                "#FF671FFF"
+            ]
+        },
+        {
+            "fila_color_code": "30503",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Pine Green",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "墨绿色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "G01",
+            "fila_color": [
+                "#034638FF"
+            ]
+        },
+        {
+            "fila_color_code": "30604",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Navy Blue",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "湖蓝色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "B01",
+            "fila_color": [
+                "#0086d6FF"
+            ]
+        },
+        {
+            "fila_color_code": "30108",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Misty Blue",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "蓝灰色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "D01",
+            "fila_color": [
+                "#688197FF"
+            ]
+        },
+        {
+            "fila_color_code": "30403",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Dark Beige",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "深米色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "Y01",
+            "fila_color": [
+                "#dbc8b6FF"
+            ]
+        },
+        {
+            "fila_color_code": "17100",
+            "fila_id": "GFA19",
+            "fila_color_type": "单色",
+            "fila_type": "PLA Pure",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Pure White",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "纯净白",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "W00",
+            "fila_color": [
+                "#FFFFFFFF"
+            ]
+        },
+        {
+            "fila_color_code": "17101",
+            "fila_id": "GFA19",
+            "fila_color_type": "单色",
+            "fila_type": "PLA Pure",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Absolute Black",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "纯净黑",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "K00",
+            "fila_color": [
+                "#000000FF"
+            ]
+        },
+        {
+            "fila_color_code": "17200",
+            "fila_id": "GFA19",
+            "fila_color_type": "单色",
+            "fila_type": "PLA Pure",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Milky Pink",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "水玉粉",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "P00",
+            "fila_color": [
+                "#f7ced7FF"
+            ]
+        },
+        {
+            "fila_color_code": "17600",
+            "fila_id": "GFA19",
+            "fila_color_type": "单色",
+            "fila_type": "PLA Pure",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Baby Blue",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "雪山蓝",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "B00",
+            "fila_color": [
+                "#a4dbe8FF"
+            ]
+        },
+        {
+            "fila_color_code": "17300",
+            "fila_id": "GFA19",
+            "fila_color_type": "单色",
+            "fila_type": "PLA Pure",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Apricot",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "杏子黄",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "A00",
+            "fila_color": [
+                "#ffb673FF"
+            ]
+        },
+        {
+            "fila_color_code": "30701",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Purple",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "紫色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "P01",
+            "fila_color": [
+                "#8A75D1FF"
+            ]
+        },
+        {
+            "fila_color_code": "30404",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Sunflower Yellow",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "芒果橙",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "Y04",
+            "fila_color": [
+                "#FFB81CFF"
+            ]
+        },
+        {
+            "fila_color_code": "30504",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Bright Green",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "苹果绿",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "G04",
+            "fila_color": [
+                "#97D700FF"
+            ]
+        },
+        {
+            "fila_color_code": "30702",
+            "fila_id": "GFG00",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Basic",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Hot Pink",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "粉紫色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "P02",
+            "fila_color": [
+                "#F277C6FF"
+            ]
+        },
+        {
+            "fila_color_code": "35100",
+            "fila_id": "GFG03",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Matte",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "White",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "白色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "W00",
+            "fila_color": [
+                "#FFFFFFFF"
+            ]
+        },
+        {
+            "fila_color_code": "35101",
+            "fila_id": "GFG03",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Matte",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Black",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "黑色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "K00",
+            "fila_color": [
+                "#000000FF"
+            ]
+        },
+        {
+            "fila_color_code": "35500",
+            "fila_id": "GFG03",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Matte",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Lime",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "黄绿色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "G00",
+            "fila_color": [
+                "#c0df16FF"
+            ]
+        },
+        {
+            "fila_color_code": "35102",
+            "fila_id": "GFG03",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Matte",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Gray",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "灰色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "D00",
+            "fila_color": [
+                "#7F7E83FF"
+            ]
+        },
+        {
+            "fila_color_code": "35700",
+            "fila_id": "GFG03",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Matte",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Pink",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "粉色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "P00",
+            "fila_color": [
+                "#FABBCBFF"
+            ]
+        },
+        {
+            "fila_color_code": "35600",
+            "fila_id": "GFG03",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Matte",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Baby Blue",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "浅蓝色",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "B00",
+            "fila_color": [
+                "#B9D9EBFF"
+            ]
+        },
+        {
+            "fila_color_code": "35702",
+            "fila_id": "GFG03",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Matte",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Violet",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "紫罗兰",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "P02",
+            "fila_color": [
+                "#A7A4E0FF"
+            ]
+        },
+        {
+            "fila_color_code": "35501",
+            "fila_id": "GFG03",
+            "fila_color_type": "单色",
+            "fila_type": "PETG Matte",
+            "fila_color_name": {
+                "de": "",
+                "sv": "",
+                "pt": "",
+                "ko": "",
+                "ja": "",
+                "en": "Avocado Green",
+                "it": "",
+                "fr": "",
+                "hu": "",
+                "zh": "牛油果绿",
+                "nl": "",
+                "es": ""
+            },
+            "color_code": "G01",
+            "fila_color": [
+                "#bce194FF"
+            ]
         }
     ],
-    "total": 294
+    "total": 318
 }

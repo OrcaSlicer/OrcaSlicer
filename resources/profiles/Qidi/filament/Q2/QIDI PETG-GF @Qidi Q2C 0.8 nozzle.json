@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG-GF @Qidi Q2C 0.8 nozzle",
+	"inherits": "QIDI PETG-GF@Q2C-Series",
+	"from": "system",
+	"setting_id": "Gf491nomAtcjhAvJ",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.04"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.8 nozzle"
+	]
+}

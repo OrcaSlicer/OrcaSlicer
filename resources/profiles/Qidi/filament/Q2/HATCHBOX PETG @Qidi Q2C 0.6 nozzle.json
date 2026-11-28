@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "HATCHBOX PETG @Qidi Q2C 0.6 nozzle",
+	"inherits": "HATCHBOX PETG@Q2C-Series",
+	"from": "system",
+	"setting_id": "zVhQ76dkj0h0CQYk",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.04"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.6 nozzle"
+	]
+}

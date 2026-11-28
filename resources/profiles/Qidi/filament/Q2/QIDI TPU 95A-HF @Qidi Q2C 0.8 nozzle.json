@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI TPU 95A-HF @Qidi Q2C 0.8 nozzle",
+	"inherits": "QIDI TPU 95A-HF@Q2C-Series",
+	"from": "system",
+	"setting_id": "4U8zmwkMTYVejPbB",
+	"instantiation": "true",
+	"nozzle_temperature": [
+		"220"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.8 nozzle"
+	]
+}

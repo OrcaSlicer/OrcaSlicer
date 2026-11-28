@@ -10,6 +10,7 @@
 #include <cctype>
 #include <stdio.h>
 #include <cstring>
+#include <string>
 
 namespace libvgcode {
 

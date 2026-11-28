@@ -1,0 +1,96 @@
+{
+    "type": "filament",
+    "name": "Bambu PA6-GF @BBL X2D",
+    "inherits": "Bambu PA6-GF @base",
+    "from": "system",
+    "setting_id": "GFSN08_07",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "0.96",
+        "0.96",
+        "0.96",
+        "0.96",
+        "0.96",
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "10.5",
+        "10.5",
+        "10.5",
+        "10.5",
+        "10.5",
+        "10.5"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_retraction_length": [
+        "1",
+        "nil",
+        "1",
+        "nil",
+        "nil",
+        "nil"
+    ],
+    "filament_tower_interface_print_temp": [
+        "265"
+    ],
+    "include": [
+        "fdm_filament_template_direct_bowden_e3d"
+    ],
+    "nozzle_temperature": [
+        "265",
+        "265",
+        "265",
+        "265",
+        "265",
+        "265"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "265",
+        "265",
+        "265",
+        "265",
+        "265",
+        "265"
+    ],
+    "retraction_distances_when_ec": [
+        "3",
+        "3",
+        "3",
+        "4",
+        "4",
+        "4"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20",
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.6 nozzle",
+        "Bambu Lab X2D 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

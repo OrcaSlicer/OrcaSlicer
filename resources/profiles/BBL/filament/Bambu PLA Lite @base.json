@@ -3,10 +3,10 @@
     "name": "Bambu PLA Lite @base",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "filament_id": "GFA18",
+    "filament_id": "OFnfxTvi",
     "instantiation": "false",
     "filament_cost": [
-        "0"
+        "18.99"
     ],
     "filament_density": [
         "1.40"
@@ -22,9 +22,6 @@
     ],
     "filament_scarf_height": [
         "5%"
-    ],
-    "filament_scarf_seam_type": [
-        "none"
     ],
     "filament_vendor": [
         "Bambu Lab"

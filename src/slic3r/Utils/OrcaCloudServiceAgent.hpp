@@ -1,0 +1,515 @@
+#ifndef __ORCA_CLOUD_SERVICE_AGENT_HPP__
+#define __ORCA_CLOUD_SERVICE_AGENT_HPP__
+
+#include "CloudProvider.hpp"
+#include "ICameraSignalingChannel.hpp"
+#include "ICloudServiceAgent.hpp"
+#include "bambu_networking.hpp"
+#include <cstdlib>
+#include "libslic3r/ProjectTask.hpp"
+#include <string>
+#include <map>
+#include <mutex>
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <memory>
+#include <thread>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+#include <nlohmann/json.hpp>
+
+class wxSecretStore;
+
+namespace Slic3r {
+
+// Forward declarations
+class AppConfig;
+struct BundleMetadata;
+struct PluginDescriptor;
+struct PluginChangelog;
+
+struct PluginDownloadData
+{
+    std::string plugin_id;
+    std::string download_link;
+    std::string requested_os;
+    std::string returned_os;
+};
+
+struct PluginDownloadNotFound
+{
+    std::string id;
+    std::string reason;
+};
+
+// Outcome of a token-refresh attempt: decides whether a 401 should log the user
+// out (AuthRejected) or be treated as a recoverable condition (Transient).
+enum class RefreshResult {
+    Success,       // new tokens obtained
+    AuthRejected,  // server definitively rejected the refresh token -> logout is correct
+    Transient      // network/server problem -> keep the session and retry later
+};
+
+// Constants for OAuth loopback server
+namespace auth_constants {
+    constexpr int LOOPBACK_PORT = 41172;
+    constexpr const char* LOOPBACK_PATH = "/callback";
+    constexpr const char* TOKEN_PATH = "/auth/v1/token";
+    constexpr const char* LOGOUT_PATH = "/auth/v1/logout";
+} // namespace auth_constants
+
+// Names of the on-disk credential files inside the config dir.
+namespace secret_constants {
+    // Encrypted refresh-token fallback file, written when wxSecretStore is unavailable.
+    // Also seeded into PluginAuditManager's denied-filename registry (install_hook), which
+    // additionally covers the ".tmp" staging file the token is written to before its atomic
+    // rename, so plugins can read neither.
+    constexpr const char* USER_SECRET_FILENAME = "orca_refresh_token.sec";
+} // namespace secret_constants
+
+// ============================================================================
+// Sync Protocol Data Structures (per Orca Cloud Sync Protocol Specification)
+// ============================================================================
+// Note: These may also be defined in OrcaNetwork.hpp - guards prevent redefinition
+
+#ifndef ORCA_SYNC_STRUCTS_DEFINED
+#define ORCA_SYNC_STRUCTS_DEFINED
+
+struct ProfileUpsert {
+    std::string id;
+    std::string name;
+    nlohmann::json content;
+    long long updated_time = 0;
+    long long created_time = 0;
+};
+
+struct SyncPullResponse {
+    long long next_cursor = 0;
+    std::vector<ProfileUpsert> upserts;
+    std::vector<std::string> deletes;
+};
+
+struct SyncPushResult {
+    bool success = false;
+    int http_code = 0;
+    int conflict_code = 0;
+    long long new_updated_time = 0;
+    ProfileUpsert server_version;
+    bool server_deleted = false;
+    std::string error_message;
+};
+
+struct SyncState {
+    long long last_sync_timestamp = 0;
+};
+
+#endif // ORCA_SYNC_STRUCTS_DEFINED
+
+/**
+ * OrcaCloudServiceAgent - Native cloud service and authentication implementation for Orca Cloud.
+ *
+ * Implements the ICloudServiceAgent interface with:
+ * - Full OAuth 2.0 PKCE authentication support
+ * - Token storage via wxSecretStore with AES-256-GCM encrypted file fallback
+ * - JWT expiry decoding and proactive token refresh
+ * - Session management with thread-safe state access
+ * - Settings synchronization (sync_pull, sync_push)
+ * - Server connectivity management
+ * - HTTP helpers with automatic token injection
+ *
+ * This class combines the functionality of the former OrcaAuthAgent and OrcaCloudServiceAgent.
+ */
+class OrcaCloudServiceAgent : public ICloudServiceAgent {
+public:
+    // ========================================================================
+    // Auth Session Types
+    // ========================================================================
+    struct SessionInfo {
+        std::string access_token;
+        std::string refresh_token;
+        std::string user_id;
+        // Orca auth semantics: user_name is the unique Orca Cloud username (orca_xxxxx),
+        // user_nickname is the display name shown in the UI when available.
+        std::string user_name;
+        std::string user_nickname;
+        std::string user_avatar;
+        std::chrono::system_clock::time_point expires_at{};
+        bool logged_in = false;
+    };
+
+    struct PkceBundle {
+        std::string verifier;
+        std::string challenge;
+        std::string state;
+        std::string redirect;
+        int loopback_port = auth_constants::LOOPBACK_PORT;
+    };
+
+    using SessionHandler = std::function<bool(const std::string&)>;
+    using OnLoginCompleteHandler = std::function<void(bool success, const std::string& user_id)>;
+
+    explicit OrcaCloudServiceAgent(std::string log_dir);
+    ~OrcaCloudServiceAgent() override;
+
+    std::string get_id() const override { return ORCA_CLOUD_PROVIDER; }
+
+    // Configuration
+    void configure_urls(AppConfig* app_config);
+    void set_api_base_url(const std::string& url);
+    void set_auth_base_url(const std::string& url);
+    void set_cloud_base_url(const std::string& url);
+    std::string get_cloud_base_url() const { return cloud_base_url; }
+    void set_use_encrypted_token_file(bool use);
+    bool get_use_encrypted_token_file() const;
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - Lifecycle Methods
+    // ========================================================================
+    int init_log() override;
+    int set_config_dir(std::string config_dir) override;
+    int set_cert_file(std::string folder, std::string filename) override;
+    int set_country_code(std::string country_code) override;
+    int start() override;
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - User Session Management
+    // ========================================================================
+    int change_user(std::string user_info) override;
+    bool is_user_login() override;
+    int user_logout(bool request = false) override;
+    std::string get_user_id() override;
+    std::string get_user_name() override;
+    std::string get_user_avatar() override;
+    std::string get_user_nickname() override;
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - Login UI Support
+    // ========================================================================
+    std::string build_login_cmd() override;
+    std::string build_logout_cmd() override;
+    std::string build_login_info() override;
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - Token Access
+    // ========================================================================
+    std::string get_access_token() const override;
+    std::string get_refresh_token() const override;
+    bool ensure_token_fresh(const std::string& reason) override;
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - Server Connectivity
+    // ========================================================================
+    std::string get_cloud_service_host() override;
+    std::string get_cloud_login_url(const std::string& language = "") override;
+
+    // ========================================================================
+    // OrcaCloud webview session handoff (OrcaCloud "Webview Session Handoff" guide)
+    // ========================================================================
+    // The cloud pane never receives the desktop's access/refresh tokens. Instead the page posts
+    // request_web_session, the desktop mints a single-use token through the gateway and loads the
+    // Complete URL; the site then signs itself in. These builders return "" when no cloud URL is
+    // configured.
+    //
+    // Start URL: {web}/auth/handoff?next=<path>[&user_id=<desktop user id>]. `next` defaults to
+    // /app/profiles; user_id is included only while signed in.
+    std::string build_web_session_start_url(const std::string& next = std::string()) const;
+    // Complete URL: {web}/auth/handoff#token_hash=<hash>&state=<state>. Both values URL-encoded.
+    std::string build_web_session_complete_url(const std::string& token_hash, const std::string& state) const;
+    // Clears only the webview's own session; loaded on an explicit desktop sign-out.
+    std::string build_web_session_signout_url() const;
+    // POST {api}/api/v1/account/web-session-handoff with the desktop access token (no body),
+    // refreshing once on 401 through the shared policy. On 200 writes the single-use `token_hash`;
+    // otherwise writes the server's error code (e.g. WEB_SESSION_HANDOFF_UNAVAILABLE) into
+    // `error_code`. Blocking: call from a worker thread. Never logs the token.
+    int request_web_session_handoff(std::string& token_hash, std::string& error_code, unsigned int& http_code);
+
+    int connect_server() override;
+    bool is_server_connected() override;
+    int refresh_connection() override;
+    // Cancels a health check started by refresh_connection() and waits for it; later
+    // refresh_connection() calls do nothing. Call it before tearing down what the server-connected
+    // and HTTP-error callbacks reach.
+    void stop_health_check();
+    bool is_refresh_running() const { return refresh_running.load(); }
+    int start_subscribe(std::string module) override;
+    int stop_subscribe(std::string module) override;
+    int add_subscribe(std::vector<std::string> dev_list) override;
+    int del_subscribe(std::vector<std::string> dev_list) override;
+    void enable_multi_machine(bool enable) override;
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - Settings Synchronization
+    // ========================================================================
+    int get_user_presets(std::map<std::string, std::map<std::string, std::string>>* user_presets) override;
+    std::string request_setting_id(std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) override;
+    int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code, bool force = false) override;
+    SyncPushResult sync_push(const std::string& profile_id,
+                             const std::string& name,
+                             const nlohmann::json& content,
+                             const std::string& original_updated_time = "",
+                             bool force                               = false);
+    int get_setting_list(std::string bundle_version, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
+    int get_setting_list2(std::string bundle_version, CheckFn chk_fn, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
+    int delete_setting(std::string setting_id) override;
+    // delete_setting() sent only with `user_id`'s token. A token refresh can load another account's
+    // session (another instance may have signed in as someone else), so the account is checked whenever
+    // the token is read, including for the retry after a 401. When the session belongs to another
+    // account nothing is sent, and the delete counts as failed, to be tried again. An empty user_id sends
+    // with the current session, as delete_setting() does.
+    int delete_setting_as(const std::string& user_id, const std::string& setting_id);
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - Cloud User Services
+    // ========================================================================
+    int get_my_message(int type, int after, int limit, unsigned int* http_code, std::string* http_body) override;
+    int check_user_task_report(int* task_id, bool* printable) override;
+    int get_user_print_info(unsigned int* http_code, std::string* http_body) override;
+    int get_user_tasks(TaskQueryParams params, std::string* http_body) override;
+    int get_printer_firmware(std::string dev_id, unsigned* http_code, std::string* http_body) override;
+    int get_task_plate_index(std::string task_id, int* plate_index) override;
+    int get_user_info(int* identifier) override;
+    int get_subtask_info(std::string subtask_id, std::string* task_json, unsigned int* http_code, std::string* http_body) override;
+    int get_slice_info(std::string project_id, std::string profile_id, int plate_index, std::string* slice_json) override;
+    int query_bind_status(std::vector<std::string> query_list, unsigned int* http_code, std::string* http_body) override;
+    int modify_printer_name(std::string dev_id, std::string dev_name) override;
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - Model Mall & Publishing
+    // ========================================================================
+    int get_camera_url(std::string dev_id, std::function<void(std::string)> callback) override;
+    // std::unique_ptr<ICameraSignalingChannel> create_camera_signaling_channel(const std::string& dev_id) override;
+    int get_design_staffpick(int offset, int limit, std::function<void(std::string)> callback) override;
+    int start_publish(PublishParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, std::string* out) override;
+    int get_model_publish_url(std::string* url) override;
+    int get_subtask(BBLModelTask* task, OnGetSubTaskFn getsub_fn) override;
+    int get_model_mall_home_url(std::string* url) override;
+    int get_model_mall_detail_url(std::string* url, std::string id) override;
+    int get_my_profile(std::string token, unsigned int* http_code, std::string* http_body) override;
+    int get_my_token(std::string ticket, unsigned int* http_code, std::string* http_body) override;
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - Analytics & Tracking
+    // ========================================================================
+    int track_enable(bool enable) override;
+    int track_remove_files() override;
+    int track_event(std::string evt_key, std::string content) override;
+    int track_header(std::string header) override;
+    int track_update_property(std::string name, std::string value, std::string type = "string") override;
+    int track_get_property(std::string name, std::string& value, std::string type = "string") override;
+    bool get_track_enable() override;
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - Ratings & Reviews
+    // ========================================================================
+    int put_model_mall_rating(int design_id, int score, std::string content, std::vector<std::string> images, unsigned int& http_code, std::string& http_error) override;
+    int get_oss_config(std::string& config, std::string country_code, unsigned int& http_code, std::string& http_error) override;
+    int put_rating_picture_oss(std::string& config, std::string& pic_oss_path, std::string model_id, int profile_id, unsigned int& http_code, std::string& http_error) override;
+    int get_model_mall_rating_result(int job_id, std::string& rating_result, unsigned int& http_code, std::string& http_error) override;
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - Extra Features
+    // ========================================================================
+    int get_mw_user_preference(std::function<void(std::string)> callback) override;
+    int get_mw_user_4ulist(int seed, int limit, std::function<void(std::string)> callback) override;
+    std::string get_version() override;
+
+    // ========================================================================
+    // ICloudServiceAgent Interface Implementation - Callbacks
+    // ========================================================================
+    int set_on_server_connected_fn(AppOnServerConnectedFn fn) override;
+    int set_on_http_error_fn(AppOnHttpErrorFn fn) override;
+    int set_get_country_code_fn(GetCountryCodeFn fn) override;
+    int set_queue_on_main_fn(QueueOnMainFn fn) override;
+
+    // Sync state management
+    void load_sync_state();
+    void save_sync_state();
+    void clear_sync_state();
+    const SyncState& get_sync_state() const { return sync_state; }
+
+    // ========================================================================
+    // Orca-Specific: Bundle Subscription
+    // ========================================================================
+    bool unsubscribe_bundle(const std::string& bundle_id);
+    std::string get_bundle_url(const std::string& bundle_id) const;
+    int get_subscribed_bundles(std::vector<std::pair<std::string, std::string>>* bundles,std::vector<std::string>& notfound, std::vector<std::string>& unauthorized);
+    int get_shared_bundle(const std::string& bundle_id, std::map<std::string, std::map<std::string, std::string>>* presets, BundleMetadata* bundle_metadata);
+
+    // ========================================================================
+    // Plugins API
+    // ========================================================================
+    int fetch_subscribed_manifests_into_descriptors(std::vector<PluginDescriptor>& descriptors, std::vector<std::string>& not_found, std::vector<std::string>& unauthorized);
+    int fetch_mine_manifests_into_descriptors(std::vector<PluginDescriptor>& descriptors);
+    int get_plugin_download_url(const std::string& uuid,
+                                const std::string& requested_version,
+                                std::vector<PluginDownloadData>& data,
+                                std::vector<PluginDownloadNotFound>& not_found,
+                                std::vector<std::string>& unauthorized);
+    std::string get_plugin_url(const std::string& sharing_token) const;
+    int subscribe_plugin(const std::string& plugin_uuid);
+    int unsubscribe_plugins(const std::vector<std::string>& plugin_uuids);
+    int fetch_plugin_changelogs(const std::vector<std::string>& uuids, std::unordered_map<std::string, std::vector<PluginChangelog>>& changelog);
+
+    // ========================================================================
+    // Additional Public Methods - Auth
+    // ========================================================================
+    void set_session_handler(SessionHandler handler);
+    void set_on_login_complete_handler(OnLoginCompleteHandler handler);
+
+    const PkceBundle& pkce();
+    void regenerate_pkce();
+
+    void persist_user_secret(const std::string& secret);
+    bool load_user_secret(std::string& out_secret);
+    void clear_user_secret(bool all_backends = false);
+
+    // Token refresh helpers
+    bool          refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
+    RefreshResult refresh_from_storage(const std::string& reason, bool async = false);
+    RefreshResult refresh_now(const std::string& refresh_token, const std::string& reason, bool async = false);
+    RefreshResult refresh_session_with_token(const std::string& refresh_token, const std::string& reason = "");
+
+    // Session state helpers. nickname is the human-facing UI label after provider fallback resolution.
+    bool set_user_session(const std::string& token,
+                          const std::string& user_id,
+                          const std::string& username,
+                          const std::string& nickname,
+                          const std::string& avatar,
+                          const std::string& refresh_token = "",
+                          bool persist = true);
+    // Accepts either nested Orca cloud / GoTrue session JSON or flat WebView token JSON.
+    bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
+    void clear_session(bool all_backends = false);
+
+    static std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "");
+
+private:
+    // Sync protocol helpers
+    int sync_pull(
+        std::function<void(const SyncPullResponse&)> on_success,
+        std::function<void(int http_code, const std::string& error)> on_error
+    );
+
+    // Shared result of one HTTP attempt by the data methods (get/post/put/delete).
+    struct HttpResult {
+        bool         success{false};
+        unsigned int status{0};
+        std::string  body;
+        std::string  etag;
+    };
+
+    // Applies the "retry once on 401" policy for the data HTTP methods.
+    // `res` holds the first response; `perform` re-issues the request after a
+    // successful refresh. Returns true if the auth error should be SUPPRESSED
+    // (i.e. the session must be kept rather than logged out).
+    bool resolve_unauthorized(HttpResult& res,
+                              const std::function<HttpResult()>& perform,
+                              const std::string& reason);
+
+    // HTTP request helpers
+    // A non-empty `if_none_match` makes the request conditional, so the server may answer 304 with no
+    // body. `etag`, when given, receives the answer's ETag, or an empty string if it has none.
+    int http_get(const std::string& path, std::string* response_body, unsigned int* http_code,
+                 const std::string& if_none_match = {}, std::string* etag = nullptr);
+    int http_post(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code);
+    int http_put(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code);
+    // A non-empty `required_user_id` sends the request only while the session belongs to that account.
+    int http_delete(const std::string& path, std::string* response_body, unsigned int* http_code, const std::string& required_user_id = {});
+    std::map<std::string, std::string> data_headers();
+    RefreshResult attempt_refresh_after_unauthorized(const std::string& reason);
+
+    // Auth HTTP helpers
+    bool http_post_token(const std::string& body, std::string* response_body, unsigned int* http_code, const std::string& url = "");
+    bool http_post_auth(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code);
+    bool exchange_auth_code(const std::string& auth_code, const std::string& state, std::string& session_payload);
+    void update_redirect_uri();
+    void compute_fallback_path();
+    bool decode_jwt_expiry(const std::string& token, std::chrono::system_clock::time_point& out_tp);
+    bool should_refresh_locked(std::chrono::seconds skew) const;
+
+    // Server reachability probe shared by connect_server() and refresh_connection(); returns
+    // false without reporting anything once `cancel` is set.
+    bool run_health_check(const std::atomic_bool* cancel);
+
+    // Callback invocation
+    void invoke_server_connected_callback(int return_code, int reason_code);
+    void invoke_http_error_callback(unsigned http_code, const std::string& http_body);
+
+    // JSON helpers
+    std::string map_to_json(const std::map<std::string, std::string>& map);
+    void json_to_map(const std::string& json, std::map<std::string, std::string>& map);
+
+    // Refresh token lock
+    std::string token_lock_path() const;
+
+    // Member variables - configuration
+    std::string log_dir;
+    std::string config_dir;
+    std::string api_base_url;
+    std::string auth_base_url;
+    std::string cloud_base_url;
+    std::string country_code;
+    std::map<std::string, std::string> extra_headers;
+    std::map<std::string, std::string> auth_headers;
+    mutable std::mutex headers_mutex;
+    bool m_use_encrypted_token_file{false};
+
+    // Member variables - auth state
+    PkceBundle pkce_bundle;
+    std::string secret_fallback_path;
+    // Set once this process has read a secret from the store or written one. Unless the user logs
+    // out explicitly, clear_user_secret() only touches the store while it is set, so a logged-out
+    // instance (the GUI polls the login status every 2 s) makes no keychain calls and cannot wipe
+    // a login another instance saved.
+    std::atomic_bool secret_stored{false};
+    SessionHandler session_handler;
+    OnLoginCompleteHandler on_login_complete_handler;
+    SessionInfo session;
+    mutable std::mutex session_mutex;
+
+    // The last subscription list the server sent, kept so a poll can revalidate it and reuse it on a
+    // 304. It belongs to the account that received it and is dropped at sign-out.
+    struct SubscriptionsCache {
+        std::string user_id;
+        std::string etag;
+        std::string body;
+    };
+    SubscriptionsCache subscriptions_cache;
+    std::mutex subscriptions_cache_mutex;
+
+    // Refresh diagnostics (see docs/analysis/refresh_token_already_used.md). Epoch seconds so the
+    // refresh-failure log can report token staleness without holding a lock or logging any token.
+    std::atomic<long long> last_refresh_success_epoch{0};                 // 0 = no success yet this process
+    const long long        agent_start_epoch{std::chrono::duration_cast<std::chrono::seconds>(
+                               std::chrono::system_clock::now().time_since_epoch()).count()};
+
+    // Member variables - connection state
+    bool is_connected{false};
+    bool enable_track{false};
+    bool multi_machine_enabled{false};
+
+    // Sync state
+    SyncState sync_state;
+    std::string sync_state_path;
+
+    // Callbacks
+    AppOnServerConnectedFn on_server_connected_fn;
+    AppOnHttpErrorFn on_http_error_fn;
+    GetCountryCodeFn get_country_code_fn;
+    QueueOnMainFn queue_on_main_fn;
+    mutable std::mutex callback_mutex;
+
+    // Thread safety
+    mutable std::recursive_mutex state_mutex;
+    std::thread refresh_thread;
+    std::atomic_bool refresh_running{false};
+    std::thread health_check_thread;
+    std::atomic_bool health_check_running{false};
+    std::atomic_bool health_check_stopped{false};
+};
+
+} // namespace Slic3r
+
+#endif // __ORCA_CLOUD_SERVICE_AGENT_HPP__

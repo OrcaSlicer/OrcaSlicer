@@ -1,30 +1,85 @@
 {
-    "type": "machine",
-    "name": "MyToolChanger 0.6 nozzle",
-    "inherits": "fdm_toolchanger_common",
-    "from": "system",
-    "setting_id": "GM_CUSTOM_003",
-    "instantiation": "true",
-    "printer_model": "Generic ToolChanger Printer",
-    "nozzle_diameter": [
-        "0.6",
-        "0.6",
-        "0.6",
-        "0.6",
-        "0.6"
-    ],
-    "max_layer_height": [
-        "0.4"
-    ],
-    "min_layer_height": [
-        "0.12"
-    ],
-    "printer_variant": "0.6",
-    "printable_area": [
-        "0x0",
-        "350x0",
-        "350x350",
-        "0x350"
-    ],
-    "printable_height": "300"
+	"type": "machine",
+	"name": "MyToolChanger 0.6 nozzle",
+	"inherits": "fdm_toolchanger_common",
+	"from": "system",
+	"setting_id": "rhZgOdaU0sJu9aYF",
+	"instantiation": "true",
+	"default_nozzle_volume_type": [
+		"Standard",
+		"Standard",
+		"Standard",
+		"Standard",
+		"Standard"
+	],
+	"extruder_type": [
+		"Direct Drive",
+		"Direct Drive",
+		"Direct Drive",
+		"Direct Drive",
+		"Direct Drive"
+	],
+	"extruder_variant_list": [
+		"Direct Drive Standard,Direct Drive High Flow,Direct Drive Extra High Flow",
+		"Direct Drive Standard,Direct Drive High Flow,Direct Drive Extra High Flow",
+		"Direct Drive Standard,Direct Drive High Flow,Direct Drive Extra High Flow",
+		"Direct Drive Standard,Direct Drive High Flow,Direct Drive Extra High Flow",
+		"Direct Drive Standard,Direct Drive High Flow,Direct Drive Extra High Flow"
+	],
+	"printer_extruder_id": [
+		"1",
+		"1",
+		"1",
+		"2",
+		"2",
+		"2",
+		"3",
+		"3",
+		"3",
+		"4",
+		"4",
+		"4",
+		"5",
+		"5",
+		"5"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow"
+	],
+	"printer_model": "Generic ToolChanger Printer",
+	"nozzle_diameter": [
+		"0.6",
+		"0.6",
+		"0.6",
+		"0.6",
+		"0.6"
+	],
+	"max_layer_height": [
+		"0.4"
+	],
+	"min_layer_height": [
+		"0.12"
+	],
+	"printer_variant": "0.6",
+	"printable_area": [
+		"0x0",
+		"350x0",
+		"350x350",
+		"0x350"
+	],
+	"printable_height": "300"
 }

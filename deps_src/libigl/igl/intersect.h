@@ -11,18 +11,16 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Determine the intersect between two sets of coefficients using ==
-  // Templates:
-  //   M  matrix type that implements indexing by global index M(i)
-  // Inputs:
-  //   A  matrix of coefficients
-  //   B  matrix of coefficients
-  // Output:
-  //   C  matrix of elements appearing in both A and B, C is always resized to
-  //   have a single column
+  /// Determine the intersect between two sets of coefficients using ==
+  ///
+  /// @tparam M  matrix type that implements indexing by global index M(i)
+  /// @param[in] A  matrix of coefficients
+  /// @param[in] B  matrix of coefficients
+  /// @param[out] C  matrix of elements appearing in both A and B, C is always resized to
+  ///   have a single column
   template <class M>
   IGL_INLINE void intersect(const M & A, const M & B, M & C);
-  // Last argument as return
+  /// overload
   template <class M>
   IGL_INLINE M intersect(const M & A, const M & B);
 }

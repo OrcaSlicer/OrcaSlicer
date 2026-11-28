@@ -1,8 +1,10 @@
 #ifndef __Http_hpp__
 #define __Http_hpp__
 
+#include <cstddef>
 #include <map>
 #include <memory>
+#include <ostream>
 #include <string>
 #include <functional>
 #include <boost/filesystem/path.hpp>
@@ -10,6 +12,8 @@
 
 #include "libslic3r/Exception.hpp"
 #include "libslic3r_version.h"
+
+typedef struct ssl_ctx_st SSL_CTX;
 
 #define MAX_SIZE_TO_FILE    3*1024
 
@@ -109,6 +113,8 @@ public:
 	Http& set_range(const std::string& range);
 	// Sets a HTTP header field.
 	Http& header(std::string name, const std::string &value);
+	// Clears all custom headers and restores default implicit headers.
+	Http& headers_reset();
 	// Removes a header field.
 	Http& remove_header(std::string name);
 	// Authorization by HTTP digest, based on RFC2617.
@@ -119,6 +125,10 @@ public:
 	// specifically, this is supported with OpenSSL and NOT supported with Windows and OS X native certificate store.
 	// See also ca_file_supported().
 	Http& ca_file(const std::string &filename);
+	// Enables TLS certificate verification (peer + hostname). Off by default in the
+	// shared client for compatibility with self-signed print hosts; opt in for any
+	// request carrying authentication credentials or sensitive user data.
+	Http& tls_verify(bool enable);
 
 	Http& form_clear();
 	// Add a HTTP multipart form field
@@ -183,18 +193,27 @@ public:
 	// Cancels a request in progress
 	void cancel();
 
+	// Print the request as a curl command for debugging
+	void print() const;
+
 	// Tells whether current backend supports seting up a CA file using ca_file()
 	static bool ca_file_supported();
 
     // Return empty string on success or error message on fail.
     static std::string tls_global_init();
     static std::string tls_system_cert_store();
+    // Add platform root certificates to a standalone OpenSSL context. This
+    // supplements set_default_verify_paths() on platforms where OpenSSL does
+    // not use the native certificate store.
+    static void add_platform_root_certificates(SSL_CTX* ssl_context);
 
 	// converts the given string to an url_encoded_string
 	static std::string url_encode(const std::string &str);
 	static std::string url_decode(const std::string &str);
 
 	static std::string get_filename_from_url(const std::string &url);
+	static std::string get_host_from_url(const std::string &url, std::string *port = nullptr);
+	static std::string get_host_header_value(const std::string &url);
 private:
 	Http(const std::string &url);
 

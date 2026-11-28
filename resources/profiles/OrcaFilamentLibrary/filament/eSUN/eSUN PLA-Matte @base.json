@@ -1,0 +1,29 @@
+{
+	"type": "filament",
+	"name": "eSUN PLA-Matte @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OFDETOM6",
+	"instantiation": "false",
+	"filament_cost": [
+		"14.99"
+	],
+	"filament_density": [
+		"1.32"
+	],
+	"filament_flow_ratio": [
+		"0.99"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_multitool_ramming_flow": [
+		"8"
+	],
+	"filament_vendor": [
+		"eSUN"
+	],
+	"slow_down_layer_time": [
+		"6"
+	]
+}

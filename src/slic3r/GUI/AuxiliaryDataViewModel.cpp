@@ -1,12 +1,28 @@
 #include "AuxiliaryDataViewModel.hpp"
-#include "libslic3r/libslic3r.h"
-#include "libslic3r/Model.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 
 
+#include <array>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <wx/filefn.h>
+#include <wx/dataview.h>
+#include <map>
+#include <wx/debug.h>
+#include <cstddef>
+#include <wx/arrstr.h>
 #include <wx/log.h>
+#include <wx/string.h>
+#include <wx/variant.h>
+#include <wx/types.h>
+#include "libslic3r/Format/STEP.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include <wx/defs.h>
+
+namespace fs = boost::filesystem;
 
 const static std::array<wxString, 4> s_default_folders = {
     _L("Model Pictures"),
@@ -332,9 +348,12 @@ wxDataViewItemArray AuxiliaryModel::ImportFile(AuxiliaryModelNode* sel, wxArrayS
         // Copy imported file to project temp directory
         fs::path src_bfs_path(file_path.ToStdWstring());
         wxString dir_path = m_root_dir;
-        if (sel != m_root)
-            dir_path += "\\" + sel->name;
-        dir_path += "\\" + src_bfs_path.filename().generic_wstring();
+        if (sel != m_root) {
+            dir_path += "\\";
+            dir_path += sel->name;
+        }
+        dir_path += "\\";
+        dir_path += src_bfs_path.filename().generic_wstring();
 
         boost::system::error_code ec;
         if (!fs::copy_file(src_bfs_path, fs::path(dir_path.ToStdWstring()), fs::copy_options::overwrite_existing, ec))

@@ -1,0 +1,23 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @Artillery",
+	"renamed_from": "Artillery Generic ASA",
+	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"setting_id": "xWHuScm0fPJCqjVx",
+	"filament_id": "OFLPAxz3",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.93"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"compatible_printers": [
+		"Artillery Sidewinder X1 0.4 nozzle",
+		"Artillery Genius 0.4 nozzle",
+		"Artillery Sidewinder X2 0.4 nozzle",
+		"Artillery Genius Pro 0.4 nozzle",
+		"Artillery Hornet 0.4 nozzle"
+	]
+}

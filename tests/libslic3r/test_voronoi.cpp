@@ -1,6 +1,14 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include "test_utils.hpp"
 
+#include "libslic3r/Geometry/Voronoi.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Line.hpp"
+#include <cmath>
+#include <cstddef>
+#include "libslic3r/BoundingBox.hpp"
 #include <libslic3r/Polygon.hpp>
 #include <libslic3r/Polyline.hpp>
 #include <libslic3r/EdgeGrid.hpp>
@@ -9,8 +17,11 @@
 #include <libslic3r/Geometry/VoronoiOffset.hpp>
 #include <libslic3r/Geometry/VoronoiVisualUtils.hpp>
 
+#include "libslic3r/libslic3r.h"
+#include <math.h>
 #include <numeric>
 #include <random>
+#include <vector>
 
 // #define VORONOI_DEBUG_OUT
 
@@ -18,19 +29,13 @@
 #include <libslic3r/VoronoiVisualUtils.hpp>
 #endif
 
-using boost::polygon::voronoi_builder;
-using boost::polygon::voronoi_diagram;
-using boost::polygon::construct_voronoi;
-
 using namespace Slic3r;
 
 using VD = Geometry::VoronoiDiagram;
 using BoostVD = boost::polygon::voronoi_diagram<double>;
 
 // https://svn.boost.org/trac10/ticket/12067
-// This bug seems to be confirmed.
-// Vojtech supposes that there may be no Voronoi edges produced for
-// the 1st and last sweep line positions.
+// The ticket reports missing Voronoi edges for these points. The Boost we build against gives the complete diagram.
 TEST_CASE("Voronoi missing edges - points 12067", "[Voronoi]")
 {
     Points pts {
@@ -65,6 +70,11 @@ TEST_CASE("Voronoi missing edges - points 12067", "[Voronoi]")
     // Construction of the Voronoi Diagram.
     BoostVD vd;
     construct_voronoi(pts.begin(), pts.end(), &vd);
+    // The inner points share one circle with the two bottom corners and another with the two top corners, so
+    // the Delaunay triangulation is two quads and two triangles with 9 edges, which are 18 Voronoi half-edges.
+    CHECK(vd.num_cells() == pts.size());
+    CHECK(vd.num_vertices() == 4);
+    CHECK(vd.num_edges() == 18);
 
 #ifdef VORONOI_DEBUG_OUT
     dump_voronoi_to_svg(debug_out_path("voronoi-pts.svg").c_str(),

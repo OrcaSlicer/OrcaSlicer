@@ -14,9 +14,9 @@ template <
   typename DerivedO>
 IGL_INLINE bool igl::writeBF(
   const std::string & filename,
-  const Eigen::PlainObjectBase<DerivedWI> & WI,
-  const Eigen::PlainObjectBase<DerivedP> & P,
-  const Eigen::PlainObjectBase<DerivedO> & O)
+  const Eigen::MatrixBase<DerivedWI> & WI,
+  const Eigen::MatrixBase<DerivedP> & P,
+  const Eigen::MatrixBase<DerivedO> & O)
 {
   using namespace Eigen;
   using namespace std;
@@ -45,5 +45,5 @@ IGL_INLINE bool igl::writeBF(
 }
 
 #ifdef IGL_STATIC_LIBRARY
-template bool igl::writeBF<Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&);
+template bool igl::writeBF<Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&);
 #endif

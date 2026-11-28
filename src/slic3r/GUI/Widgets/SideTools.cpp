@@ -1,7 +1,22 @@
 #include "SideTools.hpp"
 #include "bambu_networking.hpp"
+#include <wx/colour.h>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <wx/chartype.h>
+#include <boost/algorithm/string/predicate.hpp>
+#include <string>
 #include <wx/dcmemory.h>
 #include <wx/dcgraph.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/timer.h>
+#include <wx/string.h>
+#include <wx/sizer.h>
+#include <wx/stattext.h>
 #include "Label.hpp"
 #include "StateColor.hpp"
 #include "../GUI_App.hpp"
@@ -274,8 +289,8 @@ SideTools::SideTools(wxWindow *parent, wxWindowID id, const wxPoint &pos, const 
     wxBoxSizer* connection_sizer_V = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* connection_sizer_H = new wxBoxSizer(wxHORIZONTAL);
 
-    // ORCA standardized HyperLink
-    m_hyperlink = new HyperLink(m_connection_info, _L("Failed to connect to the server"), wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-connect-printer"));
+    // ORCA standardized HyperLink; Orca: neutral wiki link (vendor URL removed)
+    m_hyperlink = new HyperLink(m_connection_info, _L("Failed to connect to the server"), wxT("https://www.orcaslicer.com/wiki/"));
 
     m_more_err_open = ScalableBitmap(this, "monitir_err_open", 16);
     m_more_err_close = ScalableBitmap(this, "monitir_err_close", 16);
@@ -351,7 +366,8 @@ SideTools::SideTools(wxWindow *parent, wxWindowID id, const wxPoint &pos, const 
     sizer_error_code->Add(m_st_txt_error_code, 0, wxALL, 0);
 
 
-    auto st_title_error_desc = new wxStaticText(m_side_error_panel, wxID_ANY, wxT("desc"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    // TRN Short for "description" of a connection error
+    auto st_title_error_desc = new wxStaticText(m_side_error_panel, wxID_ANY, _L("desc"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     auto st_title_error_desc_doc = new wxStaticText(m_side_error_panel, wxID_ANY, ": ");
     m_st_txt_error_desc = new Label(m_side_error_panel, wxEmptyString, LB_AUTO_WRAP);
     st_title_error_desc->SetForegroundColour(0x909090);
@@ -368,7 +384,8 @@ SideTools::SideTools(wxWindow *parent, wxWindowID id, const wxPoint &pos, const 
     sizer_error_desc->Add(st_title_error_desc_doc, 0, wxALL, 0);
     sizer_error_desc->Add(m_st_txt_error_desc, 0, wxALL, 0);
 
-    auto st_title_extra_info = new wxStaticText(m_side_error_panel, wxID_ANY, wxT("info"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    // TRN Short for "additional information" about a connection error
+    auto st_title_extra_info = new wxStaticText(m_side_error_panel, wxID_ANY, _L("info"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     auto st_title_extra_info_doc = new wxStaticText(m_side_error_panel, wxID_ANY, ": ");
     m_st_txt_extra_info = new Label(m_side_error_panel, wxEmptyString, LB_AUTO_WRAP);
     st_title_extra_info->SetForegroundColour(0x909090);

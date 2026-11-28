@@ -11,13 +11,11 @@
 #include <Eigen/Dense>
 namespace igl
 {
-  // Compute the median of an eigen vector
-  //
-  // Inputs:
-  //   V  #V list of unsorted values
-  // Outputs:
-  //   m  median of those values
-  // Returns true on success, false on failure
+  /// Compute the median of an eigen vector
+  ///
+  /// @param[in] V  #V list of unsorted values
+  /// @param[out] m  median of those values
+  /// @return true on success, false on failure
   template <typename DerivedV, typename mType>
   IGL_INLINE bool median(
     const Eigen::MatrixBase<DerivedV> & V, mType & m);

@@ -11,34 +11,32 @@
 
 namespace igl
 {
-  //  IS_BOUNDARY_EDGE Determine for each edge E if it is a "boundary edge" in F.
-  //  Boundary edges are undirected edges which occur only once.
-  // 
-  //  Inputs:
-  //    E  #E by 2 list of edges
-  //    F  #F by 3 list of triangles
-  //  Outputs:
-  //    B  #E list bools. true iff unoriented edge occurs exactly once in F
-  //      (non-manifold and non-existant edges will be false)
-  // 
+  /// Determine for each edge E if it is a "boundary edge" in F.
+  /// Boundary edges are undirected edges which occur only once.
+  /// 
+  /// @param[in] E  #E by 2 list of edges
+  /// @param[in] F  #F by 3 list of triangles
+  /// @param[out] B  #E list bools. true iff unoriented edge occurs exactly once in F
+  ///     (non-manifold and non-existant edges will be false)
   template <
     typename DerivedF,
     typename DerivedE,
     typename DerivedB>
   void is_boundary_edge(
-    const Eigen::PlainObjectBase<DerivedE> & E,
-    const Eigen::PlainObjectBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedE> & E,
+    const Eigen::MatrixBase<DerivedF> & F,
     Eigen::PlainObjectBase<DerivedB> & B);
-  // Wrapper where Edges should also be computed from F
-  //   E  #E by 2 list of edges
-  //   EMAP  #F*3 list of indices mapping allE to E
+  /// \overload
+  ///
+  /// @param[out] E  #E by 2 list of edges
+  /// @param[out] EMAP  #F*3 list of indices mapping allE to E
   template <
     typename DerivedF,
     typename DerivedE,
     typename DerivedB,
     typename DerivedEMAP>
   void is_boundary_edge(
-    const Eigen::PlainObjectBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedF> & F,
     Eigen::PlainObjectBase<DerivedB> & B,
     Eigen::PlainObjectBase<DerivedE> & E,
     Eigen::PlainObjectBase<DerivedEMAP> & EMAP);

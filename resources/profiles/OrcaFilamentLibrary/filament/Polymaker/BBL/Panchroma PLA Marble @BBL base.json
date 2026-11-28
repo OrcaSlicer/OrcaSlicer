@@ -1,0 +1,62 @@
+{
+	"type": "filament",
+	"name": "Panchroma PLA Marble @BBL base",
+	"inherits": "Panchroma PLA Marble @base",
+	"from": "system",
+	"instantiation": "false",
+	"close_additional_fan_first_x_layers": [
+		"3"
+	],
+	"filament_adhesiveness_category": [
+		"100"
+	],
+	"filament_dev_ams_drying_ams_limitations": [
+		"1",
+		"0"
+	],
+	"filament_dev_ams_drying_heat_distortion_temperature": [
+		"45"
+	],
+	"filament_dev_ams_drying_temperature": [
+		"45",
+		"45",
+		"45",
+		"45"
+	],
+	"filament_dev_ams_drying_time": [
+		"12",
+		"12",
+		"12",
+		"12"
+	],
+	"filament_dev_chamber_drying_bed_temperature": [
+		"70"
+	],
+	"filament_dev_drying_cooling_temperature": [
+		"45"
+	],
+	"filament_dev_drying_softening_temperature": [
+		"50"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	],
+	"filament_max_volumetric_speed": [
+		"22"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n{if  (bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S255\n{elsif(bed_temperature[current_extruder] >35)||(bed_temperature_initial_layer[current_extruder] >35)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+	],
+	"retraction_distances_when_ec": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"volumetric_speed_coefficients": [
+		"0 0 0 0 0 0"
+	]
+}

@@ -1,20 +1,42 @@
 #include "PrintHost.hpp"
 
+#include "libslic3r/Config.hpp"
+#include <string>
+#include <boost/algorithm/string/predicate.hpp>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <cstddef>
+#include <boost/filesystem/path.hpp>
+#include <utility>
+#include <memory>
+#include <boost/filesystem/operations.hpp>
+#include "libslic3r/LifecycleEvents.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 #include <vector>
 #include <thread>
+#include <algorithm>
+#include <optional>
 #include <exception>
-#include <boost/optional.hpp>
+#include <sstream>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/cstdint.hpp>
+#include <boost/system/error_code.hpp>
+#include <nlohmann/json.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/format.hpp>
 
+#include <wx/event.h>
 #include <wx/string.h>
 #include <wx/app.h>
 #include <wx/arrstr.h>
+#include <wx/debug.h>
 
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Channel.hpp"
 #include "OctoPrint.hpp"
 #include "Duet.hpp"
+#include "UltiMaker.hpp"
 #include "FlashAir.hpp"
 #include "AstroBox.hpp"
 #include "Repetier.hpp"
@@ -23,13 +45,15 @@
 #include "CrealityPrint.hpp"
 #include "../GUI/PrintHostDialogs.hpp"
 #include "../GUI/MainFrame.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 #include "Obico.hpp"
 #include "Flashforge.hpp"
 #include "SimplyPrint.hpp"
 #include "ElegooLink.hpp"
+#include "3DPrinterOS.hpp"
+#include "Moonraker.hpp"
 
 namespace fs = boost::filesystem;
-using boost::optional;
 using Slic3r::GUI::PrintHostQueueDialog;
 
 namespace Slic3r {
@@ -55,6 +79,7 @@ PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
         switch (host_type) {
             case htOctoPrint: return new OctoPrint(config);
             case htDuet:      return new Duet(config);
+            case htUltiMaker: return new UltiMaker(config);
             case htFlashAir:  return new FlashAir(config);
             case htAstroBox:  return new AstroBox(config);
             case htRepetier:  return new Repetier(config);
@@ -67,6 +92,8 @@ PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
             case htFlashforge: return new Flashforge(config);
             case htSimplyPrint: return new SimplyPrint(config);
             case htElegooLink: return new ElegooLink(config);
+            case ht3DPrinterOS: return new C3DPrinterOS(config);
+            case htMoonraker: return new Moonraker(config);
             default:          return nullptr;
         }
     } else {
@@ -74,14 +101,119 @@ PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
     }
 }
 
+std::string PrintHost::get_print_host_webui(DynamicPrintConfig* config)
+{
+    if (config == nullptr)
+        return {};
+
+    std::string webui_url;
+    const auto* host_type_opt = config->option<ConfigOptionEnum<PrintHostType>>("host_type");
+    const auto  host_type     = host_type_opt != nullptr ? host_type_opt->value : htOctoPrint;
+
+    switch (host_type) {
+    case htElegooLink: {
+        webui_url = ElegooLink::get_print_host_webui(config);
+        break;
+    }
+    default: break;
+    }
+
+    if (webui_url.empty()) {
+        webui_url = config->opt_string("print_host_webui");
+        if (webui_url.empty())
+            webui_url = config->opt_string("print_host");
+        if (webui_url.empty())
+            return webui_url;
+    }
+
+    const bool has_http_scheme = boost::algorithm::istarts_with(webui_url, "http");
+    const bool has_file_scheme = boost::algorithm::istarts_with(webui_url, "file:");
+
+    if (!has_http_scheme && !has_file_scheme)
+        webui_url = "http://" + webui_url;
+
+    return webui_url;
+}
+
+namespace {
+
+// Moonraker (Klipper's API server) reports a raised exception as { "error": { "code", "message", "traceback" } }
+// under every host type that connects to it, often with the cause only in the traceback. Returns the reason to show,
+// or empty for any other body.
+std::string moonraker_error_reason(const std::string &body)
+{
+    const auto root = nlohmann::json::parse(body, nullptr, false);
+    const auto err  = root.find("error");
+    if (err == root.end())
+        return {};
+    const auto message   = err->find("message");
+    const auto traceback = err->find("traceback");
+    if (message == err->end() || traceback == err->end() || !message->is_string() || !traceback->is_string())
+        return {};
+
+    const auto &msg = message->get_ref<const std::string &>();
+    const auto &tb  = traceback->get_ref<const std::string &>();
+    if (msg.empty())
+        return {};
+    const auto end = tb.find_last_not_of(" \t\r\n");
+    if (end == std::string::npos)
+        return msg;
+
+    // Chained exceptions each start a new traceback; the one that failed the request is the last.
+    const auto header = tb.rfind("Traceback (most recent call last):", end);
+
+    // Tornado renders a raised HTTPError as "HTTP <code>: <reason>[ (<detail>)]", and the detail may span lines.
+    const auto code = err->find("code");
+    if (code != err->end() && code->is_number_integer()) {
+        const std::string marker = "HTTP " + std::to_string(code->get<int>()) + ": ";
+        const auto        pos    = tb.rfind(marker, end);
+        if (pos != std::string::npos && (header == std::string::npos || pos > header) && pos + marker.size() <= end) {
+            const std::string reason = tb.substr(pos + marker.size(), end + 1 - pos - marker.size());
+            // An HTTPError whose detail equals its reason, like HTTPError(401, "Unauthorized"), renders the phrase twice.
+            return reason == msg + " (" + msg + ")" ? msg : reason;
+        }
+    }
+
+    // Any other exception's type and message are everything from the first unindented line after its frames.
+    auto begin = (header == std::string::npos) ? std::string::npos : tb.find('\n', header);
+    while (begin != std::string::npos && begin < end) {
+        ++begin;
+        if (tb[begin] != ' ' && tb[begin] != '\r' && tb[begin] != '\n')
+            break;
+        begin = tb.find('\n', begin);
+    }
+    if (begin == std::string::npos || begin > end) {
+        const auto nl = tb.rfind('\n', end);
+        begin         = (nl == std::string::npos) ? 0 : nl + 1;
+    }
+    return msg + " (" + tb.substr(begin, end + 1 - begin) + ")";
+}
+
+} // namespace
+
+int PrintHost::get_err_code_from_body(const std::string &body)
+{
+    boost::property_tree::ptree root;
+    std::istringstream iss(body);
+    try {
+        boost::property_tree::read_json(iss, root);
+    } catch (const std::exception &ex) {
+        BOOST_LOG_TRIVIAL(error) << "PrintHost: response is not valid JSON: " << ex.what();
+        return -1;
+    }
+
+    return root.get<int>("err", 0);
+}
+
 wxString PrintHost::format_error(const std::string &body, const std::string &error, unsigned status) const
 {
     if (status != 0) {
-        auto wxbody = wxString::FromUTF8(body.data());
+        const std::string reason = moonraker_error_reason(body);
+        auto wxbody = wxString::FromUTF8(reason.empty() ? body : reason);
         return wxString::Format("HTTP %u: %s", status, wxbody);
     } else {
         if (error.find("curl:Timeout was reached") != std::string::npos) {
-            return _L("Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network.");
+            return timed_out_message();
         }else if(error.find("curl:Couldn't resolve host name")!= std::string::npos){
             return _L("The Hostname/IP/URL could not be parsed, please check it and try again.");
         } else if (error.find("Connection was reset") != std::string::npos){
@@ -91,6 +223,11 @@ wxString PrintHost::format_error(const std::string &body, const std::string &err
             return wxString::FromUTF8(error.data());
         }
     }
+}
+
+wxString PrintHost::timed_out_message()
+{
+    return _L("Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network.");
 }
 
 
@@ -257,7 +394,7 @@ void PrintHostJobQueue::priv::progress_fn(Http::Progress progress, bool &cancel)
     }
 
     if (! cancel) {
-        int gui_progress = progress.ultotal > 0 ? 100*progress.ulnow / progress.ultotal : 0;
+        int gui_progress = PrintHostJobQueue::sent_percent(progress);
         if (gui_progress != prev_progress) {
             emit_progress(gui_progress);
             prev_progress = gui_progress;
@@ -316,11 +453,49 @@ void PrintHostJobQueue::priv::remove_source()
     source_to_remove.clear();
 }
 
+bool PrintHostJobQueue::upload_job(PrintHostJob &job, PrintHost::ProgressFn progress_fn, PrintHost::ErrorFn error_fn, PrintHost::InfoFn info_fn)
+{
+    // Captured before upload_data is moved into upload() below.
+    const std::string upload_filename = job.upload_data.source_path.filename().string();
+
+    {
+        LifecycleEventContext ctx;
+        ctx.name = upload_filename;
+        ctx.code = LifecycleEvtCode::Ok;
+        fire_lifecycle_event(LifecycleEvent::UploadStarted, ctx);
+    }
+
+    bool success = false;
+    std::string error;
+    // A throwing upload must not stop the worker, or later jobs would stay queued forever.
+    try {
+        success = job.printhost->upload(std::move(job.upload_data), std::move(progress_fn), error_fn, std::move(info_fn));
+    } catch (const std::exception &e) {
+        error = e.what();
+        error_fn(error);
+    }
+
+    {
+        LifecycleEventContext ctx;
+        ctx.name  = upload_filename;
+        ctx.code  = success ? LifecycleEvtCode::Ok : LifecycleEvtCode::Error;
+        ctx.msg   = error;
+        fire_lifecycle_event(LifecycleEvent::UploadFinished, ctx);
+    }
+
+    return success;
+}
+
+int PrintHostJobQueue::sent_percent(const Http::Progress &progress)
+{
+    return progress.ultotal > 0 ? int(std::min<size_t>(99, 100 * progress.ulnow / progress.ultotal)) : 0;
+}
+
 void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
 {
     emit_progress(0);   // Indicate the upload is starting
 
-    bool success = the_job.printhost->upload(std::move(the_job.upload_data),
+    bool success = PrintHostJobQueue::upload_job(the_job,
         [this](Http::Progress progress, bool &cancel)   { this->progress_fn(std::move(progress), cancel); },
         [this](wxString error)                          { this->error_fn(std::move(error)); },
         [this](wxString tag, wxString host)             { this->info_fn(std::move(tag), std::move(host)); }
@@ -330,15 +505,30 @@ void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
         emit_progress(100);
         if (the_job.switch_to_device_tab) {
             const auto mainframe = GUI::wxGetApp().mainframe;
-            mainframe->request_select_tab(MainFrame::TabPosition::tpMonitor);
+            mainframe->request_select_tab(TAB_ID_MONITOR);
         }
     }
 }
 
 void PrintHostJobQueue::enqueue(PrintHostJob job)
 {
+    wxCHECK_RET(!job.empty(), "PrintHostJobQueue: Attempt to enqueue an empty job");
     p->start_bg_thread();
-    p->queue_dialog->append_job(job);
+
+    // Jobs come from the background slicing thread, and the queue's rows are UI state, so the row is added on the
+    // UI thread. What it shows is read now, since the upload thread may finish the job and remove its source file
+    // first. It is posted to the dialog itself: the upload thread's progress and error events for the job go to the
+    // same handler after it, and one handled before its row exists would be dropped.
+    boost::system::error_code       ec;
+    const boost::uintmax_t          bytes = fs::file_size(job.upload_data.source_path, ec);
+    std::optional<boost::uintmax_t> size;
+    if (ec)
+        BOOST_LOG_TRIVIAL(error) << ec.message();
+    else
+        size = bytes;
+    p->queue_dialog->CallAfter([dialog = p->queue_dialog, host = job.printhost->get_host(), path = job.upload_data.upload_path, size]() {
+        dialog->append_job(host, path, size);
+    });
     p->channel_jobs.push(std::move(job));
 }
 

@@ -1,12 +1,13 @@
 // This file is part of libigl, a simple c++ geometry processing library.
-// 
+//
 // Copyright (C) 2018 Alec Jacobson <alecjacobson@gmail.com>
-// 
-// This Source Code Form is subject to the terms of the Mozilla Public License 
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can 
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License
+// v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "remesh_along_isoline.h"
 #include "list_to_matrix.h"
+#include <unordered_map>
 
 template <
   typename DerivedV,
@@ -71,6 +72,7 @@ template <
   }
 
   // Loop over each face
+  std::unordered_map<int, std::unordered_map<int, int>> edgeToBirthVert;
   for(int f = 0;f<F.rows();f++)
   {
     bool Psign[2];
@@ -116,26 +118,31 @@ template <
         // Create two new vertices
         for(int i = 0;i<2;i++)
         {
-          const double bci = (isoval - S(F(f,(P[i]+1)%3)))/
-            (S(F(f,P[i]))-S(F(f,(P[i]+1)%3)));
-          vBC.emplace_back(Ucount,F(f,P[i]),bci);
-          vBC.emplace_back(Ucount,F(f,(P[i]+1)%3),1.0-bci);
-          Ucount++;
+          if ((edgeToBirthVert.find(F(f, P[i])) == edgeToBirthVert.end()) || (edgeToBirthVert.at(F(f, P[i])).find(F(f, (P[i] + 1) % 3)) == edgeToBirthVert.at(F(f, P[i])).end()))
+          {
+            const double bci = (isoval - S(F(f,(P[i]+1)%3)))/
+              (S(F(f,P[i]))-S(F(f,(P[i]+1)%3)));
+            vBC.emplace_back(Ucount,F(f,P[i]),bci);
+            vBC.emplace_back(Ucount,F(f,(P[i]+1)%3),1.0-bci);
+            edgeToBirthVert[F(f, P[i])][F(f, (P[i] + 1) % 3)] = Ucount;
+            edgeToBirthVert[F(f, (P[i] + 1) % 3)][F(f, P[i])] = Ucount;
+            Ucount++;
+          }
         }
         const int v0 = F(f,P[0]);
-        const int v01 = Ucount-2;
         assert(((P[0]+1)%3) == P[1]);
         const int v1 = F(f,P[1]);
-        const int v12 = Ucount-1;
         const int v2 = F(f,(P[1]+1)%3);
+        const int v01 = edgeToBirthVert[v0][v1];
+        const int v12 = edgeToBirthVert[v1][v2];
         // v0
-        // |  \
-        // |   \
-        // |    \
-        // v01   \
-        // |      \
-        // |       \
-        // |        \
+        // |  ╲
+        // |   ╲
+        // |    ╲
+        // v01   ╲
+        // |      ╲
+        // |       ╲
+        // |        ╲
         // v1--v12---v2
         typedef std::vector<typename DerivedG::Scalar> Row;
         {Row row = {v01,v1,v12}; vG.push_back(row);vJ.push_back(f);vL.push_back(Psign[0]?isoval_i:isoval_i+1);}
@@ -156,5 +163,5 @@ template <
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::remesh_along_isoline<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, double, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>::Scalar, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::SparseMatrix<double, 0, int>&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
+template void igl::remesh_along_isoline<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, double, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>::Scalar, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::SparseMatrix<double, 0, int>&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
 #endif

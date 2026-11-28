@@ -11,17 +11,16 @@
 #include "gl.h"
 #include <Eigen/Core>
 
-// Create a VBO (Vertex Buffer Object) for a list of indices:
-// GL_ELEMENT_ARRAY_BUFFER_ARB for the triangle indices (F)
 namespace igl
 {
   namespace opengl
   {
-    // Inputs:
-    //   F  #F by 3 eigen Matrix of face (triangle) indices
-    // Outputs:
-    //   F_vbo_id  buffer id for face indices
-    //
+    /// Create a VBO (Vertex Buffer Object) for a list of indices:
+    /// GL_ELEMENT_ARRAY_BUFFER_ARB for the triangle indices (F)
+    ///
+    /// @param[in] F  #F by 3 eigen Matrix of face (triangle) indices
+    /// @param[out] F_vbo_id  buffer id for face indices
+    ///
     IGL_INLINE void create_index_vbo(
       const Eigen::MatrixXi & F,
       GLuint & F_vbo_id);

@@ -1,7 +1,11 @@
 #ifndef CSGMESHCOPY_HPP
 #define CSGMESHCOPY_HPP
 
+#include "libslic3r/AnyPtr.hpp"
 #include "CSGMesh.hpp"
+#include "libslic3r/libslic3r.h"
+#include <utility>
+#include <cstddef>
 
 namespace Slic3r { namespace csg {
 

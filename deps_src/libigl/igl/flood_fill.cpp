@@ -1,41 +1,41 @@
 // This file is part of libigl, a simple c++ geometry processing library.
-// 
+//
 // Copyright (C) 2016 Alec Jacobson <alecjacobson@gmail.com>
-// 
-// This Source Code Form is subject to the terms of the Mozilla Public License 
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can 
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License
+// v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "flood_fill.h"
 #include <limits>
 
 template <typename Derivedres, typename DerivedS>
 IGL_INLINE void igl::flood_fill(
-  const Eigen::MatrixBase<Derivedres>& res, 
+  const Eigen::MatrixBase<Derivedres>& res,
   Eigen::PlainObjectBase<DerivedS> & S)
 {
   using namespace Eigen;
   using namespace std;
   typedef typename DerivedS::Scalar Scalar;
   const auto flood = [&res,&S] (
-     const int xi, 
-     const int yi, 
+     const int xi,
+     const int yi,
      const int zi,
-     const int signed_xi, 
-     const int signed_yi, 
+     const int signed_xi,
+     const int signed_yi,
      const int signed_zi,
      const Scalar s)
     {
       // flood fill this value back on this row
       for(int bxi = xi;signed_xi<--bxi;)
       {
-        S(bxi+res(0)*(yi + res(1)*zi)) = s;
+        S(bxi+int(res(0))*(yi + int(res(1))*zi)) = s;
       }
       // flood fill this value back on any previous rows
       for(int byi = yi;signed_yi<--byi;)
       {
         for(int xi = 0;xi<res(0);xi++)
         {
-          S(xi+res(0)*(byi + res(1)*zi)) = s;
+          S(xi+int(res(0))*(byi + int(res(1))*zi)) = s;
         }
       }
       // flood fill this value back on any previous "sheets"
@@ -45,7 +45,7 @@ IGL_INLINE void igl::flood_fill(
         {
           for(int xi = 0;xi<res(0);xi++)
           {
-            S(xi+res(0)*(yi + res(1)*bzi)) = s;
+            S(xi+int(res(0))*(yi + int(res(1))*bzi)) = s;
           }
         }
       }
@@ -57,7 +57,7 @@ IGL_INLINE void igl::flood_fill(
     int signed_yi = -1;
     if(zi != 0)
     {
-      s = S(0+res(0)*(0 + res(1)*(zi-1)));
+      s = S(0+int(res(0))*(0 + int(res(1))*(zi-1)));
     }
     for(int yi = 0;yi<res(1);yi++)
     {
@@ -65,7 +65,7 @@ IGL_INLINE void igl::flood_fill(
       int signed_xi = -1;
       if(yi != 0)
       {
-        s = S(0+res(0)*(yi-1 + res(1)*zi));
+        s = S(0+int(res(0))*(yi-1 + int(res(1))*zi));
       }
       for(int xi = 0;xi<res(0);xi++)
       {

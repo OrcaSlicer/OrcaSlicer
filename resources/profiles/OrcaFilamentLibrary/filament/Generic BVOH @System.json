@@ -1,9 +1,18 @@
 {
-    "type": "filament",
-    "name": "Generic BVOH @System",
-    "inherits": "fdm_filament_bvoh",
-    "from": "system",
-    "setting_id": "OGFSS97_00",
-    "instantiation": "true",
-    "compatible_printers": []
+	"type": "filament",
+	"name": "Generic BVOH @System",
+	"inherits": "fdm_filament_bvoh",
+	"from": "system",
+	"setting_id": "oUpbqz3uzQqND5DG",
+	"filament_id": "OFo2UF2C",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	]
 }

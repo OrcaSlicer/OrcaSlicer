@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI ABS Rapido Metal @Qidi Q2C 0.4 nozzle",
+	"inherits": "QIDI ABS Rapido Metal@Q2C-Series",
+	"from": "system",
+	"setting_id": "U9oVegNbFTAg0hI1",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
+}

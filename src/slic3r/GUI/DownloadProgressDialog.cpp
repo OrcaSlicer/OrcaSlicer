@@ -1,6 +1,17 @@
 #include "DownloadProgressDialog.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/chartype.h>
+#include <wx/panel.h>
+#include <memory>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
+#include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <utility>
 #include <wx/settings.h>
+#include <wx/simplebook.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/button.h>
@@ -11,13 +22,11 @@
 #include <wx/html/htmlwin.h>
 
 #include <boost/algorithm/string/replace.hpp>
+#include <wx/string.h>
+#include <wx/toplevel.h>
 
-#include "libslic3r/libslic3r.h"
-#include "libslic3r/Utils.hpp"
-#include "GUI.hpp"
 #include "I18N.hpp"
 //#include "ConfigWizard.hpp"
-#include "wxExtensions.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "GUI_App.hpp"
@@ -25,13 +34,12 @@
 #include "Jobs/PlaterWorker.hpp"
 
 #include "Widgets/HyperLink.hpp" // ORCA
+#include "libslic3r/AppConfig.hpp"
 
-#define DESIGN_INPUT_SIZE wxSize(FromDIP(100), -1)
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {
-
-
 
 DownloadProgressDialog::DownloadProgressDialog(wxString title)
     : DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe), wxID_ANY, title, wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
@@ -39,8 +47,8 @@ DownloadProgressDialog::DownloadProgressDialog(wxString title)
     wxString download_failed_url = wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-get-network-plugin");
     wxString install_failed_url = wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-get-network-plugin");
 
-    wxString download_failed_msg = _L("Failed to download the plug-in. Please check your firewall settings and vpn software, check and retry.");
-    wxString install_failed_msg = _L("Failed to install the plug-in. Please check whether it is blocked or deleted by anti-virus software.");
+    wxString download_failed_msg = _L("Failed to download the plug-in. Please check your firewall settings and VPN software and retry.");
+    wxString install_failed_msg = _L("Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software.");
 
     SetBackgroundColour(*wxWHITE);
     wxBoxSizer *m_sizer_main = new wxBoxSizer(wxVERTICAL);
@@ -76,7 +84,7 @@ DownloadProgressDialog::DownloadProgressDialog(wxString title)
     sizer_download_failed->Add(m_statictext_download_failed, 0, wxALIGN_CENTER | wxALL, 5);
 
     // ORCA standardized HyperLink
-    auto m_download_hyperlink = new HyperLink(m_panel_download_failed, _L("click here to see more info"), download_failed_url);
+    auto m_download_hyperlink = new HyperLink(m_panel_download_failed, _L("Click here to see more info"), download_failed_url);
     sizer_download_failed->Add(m_download_hyperlink, 0, wxALIGN_CENTER | wxALL, 5);
 
 
@@ -98,7 +106,7 @@ DownloadProgressDialog::DownloadProgressDialog(wxString title)
     sizer_install_failed->Add(m_statictext_install_failed, 0, wxALIGN_CENTER | wxALL, 5);
 
     // ORCA standardized HyperLink
-    auto m_install_hyperlink = new HyperLink(m_panel_install_failed, _L("click here to see more info"), install_failed_url);
+    auto m_install_hyperlink = new HyperLink(m_panel_install_failed, _L("Click here to see more info"), install_failed_url);
     sizer_install_failed->Add(m_install_hyperlink, 0, wxALIGN_CENTER | wxALL, 5);
 
 
@@ -114,9 +122,8 @@ DownloadProgressDialog::DownloadProgressDialog(wxString title)
     m_simplebook_status->AddPage(m_panel_download_failed, wxEmptyString, false);
     m_simplebook_status->AddPage(m_panel_install_failed, wxEmptyString, false);
 
-    SetSizer(m_sizer_main);
+    SetSizerAndFit(m_sizer_main);
     Layout();
-    Fit();
     CentreOnParent();
 
     Bind(wxEVT_CLOSE_WINDOW, &DownloadProgressDialog::on_close, this);
@@ -215,7 +222,7 @@ void DownloadProgressDialog::on_finish()
     }
 
     MessageDialog dlg(nullptr,
-        _L("The network plugin was installed but could not be loaded. Please restart the application."),
+        _L("The network plug-in was installed but could not be loaded. Please restart the application."),
         _L("Restart Required"), wxOK | wxICON_INFORMATION);
     dlg.ShowModal();
 }

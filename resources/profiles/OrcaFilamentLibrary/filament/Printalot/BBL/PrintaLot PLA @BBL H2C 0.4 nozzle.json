@@ -1,0 +1,87 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PLA @BBL H2C 0.4 nozzle",
+	"inherits": "PrintaLot PLA @base",
+	"from": "system",
+	"setting_id": "CzCHtIv6qXofiBdA",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"75",
+		"75",
+		"75"
+	],
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_change_length": [
+		"4"
+	],
+	"filament_change_length_nc": [
+		"4"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive E3D High Flow"
+	],
+	"filament_pre_cooling_temperature_nc": [
+		"180",
+		"180",
+		"180"
+	],
+	"filament_preheat_temperature_delta": [
+		"20",
+		"20",
+		"20"
+	],
+	"filament_prime_volume": [
+		"30"
+	],
+	"filament_prime_volume_nc": [
+		"30"
+	],
+	"filament_ramming_travel_time_nc": [
+		"1",
+		"1",
+		"1"
+	],
+	"filament_retract_length_nc": [
+		"18",
+		"18",
+		"18"
+	],
+	"filament_retraction_length": [
+		"0.4",
+		"0.4",
+		"0.4"
+	],
+	"filament_wipe": [
+		"1",
+		"1",
+		"1"
+	],
+	"filament_wipe_distance": [
+		"1",
+		"1",
+		"1"
+	],
+	"filament_z_hop_types": [
+		"Spiral Lift",
+		"Spiral Lift",
+		"Spiral Lift"
+	],
+	"long_retractions_when_ec": [
+		"1",
+		"1",
+		"1"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2C 0.4 nozzle"
+	]
+}

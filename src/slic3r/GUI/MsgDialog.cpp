@@ -1,5 +1,28 @@
 #include "MsgDialog.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/font.h>
+#include "slic3r/GUI/Widgets/LabeledCheckBox.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <string>
+#include <vector>
+#include <utility>
+#include <cstddef>
+#include <wx/chartype.h>
+#include <wx/html/htmltag.h>
+#include <wx/dcclient.h>
+#include <functional>
+#include <cmath>
+#include <cassert>
+#include <wx/panel.h>
+#include "libslic3r/Semver.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <boost/log/trivial.hpp>
 #include <wx/settings.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -9,8 +32,16 @@
 #include <wx/clipbrd.h>
 #include <wx/checkbox.h>
 #include <wx/html/htmlwin.h>
+#include <wx/html/winpars.h>
+
+#include <algorithm>
 
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/utils.h>
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
@@ -18,9 +49,12 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 //#include "ConfigWizard.hpp"
+#include "libslic3r_version.h"
 #include "wxExtensions.hpp"
+#include "Widgets/Label.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "GUI_App.hpp"
+#include "libslic3r/AppConfig.hpp"
 #define MSG_DLG_MAX_SIZE wxSize(-1, FromDIP(464))//notice:ban setting the maximum width value
 namespace Slic3r {
 namespace GUI {
@@ -58,13 +92,13 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
     main_sizer->Add(topsizer, 1, wxEXPAND);
 
     m_dsa_sizer = new wxBoxSizer(wxHORIZONTAL);
-    btn_sizer->Add(0, 0, 0, wxLEFT, FromDIP(120));
+    btn_sizer->Add(0, 0, 0, wxLEFT, FromDIP(LOGO_SPACING + 64 + LOGO_GAP));
     btn_sizer->Add(m_dsa_sizer, 0, wxEXPAND);
     btn_sizer->AddStretchSpacer();
     main_sizer->Add(btn_sizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND | wxTOP, FromDIP(10));
 
     apply_style(style);
-	SetSizerAndFit(main_sizer);
+	SetSizer(main_sizer);
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
@@ -75,20 +109,18 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
 
 void MsgDialog::show_dsa_button(wxString const &title)
 {
-    m_checkbox_dsa = new CheckBox(this);
-    m_dsa_sizer->Add(m_checkbox_dsa, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
-    m_checkbox_dsa->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+    m_checkbox_dsa = new LabeledCheckBox(this, title.IsEmpty() ? _L("Don't show again") : title);
+    m_checkbox_dsa->SetFont(::Label::Body_13);
+    m_checkbox_dsa->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+    m_checkbox_dsa->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
         auto event = wxCommandEvent(EVT_CHECKBOX_CHANGE);
-        event.SetInt(m_checkbox_dsa->GetValue()?1:0);
+        event.SetInt(e.IsChecked() ? 1 : 0);
         event.SetEventObject(this);
         wxPostEvent(this, event);
         e.Skip();
     });
-
-    auto  m_text_dsa = new wxStaticText(this, wxID_ANY, title.IsEmpty() ? _L("Don't show again") : title, wxDefaultPosition, wxDefaultSize, 0);
-    m_dsa_sizer->Add(m_text_dsa, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
-    m_text_dsa->SetFont(::Label::Body_13);
-    m_text_dsa->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+    m_dsa_sizer->Add(m_checkbox_dsa, 0, wxALIGN_CENTER);
+    m_dsa_sizer->AddSpacer(FromDIP(10)); // spacing after checkbox
     btn_sizer->Layout();
     Fit();
 }
@@ -169,7 +201,7 @@ Button* MsgDialog::add_button(wxWindowID btn_id, bool set_focus /*= false*/, con
 
     if (set_focus)
         btn->SetFocus();
-    btn_sizer->Add(btn, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(ButtonProps::ChoiceButtonGap()));
+    btn_sizer->Add(btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(ButtonProps::ChoiceButtonGap()));
     btn->Bind(wxEVT_BUTTON, [this, btn_id](wxCommandEvent&) { EndModal(btn_id); });
 
     MsgButton *mb = new MsgButton;
@@ -178,9 +210,10 @@ Button* MsgDialog::add_button(wxWindowID btn_id, bool set_focus /*= false*/, con
     bd->button = btn;
     //bd->type   = type;
 
-    mb->id        = wxString::Format("%d", m_buttons.size());
+    // m_buttons.size() is a size_t, which does not match the %d conversion
+    mb->id        = wxString(std::to_string(m_buttons.size()));
     mb->buttondata = bd;
-    m_buttons[ wxString::Format("%d", m_buttons.size())] = mb;
+    m_buttons[ wxString(std::to_string(m_buttons.size()))] = mb;
     return btn;
 };
 
@@ -210,6 +243,7 @@ void MsgDialog::apply_style(long style)
 
 void MsgDialog::finalize()
 {
+    GetSizer()->SetSizeHints(this);
     Layout();
     Fit();
     CenterOnParent();
@@ -217,12 +251,82 @@ void MsgDialog::finalize()
 }
 
 
+// A placeholder-parser caret line, pointing at the column where parsing failed.
+static bool is_caret_line(const std::string &line)
+{
+    return std::count(line.begin(), line.end(), '^') == 1 &&
+           std::all_of(line.begin(), line.end(), [](char c) { return c == ' ' || c == '^'; });
+}
+
+// Tag each line as a code excerpt (a caret line or the source line above one) that must stay
+// monospaced for the '^' to align.
+static std::vector<std::pair<std::string, bool>> classify_code_lines(const std::string &msg)
+{
+    std::vector<std::string> lines;
+    boost::split(lines, msg, boost::is_any_of("\n"));
+    for (std::string &line : lines)
+        if (!line.empty() && line.back() == '\r')
+            line.pop_back();
+
+    std::vector<std::pair<std::string, bool>> tagged;
+    tagged.reserve(lines.size());
+    for (size_t i = 0; i < lines.size(); ++i) {
+        bool is_code = is_caret_line(lines[i]) || (i + 1 < lines.size() && is_caret_line(lines[i + 1]));
+        tagged.emplace_back(std::move(lines[i]), is_code);
+    }
+    return tagged;
+}
+
+// Keeps whitespace literal so the caret's leading spaces survive.
+// Used inside <code>, which supplies the fixed face. <pre> does both but adds a blank line above it.
+class CodeExcerptTagHandler : public wxHtmlWinTagHandler
+{
+public:
+    wxString GetSupportedTags() override { return wxT("EXCERPT"); }
+    bool     HandleTag(const wxHtmlTag &tag) override
+    {
+        const wxHtmlWinParser::WhitespaceMode ws = m_WParser->GetWhitespaceMode();
+        m_WParser->SetWhitespaceMode(wxHtmlWinParser::Whitespace_Pre);
+        ParseInner(tag);
+        m_WParser->SetWhitespaceMode(ws);
+        return true;
+    }
+};
+
+// Render the message as HTML, monospacing only the code excerpts.
+static std::string format_parser_error_html(const std::string &msg)
+{
+    std::string out;
+    for (const auto &[text, is_code] : classify_code_lines(msg)) {
+        if (!out.empty()) out += "<br>"; // join, not trail; a trailing <br> forces a scrollbar
+        std::string escaped = xml_escape(text);
+        if (is_code)
+            out += "<code><excerpt>" + escaped + "</excerpt></code>";
+        else
+            out += escaped;
+    }
+    return out;
+}
+
+// Measure each line in the font it will render in, so the dialog fits the longest line without slack.
+static wxSize measure_mixed_text(wxWindow *parent, const std::string &msg, const wxFont &prose_font, const wxFont &code_font)
+{
+    wxClientDC dc(parent);
+    int width = 0, height = 0;
+    for (const auto &[text, is_code] : classify_code_lines(msg)) {
+        dc.SetFont(is_code ? code_font : prose_font);
+        width   = std::max(width, dc.GetTextExtent(wxString::FromUTF8(text.c_str())).GetWidth());
+        height += dc.GetCharHeight();
+    }
+    return wxSize(width, height);
+}
+
 // Text shown as HTML, so that mouse selection and Ctrl-V to copy will work.
 static void add_msg_content(wxWindow   *parent,
                             wxBoxSizer *content_sizer,
                             wxString    msg,
-                            bool        monospaced_font = false,
-                            bool        is_marked_msg   = false,
+                            bool        has_code_excerpts = false,
+                            bool        is_marked_msg     = false,
                             const wxString &link_text = "",
                             std::function<void(const wxString &)> link_callback = nullptr)
 {
@@ -231,7 +335,7 @@ static void add_msg_content(wxWindow   *parent,
 
     // count lines in the message
     int msg_lines = 0;
-    if (!monospaced_font) {
+    if (!has_code_excerpts) {
         int line_len = 55;// count of symbols in one line
         int start_line = 0;
         for (auto i = msg.begin(); i != msg.end(); ++i) {
@@ -288,19 +392,30 @@ static void add_msg_content(wxWindow   *parent,
         page_size       = wxSize(info_width, page_height);
     }
     else {
-        wxClientDC dc(parent);
-        wxSize     msg_sz = dc.GetMultiLineTextExtent(msg);
+        wxSize msg_sz;
+        if (has_code_excerpts) {
+            msg_sz = measure_mixed_text(parent, msg.ToUTF8().data(), font, monospace);
+        } else {
+            wxClientDC dc(parent);
+            dc.SetFont(font); // ORCA without this it calculates bigger size
+            msg_sz = dc.GetMultiLineTextExtent(msg);
+        }
+        msg_sz += parent->FromDIP(wxSize(10,5)); // added extra spacing to prevent wrapping
 
-        page_size = wxSize(std::min(msg_sz.GetX(), info_width), std::min(msg_sz.GetY(), info_width));
+        int page_height = msg_sz.GetY();
+        // Reserve the horizontal scrollbar's height, or it clips the last line.
+        if (msg_sz.GetX() > info_width)
+            page_height += wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y, parent);
+        page_size = wxSize(std::min(msg_sz.GetX(), info_width), std::min(page_height, info_width));
         // Extra line breaks in message dialog
-        if (link_text.IsEmpty() && !link_callback && is_marked_msg == false) {//for common text
+        if (link_text.IsEmpty() && !link_callback && is_marked_msg == false && !has_code_excerpts) {//for common text
             html->Destroy();
             if (msg_sz.GetX() < info_width) {//No need for line breaks
                 info_width = msg_sz.GetX();
             }
             wxScrolledWindow *scrolledWindow = new wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
             scrolledWindow->SetBackgroundColour(*wxWHITE);
-            scrolledWindow->SetScrollRate(0, 20);
+            scrolledWindow->SetScrollRate(0, scrolledWindow->FromDIP(20));
             scrolledWindow->EnableScrolling(false, true);
             wxBoxSizer *sizer_scrolled = new wxBoxSizer(wxHORIZONTAL);
             Label *wrapped_text = new Label(scrolledWindow, font, msg, LB_AUTO_WRAP, wxSize(info_width, -1));
@@ -324,15 +439,18 @@ static void add_msg_content(wxWindow   *parent,
     }
     html->SetMinSize(page_size);
 
-    std::string msg_escaped = xml_escape(msg.ToUTF8().data(), is_marked_msg);
-    boost::replace_all(msg_escaped, "\r\n", "<br>");
-    boost::replace_all(msg_escaped, "\n", "<br>");
-    if (monospaced_font)
-        // Code formatting will be preserved. This is useful for reporting errors from the placeholder parser.
-        msg_escaped = std::string("<pre><code>") + msg_escaped + "</code></pre>";
+    std::string msg_escaped;
+    if (has_code_excerpts) {
+        html->GetParser()->AddTagHandler(new CodeExcerptTagHandler());
+        msg_escaped = format_parser_error_html(msg.ToUTF8().data());
+    } else {
+        msg_escaped = xml_escape(msg.ToUTF8().data(), is_marked_msg);
+        boost::replace_all(msg_escaped, "\r\n", "<br>");
+        boost::replace_all(msg_escaped, "\n", "<br>");
+    }
 
     if (!link_text.IsEmpty() && link_callback) {
-        msg_escaped += "<span><a href=\"#\" style=\"color:rgb(0, 150, 136); text-decoration:underline;\">" + std::string(link_text.ToUTF8().data()) + "</a></span>";
+        msg_escaped += " <span><a href=\"#\" style=\"color:rgb(0, 150, 136); text-decoration:underline;\">" + std::string(link_text.ToUTF8().data()) + "</a></span>";
     }
 
     html->SetPage("<html><body bgcolor=\"" + bgr_clr_str + "\"><font color=\"" + text_clr_str + "\">" + wxString::FromUTF8(msg_escaped.data()) + "</font></body></html>");
@@ -347,15 +465,15 @@ static void add_msg_content(wxWindow   *parent,
 
 // ErrorDialog
 
-ErrorDialog::ErrorDialog(wxWindow *parent, const wxString &temp_msg, bool monospaced_font)
+ErrorDialog::ErrorDialog(wxWindow *parent, const wxString &temp_msg, bool has_code_excerpts)
     : MsgDialog(parent, wxString::Format(_(L("%s error")), SLIC3R_APP_FULL_NAME),
                         wxString::Format(_(L("%s has encountered an error")), SLIC3R_APP_FULL_NAME), wxOK)
     , msg(temp_msg)
 {
-    add_msg_content(this, content_sizer, msg, monospaced_font);
+    add_msg_content(this, content_sizer, msg, has_code_excerpts);
 
-	// Use a small bitmap with monospaced font, as the error text will not be wrapped.
-	logo->SetBitmap(create_scaled_bitmap("OrcaSlicer_192px_grayscale.png", this, monospaced_font ? 48 : /*1*/84));
+	// Use a small bitmap for code excerpts, which cannot wrap and so need the width.
+	logo->SetBitmap(create_scaled_bitmap("OrcaSlicer_192px_grayscale.png", this, has_code_excerpts ? 48 : /*1*/64));
 
     SetMaxSize(MSG_DLG_MAX_SIZE);
 
@@ -535,7 +653,7 @@ DeleteConfirmDialog::DeleteConfirmDialog(wxWindow *parent, const wxString &title
     m_del_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { EndModal(wxID_OK); });
     m_cancel_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { EndModal(wxID_CANCEL); });
 
-    SetSizer(m_main_sizer);
+    SetSizerAndFit(m_main_sizer);
     Layout();
     Fit();
     wxGetApp().UpdateDlgDarkUI(this);
@@ -563,14 +681,14 @@ Newer3mfVersionDialog::Newer3mfVersionDialog(wxWindow *parent, const Semver *fil
     main_sizer->Add(0, 0, 0, wxTOP, FromDIP(5));
 
     wxBoxSizer *    content_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxStaticBitmap *info_bitmap   = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("info", nullptr, 60), wxDefaultPosition, wxSize(FromDIP(70), FromDIP(70)), 0);
+    wxStaticBitmap *info_bitmap   = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("info", nullptr, 64), wxDefaultPosition, wxSize(FromDIP(70), FromDIP(70)), 0);
     wxBoxSizer *    msg_sizer     = get_msg_sizer();
     content_sizer->Add(info_bitmap, 0, wxEXPAND | wxALL, FromDIP(5));
     content_sizer->Add(msg_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
     main_sizer->Add(content_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
     main_sizer->Add(get_btn_sizer(), 0, wxEXPAND | wxALL, FromDIP(5));
 
-    this->SetSizer(main_sizer);
+    this->SetSizerAndFit(main_sizer);
     Layout();
     Fit();
     wxGetApp().UpdateDlgDarkUI(this);
@@ -620,7 +738,7 @@ wxBoxSizer *Newer3mfVersionDialog::get_btn_sizer()
 
     bool       file_version_newer = (*m_file_version) > (*m_cloud_version);
     if (!file_version_newer) {
-        m_update_btn = new Button(this, _CTX(L_CONTEXT("Update", "Software"), "Software"));
+        m_update_btn = new Button(this, _L_CONTEXT(L_CONTEXT("Update", "Software"), "Software"));
         m_update_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         horizontal_sizer->Add(m_update_btn, 0, wxRIGHT, FromDIP(ButtonProps::ChoiceButtonGap()));
 
@@ -699,17 +817,9 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     wxBoxSizer* sizer_button = new wxBoxSizer(wxHORIZONTAL);
 
     /*dont show again*/
-    auto checkbox = new ::CheckBox(this);
-    checkbox->SetValue(false);
-
-
-    auto checkbox_title = new Label(this, _L("Don't show this dialog again"));
-    checkbox_title->SetForegroundColour(0x323A3C);
-    checkbox_title->SetFont(::Label::Body_14);
-    checkbox_title->Wrap(-1);
-
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent &e) {
-        m_show_again = checkbox->GetValue();
+    auto checkbox = new LabeledCheckBox(this, _L("Don't show this dialog again"));
+    checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &e) {
+        m_show_again = e.IsChecked();
         e.Skip();
     });
 
@@ -717,8 +827,7 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     m_button_confirm->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_confirm->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {EndModal(wxCLOSE);});
 
-    sizer_button->Add(checkbox, 0, wxALL, 5);
-    sizer_button->Add(checkbox_title, 0, wxALL, 5);
+    sizer_button->Add(checkbox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     sizer_button->Add(0, 0, 1, wxEXPAND, 5);
     sizer_button->Add(m_button_confirm, 0, wxALL, FromDIP(ButtonProps::ChoiceButtonGap()));
 
@@ -733,10 +842,50 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     sizer_main->Add(sizer_button, 1, wxEXPAND | wxLEFT | wxRIGHT, 15);
     sizer_main->Add(0, 0, 0, wxTOP, 18);
 
-    SetSizer(sizer_main);
+    SetSizerAndFit(sizer_main);
     Layout();
-    sizer_main->Fit(this);
     Centre(wxBOTH);
+}
+
+
+FilamentWarningDialog::FilamentWarningDialog(wxWindow *parent, const wxString &title, std::vector<FilamentWarningInfo> infos)
+    : MsgDialog(parent, title.IsEmpty() ? wxString::Format(_L("%s warning"), SLIC3R_APP_FULL_NAME) : title, wxEmptyString, wxOK | wxICON_WARNING), m_messages(infos)
+{
+    BuildContent();
+    finalize();
+}
+
+void FilamentWarningDialog::BuildContent()
+{
+    wxBoxSizer *messages_sizer = new wxBoxSizer(wxVERTICAL);
+
+    int message_count = 0;
+    for (int i = 0; i < m_messages.size(); i++)
+    {
+        const wxString &message  = m_messages[i].info_msg;
+        const wxString &wiki_url = m_messages[i].wiki_url;
+        if (message_count > 0) { messages_sizer->AddSpacer(FromDIP(10)); }
+
+        if (wiki_url.IsEmpty()) {
+            // No wiki link - just display as regular text
+            Label *text = new Label(this, message);
+            text->SetFont(::Label::Body_12);
+            text->Wrap(FromDIP(400));
+            messages_sizer->Add(text, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+        } else {
+            Label *link = new Label(this, message + " " + _L("Please refer to Wiki before use->"));
+            link->SetForegroundColour(wxColour(8, 153, 46));
+            link->SetFont(::Label::Body_12);
+            link->Wrap(FromDIP(400));
+            link->Bind(wxEVT_ENTER_WINDOW, [this](auto &e) { SetCursor(wxCURSOR_HAND); });
+            link->Bind(wxEVT_LEAVE_WINDOW, [this](auto &e) { SetCursor(wxCURSOR_ARROW); });
+            link->Bind(wxEVT_LEFT_DOWN, [wiki_url](auto &event) { wxLaunchDefaultBrowser(wiki_url); });
+            messages_sizer->Add(link, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+        }
+        message_count++;
+    }
+
+    content_sizer->Add(messages_sizer, 1, wxEXPAND | wxALL, FromDIP(5));
 }
 
 } // namespace GUI
