@@ -38,6 +38,10 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/FilamentMixer.hpp"
 #include "I18N.hpp"
+#include "format.hpp"
+#include <wx/clipbrd.h>
+#include <wx/dataobj.h>
+#include <wx/stattext.h>
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GradientCurveEditor.hpp"
@@ -679,6 +683,20 @@ void MixedFilamentDialog::build_ui()
     });
 }
 
+// The curve the preview samples a two-component gradient with.
+static Slic3r::GradientCurve preview_gradient_curve(const MixedFilamentResult &result)
+{
+    Slic3r::GradientCurve curve;
+    if (!result.gradient_curve.empty()) {
+        curve.points = result.gradient_curve;
+    } else {
+        double yStart = (result.gradient_direction == 0) ? kGradientMaxRatio : kGradientMinRatio;
+        double yEnd   = (result.gradient_direction == 0) ? kGradientMinRatio : kGradientMaxRatio;
+        curve.points = {{0.0, yStart, NAN, NAN}, {1.0, yEnd, NAN, NAN}};
+    }
+    return curve;
+}
+
 wxBoxSizer* MixedFilamentDialog::create_preview_panel()
 {
     auto* sizer = new wxBoxSizer(wxVERTICAL);
@@ -703,14 +721,7 @@ wxBoxSizer* MixedFilamentDialog::create_preview_panel()
         double radius = FromDIP(6);
 
         if (m_result.gradient_enabled && n == 2) {
-            Slic3r::GradientCurve curve;
-            if (!m_result.gradient_curve.empty()) {
-                curve.points = m_result.gradient_curve;
-            } else {
-                double yStart = (m_result.gradient_direction == 0) ? kGradientMaxRatio : kGradientMinRatio;
-                double yEnd   = (m_result.gradient_direction == 0) ? kGradientMinRatio : kGradientMaxRatio;
-                curve.points = {{0.0, yStart, NAN, NAN}, {1.0, yEnd, NAN, NAN}};
-            }
+            const Slic3r::GradientCurve curve = preview_gradient_curve(m_result);
 
             // Same sampler the sidebar, extruder icons and paint gizmo swatches use, so this
             // preview and every swatch drawn for the filament agree on what it looks like.
@@ -747,6 +758,34 @@ wxBoxSizer* MixedFilamentDialog::create_preview_panel()
     label->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
     label->SetFont(::Label::Body_13);
     sizer->Add(label, 0, wxALIGN_CENTER | wxTOP, FromDIP(4));
+
+    // The color of the mix, as in the Decompose Color dialog. Empty text keeps the line's height.
+    // Three lines under the preview: the RGB value of the mix and its hex code, or for a gradient the RGB value at its
+    // start, an arrow and the RGB value at its end. They are a little wider than the preview, so the longest value
+    // fits, and keep their size when the text changes, so the text stays centered under the preview instead of
+    // growing the column or being clipped, with no layout needed.
+    constexpr int color_line_width = 140;
+    auto make_color_line = [this](wxStaticText *&line) {
+        line = new wxStaticText(this, wxID_ANY, " ", wxDefaultPosition, wxSize(FromDIP(color_line_width), -1),
+                                wxALIGN_CENTRE_HORIZONTAL | wxST_NO_AUTORESIZE);
+        line->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
+        line->SetFont(::Label::Body_12);
+        line->SetMinSize(wxSize(FromDIP(color_line_width), line->GetBestSize().y));
+    };
+    make_color_line(m_preview_rgb);
+    make_color_line(m_preview_hex);
+    make_color_line(m_preview_rgb_end);
+    // The hex code is copied to the clipboard on a click.
+    m_preview_hex->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &) {
+        const wxString hex = m_preview_hex->GetLabel().Trim();
+        if (!hex.StartsWith("#") || !wxTheClipboard->Open())
+            return;
+        wxTheClipboard->SetData(new wxTextDataObject(hex));
+        wxTheClipboard->Close();
+    });
+    sizer->Add(m_preview_rgb, 0, wxALIGN_CENTER | wxTOP, FromDIP(2));
+    sizer->Add(m_preview_hex, 0, wxALIGN_CENTER);
+    sizer->Add(m_preview_rgb_end, 0, wxALIGN_CENTER);
 
     return sizer;
 }
@@ -1369,6 +1408,8 @@ void MixedFilamentDialog::on_gradient_toggled()
 {
 
     m_result.gradient_enabled = m_chk_gradient->GetValue();
+    // The RGB value under the preview is shown for the plain mix only.
+    update_preview();
 
     if (m_ratio_sizer)
         m_ratio_sizer->ShowItems(!m_result.gradient_enabled && num_components() == 2);
@@ -1575,6 +1616,41 @@ void MixedFilamentDialog::on_recommendation_clicked_triple(unsigned int a, unsig
 
 void MixedFilamentDialog::update_preview()
 {
+    if (m_preview_rgb) {
+        // TRN The red, green and blue values (0-255) of a color, shown under the preview of a mixed filament.
+        const auto rgb_text = [](const wxColour &c) { return format_wxstr(_L("RGB: %1%, %2%, %3%"), c.Red(), c.Green(), c.Blue()); };
+        const size_t n = num_components();
+        wxString     first(" "), second(" "), last(" ");
+        bool         copyable = false;
+        if (n == 2 && m_result.gradient_enabled) {
+            // A gradient has no single color: its start and end are shown, sampled as the preview draws them.
+            const auto ramp = sample_gradient_ramp(comp_colour(0), comp_colour(1), preview_gradient_curve(m_result), 80);
+            if (!ramp.empty()) {
+                first  = rgb_text(ramp.front());
+                second = wxString::FromUTF8("\xE2\x86\x93"); // down arrow
+                last   = rgb_text(ramp.back());
+            }
+        } else if (n > 0) {
+            std::vector<wxColour> cols;
+            std::vector<double>   weights;
+            for (size_t i = 0; i < n; ++i) {
+                cols.push_back(comp_colour(i));
+                weights.push_back(ratio(i) / 100.0);
+            }
+            const wxColour mixed = blend_n_colors(cols, weights);
+            first    = rgb_text(mixed);
+            second   = wxString::Format("#%02X%02X%02X", mixed.Red(), mixed.Green(), mixed.Blue());
+            copyable = true;
+        }
+        m_preview_rgb->SetLabel(first);
+        if (m_preview_hex) {
+            m_preview_hex->SetLabel(second);
+            m_preview_hex->SetCursor(copyable ? wxCursor(wxCURSOR_HAND) : wxNullCursor);
+            m_preview_hex->SetToolTip(copyable ? _L("Click to copy the color code") : wxString());
+        }
+        if (m_preview_rgb_end)
+            m_preview_rgb_end->SetLabel(last);
+    }
     if (m_preview_canvas)  m_preview_canvas->Refresh();
     if (m_summary_panel)   m_summary_panel->Refresh();
     if (m_ratio_bar)       m_ratio_bar->Refresh();
