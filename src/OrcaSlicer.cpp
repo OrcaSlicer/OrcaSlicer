@@ -1375,6 +1375,13 @@ int CLI::run(int argc, char **argv)
         boost::nowide::cerr << "setup params error" << std::endl;
         return CLI_INVALID_PARAMS;
     }
+    // Read before the GUI branch below so that --debug applies in GUI mode too. setup() has
+    // defaulted every CLI option by now, so only m_given_option_keys says whether one was given,
+    // and nothing enforces the 0 to 5 range the option documents.
+    if (const ConfigOptionInt *opt_debug = m_config.opt<ConfigOptionInt>("debug");
+        opt_debug && m_given_option_keys.count("debug") > 0)
+        set_command_line_logging_level((unsigned int) std::clamp(opt_debug->value, 0, 5));
+
     BOOST_LOG_TRIVIAL(info) << "finished setup params, argc="<< argc << std::endl;
     std::string temp_path = per_user_temp_dir(wxFileName::GetTempDir().utf8_str().data(), per_user_temp_id());
     // Some consumers write into the temp root directly, so create it up front.
@@ -1588,16 +1595,14 @@ int CLI::run(int argc, char **argv)
 #endif // SLIC3R_GUI
     }
 
-    // Setup logging for CLI
+    // --debug is applied above, so this applies only the option's own default.
     const ConfigOptionInt* opt_loglevel = m_config.opt<ConfigOptionInt>("debug");
-    if (opt_loglevel) {
+    if (opt_loglevel && m_given_option_keys.count("debug") == 0) {
         set_logging_level(opt_loglevel->value);
     }
-    else {
-        set_logging_level(2);
-    }
+    // An empty name makes boost::log write a "00000.log" into the working directory.
     const ConfigOptionString* opt_logfile = m_config.opt<ConfigOptionString>("logfile");
-    if (opt_logfile) {
+    if (opt_logfile && !opt_logfile->value.empty()) {
         set_logging_file(opt_logfile->value);
     }
 
@@ -8240,7 +8245,6 @@ int CLI::run(int argc, char **argv)
 
 bool CLI::setup(int argc, char **argv)
 {
-    // Detect the operating system flavor after SLIC3R_LOGLEVEL is set.
     detect_platform();
 
 #ifdef WIN32

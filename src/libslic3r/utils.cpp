@@ -25,6 +25,7 @@
 #include <boost/log/expressions/message.hpp>
 #include <boost/log/keywords/auto_flush.hpp>
 #include <initializer_list>
+#include <optional>
 #include <boost/filesystem/file_status.hpp>
 #include <cstdint>
 #include <boost/filesystem/directory.hpp>
@@ -196,6 +197,22 @@ void set_logging_level(unsigned int level)
     (
         boost::log::trivial::severity >= logSeverity
     );
+}
+
+// init_app_config() sets the level first and runs from the GUI_App constructor, which is before
+// GUI_Run assigns the GUI_InitParams.
+static std::optional<unsigned int> g_command_line_log_level;
+
+void set_command_line_logging_level(std::optional<unsigned int> level)
+{
+    g_command_line_log_level = level;
+    if (level.has_value())
+        set_logging_level(*level);
+}
+
+unsigned int command_line_logging_level(unsigned int fallback)
+{
+    return g_command_line_log_level.value_or(fallback);
 }
 
 void set_logging_file(const std::string &file)
