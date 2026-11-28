@@ -24,5 +24,8 @@
 		"Tiertime UP400 Pro 0.6 nozzle",
 		"Tiertime UP400 Pro 0.8 nozzle",
 		"Tiertime UP310 Pro 0.4 nozzle"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

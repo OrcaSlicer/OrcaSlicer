@@ -3,13 +3,13 @@
 	"name": "FILL3D PPCF @base",
 	"inherits": "fdm_filament_pp",
 	"from": "system",
-	"filament_id": "OFg8hMzT",
+	"filament_id": "OFXp8uPh",
 	"instantiation": "false",
 	"filament_vendor": [
 		"FILL3D"
 	],
 	"filament_type": [
-		"PP"
+		"PP-CF"
 	],
 	"filament_density": [
 		"0.97"
@@ -61,5 +61,8 @@
 	],
 	"slow_down_layer_time": [
 		"10"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

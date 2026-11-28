@@ -242,9 +242,6 @@
 	"reduce_fan_stop_start_freq": [
 		"0"
 	],
-	"required_nozzle_HRC": [
-		"3"
-	],
 	"retraction_distances_when_ec": [
 		"0",
 		"0"

@@ -3,7 +3,7 @@
 	"name": "Elegoo PAHT-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "OF20kXr5",
+	"filament_id": "OFqykxni",
 	"instantiation": "false",
 	"filament_density": [
 		"1.25"
@@ -79,5 +79,8 @@
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"
+	],
+	"filament_type": [
+		"PAHT-CF"
 	]
 }

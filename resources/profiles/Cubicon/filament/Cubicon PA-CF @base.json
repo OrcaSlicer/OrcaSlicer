@@ -2,11 +2,11 @@
 	"type": "filament",
 	"name": "Cubicon PA-CF @base",
 	"inherits": "fdm_filament_pa",
-	"filament_id": "OFiEz2XI",
+	"filament_id": "OFsbmcBO",
 	"instantiation": "false",
 	"default_filament_colour": "",
 	"filament_type": [
-		"PA"
+		"PA-CF"
 	],
 	"filament_vendor": [
 		"Cubicon"

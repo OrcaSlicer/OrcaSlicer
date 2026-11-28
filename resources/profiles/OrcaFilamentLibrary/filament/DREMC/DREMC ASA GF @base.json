@@ -3,7 +3,7 @@
 	"name": "DREMC ASA GF @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "OF2xccEe",
+	"filament_id": "OFmh41vp",
 	"instantiation": "false",
 	"eng_plate_temp": [
 		"110"
@@ -46,5 +46,11 @@
 	],
 	"nozzle_temperature_initial_layer": [
 		"270"
+	],
+	"filament_type": [
+		"ASA-GF"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

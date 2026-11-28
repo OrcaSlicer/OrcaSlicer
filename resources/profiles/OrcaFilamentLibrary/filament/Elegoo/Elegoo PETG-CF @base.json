@@ -3,6 +3,12 @@
 	"name": "Elegoo PETG-CF @base",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"filament_id": "OFuUuIhR",
-	"instantiation": "false"
+	"filament_id": "OFuqSFok",
+	"instantiation": "false",
+	"filament_type": [
+		"PETG-CF"
+	],
+	"required_nozzle_HRC": [
+		"40"
+	]
 }

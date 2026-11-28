@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "ufcIVt3x0FqV69h4",
-	"filament_id": "OFj64R5U",
+	"filament_id": "OFFt5UMk",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.91"
@@ -37,7 +37,7 @@
 		"0"
 	],
 	"filament_type": [
-		"ABS"
+		"ABS-GF"
 	],
 	"enable_pressure_advance": [
 		"1"

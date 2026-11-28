@@ -3,7 +3,7 @@
 	"name": "Fiberon ASA-CF08 @Snapmaker U1 base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "OF0omtEb",
+	"filament_id": "OFCQcBWo",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"0"
@@ -78,6 +78,9 @@
 		"100"
 	],
 	"filament_type": [
-		"ASA"
+		"ASA-CF"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

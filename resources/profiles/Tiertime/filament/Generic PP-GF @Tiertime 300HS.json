@@ -24,5 +24,8 @@
 		"Tiertime UP600 HS 0.4 nozzle",
 		"Tiertime UP600 HS 0.6 nozzle",
 		"Tiertime UP600 HS 0.8 nozzle"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

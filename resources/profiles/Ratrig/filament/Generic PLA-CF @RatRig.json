@@ -69,5 +69,8 @@
 		"RatRig V-Core 4 HYBRID 500 0.4 nozzle",
 		"RatRig V-Core 4 HYBRID 500 0.5 nozzle",
 		"RatRig V-Core 4 HYBRID 500 0.6 nozzle"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

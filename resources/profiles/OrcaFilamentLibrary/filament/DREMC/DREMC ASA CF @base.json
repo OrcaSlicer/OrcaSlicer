@@ -3,7 +3,7 @@
 	"name": "DREMC ASA CF @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "OFdI4zMo",
+	"filament_id": "OFVSJ0fZ",
 	"instantiation": "false",
 	"eng_plate_temp": [
 		"110"
@@ -46,5 +46,14 @@
 	],
 	"nozzle_temperature_initial_layer": [
 		"265"
+	],
+	"filament_type": [
+		"ASA-CF"
+	],
+	"required_nozzle_HRC": [
+		"40"
+	],
+	"nozzle_temperature_range_high": [
+		"290"
 	]
 }
