@@ -8,6 +8,7 @@
 #include "I18N.hpp"
 #include "format.hpp"
 #include "GUI_App.hpp"
+#include "Plater.hpp"
 #include "MsgDialog.hpp"
 #include "ColorDecomposeDialog.hpp"
 #include "ColorPickerDialog.hpp"
@@ -432,6 +433,193 @@ static bool texture_entry_official_basic(const TextureFilamentEntry& entry)
     return false;
 }
 
+static std::string texture_entry_live_display_name(const TextureFilamentEntry& entry)
+{
+    if (entry.kind == TextureFilamentKind::ExistingPhysical) {
+        auto* pb = wxGetApp().preset_bundle;
+        if (pb && entry.project_config_index < pb->filament_presets.size()) {
+            if (const Preset* preset = pb->filaments.find_preset(pb->filament_presets[entry.project_config_index], false)) {
+                const std::string label = preset->label(false);
+                if (!label.empty())
+                    return label;
+            }
+        }
+    }
+    return entry.name;
+}
+
+static std::string texture_mixed_filament_display_name(
+    const std::vector<TextureFilamentEntry>& entries,
+    const std::vector<int>& component_dialog_indices)
+{
+    for (int idx : component_dialog_indices) {
+        if (idx < 0 || idx >= (int)entries.size())
+            continue;
+        const std::string name = texture_entry_live_display_name(entries[idx]);
+        if (!name.empty())
+            return name;
+    }
+    return DEFAULT_VIRTUAL_FILAMENT_NAME;
+}
+
+static void texture_sync_mixed_filament_name(std::vector<TextureFilamentEntry>& entries,
+                                            std::vector<std::string>& names,
+                                            int mixed_idx,
+                                            const std::vector<int>& component_dialog_indices)
+{
+    if (mixed_idx < 0 || mixed_idx >= (int)entries.size())
+        return;
+    const std::string name = texture_mixed_filament_display_name(entries, component_dialog_indices);
+    entries[mixed_idx].name = name;
+    if (mixed_idx < (int)names.size())
+        names[mixed_idx] = name;
+}
+
+// Reuse a slot as a base color only when it belongs to the requested series.
+static std::string texture_entry_material_type(const TextureFilamentEntry& entry)
+{
+    if (entry.kind == TextureFilamentKind::ExistingPhysical) {
+        auto* preset_bundle = wxGetApp().preset_bundle;
+        if (preset_bundle && entry.project_config_index < preset_bundle->filament_presets.size()) {
+            Preset* preset = preset_bundle->filaments.find_preset(
+                preset_bundle->filament_presets[entry.project_config_index]);
+            return filament_type_for_color_decompose(preset);
+        }
+    }
+    return entry.type.empty() ? std::string(DEFAULT_VIRTUAL_FILAMENT_SHORT_TYPE) : entry.type;
+}
+
+static std::string texture_family_type_from_preset_name(const std::string& preset_name)
+{
+    auto* preset_bundle = wxGetApp().preset_bundle;
+    if (!preset_bundle || preset_name.empty())
+        return {};
+    Preset* preset = preset_bundle->filaments.find_preset(preset_name, false);
+    if (!preset)
+        return {};
+    std::string display_type;
+    return preset->config.get_filament_type(display_type);
+}
+
+static std::string texture_filament_preset_name_of(const TextureFilamentEntry& entry)
+{
+    if (!entry.preset_name.empty())
+        return entry.preset_name;
+    auto* preset_bundle = wxGetApp().preset_bundle;
+    if (preset_bundle &&
+        (entry.kind == TextureFilamentKind::ExistingPhysical ||
+         entry.kind == TextureFilamentKind::ExistingMixed) &&
+        entry.project_config_index < preset_bundle->filament_presets.size()) {
+        return preset_bundle->filament_presets[entry.project_config_index];
+    }
+    return {};
+}
+
+// Coarse family type (PLA / PETG / ABS / ...). Official series names such as
+// "PLA Basic" are not used here. Empty type, preset parse failure, and broken
+// mixed slots (mismatched components) return empty so callers skip them from
+// the auto-match vote.
+std::string texture_entry_family_type(const TextureFilamentEntry& entry,
+                                            const std::vector<TextureFilamentEntry>& entries)
+{
+    auto type_of_slot = [](const TextureFilamentEntry& e) -> std::string {
+        const std::string preset = texture_filament_preset_name_of(e);
+        if (!preset.empty())
+            return texture_family_type_from_preset_name(preset); // empty = parse fail, skip vote
+        if (!e.type.empty() && e.type.find(' ') == std::string::npos)
+            return e.type; // no preset: only a real short family name may vote
+        return {};
+    };
+
+    if (texture_entry_is_mixed(entry.kind)) {
+        std::string ref;
+        bool found = false;
+        bool mismatch = false;
+        auto* preset_bundle = wxGetApp().preset_bundle;
+        for (unsigned int comp : entry.mixed_components) {
+            if (comp < 1)
+                continue;
+            const size_t idx = (size_t)comp - 1;
+            std::string ft;
+            if (entry.kind == TextureFilamentKind::ExistingMixed) {
+                if (preset_bundle && idx < preset_bundle->filament_presets.size())
+                    ft = texture_family_type_from_preset_name(preset_bundle->filament_presets[idx]);
+            } else if (idx < entries.size() && texture_entry_is_physical(entries[idx].kind)) {
+                ft = type_of_slot(entries[idx]);
+            }
+            if (ft.empty())
+                continue;
+            if (!found) {
+                ref = ft;
+                found = true;
+            } else if (ft != ref) {
+                mismatch = true;
+                break;
+            }
+        }
+        if (mismatch)
+            return {};
+        if (found)
+            return ref;
+        return type_of_slot(entry);
+    }
+
+    return type_of_slot(entry); // empty => skip vote (empty type, parse fail)
+}
+
+static int texture_family_type_priority(const std::string& type)
+{
+    if (type == "PLA")
+        return 3;
+    if (type == "PETG")
+        return 2;
+    if (type == "ABS")
+        return 1;
+    return 0;
+}
+
+static std::string pick_auto_match_filament_type(const std::vector<TextureFilamentEntry>& entries,
+                                                size_t existing_count)
+{
+    std::map<std::string, int> counts;
+    std::vector<std::string> first_seen;
+    const size_t n = std::min(existing_count, entries.size());
+    for (size_t i = 0; i < n; ++i) {
+        const std::string ft = texture_entry_family_type(entries[i], entries);
+        if (ft.empty())
+            continue;
+        if (counts.find(ft) == counts.end())
+            first_seen.push_back(ft);
+        counts[ft]++;
+    }
+    // No slot produced a usable family vote: auto-match against PLA Basic.
+    // Keep returning the short name "PLA" so match_type compares equal to
+    // texture_entry_family_type(); resolve_auto_match_preset_name maps it to
+    // Bambu PLA Basic / m_default_virtual_filament_preset_name.
+    if (counts.empty())
+        return DEFAULT_VIRTUAL_FILAMENT_SHORT_TYPE;
+
+    int best_count = 0;
+    for (const auto& kv : counts)
+        best_count = std::max(best_count, kv.second);
+
+    std::string best;
+    int best_priority = -1;
+    size_t best_order = (size_t)-1;
+    for (size_t i = 0; i < first_seen.size(); ++i) {
+        const std::string& type = first_seen[i];
+        if (counts[type] != best_count)
+            continue;
+        const int priority = texture_family_type_priority(type);
+        if (priority > best_priority || (priority == best_priority && i < best_order)) {
+            best = type;
+            best_priority = priority;
+            best_order = i;
+        }
+    }
+    return best.empty() ? std::string(DEFAULT_VIRTUAL_FILAMENT_SHORT_TYPE) : best;
+}
+
 static Slic3r::ColorDecomposeRecipeMode texture_recipe_mode(TextureAutoMixMode mode)
 {
     return mode == TextureAutoMixMode::CMYW ? Slic3r::ColorDecomposeRecipeMode::CMYW :
@@ -583,6 +771,7 @@ public:
 
         auto* decompose_label = new wxStaticText(this, wxID_ANY, _L("Decompose Color"));
         auto* add_label = new wxStaticText(this, wxID_ANY, _L("+ Add Material"));
+        add_label->Show(Sidebar::should_show_SEMM_buttons()); // ORCA: only SEMM printers can add more filaments
         wxFont af = add_label->GetFont();
         af.SetPointSize(10);
         add_label->SetFont(af);
@@ -2721,7 +2910,8 @@ int TextureImportDialog::add_virtual_filament(const std::array<float, 4>& rgba, 
         m_filament_entries.size() != m_filament_colors_rgba.size()) {
         return -1;
     }
-    if (!can_add_virtual_filament()) {
+    // ORCA: only SEMM printers can add more filaments (as ObjColorDialog did, #14275)
+    if (!Sidebar::should_show_SEMM_buttons() || !can_add_virtual_filament()) {
         // Mark that this do_auto_match() run hit the filament cap and had to
         // drop at least one cluster. The mapping itself still falls back via
         // find_closest_filament_index() below; this flag only drives the
@@ -3101,6 +3291,176 @@ void TextureImportDialog::set_auto_mix_mode(TextureAutoMixMode mode)
     apply_auto_standard_mix(mode);
 }
 
+std::string TextureImportDialog::preferred_mix_family() const
+{
+    // Same family vote as auto-match, so enabling mixing never switches to a family
+    // the project has no filaments of.
+    return pick_auto_match_filament_type(m_filament_entries, m_existing_filament_count);
+}
+
+struct TextureMixPool {
+    bool                                                kit_complete = false;
+    std::vector<int>                                    kit_dialog_indices;
+    std::string                                         family;
+    std::vector<int>                                    allowed_dialog_indices;
+    std::vector<Slic3r::ColorDecomposePhysicalFilament> family_filaments;
+};
+
+static int find_texture_mixed_by_recipe(const std::vector<TextureFilamentEntry>& entries,
+                                        const std::vector<int>& component_indices,
+                                        const std::vector<int>& ratios)
+{
+    for (const auto& entry : entries) {
+        if (!texture_entry_is_mixed(entry.kind) || entry.mixed_components.size() != component_indices.size() ||
+            entry.mixed_ratios.size() != ratios.size())
+            continue;
+        bool same = true;
+        for (size_t i = 0; i < component_indices.size(); ++i) {
+            if (entry.mixed_components[i] != (unsigned int)(component_indices[i] + 1) ||
+                entry.mixed_ratios[i] != ratios[i]) {
+                same = false;
+                break;
+            }
+        }
+        if (same)
+            return entry.dialog_index;
+    }
+    return -1;
+}
+
+void TextureImportDialog::build_mix_pool(TextureMixPool& pool) const
+{
+#if 0 // ORCA: official mixing kits (PLA Palette CMYKW) are not ported
+    const std::vector<OfficialMixingKitGroup> kit_groups = collect_official_mixing_kit_groups();
+    const OfficialMixingKitGroup* kit_group = find_complete_official_mixing_kit(kit_groups);
+    pool.kit_complete = kit_group != nullptr;
+    pool.kit_dialog_indices.clear();
+    if (kit_group) {
+        for (int cfg_idx : kit_group->config_indices) {
+            const auto entry = std::find_if(m_filament_entries.begin(), m_filament_entries.end(),
+                [cfg_idx](const TextureFilamentEntry& e) {
+                    return e.kind == TextureFilamentKind::ExistingPhysical && e.project_config_index == size_t(cfg_idx);
+                });
+            if (entry == m_filament_entries.end()) {
+                pool.kit_complete = false;
+                pool.kit_dialog_indices.clear();
+                break;
+            }
+            pool.kit_dialog_indices.push_back(entry->dialog_index);
+        }
+    }
+#else
+    pool.kit_complete = false;
+    pool.kit_dialog_indices.clear();
+#endif
+    pool.family = pool.kit_complete ? std::string(kDecomposePlaShortType) : preferred_mix_family();
+    pool.allowed_dialog_indices.clear();
+    pool.family_filaments.clear();
+    for (const auto& entry : m_filament_entries) {
+        if (entry.kind != TextureFilamentKind::ExistingPhysical)
+            continue;
+        if (pool.kit_complete) {
+            if (std::find(pool.kit_dialog_indices.begin(), pool.kit_dialog_indices.end(), entry.dialog_index)
+                == pool.kit_dialog_indices.end())
+                continue;
+        } else if (texture_entry_family_type(entry, m_filament_entries) != pool.family) {
+            continue;
+        }
+        pool.allowed_dialog_indices.push_back(entry.dialog_index);
+        Slic3r::ColorDecomposePhysicalFilament filament;
+        filament.color_hex = entry.color_hex;
+        filament.name = entry.name;
+        filament.type = texture_entry_material_type(entry);
+        filament.filament_index = (unsigned int)(entry.dialog_index + 1);
+        pool.family_filaments.push_back(std::move(filament));
+    }
+}
+
+int TextureImportDialog::resolve_mix_color(const TextureMixPool& pool,
+                                           const std::array<std::size_t, 3>& color,
+                                           bool allow_create, bool& created, bool& needs_slot)
+{
+    created = false;
+    needs_slot = false;
+
+    Slic3r::ColorDecomposeRgb target_rgb;
+    target_rgb.r = (unsigned char)color[0];
+    target_rgb.g = (unsigned char)color[1];
+    target_rgb.b = (unsigned char)color[2];
+
+    Slic3r::ColorDecomposeRecipeResult recipe;
+#if 0 // ORCA: official mixing kits (PLA Palette CMYKW) are not ported
+    if (pool.kit_complete)
+        recipe = Slic3r::lookup_standard_recipe(target_rgb, Slic3r::ColorDecomposeRecipeMode::CMYKW,
+                                                kDecomposePlaPaletteType);
+    else
+#endif
+        recipe = Slic3r::recommend_from_physical_filaments(target_rgb, pool.family_filaments, pool.family);
+
+    std::vector<int> component_dialog_indices;
+    std::vector<int> ratios;
+    if (recipe.valid) {
+        for (const auto& comp : recipe.components) {
+            int dialog_idx = -1;
+#if 0 // ORCA: official mixing kits (PLA Palette CMYKW) are not ported
+            if (pool.kit_complete) {
+                const std::vector<DecomposeOfficialComponent> official_components = pla_palette_cmykw_official_components();
+                const std::string color_hex = decompose_normalize_color_hex(comp.color_hex);
+                const auto component = std::find_if(official_components.begin(), official_components.end(),
+                    [&](const DecomposeOfficialComponent& official) { return official.color_hex == color_hex; });
+                const size_t component_idx = size_t(component - official_components.begin());
+                if (component != official_components.end() && component_idx < pool.kit_dialog_indices.size())
+                    dialog_idx = pool.kit_dialog_indices[component_idx];
+            } else
+#endif
+            if (comp.filament_index >= 1) {
+                dialog_idx = (int)comp.filament_index - 1;
+                if (dialog_idx < 0 || dialog_idx >= (int)m_filament_entries.size() ||
+                    m_filament_entries[dialog_idx].kind != TextureFilamentKind::ExistingPhysical) {
+                    dialog_idx = -1;
+                }
+            }
+            if (dialog_idx < 0) {
+                component_dialog_indices.clear();
+                break;
+            }
+            component_dialog_indices.push_back(dialog_idx);
+            ratios.push_back(comp.ratio);
+        }
+    }
+
+    if (component_dialog_indices.size() >= 2 && component_dialog_indices.size() == ratios.size()) {
+        int mixed_idx = find_texture_mixed_by_recipe(m_filament_entries, component_dialog_indices, ratios);
+        if (mixed_idx < 0) {
+            if (!allow_create) {
+                needs_slot = true;
+                return -1;
+            }
+            std::string mix_hex = recipe.matched_color_hex;
+            if (mix_hex.empty()) {
+                std::vector<std::string> hexes;
+                hexes.reserve(component_dialog_indices.size());
+                for (int idx : component_dialog_indices)
+                    hexes.push_back(m_filament_entries[idx].color_hex);
+                mix_hex = Slic3r::lookup_measured_blend_color(hexes, ratios);
+            }
+            if (mix_hex.empty())
+                mix_hex = rgb_to_hex(color).ToStdString();
+            mixed_idx = add_virtual_mixed_filament(mix_hex, component_dialog_indices, ratios);
+            created = mixed_idx >= 0;
+        }
+        if (mixed_idx >= 0) {
+            texture_sync_mixed_filament_name(m_filament_entries, m_filament_names,
+                                             mixed_idx, component_dialog_indices);
+            return mixed_idx;
+        }
+    }
+
+    if (component_dialog_indices.size() == 1)
+        return component_dialog_indices.front();
+    return -1;
+}
+
 void TextureImportDialog::apply_auto_standard_mix(TextureAutoMixMode mode)
 {
     if (m_mapping_rows.empty())
@@ -3114,7 +3474,9 @@ void TextureImportDialog::apply_auto_standard_mix(TextureAutoMixMode mode)
                 continue;
             if (texture_normalize_color_hex(entry.color_hex) != normalized)
                 continue;
-            if (texture_entry_is_pla_basic(entry))
+            // ORCA: a printer that cannot take more filaments has to mix from the ones it has,
+            // whatever their preset. Elsewhere only a PLA Basic counts and the base color is added.
+            if (texture_entry_is_pla_basic(entry) || !Sidebar::should_show_SEMM_buttons())
                 return entry.dialog_index;
         }
 
@@ -3342,7 +3704,11 @@ bool TextureImportDialog::add_decomposed_mixed_filament(size_t row_index)
 
     const std::string mixed_hex = texture_normalize_color_hex(
         result.matched_color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
-    int mixed_idx = add_virtual_mixed_filament(mixed_hex, component_dialog_indices, ratios);
+    // ORCA: reuse an identical mix, from the project or made earlier in this dialog, instead of
+    // adding the same recipe to the list again.
+    int mixed_idx = find_texture_mixed_by_recipe(m_filament_entries, component_dialog_indices, ratios);
+    if (mixed_idx < 0)
+        mixed_idx = add_virtual_mixed_filament(mixed_hex, component_dialog_indices, ratios);
     if (mixed_idx < 0)
         return false;
 
@@ -3515,8 +3881,22 @@ void TextureImportDialog::do_auto_match()
         return -1;
     };
 
-    auto get_or_add_virtual_filament = [this, &previous_virtual_by_cluster, &find_virtual_filament_by_color](
+    // ORCA: a printer that cannot take more filaments (tool changer, IDEX) can still print mixed
+    // ones, so there a color without a close match is mixed from the filaments already loaded.
+    const bool mix_only = !Sidebar::should_show_SEMM_buttons();
+    TextureMixPool mix_pool;
+    if (mix_only)
+        build_mix_pool(mix_pool);
+
+    auto get_or_add_virtual_filament = [this, &previous_virtual_by_cluster, &find_virtual_filament_by_color, mix_only, &mix_pool]( // ORCA: mix_only, mix_pool
         const std::array<std::size_t, 3>& color) -> int {
+        // ORCA: the same recipe Decompose Color offers for this color. -1 (nothing to mix from,
+        // or no free slot) lets the caller fall back to the closest filament.
+        if (mix_only) {
+            bool created = false, needs_slot = false;
+            return resolve_mix_color(mix_pool, color, can_add_virtual_filament(), created, needs_slot);
+        }
+
         auto previous_it = previous_virtual_by_cluster.find(color);
         if (previous_it != previous_virtual_by_cluster.end() &&
             previous_it->second >= (int)m_existing_filament_count &&
