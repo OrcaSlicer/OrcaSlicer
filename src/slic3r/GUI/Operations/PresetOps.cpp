@@ -404,18 +404,6 @@ std::optional<Refusal> filament_list_refusal(Plater& plater)
     return std::nullopt;
 }
 
-// Why the + and - buttons and a slot's Delete do not show, or none: they are for a printer that takes several
-// filaments through one extruder (Sidebar::should_show_SEMM_buttons()).
-std::optional<Refusal> slot_buttons_refusal(Plater& plater)
-{
-    if (std::optional<Refusal> refusal = filament_list_refusal(plater))
-        return refusal;
-    if (!Sidebar::should_show_SEMM_buttons())
-        return Refusal{RefusalKind::Precondition, "one_filament_per_extruder",
-                       L("This printer has one filament per extruder; change the number of extruders in the printer settings.")};
-    return std::nullopt;
-}
-
 Refusal too_many_filaments() { return {RefusalKind::Precondition, "too_many_filaments", L("No more filament slots can be added.")}; }
 
 Refusal last_filament_slot() { return {RefusalKind::Precondition, "last_filament_slot", L("The only filament slot cannot be deleted.")}; }
@@ -461,7 +449,7 @@ Outcome<int> add_filament_slot()
 {
     assert(wxThread::IsMain());
     Plater& plater = *wxGetApp().plater();
-    if (std::optional<Refusal> refusal = slot_buttons_refusal(plater))
+    if (std::optional<Refusal> refusal = filament_list_refusal(plater))
         return *refusal;
     const PresetBundle& bundle = *wxGetApp().preset_bundle;
     const std::size_t   before = bundle.filament_presets.size();
@@ -495,7 +483,7 @@ Outcome<DeletedFilament> delete_filament_slot(const DeleteFilamentArgs& args)
 {
     assert(wxThread::IsMain());
     Plater& plater = *wxGetApp().plater();
-    if (std::optional<Refusal> refusal = slot_buttons_refusal(plater))
+    if (std::optional<Refusal> refusal = filament_list_refusal(plater))
         return *refusal;
     const PresetBundle& bundle   = *wxGetApp().preset_bundle;
     const int           slots    = int(bundle.filament_presets.size());
@@ -518,6 +506,13 @@ Outcome<DeletedFilament> delete_filament_slot(const DeleteFilamentArgs& args)
         return Refusal{RefusalKind::Precondition, "mixed_list_hidden",
                        L("With one physical filament the mixed filaments are hidden and cannot be deleted; add a filament slot first.")};
     Sidebar& sidebar = plater.sidebar();
+    // A physical slot before another on a non-Bambu Lab printer with more than one nozzle and without
+    // single_extruder_multi_material asks before the later slots' tool numbers shift.
+    const bool shifts_tools = !mixed && sidebar.delete_shifts_tools(std::size_t(slot) - 1);
+    if (shifts_tools && args.confirm_shift == std::optional<bool>(false))
+        // TRN %1% is a filament slot number.
+        return Refusal{RefusalKind::Precondition, "shifts_tools",
+                       L("Deleting filament slot %1% shifts the tool numbers of the slots after it."), {std::to_string(slot)}};
     // Merge with asks before it merges a filament into a mixed filament that mixes it, which leaves the mix broken.
     const bool breaks_mix = args.merge_into &&
                             sidebar.merge_removes_component(std::size_t(slot) - 1, std::size_t(*args.merge_into) - 1);
@@ -526,17 +521,23 @@ Outcome<DeletedFilament> delete_filament_slot(const DeleteFilamentArgs& args)
                        // TRN %1% is a filament slot number, %2% the slot of the mixed filament that mixes it.
                        L("Merging filament slot %1% into the mixed filament of slot %2% removes a filament that mixed filament mixes."),
                        {std::to_string(slot), std::to_string(*args.merge_into)}};
+    bool merge_question_cancelled = false;
     if (breaks_mix && args.break_mix.value_or(false))
-        sidebar.delete_filament(std::size_t(slot) - 1, *args.merge_into - 1); // what Merge with does after its question's OK
+        sidebar.delete_filament(std::size_t(slot) - 1, *args.merge_into - 1,
+                                args.confirm_shift); // what Merge with does after its question's OK
     else if (args.merge_into)
-        sidebar.change_filament(std::size_t(slot) - 1, std::size_t(*args.merge_into) - 1);
+        merge_question_cancelled = !sidebar.change_filament(std::size_t(slot) - 1, std::size_t(*args.merge_into) - 1,
+                                                            args.confirm_shift);
     else
-        sidebar.delete_filament(std::size_t(slot) - 1);
+        sidebar.delete_filament(std::size_t(slot) - 1, -1, args.confirm_shift);
     sidebar.update_filaments_counter();
     if (int(bundle.filament_presets.size()) == slots) {
-        if (breaks_mix && !args.break_mix)
+        if (merge_question_cancelled)
             // TRN %1% is a filament slot number.
             return Refusal{RefusalKind::Failed, "merge_cancelled", L("Merging filament slot %1% was cancelled."), {std::to_string(slot)}};
+        if (shifts_tools && !args.confirm_shift.has_value())
+            // TRN %1% is a filament slot number.
+            return Refusal{RefusalKind::Failed, "delete_cancelled", L("Deleting filament slot %1% was cancelled."), {std::to_string(slot)}};
         return Refusal{RefusalKind::Failed, "not_deleted", L("The filament slot was not deleted.")};
     }
     DeletedFilament deleted;

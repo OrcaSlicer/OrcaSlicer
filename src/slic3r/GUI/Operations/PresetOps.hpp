@@ -109,11 +109,10 @@ Outcome<Done> sync_presets();
 // ---- Filament slots: the + and - buttons above the filament list, a slot's Delete and Merge with, the mixed filament list ----
 
 // Adds a physical filament slot after the physical ones, as the + button does: it takes the next colour and the last
-// slot's preset, and the mixed filaments, with the objects on them, move up by one. Returns the new slot's number
-// (1-based).
+// slot's preset, and the mixed filaments, with the objects on them, move up by one. The slots are independent of the
+// printer's extruders, so a toolchanger adds one too. Returns the new slot's number (1-based).
 // Refuses: filaments_unavailable (a printer of another technology, or a G-code file shown in place of a project, which
-//          has a filament list of its own), one_filament_per_extruder (a printer whose filaments are its extruders,
-//          which shows no + button), too_many_filaments.
+//          has a filament list of its own), too_many_filaments.
 Outcome<int> add_filament_slot();
 
 // What keeps filament slot `slot` (1-based) of a project of `slots` slots, mixed ones among them, from being deleted, or
@@ -128,6 +127,10 @@ struct DeleteFilamentArgs
     // The answer to the question Merge with asks before it merges a physical filament into a mixed filament that mixes
     // it: true merges, false merges nothing; none asks it.
     std::optional<bool> break_mix;
+    // The answer to the question Delete and Merge with ask before a physical slot deletes or merges into a later one on
+    // a non-Bambu Lab printer with more than one nozzle and without single_extruder_multi_material, where the later
+    // slots' tool numbers shift: true deletes, false deletes nothing; none asks it.
+    std::optional<bool> confirm_shift;
 };
 struct DeletedFilament
 {
@@ -140,10 +143,12 @@ struct DeletedFilament
 // list deletes it. A physical filament a mixed filament mixes is deleted as the sidebar deletes it, without a question:
 // the mix keeps a component that is gone and is broken until it is edited (edit_mixed_filament()). Not in the undo
 // history, as none of them is.
-// Refuses: filaments_unavailable, one_filament_per_extruder, the only physical slot (last_filament_slot), a mixed
+// Refuses: filaments_unavailable, the only physical slot (last_filament_slot), a mixed
 //          filament while one physical filament is left, whose list the sidebar then hides (mixed_list_hidden), what
-//          filament_delete_refusal() gives, a merge of a mixed filament (mixed_filament_slot), a merge into a mixed
-//          filament that mixes the slot answered no ahead (mixed_uses_slot, break_mix false) or at its question
+//          filament_delete_refusal() gives, a merge of a mixed filament (mixed_filament_slot), a delete or merge before
+//          a later slot on a non-Bambu Lab printer with more than one nozzle and without single_extruder_multi_material
+//          answered no ahead (shifts_tools, confirm_shift false) or at its question (delete_cancelled), a merge into a
+//          mixed filament that mixes the slot answered no ahead (mixed_uses_slot, break_mix false) or at its question
 //          (merge_cancelled), and a delete the sidebar did not make (not_deleted).
 Outcome<DeletedFilament> delete_filament_slot(const DeleteFilamentArgs& args);
 

@@ -223,7 +223,8 @@ baseline's size and leaves its place.
   - A size of 1300×850 given while maximized replies `normal` with that size.
   - The flat `width`/`height` form replies 1500×950.
 - Position, everywhere except Wayland:
-  - `app_state.window.position` equals [40, 30].
+  - `app_state.window.position` equals [40, 30], or [40, top] where the work area in the first reply's `display`
+    has its top edge lower on the screen than y = 30: a top bar holds windows below it, as GNOME Shell's does at 32.
   - A position plus a size equal to the work area in the first reply's `display` is echoed back.
 - On Wayland instead:
   - `app_state.window` must have no `position`.

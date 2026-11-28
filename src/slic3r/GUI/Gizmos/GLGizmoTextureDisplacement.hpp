@@ -278,6 +278,10 @@ public:
     // rotation handles instead of painting); otherwise forwards to the normal painting handling.
     bool on_mouse(const wxMouseEvent &mouse_event) override;
 
+    // Leaves the mouse wheel to the camera while the brush is hidden (seam marking, "Adjust Texture");
+    // otherwise forwards to the normal painting handling.
+    bool gizmo_event(SLAGizmoEventType action, const Vec2d &mouse_position, bool shift_down, bool alt_down, bool control_down) override;
+
 protected:
     void        on_render_input_window(float x, float y, float bottom_limit) override;
     std::string on_get_name() const override;

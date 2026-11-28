@@ -219,13 +219,13 @@ def own_display(e, ctx):
     args = argparse.Namespace(headless="auto" if ctx.headless else None, xvfb=ctx.xvfb, width=orca_mcp.SCREEN_SIZE[0],
                               height=orca_mcp.SCREEN_SIZE[1])
     try:
-        _, env, pid = orca_mcp.start_display(args, ctx.run_dir)
+        server, env, pid = orca_mcp.start_display(args, ctx.run_dir)
     except SystemExit as stopped:  # no Xvfb, or no free display: the run is recorded as an error
         raise RuntimeError(f"the private display for the test's apps did not start: {stopped}") from None
     try:
         yield env
     finally:
-        orca_mcp.stop_group(pid)
+        orca_mcp.stop_display(server, pid, env)
 
 
 def run_step(cmd, timeout, **popen):

@@ -866,6 +866,16 @@ bool GLGizmoTextureDisplacement::on_mouse(const wxMouseEvent &mouse_event)
     return handled;
 }
 
+bool GLGizmoTextureDisplacement::gizmo_event(SLAGizmoEventType action, const Vec2d &mouse_position, bool shift_down, bool alt_down, bool control_down)
+{
+    // No brush is shown in these modes, so Ctrl + wheel has nothing to resize: let the canvas zoom.
+    if ((m_seam_edit_mode || m_adjust_texture_mode) &&
+        (action == SLAGizmoEventType::MouseWheelUp || action == SLAGizmoEventType::MouseWheelDown))
+        return false;
+
+    return GLGizmoPainterBase::gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
+}
+
 bool GLGizmoTextureDisplacement::on_mouse_seam(const wxMouseEvent &mouse_event)
 {
     // Hold Ctrl to orbit/pan the camera while in seam mode, exactly as the base painter lets you do

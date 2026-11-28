@@ -4462,7 +4462,8 @@ void ObjectList::add_object_to_list(size_t obj_idx, bool call_selection_changed,
     //BBS start add obj_idx for debug
     PartPlateList& list = wxGetApp().plater()->get_partplate_list();
     if (notify_partplate) {
-        list.notify_instance_update(obj_idx, 0, true);
+        for (size_t i = 0; i < model_object->instances.size(); ++i)
+            list.notify_instance_update(obj_idx, i, true);
     }
     //int plate_idx = list.find_instance_belongs(obj_idx, 0);
     //std::string item_name_str = (boost::format("[P%1%][O%2%]%3%") % plate_idx % std::to_string(obj_idx) % model_object->name).str();
@@ -7452,8 +7453,15 @@ void ObjectList::on_plate_selected(int plate_index)
     if (sel == item)
         return;
 
+    // Orca: refresh the sidebar as select_item() does, or Plate Settings keeps showing the previous plate.
+    // select_items() sets the flag itself and refreshes after this returns.
+    const bool already_guarded = m_prevent_list_events;
+    m_prevent_list_events = true;
     UnselectAll();
     Select(item);
+    if (!already_guarded)
+        part_selection_changed();
+    m_prevent_list_events = already_guarded;
 }
 
 //BBS: notify partplate the instance added/updated

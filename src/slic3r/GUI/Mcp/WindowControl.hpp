@@ -52,8 +52,8 @@ bool restore_window(wxTopLevelWindow& window);
 bool finish_restore(wxTopLevelWindow& window);
 // Brings the window in front of the app's other windows, keeping a dialog that belongs to it above it.
 void raise_window(wxTopLevelWindow& window);
-// Whether bringing a minimized window back takes the compositor's leave to activate it, which it may
-// refuse (Wayland).
+// Whether bringing a minimized window back takes the window system's leave to activate it, which it may
+// refuse (a Wayland compositor, and GNOME Shell on X11).
 bool restore_needs_activation();
 // How long window_set waits for a window to report the `state` it was asked for: 3 s, and 5 s for a
 // minimize on Wayland, where Mutter reports a window hidden once it has not shown it for 3 s.
