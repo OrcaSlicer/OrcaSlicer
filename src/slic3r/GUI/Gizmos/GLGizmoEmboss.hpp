@@ -233,6 +233,20 @@ private:
     std::optional<float> m_scale_depth;
     void calculate_scale();
 
+    // Smallest radii the text fits on, for the text, font and style they were computed for
+    struct ArcFit
+    {
+        std::string                                    text;
+        std::shared_ptr<const ::Slic3r::Emboss::FontFile>        font;
+        unsigned                                       collection = 0;
+        FontProp                                       prop;
+        ::Slic3r::Emboss::ArcRadiusLimits                        limits;
+    };
+    std::optional<ArcFit> m_arc_fit;
+    const ::Slic3r::Emboss::ArcRadiusLimits &arc_radius_limits(const std::shared_ptr<const ::Slic3r::Emboss::FontFile> &font, const FontProp &prop);
+    // Radius typed into its field and not applied yet, in the units the field shows
+    std::optional<float> m_arc_radius_typed;
+
     // drawing icons
     IconManager m_icon_manager;
     IconManager::VIcons m_icons;

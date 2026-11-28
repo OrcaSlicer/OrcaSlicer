@@ -471,6 +471,7 @@ static constexpr const char *LINE_GAP_ATTR    = "line_gap";
 static constexpr const char *LINE_HEIGHT_ATTR = "line_height";
 static constexpr const char *BOLDNESS_ATTR    = "boldness";
 static constexpr const char *SKEW_ATTR        = "skew";
+static constexpr const char *ARC_RADIUS_ATTR  = "arc_radius";
 static constexpr const char *PER_GLYPH_ATTR   = "per_glyph";
 static constexpr const char *HORIZONTAL_ALIGN_ATTR  = "horizontal";
 static constexpr const char *VERTICAL_ALIGN_ATTR    = "vertical";
@@ -10027,6 +10028,8 @@ void TextConfigurationSerialization::to_xml(std::stringstream &stream, const Tex
         stream << BOLDNESS_ATTR << "=\"" << *fp.boldness << "\" ";
     if (fp.skew.has_value())
         stream << SKEW_ATTR << "=\"" << *fp.skew << "\" ";
+    if (fp.arc_radius.has_value())
+        stream << ARC_RADIUS_ATTR << "=\"" << *fp.arc_radius << "\" ";
     if (fp.per_glyph)
         stream << PER_GLYPH_ATTR << "=\"" << 1 << "\" ";
     stream << HORIZONTAL_ALIGN_ATTR << "=\"" << bimap_cvt(horizontal_align_to_name, fp.align.first, dafault_type) << "\" ";
@@ -10101,6 +10104,9 @@ std::optional<TextConfiguration> TextConfigurationSerialization::read(const char
     float skew = bbs_get_attribute_value_float(attributes, num_attributes, SKEW_ATTR);
     if (std::fabs(skew) > std::numeric_limits<float>::epsilon())
         fp.skew = skew;
+    float arc_radius = bbs_get_attribute_value_float(attributes, num_attributes, ARC_RADIUS_ATTR);
+    if (std::isfinite(arc_radius) && std::fabs(arc_radius) > std::numeric_limits<float>::epsilon())
+        fp.arc_radius = arc_radius;
     int per_glyph = bbs_get_attribute_value_int(attributes, num_attributes, PER_GLYPH_ATTR);
     if (per_glyph == 1) fp.per_glyph = true;
 

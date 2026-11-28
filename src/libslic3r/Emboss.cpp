@@ -1403,10 +1403,15 @@ namespace {
 /// <param name="text">To detect end of lines - to be able horizontal center the line</param>
 /// <param name="prop">Containe Horizontal and vertical alignment</param>
 /// <param name="font">Needed for scale and font size</param>
-void align_shape(ExPolygonsWithIds &shapes, const std::wstring &text, const FontProp &prop, const FontFile &font);
+/// <returns>Vertical offset added to every letter, Y of the first line's baseline</returns>
+int align_shape(ExPolygonsWithIds &shapes, const std::wstring &text, const FontProp &prop, const FontFile &font);
 }
 
-ExPolygonsWithIds Emboss::text2vshapes(FontFileWithCache &font_with_cache, const std::wstring& text, const FontProp &font_prop, const std::function<bool()>& was_canceled){
+namespace {
+// Letters of the text aligned as the property says, straight; first_baseline_y gets the first line's baseline.
+ExPolygonsWithIds layout_straight(FontFileWithCache &font_with_cache, const std::wstring &text, const FontProp &font_prop,
+                                  const std::function<bool()> &was_canceled, int &first_baseline_y)
+{
     assert(font_with_cache.has_value());
     const FontFile &font = *font_with_cache.font_file;
     unsigned int font_index = font_prop.collection_number.value_or(0);
@@ -1429,8 +1434,133 @@ ExPolygonsWithIds Emboss::text2vshapes(FontFileWithCache &font_with_cache, const
         result.push_back({id, letter2shapes(letter, cursor, font_with_cache, font_prop, font_info_cache)});
     }
 
-    align_shape(result, text, font_prop, font);
+    first_baseline_y = align_shape(result, text, font_prop, font);
     return result;
+}
+} // namespace
+
+ExPolygonsWithIds Emboss::text2vshapes(FontFileWithCache &font_with_cache, const std::wstring& text, const FontProp &font_prop, const std::function<bool()>& was_canceled){
+    int first_baseline_y = 0;
+    ExPolygonsWithIds result = layout_straight(font_with_cache, text, font_prop, was_canceled, first_baseline_y);
+    if (result.empty())
+        return result;
+    const FontFile &font = *font_with_cache.font_file;
+    // letters placed one by one on the model keep the straight layout
+    if (font_prop.arc_radius.has_value() && !font_prop.per_glyph)
+        bend_to_arc(result, *font_prop.arc_radius / get_text_shape_scale(font_prop, font), first_baseline_y, get_line_height(font, font_prop));
+    return result;
+}
+
+namespace {
+// Beyond this radius a text of any length is straight to within its coordinates.
+const double MAX_ARC_RADIUS = 1e12; // [in shape units]
+
+bool fits_on_arc(const ExPolygonsWithIds &shapes, double radius, double first_baseline_y, double line_height)
+{
+    return std::isfinite(radius) && std::abs(radius) <= MAX_ARC_RADIUS &&
+           std::abs(radius) > Emboss::min_arc_radius(shapes, first_baseline_y, line_height, radius > 0.);
+}
+} // namespace
+
+// Each line with letters has to stay clear of the circle's center and end before it meets its own start.
+// Letters stand on the baseline's circle and reach toward the center with their bottoms when it is
+// below them and with their tops when it is above, so that inner edge has the least room.
+double Emboss::min_arc_radius(const ExPolygonsWithIds &shapes, double first_baseline_y, double line_height, bool tops_outward)
+{
+    double      result     = 0.;
+    double      baseline_y = first_baseline_y;
+    BoundingBox line_bb;
+    auto add_line = [&]() {
+        if (!line_bb.defined)
+            return;
+        const double half_turn = static_cast<double>(line_bb.size().x()) / (2. * M_PI);
+        const double line = tops_outward ? half_turn - std::min(baseline_y, static_cast<double>(line_bb.min.y())) :
+                                           half_turn + std::max(baseline_y, static_cast<double>(line_bb.max.y()));
+        result = std::max(result, line);
+    };
+    for (const ExPolygonsWithId &letter : shapes) {
+        if (letter.id == ENTER_UNICODE) {
+            add_line();
+            baseline_y -= line_height;
+            line_bb = BoundingBox();
+        } else if (!letter.expoly.empty())
+            line_bb.merge(get_extents(letter.expoly));
+    }
+    add_line();
+    return result;
+}
+
+Emboss::ArcRadiusLimits Emboss::arc_radius_limits(const std::shared_ptr<const FontFile> &font, const std::wstring &text, const FontProp &prop)
+{
+    if (font == nullptr)
+        return {};
+    FontProp straight   = prop;
+    straight.arc_radius.reset();
+    straight.per_glyph  = false;
+    FontFileWithCache font_with_cache;
+    font_with_cache.font_file = font;
+    font_with_cache.cache     = std::make_shared<Glyphs>();
+    int first_baseline_y = 0;
+    const ExPolygonsWithIds shapes = layout_straight(font_with_cache, text, straight, []() { return false; }, first_baseline_y);
+    if (shapes.empty())
+        return {};
+    const double line_height = get_line_height(*font, straight);
+    const double scale       = get_text_shape_scale(straight, *font);
+    return {min_arc_radius(shapes, first_baseline_y, line_height, true) * scale,
+            min_arc_radius(shapes, first_baseline_y, line_height, false) * scale};
+}
+
+void Emboss::bend_to_arc(ExPolygonsWithIds &shapes, double radius, double first_baseline_y, double line_height)
+{
+    if (!fits_on_arc(shapes, radius, first_baseline_y, line_height))
+        return;
+
+    // Letters are spaced along the edge of their line nearest the center, so they keep their straight spacing
+    // there and never run into each other: the baseline when the center is below, the letters' tops when above.
+    std::vector<double> spacing_y;
+    {
+        double      baseline_y = first_baseline_y;
+        BoundingBox line_bb;
+        auto add_line = [&]() {
+            spacing_y.push_back(radius > 0. || !line_bb.defined ? baseline_y : std::max(baseline_y, static_cast<double>(line_bb.max.y())));
+        };
+        for (const ExPolygonsWithId &letter : shapes) {
+            if (letter.id == ENTER_UNICODE) {
+                add_line();
+                baseline_y -= line_height;
+                line_bb = BoundingBox();
+            } else if (!letter.expoly.empty())
+                line_bb.merge(get_extents(letter.expoly));
+        }
+        add_line();
+    }
+
+    size_t line = 0;
+    for (ExPolygonsWithId &letter : shapes) {
+        if (letter.id == ENTER_UNICODE) {
+            ++line;
+            continue;
+        }
+        if (letter.expoly.empty())
+            continue;
+
+        const double center_x = static_cast<double>(get_extents(letter.expoly).center().x());
+        const double angle    = center_x / (radius + spacing_y[line]);
+        const double c        = std::cos(angle);
+        const double s        = std::sin(angle);
+        auto bend = [&](Points &points) {
+            for (Point &p : points) {
+                const double x = static_cast<double>(p.x()) - center_x;
+                const double y = static_cast<double>(p.y()) + radius;
+                p = Point(static_cast<coord_t>(std::round(x * c + y * s)), static_cast<coord_t>(std::round(y * c - x * s - radius)));
+            }
+        };
+        for (ExPolygon &expolygon : letter.expoly) {
+            bend(expolygon.contour.points);
+            for (Polygon &hole : expolygon.holes)
+                bend(hole.points);
+        }
+    }
 }
 
 #include <boost/range/adaptor/reversed.hpp>
@@ -2067,7 +2197,7 @@ int32_t get_align_x_offset(FontProp::HorizontalAlign align, const BoundingBox &s
     return 0;
 }
 
-void align_shape(ExPolygonsWithIds &shapes, const std::wstring &text, const FontProp &prop, const FontFile &font)
+int align_shape(ExPolygonsWithIds &shapes, const std::wstring &text, const FontProp &prop, const FontFile &font)
 {
     // Shapes have to match letters in text
     assert(shapes.size() == text.length());
@@ -2081,7 +2211,7 @@ void align_shape(ExPolygonsWithIds &shapes, const std::wstring &text, const Font
         for (ExPolygonsWithId& shape : shapes)
             for (ExPolygon &s : shape.expoly)
                 s.translate(Point(0, y_offset));
-        return;
+        return y_offset;
     }
 
     BoundingBox shape_bb;
@@ -2109,6 +2239,7 @@ void align_shape(ExPolygonsWithIds &shapes, const std::wstring &text, const Font
         for (ExPolygon &s : shape)
             s.translate(offset);
     }
+    return y_offset;
 }
 } // namespace
 

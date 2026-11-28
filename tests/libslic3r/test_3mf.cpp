@@ -33,7 +33,10 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
+#include "libslic3r/EmbossShape.hpp"
+#include "libslic3r/TextConfiguration.hpp"
 #include <memory>
+#include <optional>
 #include <cstdint>
 #include <ios>
 #include <nlohmann/json.hpp>
@@ -2931,4 +2934,65 @@ SCENARIO("a rendered no-light thumbnail does not suppress the plate thumbnail", 
             }
         }
     }
+}
+
+TEST_CASE("A text part's arc radius survives a project round trip", "[3mf][Emboss]")
+{
+    ScopedTemporaryDir  backup_dir("orca_arc_text_reload");
+    ScopedTemporaryFile file(".3mf");
+    Model               source;
+    ModelObject        *object = source.add_object();
+    object->add_instance();
+    // A text bent along a circle, then a straight one as every project had before the radius existed.
+    const std::optional<float> radii[] = {-12.5f, std::nullopt};
+    double                     size    = 1.;
+    for (const std::optional<float> &radius : radii) {
+        ModelVolume      *volume = object->add_volume(make_cube(size, size, size));
+        TextConfiguration text;
+        text.text                  = "Radial";
+        text.style.prop.arc_radius = radius;
+        volume->text_configuration = text;
+        volume->emboss_shape       = EmbossShape{};
+        size += 1.;
+    }
+    store_project(source, file.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+
+    Model restored;
+    REQUIRE(load_project(file.string(), restored, backup_dir));
+    REQUIRE(restored.objects.size() == 1);
+    const ModelVolumePtrs &volumes = restored.objects.front()->volumes;
+    REQUIRE(volumes.size() == 2);
+
+    REQUIRE(volumes[0]->text_configuration.has_value());
+    const std::optional<float> &bent = volumes[0]->text_configuration->style.prop.arc_radius;
+    REQUIRE(bent.has_value());
+    CHECK_THAT(static_cast<double>(*bent), Catch::Matchers::WithinAbs(-12.5, 1e-4));
+
+    REQUIRE(volumes[1]->text_configuration.has_value());
+    CHECK_FALSE(volumes[1]->text_configuration->style.prop.arc_radius.has_value());
+}
+
+TEST_CASE("A text part's arc radius that is not a number is dropped on load", "[3mf][Emboss]")
+{
+    const std::string   bad = GENERATE("nan", "inf", "-inf");
+    ScopedTemporaryDir  backup_dir("orca_arc_text_bad");
+    ScopedTemporaryFile file(".3mf");
+    Model               source;
+    ModelObject        *object = source.add_object();
+    object->add_instance();
+    ModelVolume      *volume = object->add_volume(make_cube(1., 1., 1.));
+    TextConfiguration text;
+    text.style.prop.arc_radius = 12.5f;
+    volume->text_configuration = text;
+    volume->emboss_shape       = EmbossShape{};
+    store_project(source, file.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+    REQUIRE(replace_in_3mf_entry(file.string(), "model_settings.config", "arc_radius=\"12.5\"", "arc_radius=\"" + bad + "\""));
+
+    Model restored;
+    REQUIRE(load_project(file.string(), restored, backup_dir));
+    REQUIRE(restored.objects.size() == 1);
+    REQUIRE(restored.objects.front()->volumes.size() == 1);
+    const ModelVolume &loaded = *restored.objects.front()->volumes.front();
+    REQUIRE(loaded.text_configuration.has_value());
+    CHECK_FALSE(loaded.text_configuration->style.prop.arc_radius.has_value());
 }

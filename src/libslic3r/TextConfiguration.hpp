@@ -38,6 +38,11 @@ struct FontProp
     // When not set value is zero and is not stored
     std::optional<float> skew; // [ration x:y]
 
+    // Lay the text along a circle through its anchor
+    // positive value puts the circle's center below the text, negative above
+    // When not set the text is straight and it is not stored
+    std::optional<float> arc_radius; // [in mm]
+
     // Parameter for True Type Font collections
     // Select index of font in collection
     std::optional<unsigned int> collection_number;
@@ -85,7 +90,8 @@ struct FontProp
             align == other.align &&
             is_approx(size_in_mm, other.size_in_mm) && 
             is_approx(boldness, other.boldness) &&
-            is_approx(skew, other.skew);
+            is_approx(skew, other.skew) &&
+            is_approx(arc_radius, other.arc_radius);
     }
 
     // undo / redo stack recovery
@@ -97,6 +103,7 @@ struct FontProp
         cereal::save(ar, boldness);
         cereal::save(ar, skew);
         cereal::save(ar, collection_number);
+        cereal::save(ar, arc_radius);
     }
     template<class Archive> void load(Archive &ar)
     {
@@ -106,6 +113,7 @@ struct FontProp
         cereal::load(ar, boldness);
         cereal::load(ar, skew);
         cereal::load(ar, collection_number);
+        cereal::load(ar, arc_radius);
     }
 };
 
