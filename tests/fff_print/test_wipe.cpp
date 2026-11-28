@@ -187,6 +187,43 @@ TEST_CASE("Wipe retraction preserves fractional speed with inward wipe disabled"
     CHECK_THAT(before_wipe, Catch::Matchers::WithinAbs(0.8 - expected_during, 0.00005));
 }
 
+TEST_CASE("Wipe moves no filament under firmware retraction", "[Wipe][RetractionSplit][Regression]")
+{
+    // G11 restores only what G10 retracted, so filament moved during a wipe is never restored.
+    const char *retract_before_wipe = GENERATE("0%", "70%", "100%");
+    const char *relative_e = GENERATE("0", "1");
+    CAPTURE(retract_before_wipe, relative_e);
+    DynamicPrintConfig config = wipe_config("classic", false);
+    config.set_deserialize_strict({
+        {"gcode_flavor", "klipper"},
+        {"use_firmware_retraction", "1"},
+        {"use_relative_e_distances", relative_e},
+        {"retract_before_wipe", retract_before_wipe},
+        {"retract_after_wipe", "0%"},
+    });
+    const std::string output = slice({make_cube(10., 10., 1.)}, config);
+    const auto &start_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start);
+    const auto &end_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End);
+    size_t wipes = 0;
+    double e_during_wipes = 0.;
+    bool in_wipe = false;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(start_tag) != std::string_view::npos) {
+            in_wipe = true;
+            ++wipes;
+        } else if (line.comment().find(end_tag) != std::string_view::npos) {
+            in_wipe = false;
+        } else if (in_wipe && line.has_e()) {
+            e_during_wipes += std::abs(line.dist_E(self));
+        }
+    });
+
+    CHECK(wipes > 0);
+    CHECK_THAT(e_during_wipes, Catch::Matchers::WithinAbs(0., EPSILON));
+}
+
 TEST_CASE("Inward wipe preserves retraction splits and minimum travel", "[Wipe][RetractionSplit][Regression]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
