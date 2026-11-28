@@ -99,8 +99,7 @@ private:
     void update_ok_button_state();
     void update_gradient_direction_items();
     void update_component_count_ui();
-    // Fits the dialog to its content keeping its top-left corner, so the controls stay where
-    // they are, then clamps its size and position to its display.
+    // Fits the dialog to its content and keeps it on its display.
     void fit_within_display();
     void rebuild_all_combos();
     void rebuild_recommendation_items();
@@ -111,8 +110,7 @@ private:
 
     // Reserves the same width on every material row label so the combo boxes line up.
     static void apply_uniform_label_width(wxStaticText* lbl);
-    // Appends one numbered label + combo row to m_material_rows_sizer.  N follows the
-    // number of rows already there, so callers must not renumber anything themselves.
+    // Appends a label + combo row to m_material_rows_sizer, numbered after the existing rows.
     void append_material_row();
 
     // Helpers for component/ratio access

@@ -200,7 +200,7 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow* parent,
 
 void MixedFilamentDialog::on_dpi_changed(const wxRect&)
 {
-    // The icon buttons hold bitmaps rasterized for the old scale; re-rasterize them before fitting.
+    // Re-render the icons at the new scale.
     if (m_btn_add_material)    m_btn_add_material->msw_rescale();
     if (m_btn_remove_material) m_btn_remove_material->msw_rescale();
     fit_within_display();
@@ -819,8 +819,7 @@ wxBoxSizer* MixedFilamentDialog::create_material_selection()
 
     title_sizer->Add(sel_label, 1, wxALIGN_CENTER_VERTICAL, FromDIP(8));
 
-    // Icon-only buttons: the greyed icon marks the disabled state and the tooltip, which
-    // update_component_count_ui() keeps set in both states, says what the button does or why it can't.
+    // Icon-only buttons, so they always keep a tooltip.
     m_btn_remove_material = new ScalableButton(this, wxID_ANY, "delete_filament");
     m_btn_remove_material->SetToolTip(_L("Remove the third material"));
     m_btn_remove_material->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_remove_material(); });
@@ -1254,7 +1253,7 @@ wxBoxSizer* MixedFilamentDialog::create_button_panel()
 {
     auto* sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    // ORCA use cancel button on right
+    // ORCA: Cancel on the right
     m_btn_ok = new Button(this, _L("OK"));
     m_btn_ok->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_btn_ok->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_OK); });
@@ -1788,7 +1787,7 @@ void MixedFilamentDialog::update_component_count_ui()
     }
 
     if (m_btn_remove_material) {
-        // Always shown, disabled until there is a third material to remove.
+        // Always shown, enabled only with a third material.
         m_btn_remove_material->Enable(is_three);
         m_btn_remove_material->SetToolTip(_L("Remove the third material"));
     }
@@ -1799,19 +1798,16 @@ void MixedFilamentDialog::update_component_count_ui()
 
 void MixedFilamentDialog::fit_within_display()
 {
-    // Fit to the content without moving the top-left corner, so the controls the person is using
-    // stay under the mouse when a section appears or goes (gradient curve, third material).
+    // Fit keeps the top-left corner, so controls don't move when sections appear or hide.
     Fit();
 
     // Until it is shown the dialog has no display of its own (on Wayland none at all), so use
     // the parent's, which is also where CentreOnParent() places it.
     const wxRect area = wxDisplay(IsShown() ? static_cast<wxWindow*>(this) : GetParent()).GetClientArea();
     wxSize       size = GetSize();
-    size.DecTo(area.GetSize()); // never larger than the display
+    size.DecTo(area.GetSize());
 
-    // Before it is shown the position is not final (build_ui() centres it afterwards), so only the
-    // size is clamped. Once shown, keep the whole dialog inside its display so the buttons don't
-    // end up under the taskbar or below the bottom of the screen.
+    // Keep the dialog on screen. Before it is shown only the size counts, as build_ui() centres it.
     wxPoint pos = GetPosition();
     if (IsShown()) {
         pos.x = std::max(area.x, std::min(pos.x, area.GetRight() + 1 - size.x));
@@ -1820,7 +1816,6 @@ void MixedFilamentDialog::fit_within_display()
     if (size != GetSize() || pos != GetPosition())
         SetSize(pos.x, pos.y, size.x, size.y, wxSIZE_ALLOW_MINUS_ONE);
 }
-
 
 } // namespace GUI
 } // namespace Slic3r

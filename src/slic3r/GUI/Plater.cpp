@@ -3500,7 +3500,7 @@ Sidebar::Sidebar(Plater *parent)
         title_sizer->Add(p->m_text_mixed_title, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::ContentMargin()));
         title_sizer->AddSpacer(FromDIP(SidebarProps::IconSpacing()));
 
-        // ORCA use remove all button on beginning with wide spacing to prevent accidental clicks
+        // ORCA: Remove all comes first, with wide spacing to avoid accidental clicks
         p->m_btn_mixed_del_all = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_all_filaments");
         p->m_btn_mixed_del_all->SetToolTip(_L("Remove all mixed filaments"));
         p->m_btn_mixed_del_all->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { remove_all_mixed_filaments(); });
