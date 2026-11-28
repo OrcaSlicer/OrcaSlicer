@@ -6987,7 +6987,9 @@ int CLI::run(int argc, char **argv)
                                     for (int f_index = 0; f_index < plate_filaments.size(); f_index++) {
                                         for (int f_index = 0; f_index < plate_filaments.size(); f_index++) {
                                             if (plate_filaments[f_index] <= filament_count) {
-                                                int filament_extruder = filament_maps[plate_filaments[f_index] - 1];
+                                                // A filament the map leaves out prints with nozzle 1, as in the final map.
+                                                const int filament_extruder = plate_filaments[f_index] <= int(filament_maps.size()) ?
+                                                                                  filament_maps[plate_filaments[f_index] - 1] : 1;
                                                 std::string filament_type;
                                                 m_print_config.get_filament_type(filament_type, plate_filaments[f_index] - 1);
                                                 auto *filament_printable_status = dynamic_cast<const ConfigOptionInts *>(m_print_config.option("filament_printable"));

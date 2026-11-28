@@ -28,6 +28,9 @@ public:
 	PresetUpdater &operator=(const PresetUpdater &) = delete;
 	~PresetUpdater();
 
+	// Stops the background threads and waits for them. To be called while the app they read from still exists.
+	void stop();
+
 	// If either version check or config updating is enabled, get the appropriate data in the background and cache it.
 	void sync(std::string http_url, std::string language, std::string plugin_version, PresetBundle *preset_bundle);
 

@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -9,6 +11,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <utility>
 
 using namespace Slic3r;
 
@@ -73,4 +76,64 @@ TEST_CASE("Paint remapped onto the unsmoothed subdivision keeps a face bounded b
 
     const auto remapped = TriangleSelector::remap_painting(cube.its, paint, unsmoothed.its, Transform3d::Identity(), {});
     REQUIRE_THAT(painted_area(unsmoothed, remapped, EnforcerBlockerType::Extruder2), Catch::Matchers::WithinRel(double(size * size), 1e-3));
+}
+
+TEST_CASE("Loop subdivision drops a repeated face and an unused vertex", "[TriangleMeshDeal][Regression]")
+{
+    const TriangleMesh cube = make_cube(20.f, 20.f, 20.f);
+    bool               ok   = false;
+    const TriangleMesh expected = TriangleMeshDeal::smooth_triangle_mesh(cube, ok);
+    REQUIRE(ok);
+
+    indexed_triangle_set its = cube.its;
+    const bool reversed = GENERATE(false, true);
+    stl_triangle_vertex_indices repeated = its.indices.front();
+    if (reversed)
+        std::swap(repeated(1), repeated(2));
+    its.indices.push_back(repeated);
+    // An unused vertex after all the used ones.
+    its.vertices.emplace_back(100.f, 100.f, 100.f);
+    CAPTURE(reversed);
+
+    const TriangleMesh smoothed = TriangleMeshDeal::smooth_triangle_mesh(TriangleMesh(its), ok);
+    REQUIRE(ok);
+    CHECK(smoothed.its.indices.size() == expected.its.indices.size());
+    CHECK(smoothed.its.vertices.size() == expected.its.vertices.size());
+}
+
+TEST_CASE("Loop subdivision drops a face that repeats a vertex", "[TriangleMeshDeal][Regression]")
+{
+    const TriangleMesh cube = make_cube(20.f, 20.f, 20.f);
+    bool               ok   = false;
+    const TriangleMesh expected = TriangleMeshDeal::smooth_triangle_mesh(cube, ok);
+    REQUIRE(ok);
+
+    indexed_triangle_set its = cube.its;
+    its.indices.emplace_back(0, 0, 6);
+    const TriangleMesh smoothed = TriangleMeshDeal::smooth_triangle_mesh(TriangleMesh(its), ok);
+    REQUIRE(ok);
+    CHECK(smoothed.its.indices.size() == expected.its.indices.size());
+    CHECK(smoothed.its.vertices.size() == expected.its.vertices.size());
+}
+
+TEST_CASE("Loop subdivision refuses a face that runs along its edges the same way as its neighbours", "[TriangleMeshDeal][Regression]")
+{
+    indexed_triangle_set its = make_cube(20.f, 20.f, 20.f).its;
+    std::swap(its.indices.front()(1), its.indices.front()(2));
+
+    bool ok = true;
+    TriangleMeshDeal::smooth_triangle_mesh(TriangleMesh(its), ok);
+    CHECK_FALSE(ok);
+}
+
+TEST_CASE("Loop subdivision refuses an edge shared by more than two faces", "[TriangleMeshDeal][Regression]")
+{
+    // Three triangles hinged on the edge from vertex 0 to vertex 1.
+    indexed_triangle_set its;
+    its.vertices = {Vec3f(0.f, 0.f, 0.f), Vec3f(10.f, 0.f, 0.f), Vec3f(5.f, 10.f, 0.f), Vec3f(5.f, -10.f, 0.f), Vec3f(5.f, 0.f, 10.f)};
+    its.indices  = {stl_triangle_vertex_indices(0, 1, 2), stl_triangle_vertex_indices(1, 0, 3), stl_triangle_vertex_indices(0, 1, 4)};
+
+    bool ok = true;
+    TriangleMeshDeal::smooth_triangle_mesh(TriangleMesh(its), ok);
+    CHECK_FALSE(ok);
 }

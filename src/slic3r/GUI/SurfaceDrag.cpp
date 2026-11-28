@@ -671,6 +671,12 @@ bool dragging(const Vec2d                 &mouse_pos,
               const RaycastManager        &raycast_manager,
               const std::optional<double> &up_limit)
 {
+    // A finished "use surface" job may have rebuilt the dragged volume since the drag started
+    if (GLVolume *gl_volume = get_selected_gl_volume(canvas))
+        surface_drag.gl_volume = gl_volume;
+    else
+        return false;
+
     Vec2d offseted_mouse = mouse_pos + surface_drag.mouse_offset_without_sla_shift;
     std::optional<RaycastManager::Hit> hit = ray_from_camera(
         raycast_manager, offseted_mouse, camera, &surface_drag.condition);

@@ -431,6 +431,8 @@ void RemovableDriveManager::shutdown()
 	// to blocking by the diskutil tool for a couple (up to 10) seconds. This is likely not critical, as the eject normally
 	// finishes quickly.
 	this->eject_thread_finish();
+	// init() registers a new observer when the GUI is rebuilt
+	this->unregister_window_osx();
 #endif
 
 #ifndef REMOVABLE_DRIVE_MANAGER_OS_CALLBACKS

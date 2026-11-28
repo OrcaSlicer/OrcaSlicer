@@ -243,7 +243,7 @@ struct PresetUpdater::priv
 	fs::path rsrc_path;
 	fs::path vendor_path;
 
-	bool cancel;
+	std::atomic<bool> cancel;
 	std::thread thread;
 
 	bool has_waiting_updates { false };
@@ -284,7 +284,7 @@ struct PresetUpdater::priv
     void check_new_vendors(const std::set<std::string>& system_vendors,
                             std::function<void(std::vector<std::string>, bool)> callback);
     void sync_tooltip(std::string http_url, std::string language);
-    void sync_plugins(std::string http_url, std::string plugin_version);
+    void sync_plugins(std::string http_url, std::string plugin_version, bool is_arm64, bool use_legacy_plugin);
     void sync_printer_config(std::string http_url);
     bool get_cached_plugins_version(std::string &cached_version, bool& force);
 
@@ -864,13 +864,15 @@ bool PresetUpdater::priv::get_cached_plugins_version(std::string& cached_version
     return has_plugins;
 }
 
-void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_version)
+void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_version, bool is_arm64, bool use_legacy_plugin)
 {
+    if (cancel) return;
+
     if (plugin_version == "00.00.00.00") {
         BOOST_LOG_TRIVIAL(info) << "non need to sync plugins for there is no plugins currently.";
         return;
     }
-    std::string curr_version = GUI::wxGetApp().use_legacy_network_plugin() ? BAMBU_NETWORK_AGENT_VERSION_LEGACY : get_latest_network_version();
+    std::string curr_version = use_legacy_plugin ? BAMBU_NETWORK_AGENT_VERSION_LEGACY : get_latest_network_version();
     std::string using_version = curr_version.substr(0, 9) + "00";
     auto cache_plugin_folder = cache_path / "plugins";
 
@@ -931,7 +933,7 @@ void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_
     }
 
 #if defined(__WINDOWS__)
-    if (GUI::wxGetApp().is_running_on_arm64() && !GUI::wxGetApp().use_legacy_network_plugin()) {
+    if (is_arm64 && !use_legacy_plugin) {
         //set to arm64 for plugins
         std::map<std::string, std::string> current_headers = Slic3r::Http::get_extra_headers();
         current_headers["X-BBL-OS-Type"] = "windows_arm";
@@ -951,7 +953,7 @@ void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_
         BOOST_LOG_TRIVIAL(warning) << format("[Orca Updater] sync_plugins: %1%", e.what());
     }
 #if defined(__WINDOWS__)
-    if (GUI::wxGetApp().is_running_on_arm64() && !GUI::wxGetApp().use_legacy_network_plugin()) {
+    if (is_arm64 && !use_legacy_plugin) {
         //set back
         std::map<std::string, std::string> current_headers = Slic3r::Http::get_extra_headers();
         current_headers["X-BBL-OS-Type"] = "windows";
@@ -960,6 +962,9 @@ void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_
         BOOST_LOG_TRIVIAL(info) << boost::format("set X-BBL-OS-Type back to windows");
     }
 #endif
+
+    // the app may be shutting down, so don't touch the GUI
+    if (cancel) return;
 
     bool result = get_cached_plugins_version(cached_version, force_upgrade);
     if (result) {
@@ -1039,6 +1044,7 @@ void PresetUpdater::priv::sync_printer_config(std::string http_url)
             result = true;
         }
     } catch (...) {}
+    if (cancel) return;
     if (result) {
         BOOST_LOG_TRIVIAL(info) << format("[Orca Updater] found new printer config: %1%, prompt to update", cached_version);
         waiting_printer_updates = get_printer_config_updates(true);
@@ -1358,6 +1364,11 @@ PresetUpdater::PresetUpdater() :
 
 PresetUpdater::~PresetUpdater()
 {
+	this->stop();
+}
+
+void PresetUpdater::stop()
+{
 	if (p && p->thread.joinable()) {
 		// This will stop transfers being done by the thread, if any.
 		// Cancelling takes some time, but should complete soon enough.
@@ -1379,15 +1390,23 @@ void PresetUpdater::sync(std::string http_url, std::string language, std::string
 	//p->set_download_prefs(GUI::wxGetApp().app_config);
 	if (!p->enabled_version_check && !p->enabled_config_update) { return; }
 
-	p->thread = std::thread([this, http_url, language, plugin_version]() {
+	// read on the main thread, wxGetApp() is null during shutdown
+	bool is_arm64 = false;
+#if defined(__WINDOWS__)
+	is_arm64 = GUI::wxGetApp().is_running_on_arm64();
+#endif
+	const bool use_legacy_plugin = GUI::wxGetApp().use_legacy_network_plugin();
+	p->thread = std::thread([this, http_url, language, plugin_version, is_arm64, use_legacy_plugin]() {
 		try {
 			this->p->sync_version();
 			if (p->cancel)
 				return;
 			// Vendor profile updates are triggered by check_vendor_update()
 			// after the startup printer preset has been restored.
-            this->p->sync_plugins(http_url, plugin_version);
+            this->p->sync_plugins(http_url, plugin_version, is_arm64, use_legacy_plugin);
             this->p->sync_printer_config(http_url);
+            if (p->cancel)
+                return;
             // Orca (PR #130): the filament library is always installed, so refresh it
             // from the updater on every startup sync rather than deferring to check_vendor_update().
             this->p->sync_vendor_config(PresetBundle::ORCA_FILAMENT_LIBRARY);
