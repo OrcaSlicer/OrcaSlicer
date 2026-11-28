@@ -47,6 +47,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/GLShader.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/GUI_Colors.hpp"
 #include "slic3r/GUI/GUI_Geometry.hpp"
 #include <tbb/parallel_for.h>
 
@@ -69,6 +70,7 @@
 
 namespace Slic3r {
 namespace GUI {
+
 std::string GLGizmoMeasure::format_double(double value)
 {
     char buf[1024];
@@ -970,11 +972,12 @@ void GLGizmoMeasure::on_render()
     auto hover_selection_color = [this]() {
       return ((m_mode == EMode::PointSelection && !m_selected_features.first.feature.has_value()) ||
               (m_mode != EMode::PointSelection && (!m_selected_features.first.feature.has_value() || *m_curr_feature == *m_selected_features.first.feature))) ?
-          SELECTED_1ST_COLOR : SELECTED_2ND_COLOR;
+          selected_1st_color() : selected_2nd_color();
     };
 
     auto hovering_color = [this, hover_selection_color]() {
-        return (m_mode == EMode::PointSelection) ? HOVER_COLOR : hover_selection_color();
+        // ORCA: brighter version of the selection color
+        return (m_mode == EMode::PointSelection) ? lerp(hover_selection_color(), ColorRGBA::WHITE(), 0.6f) : hover_selection_color();
     };
 
     if (m_curr_feature.has_value()) {
@@ -1015,9 +1018,9 @@ void GLGizmoMeasure::on_render()
             case Measure::SurfaceFeatureType::Circle:
             {
                 if (m_selected_features.first.is_center && m_curr_feature == m_selected_features.first.source)
-                    colors = { SELECTED_1ST_COLOR, NEUTRAL_COLOR };
+                    colors = { selected_1st_color(), NEUTRAL_COLOR };
                 else if (m_selected_features.second.is_center && m_curr_feature == m_selected_features.second.source)
-                    colors = { SELECTED_2ND_COLOR, NEUTRAL_COLOR };
+                    colors = { selected_2nd_color(), NEUTRAL_COLOR };
                 else
                     colors = { hovering_color(), hovering_color() };
                 break;
@@ -1042,18 +1045,18 @@ void GLGizmoMeasure::on_render()
         if (m_hover_id == SEL_SPHERE_1_ID && (m_selected_features.first.is_center || is_feature_with_center(*m_selected_features.first.feature))) {
             // hovering over a center
             feature_to_render = m_selected_features.first.source;
-            colors = { NEUTRAL_COLOR, SELECTED_1ST_COLOR };
+            colors = { NEUTRAL_COLOR, selected_1st_color() };
             requires_raycaster_update = true;
         }
         else if (is_feature_with_center(*m_selected_features.first.feature)) {
             // hovering over a feature with center
             feature_to_render = m_selected_features.first.feature;
-            colors = { SELECTED_1ST_COLOR, NEUTRAL_COLOR };
+            colors = { selected_1st_color(), NEUTRAL_COLOR };
             requires_raycaster_update = true;
         }
         else {
             feature_to_render = m_selected_features.first.feature;
-            colors = { SELECTED_1ST_COLOR };
+            colors = { selected_1st_color() };
             requires_raycaster_update = m_selected_features.first.feature->get_type() == Measure::SurfaceFeatureType::Point;
         }
 
@@ -1076,18 +1079,18 @@ void GLGizmoMeasure::on_render()
         if (m_hover_id == SEL_SPHERE_2_ID && (m_selected_features.second.is_center || is_feature_with_center(*m_selected_features.second.feature))) {
             // hovering over a center
             feature_to_render = m_selected_features.second.source;
-            colors = { NEUTRAL_COLOR, SELECTED_2ND_COLOR };
+            colors = { NEUTRAL_COLOR, selected_2nd_color() };
             requires_raycaster_update = true;
         }
         else if (is_feature_with_center(*m_selected_features.second.feature)) {
             // hovering over a feature with center
             feature_to_render = m_selected_features.second.feature;
-            colors = { SELECTED_2ND_COLOR, NEUTRAL_COLOR };
+            colors = { selected_2nd_color(), NEUTRAL_COLOR };
             requires_raycaster_update = true;
         }
         else {
             feature_to_render = m_selected_features.second.feature;
-            colors = { SELECTED_2ND_COLOR };
+            colors = { selected_2nd_color() };
             requires_raycaster_update = m_selected_features.second.feature->get_type() == Measure::SurfaceFeatureType::Point;
         }
 
@@ -1718,11 +1721,11 @@ void GLGizmoMeasure::render_dimensioning()
             !(m_measure_mode == EMeasureMode::ONLY_ASSEMBLY && m_assembly_mode == AssemblyMode::FACE_FACE)) {
             auto x_to = dap.from;
             x_to[0]   = dap.to[0];
-            point_point(dap.from, x_to, x_to[0] - dap.from[0], ColorRGBA::RED(), false, false);
+            point_point(dap.from, x_to, x_to[0] - dap.from[0], ui_colors().axes[X], false, false); // ORCA match axis color
             auto y_to = x_to;
             y_to[1]   = dap.to[1];
-            point_point(x_to, y_to, y_to[1] - x_to[1], ColorRGBA::GREEN(), false, false);
-            point_point(y_to, dap.to, dap.to[2] - y_to[2], ColorRGBA::BLUE(), false, false);
+            point_point(x_to, y_to, y_to[1] - x_to[1], ui_colors().axes[Y], false, false);         // ORCA match axis color
+            point_point(y_to, dap.to, dap.to[2] - y_to[2], ui_colors().axes[Z], false, false);     // ORCA match axis color
         }
 
         point_point(dap.from, dap.to, dap.dist, ColorRGBA::WHITE());
@@ -1887,7 +1890,7 @@ void GLGizmoMeasure::show_selection_ui()
                 m_imgui->text(_u8L("Select 2 points or circles on objects and\nspecify distance between them.")); // tip
             }
         }
-        ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_1ST_COLOR));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(selected_1st_color()));
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
                 m_imgui->text(_u8L("Face 1 (Fixed)"));
@@ -1913,7 +1916,7 @@ void GLGizmoMeasure::show_selection_ui()
         auto        feature_second_text        = format_item_text(m_selected_features.second);
         const float feature_second_text_length = ImGui::CalcTextSize((_u8L(feature_second_text)).c_str()).x;
         ImGui::AlignTextToFramePadding();
-        ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_2ND_COLOR));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(selected_2nd_color()));
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
                 m_imgui->text(_u8L("Face 2 (Moving)"));
@@ -1976,7 +1979,7 @@ void GLGizmoMeasure::show_distance_xyz_ui()
             bool volume = m_hit_different_volumes.size() == 1;
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()), "X:"); // ORCA match axis color
+            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ui_colors().axes[X]), "X:"); // ORCA match axis color
             ImGui::TableSetColumnIndex(1);
             ImGui::PushItemWidth(m_input_size_max);
             m_imgui->disabled_begin(volume || !m_can_set_xyz_distance); // ORCA disable only input box othervise axis colors rendered dimmed
@@ -1985,7 +1988,7 @@ void GLGizmoMeasure::show_distance_xyz_ui()
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()), "Y:"); // ORCA match axis color
+            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Y]), "Y:"); // ORCA match axis color
             ImGui::TableSetColumnIndex(1);
             m_imgui->disabled_begin(volume || !m_can_set_xyz_distance); // ORCA disable only input box othervise axis colors rendered dimmed
             ImGui::BBLInputDouble("##measure_distance_y", &m_buffered_distance[1], 0.0f, 0.0f, "%.2f");
@@ -1993,7 +1996,7 @@ void GLGizmoMeasure::show_distance_xyz_ui()
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()), "Z:"); // ORCA match axis color
+            m_imgui->text_colored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Z]), "Z:"); // ORCA match axis color
             ImGui::TableSetColumnIndex(1);
             m_imgui->disabled_begin(volume || !(m_same_model_object && m_can_set_xyz_distance)); // ORCA disable only input box othervise axis colors rendered dimmed
             ImGui::BBLInputDouble("##measure_distance_z", &m_buffered_distance[2], 0.0f, 0.0f, "%.2f");

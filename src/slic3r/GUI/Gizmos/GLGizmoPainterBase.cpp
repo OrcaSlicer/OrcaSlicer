@@ -1,5 +1,6 @@
 #include "GLGizmoPainterBase.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/GUI_Colors.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 
 #include <cfloat>
@@ -41,6 +42,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include <vector>
 #include <utility>
+#include <imgui.h>
 #include <queue>
 #include "libslic3r/Color.hpp"
 #include "libslic3r/ObjectID.hpp"
@@ -53,6 +55,9 @@ namespace Slic3r::GUI { class ImGuiWrapper; }
 namespace cereal { class BinaryInputArchive; }
 
 namespace Slic3r::GUI {
+
+// ORCA: opacity of the cursor sphere while painting
+static constexpr float PAINT_CURSOR_OPACITY = 0.5f;
 
 std::shared_ptr<GLModel> GLGizmoPainterBase::s_sphere = nullptr;
 
@@ -179,6 +184,7 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection, const std:
         shader->set_uniform("volume_world_matrix", trafo_matrix);
         shader->set_uniform("volume_mirrored", is_left_handed);
         shader->set_uniform("slope.actived", m_parent.is_using_slope());
+        shader->set_uniform("overhang_color", ui_colors().overhang);
         shader->set_uniform("slope.volume_world_normal_matrix", normal_matrix);
         shader->set_uniform("slope.normal_z", normal_z);
         shader->set_uniform("slope.up_direction", up_direction);
@@ -334,6 +340,9 @@ void GLGizmoPainterBase::render_cursor_circle()
         render_color = this->get_cursor_sphere_left_button_color();
     else if (m_button_down == Button::Right)
         render_color = this->get_cursor_sphere_right_button_color();
+    // ORCA: the circle is a thin line, so it is drawn opaque
+    if (m_button_down != Button::None)
+        render_color.a(1.0f);
 
     m_circle.set_color(render_color);
 
@@ -1268,8 +1277,41 @@ TriangleSelector::ClippingPlane GLGizmoPainterBase::get_clipping_plane_in_volume
     return TriangleSelector::ClippingPlane({float(normal_transformed.x()), float(normal_transformed.y()), float(normal_transformed.z()), offset_transformed});
 }
 
-ColorRGBA TriangleSelectorGUI::enforcers_color = {0.5f, 1.f, 0.5f, 1.f};
-ColorRGBA TriangleSelectorGUI::blockers_color  = {1.f, 0.5f, 0.5f, 1.f};
+// ORCA: cursor color while a button is held: the color `state` paints with, or the erase color when erasing.
+// `fixed_color` is for color painting, which does not use the brush colors
+static ColorRGBA cursor_color(EnforcerBlockerType state, bool brush_colors, const ColorRGBA& fixed_color)
+{
+    // Shift erases with both buttons, see gizmo_event()
+    if (state == EnforcerBlockerType::NONE || ImGui::GetIO().KeyShift)
+        return ui_colors().eraser;
+    if (!brush_colors)
+        return fixed_color;
+    ColorRGBA color = state == EnforcerBlockerType::BLOCKER ? ui_colors().blocker : ui_colors().enforcer;
+    color.a(PAINT_CURSOR_OPACITY);
+    return color;
+}
+
+// ORCA: the selector's own colors (color painting) or the brush colors of the color set
+ColorRGBA TriangleSelectorPatch::state_color(size_t idx) const
+{
+    if (!m_ebt_colors.empty())
+        return m_ebt_colors[idx];
+    return idx == size_t(EnforcerBlockerType::ENFORCER) ? ui_colors().enforcer :
+           idx == size_t(EnforcerBlockerType::BLOCKER)  ? ui_colors().blocker : GLVolume::NEUTRAL_COLOR;
+}
+
+ColorRGBA GLGizmoPainterBase::get_cursor_sphere_left_button_color() const
+{
+    // ORCA: color painting keeps its hover color, the selected filament, while painting
+    ColorRGBA hover_color = get_cursor_hover_color();
+    hover_color.a(PAINT_CURSOR_OPACITY);
+    return cursor_color(get_left_button_state_type(), paints_with_brush_colors(), hover_color);
+}
+
+ColorRGBA GLGizmoPainterBase::get_cursor_sphere_right_button_color() const
+{
+    return cursor_color(get_right_button_state_type(), paints_with_brush_colors(), { 1.0f, 0.0f, 0.0f, 0.25f });
+}
 
 ColorRGBA TriangleSelectorGUI::get_seed_fill_color(const ColorRGBA& base_color)
 {
@@ -1293,16 +1335,16 @@ void TriangleSelectorGUI::render(ImGuiWrapper* imgui, const Transform3d& matrix)
         return;
     assert(shader->get_name() == "gouraud" || shader->get_name() == "mm_gouraud");
 
-    for (auto iva : {std::make_pair(&m_iva_enforcers, enforcers_color),
-                     std::make_pair(&m_iva_blockers, blockers_color)}) {
+    for (auto iva : {std::make_pair(&m_iva_enforcers, ui_colors().enforcer),
+                     std::make_pair(&m_iva_blockers, ui_colors().blocker)}) {
         iva.first->set_color(iva.second);
         iva.first->render();
     }
 
     for (auto& iva : m_iva_seed_fills) {
         size_t           color_idx = &iva - &m_iva_seed_fills.front();
-        const ColorRGBA& color     = TriangleSelectorGUI::get_seed_fill_color(color_idx == 1 ? enforcers_color :
-            color_idx == 2 ? blockers_color :
+        const ColorRGBA& color     = TriangleSelectorGUI::get_seed_fill_color(color_idx == 1 ? ui_colors().enforcer :
+            color_idx == 2 ? ui_colors().blocker :
             GLVolume::NEUTRAL_COLOR);
         iva.set_color(color);
         iva.render();
@@ -1425,12 +1467,12 @@ void TriangleSelectorPatch::render(ImGuiWrapper* imgui, const Transform3d& matri
             ColorRGBA color;
             if (patch.is_fragment() && !patch.neighbor_types.empty()) {
                 size_t color_idx = (size_t)*patch.neighbor_types.begin();
-                color = m_ebt_colors[color_idx];
+                color = state_color(color_idx);
                 color.a(0.85);
             }
             else {
                 size_t color_idx = (size_t)patch.type;
-                color = m_ebt_colors[color_idx];
+                color = state_color(color_idx);
             }
             //to make black not too hard too see
             ColorRGBA new_color = adjust_color_for_rendering(color);

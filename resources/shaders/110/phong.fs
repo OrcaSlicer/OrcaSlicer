@@ -1,7 +1,8 @@
 #version 110
 
 const vec3 ZERO = vec3(0.0, 0.0, 0.0);
-const vec3 LightRed = vec3(0.78, 0.0, 0.0);
+// ORCA: the color the overhangs are marked with
+uniform vec3 overhang_color;
 const vec3 LightBlue = vec3(0.73, 1.0, 1.0);
 const float EPSILON = 0.0001;
 
@@ -206,7 +207,7 @@ void main()
          }
          else if( world_normal_z < slope.normal_z - EPSILON)
          {
-                color.rgb = color.rgb * 0.5 + LightRed * 0.5;
+                color.rgb = color.rgb * 0.5 + overhang_color * 0.5;
                 color.a = 0.8;
          }
     }

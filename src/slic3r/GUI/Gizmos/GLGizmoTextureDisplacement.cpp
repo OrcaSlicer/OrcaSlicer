@@ -6,6 +6,7 @@
 #include <boost/log/trivial.hpp>
 
 #include "ColorSpaceConvert.hpp"
+#include "slic3r/GUI/GUI_Colors.hpp"
 #include "libslic3r/AABBTreeIndirect.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Color.hpp"
@@ -790,8 +791,15 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
     // preview, the highlight is the selectors' own, except during a stroke over the colour paint: the paint
     // there is not flushed yet, so the colours are still drawn over the stroke's highlight.
     const bool preview_drawn = use_shaded || use_true_preview;
-    if (show_paint_overlay && (preview_drawn ? paint_feedback : painted_colors_drawn && is_painting()))
+    if (show_paint_overlay && (preview_drawn ? paint_feedback : painted_colors_drawn && is_painting())) {
+        // GLModel::render() re-sets "uniform_color" from the model's own color just before drawing, so the
+        // color is set on the model rather than as a uniform.
+        // ORCA: the tint takes the color of the brush
+        ColorRGBA tint = ui_colors().enforcer;
+        tint.a(0.38f);
+        m_paint_overlay_glmodel.set_color(tint);
         render_paint_overlay(m_paint_overlay_glmodel);
+    }
 
     // A fill tool's contour is drawn with the selectors, under the colour paint drawn since - which covers it
     // on a steep face, where the paint's slope-scaled offset outruns the contour's fixed one. Put it back on top,
@@ -1987,6 +1995,7 @@ bool GLGizmoTextureDisplacement::render_painted_colors(bool whole_stack)
     shader->set_uniform("volume_world_matrix", trafo_matrix);
     shader->set_uniform("volume_mirrored", trafo_matrix.matrix().determinant() < 0.);
     shader->set_uniform("slope.actived", m_parent.is_using_slope());
+    shader->set_uniform("overhang_color", ui_colors().overhang);
     shader->set_uniform("slope.volume_world_normal_matrix", Matrix3f(normal_matrix.cast<float>()));
     shader->set_uniform("slope.normal_z", float(-std::cos(Geometry::deg2rad(get_highlight_angle_limit_deg()))));
     shader->set_uniform("slope.up_direction", get_tilt_up_direction());
@@ -2040,9 +2049,6 @@ void GLGizmoTextureDisplacement::rebuild_paint_overlay()
     init_data.reserve_indices(patch.indices.size() * 3);
     append_paint_patch(init_data, patch, displaced);
     m_paint_overlay_glmodel.init_from(std::move(init_data));
-    // GLModel::render() re-sets "uniform_color" from this field just before drawing, so the colour
-    // has to be set here rather than as a uniform at draw time.
-    m_paint_overlay_glmodel.set_color(ColorRGBA(0.16f, 0.79f, 0.35f, 0.38f));
 }
 
 void GLGizmoTextureDisplacement::render_paint_overlay(GLModel &overlay)
@@ -3957,10 +3963,6 @@ void GLGizmoTextureDisplacement::update_from_model_object(bool first_update)
     // still on: a new set of selectors has none.
     m_seed_fill_last_mesh_id = -1;
 
-    std::vector<ColorRGBA> ebt_colors;
-    ebt_colors.push_back(GLVolume::NEUTRAL_COLOR);
-    ebt_colors.push_back(TriangleSelectorGUI::enforcers_color);
-    ebt_colors.push_back(TriangleSelectorGUI::blockers_color);
     m_selectors_stale = false;
     for (const ModelVolume *mv : mo->volumes) {
         if (!mv->is_model_part())
@@ -3981,7 +3983,7 @@ void GLGizmoTextureDisplacement::update_from_model_object(bool first_update)
                 m_selectors_stale = true;
                 break;
             }
-        m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh, ebt_colors));
+        m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh));
         // The mask uses a single state (ENFORCER): a higher state in the file is reset to NONE.
         m_triangle_selectors.back()->deserialize(data, false, EnforcerBlockerType::ENFORCER);
         m_triangle_selectors.back()->request_update_render_data();

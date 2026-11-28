@@ -314,10 +314,6 @@ void GLGizmoSeam::update_from_model_object(bool first_update)
     m_triangle_selectors.clear();
 
     int volume_id = -1;
-    std::vector<ColorRGBA> ebt_colors;
-    ebt_colors.push_back(GLVolume::NEUTRAL_COLOR);
-    ebt_colors.push_back(TriangleSelectorGUI::enforcers_color);
-    ebt_colors.push_back(TriangleSelectorGUI::blockers_color);
     for (const ModelVolume* mv : mo->volumes) {
         if (! mv->is_model_part())
             continue;
@@ -327,7 +323,7 @@ void GLGizmoSeam::update_from_model_object(bool first_update)
         // This mesh does not account for the possible Z up SLA offset.
         const TriangleMesh* mesh = &mv->mesh();
 
-        m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh, ebt_colors));
+        m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh));
         // Reset of TriangleSelector is done inside TriangleSelectorGUI's constructor, so we don't need it to perform it again in deserialize().
         // The colour table has NONE/ENFORCER/BLOCKER only: a higher state in the file is reset to NONE.
         m_triangle_selectors.back()->deserialize(mv->seam_facets.get_data(), false, EnforcerBlockerType::BLOCKER);

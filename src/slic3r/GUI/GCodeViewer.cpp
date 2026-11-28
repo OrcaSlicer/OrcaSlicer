@@ -15,6 +15,7 @@
 //BBS: add convex hull logic for toolpath check
 
 #include "GUI_App.hpp"
+#include "GUI_Colors.hpp"
 #include "Shortcuts.hpp"
 #include "Plater.hpp"
 #include "Camera.hpp"
@@ -823,21 +824,21 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                                                 : (max_value > 9999 ? "%.1f" : max_value > 999 ? "%.2f" : "%.3f");
 
         char xBuf[32];
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[X]),"X ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(xBuf, precision, pos[0]);
         ImGui::Text("%s", xBuf);
 
         char yBuf[32];
         ImGui::SameLine(axes_width + axes_spacing_x);
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()),"Y ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Y]),"Y ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(yBuf, precision, pos[1]);
         ImGui::Text("%s", yBuf);
 
         char zBuf[32];
         ImGui::SameLine(2.0f * (axes_width + axes_spacing_x));
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Z]),"Z ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(zBuf, precision, pos[2]);
         ImGui::Text("%s", zBuf);
@@ -878,21 +879,21 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         const float axes_width = ImGui::CalcTextSize("X 999.999sp").x;
 
         char xBuf[32];
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[X]),"X ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(xBuf, precision, pos.x());
         ImGui::Text("%s", xBuf);
 
         char yBuf[32]; 
         ImGui::SameLine(axes_width);
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()),"Y ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Y]),"Y ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(yBuf, precision, pos.y());
         ImGui::Text("%s", yBuf);
 
         char zBuf[32];
         ImGui::SameLine(axes_width * 2);
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z ");
+        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ui_colors().axes[Z]),"Z ");
         ImGui::SameLine(0,0); // ignore item spacing
         sprintf(zBuf, precision, pos.z());
         ImGui::Text("%s", zBuf);
@@ -1465,6 +1466,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
     m_viewer.set_dim_previous_layers_brightness(0.01f * std::stoi(get_app_config()->get("preview_dim_previous_layers_brightness")));
     m_viewer.set_translucent_filaments(get_app_config()->get_bool("preview_translucent_filaments"));
+    update_ranges_colors();
 
     // avoid processing if called with the same gcode_result.
     // On a belt printer the toolpath geometry fed to libvgcode also depends on the
@@ -3064,6 +3066,18 @@ void GCodeViewer::update_layers_slider_mode()
     }
 
     // TODO m_layers_slider->SetModeAndOnlyExtruder(one_extruder_printed_model, only_extruder);
+}
+
+void GCodeViewer::update_ranges_colors()
+{
+    // recolors the whole preview, so only on change
+    if (m_ui_color_set == ui_color_set())
+        return;
+    m_ui_color_set = ui_color_set();
+
+    // view types without a range ignore it
+    for (std::size_t type = 0; type < libvgcode::VIEW_TYPES_COUNT; ++type)
+        m_viewer.set_color_range_palette(static_cast<libvgcode::EViewType>(type), ui_colors().ranges);
 }
 
 void GCodeViewer::set_interacting(bool interacting)

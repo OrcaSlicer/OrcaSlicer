@@ -1,6 +1,7 @@
 #include "GLGizmoCut.hpp"
 #include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/GUI_Colors.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -80,8 +81,9 @@ namespace Slic3r {
 namespace GUI {
 
 static const ColorRGBA GRABBER_COLOR = ColorRGBA::YELLOW();
-static const ColorRGBA UPPER_PART_COLOR = ColorRGBA::CYAN();
-static const ColorRGBA LOWER_PART_COLOR = ColorRGBA::MAGENTA();
+// ORCA: part colors follow the color set
+static const ColorRGBA& upper_part_color() { return ui_colors().cut_pair[0]; }
+static const ColorRGBA& lower_part_color() { return ui_colors().cut_pair[1]; }
 static const ColorRGBA MODIFIER_COLOR   = ColorRGBA(0.75f, 0.75f, 0.75f, 0.5f);
 
 // connector colors
@@ -96,7 +98,7 @@ static const ColorRGBA CONNECTOR_ERR_COLOR  = ColorRGBA(1.0f, 0.3f, 0.3f, 0.5f);
 static const ColorRGBA HOVERED_ERR_COLOR    = ColorRGBA(1.0f, 0.3f, 0.3f, 1.0f);
 
 static const ColorRGBA CUT_PLANE_DEF_COLOR  = ColorRGBA(0.9f, 0.9f, 0.9f, 0.5f);
-static const ColorRGBA CUT_PLANE_ERR_COLOR  = ColorRGBA(1.0f, 0.8f, 0.8f, 0.5f);
+static const ColorRGBA CUT_PLANE_ERR_COLOR  = ColorRGBA(1.0f, 0.3f, 0.3f, 0.5f); // ORCA: darker red, also visible with red-green colorblindness
 
 const unsigned int AngleResolution = 64;
 const unsigned int ScaleStepsCount = 72;
@@ -1260,8 +1262,8 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
 
         // render sphere grabber
         size = m_dragging ? get_dragging_half_size(mean_size) : get_half_size(mean_size);
-        color = m_hover_id == Y ? ColorRGBA::Y() : // ORCA match axis colors
-                m_hover_id == X ? ColorRGBA::X() : // ORCA match axis colors
+        color = m_hover_id == Y ? ui_colors().axes[Y] : // ORCA match axis colors
+                m_hover_id == X ? ui_colors().axes[X] : // ORCA match axis colors
                 m_hover_id == Z ? GRABBER_COLOR                     :   ColorRGBA::GRAY();
         render_model(m_sphere.model, color, view_matrix * translation_transform(m_grabber_connection_len * Vec3d::UnitZ()) * scale_transform(size));
     }
@@ -1275,7 +1277,7 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
         size = m_dragging && m_hover_id == X ? get_dragging_half_size(mean_size) : get_half_size(mean_size);
         const Vec3d cone_scale = Vec3d(0.75 * size, 0.75 * size, 1.8 * size);
         //color = m_hover_id == X ? complementary(ColorRGBA::X()) : ColorRGBA::X();
-        color = ColorRGBA::X(); // ORCA match axis colors
+        color = ui_colors().axes[X]; // ORCA match axis colors
 
         if (m_hover_id == X) {
             render_grabber_connection(color, view_matrix);
@@ -1295,7 +1297,7 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
         size = m_dragging && m_hover_id == Y ? get_dragging_half_size(mean_size) : get_half_size(mean_size);
         const Vec3d cone_scale = Vec3d(0.75 * size, 0.75 * size, 1.8 * size);
         //color = m_hover_id == Y ? complementary(ColorRGBA::Y()) : ColorRGBA::Y();
-        color = ColorRGBA::Y(); // ORCA match axis colors
+        color = ui_colors().axes[Y]; // ORCA match axis colors
 
         if (m_hover_id == Y) {
             render_grabber_connection(color, view_matrix);
@@ -1315,7 +1317,7 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
         if (no_xy_grabber_hovered || m_hover_id == CutPlaneZRotation)
         {
             size = 0.75 * (m_dragging ? get_dragging_half_size(mean_size) : get_half_size(mean_size));
-            color = ColorRGBA::Z(); // ORCA match axis colors
+            color = ui_colors().axes[Z]; // ORCA match axis colors
             const ColorRGBA cp_color = m_hover_id == CutPlaneZRotation ? color : m_plane.model.get_color();
 
             const double grabber_shift = -1.75 * m_grabber_connection_len;
@@ -1342,7 +1344,7 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
         if (no_xy_grabber_hovered || m_hover_id == CutPlaneXMove)
         {
             size = (m_dragging ? get_dragging_half_size(mean_size) : get_half_size(mean_size));
-            color = m_hover_id == CutPlaneXMove ? ColorRGBA::X() : m_plane.model.get_color(); // ORCA match axis colors
+            color = m_hover_id == CutPlaneXMove ? ui_colors().axes[X] : m_plane.model.get_color(); // ORCA match axis colors
 
             render_grabber_connection(GRABBER_COLOR, view_matrix * rotation_transform(0.5 * PI * Vec3d::UnitY()), 0.75);
 
@@ -1360,7 +1362,7 @@ void GLGizmoCut3D::render_cut_plane_grabbers()
         if (m_groove.angle > 0.0f && (no_xy_grabber_hovered || m_hover_id == CutPlaneYMove))
         {
             size = (m_dragging ? get_dragging_half_size(mean_size) : get_half_size(mean_size));
-            color = m_hover_id == CutPlaneYMove ? ColorRGBA::Y() : m_plane.model.get_color(); // ORCA match axis colors
+            color = m_hover_id == CutPlaneYMove ? ui_colors().axes[Y] : m_plane.model.get_color(); // ORCA match axis colors
 
             render_grabber_connection(GRABBER_COLOR, view_matrix * rotation_transform(-0.5 * PI * Vec3d::UnitX()), 0.75);
 
@@ -1476,7 +1478,7 @@ void GLGizmoCut3D::apply_color_clip_plane_colors()
     if (CutMode(m_mode) == CutMode::cutTongueAndGroove)
         m_parent.set_color_clip_plane_colors({ CUT_PLANE_DEF_COLOR , CUT_PLANE_DEF_COLOR });
     else
-        m_parent.set_color_clip_plane_colors({ UPPER_PART_COLOR , LOWER_PART_COLOR });
+        m_parent.set_color_clip_plane_colors({ upper_part_color() , lower_part_color() });
 }
 
 void GLGizmoCut3D::on_set_state()
@@ -2230,7 +2232,7 @@ void GLGizmoCut3D::PartSelection::render(const Vec3d* normal, GLModel& sphere_mo
                 glsafe(::glEnable(GL_BLEND));
                 glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
             }
-            m_parts[id].glmodel.set_color(m_parts[id].is_modifier ? MODIFIER_COLOR : (m_parts[id].selected ? UPPER_PART_COLOR : LOWER_PART_COLOR));
+            m_parts[id].glmodel.set_color(m_parts[id].is_modifier ? MODIFIER_COLOR : (m_parts[id].selected ? upper_part_color() : lower_part_color()));
             m_parts[id].glmodel.render();
             if (m_parts[id].is_modifier)
                 glsafe(::glDisable(GL_BLEND));
@@ -2366,6 +2368,9 @@ void GLGizmoCut3D::on_render()
 
     // check objects visibility
     toggle_model_objects_visibility();
+
+    // ORCA: the color set can change while the gizmo is open
+    apply_color_clip_plane_colors();
 
     update_clipper();
 
@@ -3018,7 +3023,7 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
             bool keep = true;
 
             ImGui::AlignTextToFramePadding();
-            render_color_marker(marker_size, ImGuiWrapper::to_ImU32(suffix == "##upper" ? UPPER_PART_COLOR : LOWER_PART_COLOR));
+            render_color_marker(marker_size, ImGuiWrapper::to_ImU32(suffix == "##upper" ? upper_part_color() : lower_part_color()));
             m_imgui->text(label);
 
             ImGui::SameLine(h_shift);

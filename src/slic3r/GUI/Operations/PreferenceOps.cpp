@@ -6,6 +6,7 @@
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/GUI_Colors.hpp"
 #include "slic3r/GUI/GUI_Init.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -141,11 +142,6 @@ std::vector<Preference> build_table()
     // The dialog's labels add the units to the translated names.
     t.choice("use_inches", L("Units"), {{"0", "Metric (mm, g)"}, {"1", "Imperial (in, oz)"}}).own_row = true;
     t.choice("default_page", L("Default page"), {{"0", L("Home")}, {"1", L("Prepare")}}, {L("Set the page opened on startup.")});
-#ifdef _WIN32
-    Preference& dark_mode = t.checkbox("dark_color_mode", L("Enable dark Mode"));
-    dark_mode.fallback    = "0"; // stored as 1 or 0
-    dark_mode.own_row     = true;
-#endif
     t.checkbox("single_instance", L("Allow only one OrcaSlicer instance"),
 #if __APPLE__
                {L("On OSX there is always only one instance of app running by default. However it is allowed to run multiple instances "
@@ -154,10 +150,7 @@ std::vector<Preference> build_table()
                {L("If this is enabled, when starting OrcaSlicer and another instance of the same OrcaSlicer is already running, that "
                   "instance will be reactivated instead.")});
 #endif
-    t.checkbox("show_splash_screen", L("Show splash screen"), {L("Show the splash screen during startup.")});
 #ifdef __linux__
-    t.checkbox("window_buttons_on_left", L("Use window buttons on left side")).note = L("(Requires restart)");
-    table.back().restart_needed = true;
     t.checkbox("prefer_discrete_gpu",
                // TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
                L("Render on the discrete GPU"),
@@ -169,6 +162,25 @@ std::vector<Preference> build_table()
         .note = L("(Requires restart)");
     table.back().restart_needed = true;
 #endif
+
+    t.section(kGeneral, L("Appearance"));
+#ifdef _WIN32
+    Preference& dark_mode = t.checkbox("dark_color_mode", L("Enable dark Mode"));
+    dark_mode.fallback    = "0"; // stored as 1 or 0
+    dark_mode.own_row     = true;
+#endif
+    t.checkbox("show_splash_screen", L("Show splash screen"), {L("Show the splash screen during startup.")});
+#ifdef __linux__
+    t.checkbox("window_buttons_on_left", L("Use window buttons on left side")).note = L("(Requires restart)");
+    table.back().restart_needed = true;
+#endif
+    // ORCA: the values are the names in UI_COLOR_SET_NAMES of GUI_Colors.cpp
+    t.choice("ui_color_set", L("Color set"), {{"default", L("Default")}, {"deutan", L("Colorblind friendly (red-green)")}, {"tritan", L("Colorblind friendly (blue-yellow)")}},
+        {L("The colors of the color scales of the sliced preview (speed, flow, layer time, etc.), of the axes, of the "
+           "two-color pairs of the measure, assembly and cut tools and of the two brushes and the overhang highlight "
+           "of the painting tools (supports, seam, fuzzy skin, etc.).\n"
+           "The colorblind friendly sets are easier to tell apart with the color vision deficiency they are named after.")}
+    );
 
     //// GENERAL > Features
     t.section(kGeneral, L("Features"));
@@ -815,6 +827,19 @@ void apply_preference(const std::string& key)
     } else if (key == "hide_login_side_panel") {
         if (WebViewPanel* home = WebViewPanel::if_built())
             home->SendCloudProvidersInfo();
+    } else if (key == "ui_color_set") {
+        // ORCA: apply the color set immediately
+        set_ui_color_set(config.get(key));
+        if (GLCanvas3D* canvas = preview_canvas()) {
+            canvas->get_gcode_viewer().update_ranges_colors();
+            redraw_preview(*canvas);
+        }
+        if (Plater* plater = wxGetApp().plater()) {
+            if (GLCanvas3D* canvas = plater->get_view3D_canvas3D()) {
+                canvas->set_as_dirty();
+                canvas->request_extra_frame();
+            }
+        }
     } else if (key == "preview_translucent_filaments") {
         // ORCA: apply the filament translucency change immediately to the currently loaded preview
         if (GLCanvas3D* canvas = preview_canvas()) {

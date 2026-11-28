@@ -2819,7 +2819,7 @@ void Selection::render_bounding_box(const BoundingBoxf3& box, const Transform3d&
 
 static ColorRGBA get_color(Axis axis)
 {
-    return GLGizmoBase::AXES_COLOR[axis];
+    return GLGizmoBase::axis_color(axis);
 }
 
 void Selection::render_sidebar_position_hints(const std::string& sidebar_field, GLShaderProgram& shader, const Transform3d& matrix)

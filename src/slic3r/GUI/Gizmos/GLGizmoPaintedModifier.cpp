@@ -364,13 +364,12 @@ void GLGizmoPaintedModifier::update_from_model_object(bool first_update)
         m_depth = painted_modifier->painted_modifier_depth;
     const ModelVolume *host = painted_modifier ? mo->painted_modifier_host(*painted_modifier) : nullptr;
 
-    const std::vector<ColorRGBA> ebt_colors = {GLVolume::NEUTRAL_COLOR, TriangleSelectorGUI::enforcers_color, TriangleSelectorGUI::blockers_color};
     int mesh_id = -1;
     for (const ModelVolume *mv : mo->volumes) {
         if (!mv->is_model_part())
             continue;
         ++mesh_id;
-        m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(mv->mesh(), ebt_colors));
+        m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(mv->mesh()));
         if (mv == host) {
             m_target_mesh_id = mesh_id;
             // Reset of TriangleSelector is done inside TriangleSelectorGUI's constructor, so we don't need it to perform it again in deserialize().

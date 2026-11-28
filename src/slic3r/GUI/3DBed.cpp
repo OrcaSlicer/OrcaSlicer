@@ -207,22 +207,16 @@ ColorRGBA Bed3D::DEFAULT_MODEL_COLOR_DARK        = { 0.255f, 0.255f, 0.283f, 1.0
 ColorRGBA Bed3D::DEFAULT_SOLID_GRID_COLOR        = { 0.9f, 0.9f, 0.9f, 1.0f };
 ColorRGBA Bed3D::DEFAULT_TRANSPARENT_GRID_COLOR  = { 0.9f, 0.9f, 0.9f, 0.6f };
 
-ColorRGBA Bed3D::AXIS_X_COLOR = ColorRGBA::X();
-ColorRGBA Bed3D::AXIS_Y_COLOR = ColorRGBA::Y();
-ColorRGBA Bed3D::AXIS_Z_COLOR = ColorRGBA::Z();
-
 void Bed3D::update_render_colors()
 {
-    Bed3D::AXIS_X_COLOR = ImGuiWrapper::from_ImVec4(RenderColor::colors[RenderCol_Axis_X]);
-    Bed3D::AXIS_Y_COLOR = ImGuiWrapper::from_ImVec4(RenderColor::colors[RenderCol_Axis_Y]);
-    Bed3D::AXIS_Z_COLOR = ImGuiWrapper::from_ImVec4(RenderColor::colors[RenderCol_Axis_Z]);
+    // ORCA: the axis colors come from the color set, see GUI_Colors
 }
 
 void Bed3D::load_render_colors()
 {
-    RenderColor::colors[RenderCol_Axis_X] = ImGuiWrapper::to_ImVec4(Bed3D::AXIS_X_COLOR);
-    RenderColor::colors[RenderCol_Axis_Y] = ImGuiWrapper::to_ImVec4(Bed3D::AXIS_Y_COLOR);
-    RenderColor::colors[RenderCol_Axis_Z] = ImGuiWrapper::to_ImVec4(Bed3D::AXIS_Z_COLOR);
+    RenderColor::colors[RenderCol_Axis_X] = ImGuiWrapper::to_ImVec4(ui_colors().axes[X]);
+    RenderColor::colors[RenderCol_Axis_Y] = ImGuiWrapper::to_ImVec4(ui_colors().axes[Y]);
+    RenderColor::colors[RenderCol_Axis_Z] = ImGuiWrapper::to_ImVec4(ui_colors().axes[Z]);
 }
 
 void Bed3D::Axes::render()
@@ -251,15 +245,15 @@ void Bed3D::Axes::render()
     //shader->set_uniform("emission_factor", 0.0f);
 
     // x axis
-    m_arrow.set_color(AXIS_X_COLOR);
+    m_arrow.set_color(ui_colors().axes[X]);
     render_axis(shader, Geometry::assemble_transform(m_origin, { 0.0, 0.5 * M_PI, 0.0 }));
 
     // y axis
-    m_arrow.set_color(AXIS_Y_COLOR);
+    m_arrow.set_color(ui_colors().axes[Y]);
     render_axis(shader, Geometry::assemble_transform(m_origin, { -0.5 * M_PI, 0.0, 0.0 }));
 
     // z axis
-    m_arrow.set_color(AXIS_Z_COLOR);
+    m_arrow.set_color(ui_colors().axes[Z]);
     render_axis(shader, Geometry::assemble_transform(m_origin));
 
     shader->stop_using();
