@@ -1409,6 +1409,119 @@ TEST_CASE("A project's edited filament keeps the preset's compatible printers an
     CHECK(result.config.option<ConfigOptionStrings>("compatible_prints")->values == std::vector<std::string>{"My Process"});
 }
 
+struct PrintsWithParent : PresetCollection
+{
+    explicit PrintsWithParent(const std::string &support_type)
+        : PresetCollection(Preset::TYPE_PRINT, Preset::print_options(), static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()))
+    {
+        Preset &parent = add_inmemory_preset(*this, "Parent Process");
+        parent.config.set_deserialize_strict("support_type", support_type);
+        parent.is_system = true;
+    }
+};
+
+static void write_child_with_angle_0(const fs::path &file, const std::string &version)
+{
+    fs::create_directories(file.parent_path());
+    std::ofstream(file.string()) << R"({"type":"process","name":"Child","from":"User","version":")" << version
+                                 << R"(","inherits":"Parent Process","support_threshold_angle":"0"})";
+}
+
+TEST_CASE("A user preset keeps the 30 degree tree support angle only if saved before overlap applied to trees", "[Preset][Bundle]")
+{
+    const auto [version, expected_angle] = GENERATE(table<std::string, int>({
+        {"2.5.0", 30}, {"2.6.0-alpha", 0}, {"2.6.0-beta", 0}, {"2.6.0-dev", 0}, {"2.6.0", 0}, {"2.7.0", 0}}));
+    CAPTURE(version);
+    ScopedTemporaryDir temp_dir;
+    PrintsWithParent prints("tree(auto)");
+    write_child_with_angle_0(temp_dir.path() / PRESET_PRINT_NAME / "Child.json", version);
+
+    PresetsConfigSubstitutions substitutions;
+    prints.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+
+    const Preset *child = prints.find_preset("Child");
+    REQUIRE(child != nullptr);
+    CHECK(child->config.opt_int("support_threshold_angle") == expected_angle);
+}
+
+TEST_CASE("An old user preset with normal supports keeps its threshold angle of 0", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    PrintsWithParent prints("normal(auto)");
+    write_child_with_angle_0(temp_dir.path() / PRESET_PRINT_NAME / "Child.json", "2.5.0");
+
+    PresetsConfigSubstitutions substitutions;
+    prints.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+
+    const Preset *child = prints.find_preset("Child");
+    REQUIRE(child != nullptr);
+    CHECK(child->config.opt_int("support_threshold_angle") == 0);
+}
+
+TEST_CASE("A tree support angle of 0 saved over an old user preset stays 0 after reloading", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    write_child_with_angle_0(temp_dir.path() / PRESET_PRINT_NAME / "Child.json", "2.5.0");
+    {
+        PrintsWithParent prints("tree(auto)");
+        PresetsConfigSubstitutions substitutions;
+        prints.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+        prints.select_preset_by_name("Child", true);
+        prints.get_edited_preset().config.option<ConfigOptionInt>("support_threshold_angle")->value = 0;
+        prints.save_current_preset("Child");
+    }
+
+    PrintsWithParent prints("tree(auto)");
+    PresetsConfigSubstitutions substitutions;
+    prints.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+
+    const Preset *child = prints.find_preset("Child");
+    REQUIRE(child != nullptr);
+    CHECK(child->config.opt_int("support_threshold_angle") == 0);
+}
+
+TEST_CASE("An old project keeps each object's support overhang result", "[Preset][Bundle]")
+{
+    struct Case
+    {
+        const char *global_type;
+        int         global_angle;
+        const char *object_type;
+        int         object_angle; // -1: no override
+        int         expected_global_angle;
+        int         expected_object_angle; // -1: no override
+    };
+    const Case c = GENERATE(values<Case>({
+        {"tree(auto)", 0, nullptr, -1, 30, -1},        // follows the migrated global value
+        {"tree(auto)", 0, "normal(auto)", -1, 30, 0},  // normal supports still use overlap
+        {"normal(auto)", 0, "tree(auto)", -1, 0, 30},  // the global value stays in overlap mode
+        {"normal(auto)", 0, nullptr, -1, 0, -1},
+        {"tree(auto)", 30, "tree(manual)", 0, 30, 30}, // an override is migrated too
+        {"normal(auto)", 30, "normal(auto)", 0, 30, 0},
+        {"tree(auto)", 0, nullptr, 40, 30, 40},        // an explicit angle is unaffected
+    }));
+    CAPTURE(c.global_type, c.global_angle, c.object_type ? c.object_type : "", c.object_angle);
+
+    DynamicPrintConfig config;
+    config.set_deserialize_strict("support_type", c.global_type);
+    config.set_key_value("support_threshold_angle", new ConfigOptionInt(c.global_angle));
+
+    DynamicPrintConfig overrides;
+    if (c.object_type != nullptr)
+        overrides.set_deserialize_strict("support_type", c.object_type);
+    if (c.object_angle >= 0)
+        overrides.set_key_value("support_threshold_angle", new ConfigOptionInt(c.object_angle));
+    Model        model;
+    ModelObject *object = model.add_object();
+    object->config.apply(overrides);
+
+    Preset::migrate_tree_support_threshold_angle(config, model);
+
+    CHECK(config.opt_int("support_threshold_angle") == c.expected_global_angle);
+    const auto *angle = object->config.get().option<ConfigOptionInt>("support_threshold_angle");
+    CHECK((angle != nullptr ? angle->value : -1) == c.expected_object_angle);
+}
+
 TEST_CASE("Repeated loads of a user preset directory produce the same presets", "[Preset][Bundle]")
 {
     ScopedTemporaryDir temp_dir;

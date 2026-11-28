@@ -757,9 +757,10 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
     static const double sharp_tail_max_support_height = 16.f;
     // a region is considered well supported if the number of layers below it exceeds this threshold
     const int thresh_layers_below = 10 / config.layer_height;
+    // Threshold angle 0 selects Threshold overlap, as it does on normal supports.
+    const bool use_threshold_overlap = config.support_threshold_angle.value <= 0;
     // +1 makes the threshold inclusive
-    double thresh_angle = config.support_threshold_angle.value > EPSILON ? config.support_threshold_angle.value + 1 : 30;
-    thresh_angle = std::min(thresh_angle, 89.); // should be smaller than 90
+    const double thresh_angle = std::min(config.support_threshold_angle.value + 1., 89.); // should be smaller than 90
     const double threshold_rad = Geometry::deg2rad(thresh_angle);
     // Build plate tilt: compute per-layer XY shift for tilted gravity direction
     const PrintConfig& print_cfg = m_object->print()->config();
@@ -920,7 +921,19 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                 }
 
                 Layer* lower_layer = layer->lower_layer;
-                coordf_t lower_layer_offset = layer_nr < enforce_support_layers ? -0.15 * extrusion_width : (float)lower_layer->height / tan(threshold_rad);
+                coordf_t lower_layer_offset;
+                if (layer_nr < enforce_support_layers) {
+                    lower_layer_offset = -0.15 * extrusion_width;
+                } else if (use_threshold_overlap) {
+                    // Same as normal supports: the overlap is measured on the external perimeter width.
+                    double external_perimeter_width = 0.;
+                    for (const LayerRegion *layerm : lower_layer->regions())
+                        external_perimeter_width += layerm->flow(frExternalPerimeter).width();
+                    external_perimeter_width /= lower_layer->region_count();
+                    lower_layer_offset = external_perimeter_width - config.support_threshold_overlap.get_abs_value(external_perimeter_width);
+                } else {
+                    lower_layer_offset = (float)lower_layer->height / tan(threshold_rad);
+                }
                 //lower_layer_offset = std::min(lower_layer_offset, extrusion_width);
                 coordf_t support_offset_scaled = scale_(lower_layer_offset);
                 ExPolygons& curr_polys = layer->lslices_extrudable;

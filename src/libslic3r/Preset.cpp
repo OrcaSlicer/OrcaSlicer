@@ -35,6 +35,7 @@
 #include "ParallelResolve.hpp"
 #include "Semver.hpp"
 #include "PrintConfig.hpp"
+#include "Model.hpp"
 #include "libslic3r_version.h"
 #include "I18N.hpp"
 
@@ -549,6 +550,56 @@ std::string Preset::remove_suffix_modified(const std::string &name)
     return boost::algorithm::starts_with(name, g_suffix_modified) ?
         name.substr(g_suffix_modified.size()) :
         name;
+}
+
+bool Preset::predates_tree_support_overlap(const Semver &version)
+{
+    // Compared with a prerelease so that the alpha, beta and rc of this version are not old.
+    static const Semver first_version = *Semver::parse("2.6.0-alpha");
+    return version < first_version;
+}
+
+static constexpr const char *tree_support_angle_key = "support_threshold_angle";
+static constexpr int         tree_support_old_angle = 30;
+
+static void set_old_tree_support_angle(DynamicPrintConfig &config)
+{
+    auto *angle = config.option<ConfigOptionInt>(tree_support_angle_key);
+    auto *type  = config.option<ConfigOptionEnum<SupportType>>("support_type");
+    if (angle != nullptr && type != nullptr && angle->value == 0 && is_tree(type->value))
+        angle->value = tree_support_old_angle;
+}
+
+void Preset::migrate_tree_support_threshold_angle(DynamicPrintConfig &config, const Semver &version)
+{
+    if (predates_tree_support_overlap(version))
+        set_old_tree_support_angle(config);
+}
+
+void Preset::migrate_tree_support_threshold_angle(DynamicPrintConfig &config, Model &model)
+{
+    // An object without an override follows the global value, so the objects are resolved against the old global
+    // value and compared with the new one. Absent global keys read as their defaults.
+    const auto global_angle = [&config]() {
+        const auto *angle = config.option<ConfigOptionInt>(tree_support_angle_key);
+        return angle != nullptr ? angle->value : tree_support_old_angle;
+    };
+    const auto *global_type_opt = config.option<ConfigOptionEnum<SupportType>>("support_type");
+    const SupportType global_type = global_type_opt != nullptr ? global_type_opt->value : stNormalAuto;
+    const int old_global_angle = global_angle();
+    set_old_tree_support_angle(config);
+    const int new_global_angle = global_angle();
+
+    for (ModelObject *object : model.objects) {
+        const DynamicPrintConfig &object_config = object->config.get();
+        const auto *angle_opt = object_config.option<ConfigOptionInt>(tree_support_angle_key);
+        if ((angle_opt != nullptr ? angle_opt->value : old_global_angle) != 0)
+            continue;
+        const auto *type_opt = object_config.option<ConfigOptionEnum<SupportType>>("support_type");
+        const int   angle    = is_tree(type_opt != nullptr ? type_opt->value : global_type) ? tree_support_old_angle : 0;
+        if (angle_opt != nullptr || angle != new_global_angle)
+            object->config.set_key_value(tree_support_angle_key, new ConfigOptionInt(angle));
+    }
 }
 
 // Update new extruder fields at the printer profile.
@@ -1961,6 +2012,7 @@ PresetCollection::UserPresetLoad PresetCollection::resolve_user_preset(
         }
 
         Preset::normalize(preset.config);
+        Preset::migrate_tree_support_threshold_angle(preset.config, preset.version);
         // Report configuration fields, which are misplaced into a wrong group.
         std::string incorrect_keys = Preset::remove_invalid_keys(preset.config, default_preset.config);
         if (!incorrect_keys.empty())
@@ -2377,6 +2429,7 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
             }
             //preset->config.apply(std::move(config));
             Preset::normalize(preset->config);
+            Preset::migrate_tree_support_threshold_angle(preset->config, preset->version);
             // Report configuration fields, which are misplaced into a wrong group.
             std::string incorrect_keys = Preset::remove_invalid_keys(preset->config, default_preset.config);
             if (!incorrect_keys.empty()) {
@@ -2772,6 +2825,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             extend_default_config_length(new_config, true, default_preset.config);
         }
         Preset::normalize(new_config);
+        Preset::migrate_tree_support_threshold_angle(new_config, cloud_version.value());
         // Report configuration fields, which are misplaced into a wrong group.
         std::string incorrect_keys = Preset::remove_invalid_keys(new_config, default_preset.config);
         if (!incorrect_keys.empty()) {
@@ -3591,6 +3645,10 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
         replaced->remove_files(true /* cloud_already_deleted */);
     // 2) Activate the saved preset.
     this->select_preset_by_name(new_name, true);
+    // Loading uses the version to tell how old the values are, but a new preset starts with the vendor version of its
+    // parent and an overwritten one keeps the version it had.
+    if (m_type == Preset::TYPE_PRINT)
+        this->get_selected_preset().version = Semver::parse(SoftFever_VERSION).value_or(Semver());
     // 2) Store the active preset to disk.
     //BBS: only save difference for user preset
     Preset* parent_preset = nullptr;

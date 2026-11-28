@@ -1092,8 +1092,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool support_is_organic = support_is_tree && (support_style == smsTreeOrganic || support_style == smsDefault);
     bool support_is_normal_tree = support_is_tree && !support_is_organic;
 
-    // hide settings that are not used by tree supports
-    toggle_line("support_threshold_overlap", !support_is_tree, -1, _L("Threshold overlap is unavailable for tree supports.")); // ORCA: tree supports do not use Threshold Overlap
     // settings specific to normal trees
     for (auto el : {"tree_support_branch_angle", "tree_support_branch_distance", "tree_support_branch_diameter", "tree_support_auto_brim", "tree_support_brim_width"})
         toggle_line(el, support_is_normal_tree, -1, _L("Enable tree supports and select a style other than Organic or Default to show this setting."));
