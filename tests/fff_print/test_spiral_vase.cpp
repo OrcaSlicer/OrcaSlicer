@@ -6,10 +6,12 @@
 
 #include <algorithm>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/GCode/SpiralVase.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
@@ -110,4 +112,63 @@ TEST_CASE("Spiral vase mode warns about an object that overrides infill, walls o
         REQUIRE(warning != warnings.end());
         CHECK(warning->opt_key == opt_key);
     }
+}
+
+// SpiralVase rewrites every Z move of a layer it spirals, so a lift in the filament change G-code
+// once drove the nozzle down into the print (#8387). The layer holding the change must stay flat.
+TEST_CASE("A filament change in spiral vase mode prints its layer flat and the spiral resumes above it", "[SpiralVase][Regression]")
+{
+    const DynamicPrintConfig config = multifilament_config(2, {
+        { "spiral_mode",           1 },
+        { "sparse_infill_density", "0%" },
+        { "wall_loops",            1 },
+        { "top_shell_layers",      0 },
+        { "skirt_loops",           0 },
+        { "brim_type",             "no_brim" },
+        { "layer_change_gcode",    "G92 E0\n" },
+        // Lift and leave the print, as a change macro that purges elsewhere does.
+        { "change_filament_gcode", "G1 Z{max_layer_z + 3} F600\nG1 X5 Y5 F3000\n" },
+    });
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+    CustomGCode::Info &ticks = model.plates_custom_gcodes[model.curr_plate_index];
+    ticks.mode = CustomGCode::MultiAsSingle; // a one-filament plate, as the layer slider stores it
+    ticks.gcodes.push_back({ 5.0, CustomGCode::ToolChange, 2, "", "" });
+    print.apply(model, print.full_print_config());
+    const std::string out = gcode(print);
+
+    // The Z of each extrusion after the change, grouped by layer, the change layer first.
+    std::vector<std::vector<double>> layers;
+    bool changed = false;
+    GCodeReader reader;
+    reader.apply_config(print.config());
+    reader.parse_buffer(out, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.cmd() == "T1") {
+            changed = true;
+            layers.emplace_back();
+        } else if (changed && line.comment().substr(0, 2) == "Z:")
+            layers.emplace_back();
+        else if (changed && line.extruding(self) && line.dist_XY(self) > 0)
+            layers.back().push_back(line.new_Z(self));
+    });
+    REQUIRE(changed);
+    REQUIRE(layers.size() > 2);
+
+    const std::vector<double> &change_layer = layers.front();
+    REQUIRE_FALSE(change_layer.empty());
+    CHECK_THAT(change_layer.front(), Catch::Matchers::WithinAbs(5.0, 1e-6));
+    for (double z : change_layer)
+        CHECK_THAT(z, Catch::Matchers::WithinAbs(change_layer.front(), 1e-6));
+
+    const std::vector<double> &next_layer = layers[1];
+    REQUIRE_FALSE(next_layer.empty());
+    CHECK(next_layer.back() > next_layer.front()); // spiralling again
+
+    double last_z = change_layer.front();
+    for (const std::vector<double> &layer : layers)
+        for (double z : layer) {
+            CHECK(z >= last_z - 1e-6);
+            last_z = z;
+        }
 }
