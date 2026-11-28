@@ -978,11 +978,12 @@ private:
     // should sample at directly, rather than projecting in-shader. Set by rebuild_shaded_preview_mesh().
     bool    m_shaded_preview_uses_vertex_uv = false;
     // The projection frame handed to the preview shader, captured when the mesh is built. Cylindrical and
-    // Spherical are reconstructed in the fragment shader (there is no per-vertex uv for them) and wrap
-    // around the whole patch, which no fragment can work out for itself. See layer_projection_frame().
+    // Spherical are reconstructed in the fragment shader (there is no per-vertex uv for them). See
+    // layer_projection_frame().
     int   m_shaded_projection_mode = 0;
     Vec3f m_shaded_patch_center    = Vec3f::Zero();
     Vec3f m_shaded_patch_axis      = Vec3f::UnitZ();
+    float m_shaded_cylinder_radius = 0.f;
     // The palette the fast preview matches each fragment against, captured with its mesh. Empty when the
     // active layer is not colouring, which is what tells the shader to fall back to the model's own
     // colour. Every entry carries the colour it prints in, so drawing it needs nothing else.
@@ -1049,12 +1050,12 @@ private:
     std::vector<Vec2f> model_uv_corners(const indexed_triangle_set &local_patch,
                                         const TextureDisplacementLayer &layer,
                                         const std::vector<int> *patch_source) const;
-    // The in-shader projection for `layer` (0 Triplanar, 1 Cylindrical, 2 Spherical) plus, for the two
-    // wrapping ones, the patch centroid and cylinder axis they wrap around - in the texture frame the
-    // shaders project in. Taken from the bake's own texture_displacement_patch_frame(), so a preview
-    // can never wrap around a different centre, or pick a different axis, than the bake will.
+    // The in-shader projection for `layer` (0 Triplanar, 1 Cylindrical, 2 Spherical) plus the wrap
+    // frame the wrapping ones need, in the texture frame the shaders project in. Cylindrical uses
+    // texture_displacement_cylindrical_frame() (object Z through the volume AABB); Spherical still
+    // uses texture_displacement_patch_frame(). Preview and bake therefore share one wrap.
     int layer_projection_frame(const indexed_triangle_set &local_patch, const TextureDisplacementLayer &layer,
-                               Vec3f &center, Vec3f &axis) const;
+                               Vec3f &center, Vec3f &axis, float &cylinder_radius) const;
     // `patch` with its vertices moved into world millimetres - the space the bake maps the texture in
     // (see build_texture_displacement()). Returned by value because the caller usually still needs the
     // original: the patch doubles as render geometry, which is drawn through the volume's own matrix.
@@ -1071,6 +1072,7 @@ private:
     int         m_uvcheck_projection_mode = 0;
     Vec3f       m_uvcheck_patch_center    = Vec3f::Zero();
     Vec3f       m_uvcheck_patch_axis      = Vec3f::UnitZ();
+    float       m_uvcheck_cylinder_radius = 0.f;
     void rebuild_uvcheck_mesh();
     void render_uvcheck_mesh();
 

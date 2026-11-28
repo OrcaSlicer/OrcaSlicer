@@ -66,10 +66,8 @@ enum class TextureProjectionMethod : int
     // corners, which is exactly the "two bad corners, two good ones" seam that was reported.
     // Blending across the transition removes that hard discontinuity by construction.
     Triplanar   = 0,
-    // Wrapped around an axis running through the patch's centroid. The axis itself is picked
-    // automatically as the world axis *least* aligned with the patch's average normal (since a
-    // cylinder's own axis is perpendicular to its outward radial normal) - a reasonable default
-    // for roughly cylindrical selections, not a precise fit for arbitrary geometry.
+    // Wrapped around the object's own Z axis through the volume AABB center, with a fixed radius
+    // so a tile is the same size all the way around. See texture_displacement_cylindrical_frame().
     Cylindrical = 1,
     // Wrapped around the patch's centroid using longitude/latitude - reasonable for roughly
     // spherical/rounded selections, again an approximation rather than an exact geodesic map.
@@ -693,16 +691,19 @@ bool project_uv_projective(const std::array<float, 12> &m, const Vec3f &position
 // of three separate axis projections and therefore takes three texture samples per vertex - there
 // is no single UV that represents it. The other methods do map to one UV internally.
 //   - `normal` is this specific vertex's own normal; used only by Triplanar (for its blend weights).
-//   - `patch_center`/`patch_axis` describe the painted patch as a whole (its centroid, and - for
-//     Cylindrical only - the wrap axis); used only by the Cylindrical/Spherical methods.
+//   - `patch_center`/`patch_axis` describe the wrap: Spherical uses the painted-patch centroid;
+//     Cylindrical uses texture_displacement_cylindrical_frame() (object Z through the AABB center).
+//   - `cylinder_radius` is Cylindrical's fixed object AABB radius in mm (u = atan2 * R). Ignored
+//     by every other method.
 //   - `lscm_uv`, when non-null, is this vertex's precomputed LSCM coordinate and takes precedence
 //     over `layer.projection_method` (LSCM is a single per-patch solve, not a per-vertex formula,
 //     so build_texture_displacement() computes it once up front and passes it in here).
-// patch_center/patch_axis are cheap to compute once per patch and passed through unchanged for
-// every vertex rather than being re-derived per call.
+// patch_center/patch_axis/cylinder_radius are cheap to compute once per patch and passed through
+// unchanged for every vertex rather than being re-derived per call.
 float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisplacementLayer &layer,
                           const Vec3f &position, const Vec3f &normal,
                           const Vec3f &patch_center = Vec3f::Zero(), const Vec3f &patch_axis = Vec3f::UnitZ(),
+                          float        cylinder_radius = 0.f,
                           const Vec2f *lscm_uv = nullptr);
 
 // The same sample, in colour, through the identical projection/tiling/placement path - so a layer's
@@ -713,6 +714,7 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
 bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDisplacementLayer &layer,
                         const Vec3f &position, const Vec3f &normal, Vec3f &out,
                         const Vec3f &patch_center = Vec3f::Zero(), const Vec3f &patch_axis = Vec3f::UnitZ(),
+                        float        cylinder_radius = 0.f,
                         const Vec2f *lscm_uv = nullptr);
 
 // Carries a per-facet paint annotation - the colour paint above all - from a mesh onto the mesh a
@@ -1065,9 +1067,10 @@ Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world);
 // Area-weighted vertex normals of `its` - the directions the bake both projects and displaces along.
 std::vector<Vec3f> texture_displacement_vertex_normals(const indexed_triangle_set &its);
 
-// The frame the Cylindrical and Spherical projections wrap around: `patch`'s triangle-corner centroid,
-// the world axis *least* aligned with the average of `vertex_normals` over those corners (a cylinder's
-// own axis is perpendicular to its outward radial normal), and that average normal itself.
+// The frame the Spherical projection wraps around: `patch`'s triangle-corner centroid, the world
+// axis *least* aligned with the average of `vertex_normals` over those corners, and that average
+// normal itself (also the colour fallback for a degenerate triangle). Cylindrical uses
+// texture_displacement_cylindrical_frame() instead of this wrap origin and axis.
 //
 // Results come out in whatever frame `patch` is given in. The bake calls this with the patch already in
 // the bake frame (see texture_displacement_bake_frame()), so a preview that wants to reproduce the
@@ -1077,6 +1080,22 @@ std::vector<Vec3f> texture_displacement_vertex_normals(const indexed_triangle_se
 void texture_displacement_patch_frame(const indexed_triangle_set &patch,
                                       const std::vector<Vec3f>   &vertex_normals,
                                       Vec3f &center, Vec3f &axis, Vec3f &average_normal);
+
+// The wrap Cylindrical mapping uses: object-local Z through the volume AABB center, with a fixed
+// radius (half the larger of the AABB X and Y extents) so a tile is the same size all the way around.
+// `volume_mesh` is in volume space. `bake_frame` maps that into the texture frame the bake and the
+// preview shaders share (see texture_displacement_bake_frame()). Independent of the painted patch.
+// Approach follows BumpMesh (CNCKitchen/stlTexturizer, (c) 2026 CNCKitchen / Stefan Hermann, AGPL-3.0), reimplemented.
+struct TextureDisplacementCylindricalFrame
+{
+    Vec3f axis   { Vec3f::UnitZ() };
+    Vec3f center { Vec3f::Zero() };
+    float radius { 0.f };
+};
+
+TextureDisplacementCylindricalFrame texture_displacement_cylindrical_frame(
+    const indexed_triangle_set &volume_mesh,
+    const Transform3d          &bake_frame = Transform3d::Identity());
 
 // Convenience overload for main-thread callers: extracts the mesh/layers/paint data/options from
 // `volume` and forwards to the overload above.
@@ -1130,12 +1149,14 @@ ColorFieldSampler make_combined_color_sampler(const indexed_triangle_set        
                                               ColorQuantizeFn                              quantize_pure = nullptr,
                                               // The model's own UV channel, for ModelUV layers; see
                                               // build_texture_displacement().
-                                              const std::vector<Vec2f>                    *model_uv = nullptr);
+                                              const std::vector<Vec2f>                    *model_uv = nullptr,
+                                              const TextureDisplacementCylindricalFrame   *cylindrical = nullptr);
 
 HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set                  &base_mesh,
                                                       const std::vector<TextureDisplacementLayer> &layers,
                                                       const TextureDisplacementFacetsData         &facets_data,
-                                                      const std::vector<Vec2f>                    *model_uv = nullptr);
+                                                      const std::vector<Vec2f>                    *model_uv = nullptr,
+                                                      const TextureDisplacementCylindricalFrame   *cylindrical = nullptr);
 
 // Uniformly subdivides `mesh` (every triangle recursively split into 4 via edge midpoints, using a
 // shared cache so a midpoint is computed once and reused by both triangles on either side of that
