@@ -133,6 +133,35 @@ bool vendor_matches(const std::string& tag_vendor, const std::string& profile_ve
         return false;
     return contains_word_ci(tag_vendor, profile_vendor) || contains_word_ci(profile_vendor, tag_vendor);
 }
+
+// A product line is often filed under its parent company: Panchroma, PolyLite and PolyTerra presets
+// all have filament_vendor "Polymaker". A tag naming the line reaches them through the preset name,
+// which starts with the line's name as a whole word ("Pan" does not match "Panchroma").
+bool name_starts_with_vendor(const std::string& preset_name, const std::string& tag_vendor)
+{
+    if (tag_vendor.empty() || tag_vendor.size() > preset_name.size())
+        return false;
+    const auto equal_ci = [](unsigned char a, unsigned char b) { return std::toupper(a) == std::toupper(b); };
+    if (!std::equal(tag_vendor.begin(), tag_vendor.end(), preset_name.begin(), equal_ci))
+        return false;
+    return tag_vendor.size() == preset_name.size() ||
+           !std::isalnum(static_cast<unsigned char>(preset_name[tag_vendor.size()]));
+}
+
+// The company a product line is filed under, read from any system preset named after the line,
+// shown or not: "PolyLite PLA Pro" has filament_vendor "Polymaker". Empty when no system preset is
+// named after the tag's vendor, or when such a preset already carries that vendor.
+std::string parent_vendor_of_line(const PresetCollection& filaments, const std::string& tag_vendor)
+{
+    for (const auto& p : filaments.get_presets()) {
+        if (!p.is_system || !name_starts_with_vendor(p.name, tag_vendor))
+            continue;
+        const std::string vendor = p.config.opt_string("filament_vendor", 0u);
+        if (!vendor.empty() && !vendor_matches(tag_vendor, vendor))
+            return vendor;
+    }
+    return {};
+}
 // Rank the visible, compatible base presets of one filament type by colour distance, preferring a
 // name that carries the spool's sub type. Candidates are limited to vendor_filter, which nothing
 // matches when it is empty; tag_vendor is the tag's own vendor field, which a legacy tag uses to
@@ -149,7 +178,8 @@ std::string closest_preset_by_colour(const PresetCollection& filaments, const st
         // Only a base preset can be loaded: sync_ams_list() resolves a filament_id to the first
         // base preset carrying it, so a derived copy never loads and could outrank its parent.
         if (p.is_visible && p.is_compatible && filaments.get_preset_base(p) == &p && !p.filament_id.empty() &&
-            vendor_matches(vendor_filter, p.config.opt_string("filament_vendor", 0u)) &&
+            (vendor_matches(vendor_filter, p.config.opt_string("filament_vendor", 0u)) ||
+             name_starts_with_vendor(p.name, vendor_filter)) &&
             p.config.opt_string("filament_type", 0u) == filament_type) {
             // A profile that specifies no colour, or one that cannot be parsed, is unranked: it
             // is kept as a last resort rather than scored as black, which would otherwise let a
@@ -215,6 +245,16 @@ std::string SnapmakerPrinterAgent::find_closest_color_preset_by_vendor_and_type(
                                                               sub_wanted, target_color_value);
     if (!vendor_match.empty())
         return vendor_match;
+
+    // A product line with no shown preset of this type takes its parent company's before Generic:
+    // a PolyLite PLA Pro spool loads "Polymaker PLA Pro" when no PolyLite PLA preset is shown.
+    const std::string parent_vendor = parent_vendor_of_line(filaments, vendor_name);
+    if (!parent_vendor.empty()) {
+        const std::string parent_match = closest_preset_by_colour(filaments, parent_vendor, vendor_name, filament_type,
+                                                                  sub_wanted, target_color_value);
+        if (!parent_match.empty())
+            return parent_match;
+    }
 
     // Orca ships no preset for this spool's vendor, so fall back to its own Generic presets: they
     // cover the sub types the U1 sees (Generic PLA Silk @U1, Generic PLA High Speed @U1,
