@@ -122,6 +122,52 @@ TEST_CASE("Split two watertight meshes", "[its_split][its]") {
     debug_write_obj(res, "parts_watertight");
 }
 
+TEST_CASE("Faces sharing one edge pair up in face order", "[its]")
+{
+    // All five faces share the edge between vertices 0 and 1: faces 0, 1 and 4 run along it from 0 to 1, faces 2 and 3
+    // from 1 to 0. In face order, each face takes the first later face of the other direction that is still free, so
+    // 0 pairs with 2, 1 with 3, and the edge of 4 stays open, as do all the other edges.
+    indexed_triangle_set its;
+    its.vertices = {{0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 1.f, 0.f}, {0.f, -1.f, 0.f},
+                    {0.f, 0.f, 1.f}, {0.f, 0.f, -1.f}, {0.f, 1.f, 1.f}};
+    its.indices  = {{0, 1, 2}, {0, 1, 3}, {1, 0, 4}, {1, 0, 5}, {0, 1, 6}};
+    const std::vector<Vec3i32> expected = {{2, -1, -1}, {3, -1, -1}, {0, -1, -1}, {1, -1, -1}, {-1, -1, -1}};
+
+    CHECK(its_face_neighbors(its) == expected);
+    CHECK(its_face_neighbors_par(its) == expected);
+}
+
+TEST_CASE("Parallel face neighbors match the sequential ones where many faces share an edge", "[its]")
+{
+    // Every spine edge is shared by six pages of both directions, with the spine on each of the three edges of a face.
+    // The pages of a spine lie far apart in the face list, so different threads reach them, and which pages pair up
+    // must not depend on which thread gets there first.
+    constexpr int spines = 2000;
+    constexpr int pages  = 6;
+    indexed_triangle_set its;
+    for (int spine = 0; spine < spines; ++spine) {
+        its.vertices.emplace_back(float(spine), 0.f, 0.f);
+        its.vertices.emplace_back(float(spine), 1.f, 0.f);
+    }
+    for (int page = 0; page < pages; ++page)
+        for (int spine = 0; spine < spines; ++spine) {
+            const int  apex    = int(its.vertices.size());
+            const bool forward = (page + spine) % 3 != 0;
+            const int  from    = forward ? 2 * spine : 2 * spine + 1;
+            const int  to      = forward ? 2 * spine + 1 : 2 * spine;
+            its.vertices.emplace_back(float(spine), 0.5f, float(page + 1));
+            its.indices.emplace_back(page % 3 == 0 ? stl_triangle_vertex_indices(from, to, apex) :
+                                     page % 3 == 1 ? stl_triangle_vertex_indices(apex, from, to) :
+                                                     stl_triangle_vertex_indices(to, apex, from));
+        }
+
+    const std::vector<Vec3i32> sequential = its_face_neighbors(its);
+    // Each spine has four pages of one direction and two of the other, so two pairs.
+    REQUIRE(std::count_if(sequential.begin(), sequential.end(), [](const Vec3i32 &n) { return n.maxCoeff() >= 0; }) ==
+            4 * spines);
+    CHECK(its_face_neighbors_par(its) == sequential);
+}
+
 #include <libslic3r/QuadricEdgeCollapse.hpp>
 static float triangle_area(const Vec3f &v0, const Vec3f &v1, const Vec3f &v2)
 {
