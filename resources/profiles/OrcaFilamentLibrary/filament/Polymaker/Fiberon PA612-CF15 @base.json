@@ -8,14 +8,20 @@
 	"bed_type": [
 		"Cool Plate"
 	],
+	"eng_plate_temp": [
+		"50"
+	],
+	"eng_plate_temp_initial_layer": [
+		"50"
+	],
 	"fan_cooling_layer_time": [
 		"5"
 	],
 	"fan_max_speed": [
-		"30"
+		"0"
 	],
 	"fan_min_speed": [
-		"10"
+		"0"
 	],
 	"filament_cost": [
 		"94.99"
@@ -35,11 +41,17 @@
 	"full_fan_speed_layer": [
 		"2"
 	],
+	"hot_plate_temp": [
+		"50"
+	],
+	"hot_plate_temp_initial_layer": [
+		"50"
+	],
 	"nozzle_temperature_range_low": [
 		"250"
 	],
 	"overhang_fan_speed": [
-		"40"
+		"0"
 	],
 	"overhang_fan_threshold": [
 		"0%"
@@ -49,6 +61,12 @@
 	],
 	"temperature_vitrification": [
 		"206.2"
+	],
+	"textured_plate_temp": [
+		"50"
+	],
+	"textured_plate_temp_initial_layer": [
+		"50"
 	],
 	"activate_air_filtration": [
 		"1"

@@ -21,10 +21,10 @@
 		"Polymaker"
 	],
 	"hot_plate_temp": [
-		"65"
+		"55"
 	],
 	"hot_plate_temp_initial_layer": [
-		"65"
+		"55"
 	],
 	"nozzle_temperature": [
 		"220"
@@ -42,9 +42,9 @@
 		"60"
 	],
 	"textured_plate_temp": [
-		"65"
+		"55"
 	],
 	"textured_plate_temp_initial_layer": [
-		"65"
+		"55"
 	]
 }
