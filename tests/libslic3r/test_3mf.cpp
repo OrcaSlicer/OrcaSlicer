@@ -743,6 +743,38 @@ TEST_CASE("A project whose components reference themselves fails to load", "[3mf
     REQUIRE_FALSE(loaded);
 }
 
+TEST_CASE("Components that share an off-center mesh keep their placement", "[3mf][Regression]")
+{
+    // The importer centers a mesh on its first use and shares it with every later component that uses it, so each
+    // of those volumes has to apply the same centering shift before its component transform.
+    // One box mesh (x 10..12, y 0..4, z 0..1) used by four components: rotated 90 degrees about X (its first use),
+    // rotated the same way and moved 20 mm along X, scaled 2x along X and moved 40 mm, moved 80 mm.
+    ScopedTemporaryDir backup_dir("orca_shared_mesh");
+    Model              model;
+    REQUIRE(load_project(std::string(TEST_DATA_DIR) + "/test_3mf/shared_mesh_components.3mf", model, backup_dir));
+    REQUIRE(model.objects.size() == 1);
+    const ModelVolumePtrs& volumes = model.objects.front()->volumes;
+    REQUIRE(volumes.size() == 4);
+
+    // Where each component puts the box, in object coordinates.
+    const std::vector<std::pair<Vec3d, Vec3d>> expected = {
+        { { 10., -1., 0. }, { 12., 0., 4. } },
+        { { 30., -1., 0. }, { 32., 0., 4. } },
+        { { 60., 0., 0. }, { 64., 4., 1. } },
+        { { 90., 0., 0. }, { 92., 4., 1. } },
+    };
+    for (size_t i = 0; i < volumes.size(); ++i) {
+        INFO("volume " << i);
+        REQUIRE(volumes[i]->mesh_ptr() == volumes.front()->mesh_ptr());
+        const BoundingBoxf3 box = volumes[i]->mesh().transformed_bounding_box(volumes[i]->get_matrix());
+        for (int axis = 0; axis < 3; ++axis) {
+            INFO("axis " << axis);
+            CHECK_THAT(box.min(axis), Catch::Matchers::WithinAbs(expected[i].first(axis), 1e-6));
+            CHECK_THAT(box.max(axis), Catch::Matchers::WithinAbs(expected[i].second(axis), 1e-6));
+        }
+    }
+}
+
 TEST_CASE("A project in the 2.4.x layout keeps auto drop off from its build item", "[3mf][Regression]")
 {
     // 2.4.x wrote auto_drop on the build item and left it off the object, so the object is re-laid out here.

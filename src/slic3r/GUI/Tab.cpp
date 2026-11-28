@@ -2568,6 +2568,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
     }
 
+
     // Orca: the filament slot list is independent of the extruder count, so changing the number
     // of tools must not add or delete filament slots. Add/delete live in the sidebar (with their
     // own >= 1 and MAXIMUM_EXTRUDER_NUMBER bounds) and only the user changes the slot list.

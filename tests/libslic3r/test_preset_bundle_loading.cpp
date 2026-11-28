@@ -1309,6 +1309,71 @@ TEST_CASE("A project filament storing one value for a per-variant key applies it
     check_double_vector(loaded->config.option<ConfigOptionFloats>("pressure_advance")->values, {0.016, 0.016});
 }
 
+TEST_CASE("A project's edited process keeps the preset's compatible printers unless the project stores a list", "[Preset][Bundle][Regression]")
+{
+    enum class Project { NoList, CompatiblePrintersKey, StoredList };
+    const Project     project        = GENERATE(Project::NoList, Project::CompatiblePrintersKey, Project::StoredList);
+    const bool        inherits_system = GENERATE(false, true);
+    const std::string local_printer  = GENERATE(as<std::string>{}, "My Printer", "Other Printer");
+    CAPTURE(project, inherits_system, local_printer);
+    PresetBundle bundle;
+    add_inmemory_preset(bundle.printers, "My Printer");
+    if (inherits_system) {
+        Preset &parent   = add_inmemory_preset(bundle.prints, "System Process");
+        parent.is_system = true;
+        parent.config.option<ConfigOptionStrings>("compatible_printers", true)->values = {"System Printer"};
+    }
+    Preset &user = add_inmemory_preset(bundle.prints, "My Process", inherits_system ? "System Process" : "");
+    user.config.option<ConfigOptionStrings>("compatible_printers", true)->values = {local_printer};
+    user.config.option<ConfigOptionFloat>("layer_height", true)->value          = 0.2;
+
+    DynamicPrintConfig config = published_pla_file_config();
+    config.opt_string("print_settings_id", true)        = "My Process";
+    config.opt_string("printer_settings_id", true)      = "My Printer";
+    config.opt<ConfigOptionFloat>("layer_height")->value = 0.28;
+    if (project == Project::CompatiblePrintersKey)
+        config.option<ConfigOptionStrings>("compatible_printers", true)->values = {"Other Printer"};
+    if (project == Project::StoredList)
+        config.option<ConfigOptionStrings>("print_compatible_printers", true)->values = {"Project Printer"};
+    if (inherits_system) {
+        config.set_key_value("inherits_group", new ConfigOptionStrings({"System Process", "", ""}));
+        config.set_key_value("different_settings_to_system",
+                             new ConfigOptionStrings({project == Project::StoredList ? "compatible_printers;layer_height" : "layer_height", "", ""}));
+    }
+    Preset::normalize(config);
+    bundle.load_config_model("test.3mf", std::move(config));
+
+    const Preset &edited = bundle.prints.get_edited_preset();
+    REQUIRE(edited.name == "My Process");
+    CHECK_THAT(edited.config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.28, 1e-6));
+    const std::vector<std::string> expected = project == Project::StoredList     ? std::vector<std::string>{"Project Printer"} :
+                                              local_printer == "My Printer"      ? std::vector<std::string>{local_printer} :
+                                                                                   std::vector<std::string>{};
+    CHECK(edited.config.option<ConfigOptionStrings>("compatible_printers")->values == expected);
+}
+
+TEST_CASE("A project's edited process missing locally loads over its system parent with the project's empty compatible printers", "[Preset][Bundle][Regression]")
+{
+    PresetBundle bundle;
+    Preset      &parent = add_inmemory_preset(bundle.prints, "System Process");
+    parent.is_system    = true;
+    parent.config.option<ConfigOptionStrings>("compatible_printers", true)->values = {"System Printer"};
+    parent.config.option<ConfigOptionFloat>("layer_height", true)->value          = 0.2;
+
+    DynamicPrintConfig config = published_pla_file_config();
+    config.opt_string("print_settings_id", true)        = "Their Process";
+    config.opt<ConfigOptionFloat>("layer_height")->value = 0.28;
+    config.set_key_value("inherits_group", new ConfigOptionStrings({"System Process", "", ""}));
+    config.set_key_value("different_settings_to_system", new ConfigOptionStrings({"compatible_printers;layer_height", "", ""}));
+    Preset::normalize(config);
+    bundle.load_config_model("test.3mf", std::move(config));
+
+    const Preset &edited = bundle.prints.get_edited_preset();
+    REQUIRE(edited.name == "System Process");
+    CHECK_THAT(edited.config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.28, 1e-6));
+    CHECK(edited.config.option<ConfigOptionStrings>("compatible_printers")->values.empty());
+}
+
 TEST_CASE("A project's edited filament keeps the preset's compatible printers and processes", "[Preset][Bundle][Regression]")
 {
     enum class Load { FirstSlotSelected, FirstSlotParentSelected, LaterSlotEmbedded, LaterSlotCopied };
@@ -3265,6 +3330,30 @@ TEST_CASE("A remembered one-filament list comes back with one filament", "[Prese
 
     CHECK(bundle.filament_presets.size() == 1);
     CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 1);
+}
+
+// A saved list with more slots than the printer has extruders must come back at its saved size:
+// the extra slots are materials sharing a path, not surplus tools to discard.
+TEST_CASE("A saved filament list longer than the extruder count is restored unchanged", "[Preset][Bundle]")
+{
+    AppConfig app_config;
+    {
+        PresetBundle bundle;
+        select_multi_nozzle_printer(bundle, 2, false);
+        add_inmemory_preset(bundle.filaments, "Test Filament");
+        bundle.filaments.select_preset_by_name("Test Filament", true);
+        bundle.filament_presets = { "Test Filament" };
+        bundle.set_num_filaments(4u, "#123456");
+        bundle.export_selections(app_config);
+    }
+
+    PresetBundle bundle;
+    select_multi_nozzle_printer(bundle, 2, false);
+    add_inmemory_preset(bundle.filaments, "Test Filament");
+    bundle.load_selections(app_config);
+
+    CHECK(bundle.filament_presets.size() == 4);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 4);
 }
 
 // A one-colour project opens with that one filament rather than one per nozzle, on shared-nozzle
@@ -8316,6 +8405,9 @@ TEST_CASE("A project with fewer filaments than tools keeps its filament slots", 
     const size_t material_count = 2;
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00" };
+    config.option<ConfigOptionStrings>("filament_colour_type", true)->values = { "1", "1" };
+    config.option<ConfigOptionStrings>("filament_multi_colour", true)->values = { "#FF0000", "#00FF00" };
+    config.option<ConfigOptionInts>("filament_map", true)->values = { 1, 1 };
     config.opt<ConfigOptionFloats>("nozzle_diameter")->values = std::vector<double>(tool_count, 0.4);
     config.option<ConfigOptionBool>("single_extruder_multi_material")->value = false;
     Preset::normalize(config);
@@ -8370,6 +8462,45 @@ TEST_CASE("A project with fewer filaments than tools keeps its filament slots", 
         REQUIRE(colors.size() == material_count);
         CHECK(colors[0] == "#123456");
         CHECK(colors[1] == "#654321");
+    }
+
+    SECTION("an overwriting sync with two empty trays keeps explicitly added slots") {
+        // Slots the user added must survive a sync that reports empty trays at those positions.
+        bundle.set_num_filaments(static_cast<unsigned>(tool_count), "#00FF00");
+        REQUIRE(colors.size() == tool_count);
+        const std::string kept_color = colors[2];
+
+        Preset &filament = add_inmemory_preset(bundle.filaments, "Test PLA");
+        filament.filament_id = "GFSL00";
+        filament.config.option<ConfigOptionStrings>("filament_type", true)->values = { "PLA" };
+
+        auto tray = [](const std::string &filament_id, const std::string &color, const std::string &slot_id, bool placeholder) {
+            DynamicPrintConfig tray_config;
+            tray_config.set_key_value("filament_id", new ConfigOptionStrings{ filament_id });
+            tray_config.set_key_value("filament_colour", new ConfigOptionStrings{ color });
+            tray_config.set_key_value("filament_colour_type", new ConfigOptionStrings{ "1" });
+            tray_config.set_key_value("filament_multi_colour", new ConfigOptionStrings{ color });
+            tray_config.set_key_value("filament_type", new ConfigOptionStrings{ "PLA" });
+            tray_config.set_key_value("ams_id", new ConfigOptionStrings{ "0" });
+            tray_config.set_key_value("slot_id", new ConfigOptionStrings{ slot_id });
+            tray_config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{ placeholder });
+            return tray_config;
+        };
+        bundle.filament_ams_list.emplace(0, tray(filament.filament_id, "#123456", "0", false));
+        bundle.filament_ams_list.emplace(1, tray(filament.filament_id, "#654321", "1", false));
+        bundle.filament_ams_list.emplace(2, tray("", "", "2", true));
+        bundle.filament_ams_list.emplace(3, tray("", "", "3", true));
+
+        std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+        std::map<int, AMSMapInfo> maps;
+        MergeFilamentInfo merge_info;
+        CHECK(bundle.sync_ams_list(unknowns, false, maps, false, merge_info) == tool_count);
+
+        REQUIRE(colors.size() == tool_count);
+        CHECK(colors[0] == "#123456");
+        CHECK(colors[1] == "#654321");
+        CHECK(colors[2] == kept_color);
+        CHECK(colors[3] == kept_color);
     }
 }
 

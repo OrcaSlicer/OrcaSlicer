@@ -87,13 +87,9 @@ struct ScopedPluginManager
 
 // The app installs these in GUI_App::init_plugin_gui_wiring. Without an app the callbacks run inline
 // on the load worker, which is what lets the tests observe the registry right after the wait.
+// PluginManager::shutdown() drops every subscription, so each test installs these again.
 void install_resource_texture_wiring()
 {
-    static bool installed = false;
-    if (installed)
-        return;
-    installed = true;
-
     PluginManager& manager = PluginManager::instance();
     manager.subscribe_on_load_callback([](const std::string& plugin_key) {
         PluginResourceTextures::instance().on_plugin_register(plugin_key);
@@ -262,12 +258,10 @@ std::vector<unsigned char> make_gray_bmp(int width, int height, uint8_t value)
 // wxImageModule, which registers the standard handlers. wxInitAllImageHandlers() adds PNG, JPEG and
 // the rest but NOT the BMP handler, so a test binary without a wxApp must add the standard set too or
 // a .bmp texture cannot be loaded here at all.
+// Wx cleanup in another test removes every handler, and adding one that is already registered
+// does nothing.
 void ensure_wx_image_handlers()
 {
-    static bool initialized = false;
-    if (initialized)
-        return;
-    initialized = true;
     wxImage::InitStandardHandlers();
     wxInitAllImageHandlers();
 }
