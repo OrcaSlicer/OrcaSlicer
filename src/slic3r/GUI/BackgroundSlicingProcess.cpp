@@ -753,7 +753,19 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model& model, const Dyn
     // TODO: add partplate config
     DynamicPrintConfig new_config = config;
     new_config.apply(*m_current_plate->config());
+    const AppConfig* app_config = GUI::wxGetApp().app_config;
+    const bool disable_interference = (app_config != nullptr && app_config->get_bool("global_disable_interference_travel"));
+    if (disable_interference) {
+        new_config.option<ConfigOptionBool>("reduce_infill_retraction", true)->value = false;
+        BOOST_LOG_TRIVIAL(info) << "Global override: forcing reduce_infill_retraction = false (global_disable_interference_travel)";
+    }
+    const bool flag_changed = (m_fff_print != nullptr && m_fff_print->global_disable_interference_travel() != disable_interference);
+    const bool flag_invalidated = (m_fff_print != nullptr && m_fff_print->set_global_disable_interference_travel(disable_interference));
     Print::ApplyStatus invalidated = m_print->apply(model, new_config);
+    if (flag_invalidated)
+        invalidated = PrintBase::APPLY_STATUS_INVALIDATED;
+    else if (flag_changed && invalidated == PrintBase::APPLY_STATUS_UNCHANGED)
+        invalidated = PrintBase::APPLY_STATUS_CHANGED;
 
     // Orca: prevent resetting under gcode viewer mode
     if (invalidated != PrintBase::APPLY_STATUS_UNCHANGED) {

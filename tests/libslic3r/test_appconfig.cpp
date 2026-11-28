@@ -394,3 +394,21 @@ TEST_CASE("AppConfig keeps only the preview drag modes it knows", "[AppConfig]")
         REQUIRE(config.get(key) == "off");
     }
 }
+
+TEST_CASE("AppConfig defaults and preserves global_disable_interference_travel", "[AppConfig]") {
+    AppConfig config;
+    const std::string key = "global_disable_interference_travel";
+
+    SECTION("a missing value defaults to false") {
+        config.set(key, "");
+        config.set_defaults();
+        REQUIRE(config.get(key) == "false");
+        REQUIRE_FALSE(config.get_bool(key));
+    }
+
+    SECTION("an enabled value is preserved across set_defaults") {
+        config.set_bool(key, true);
+        config.set_defaults();
+        REQUIRE(config.get_bool(key));
+    }
+}

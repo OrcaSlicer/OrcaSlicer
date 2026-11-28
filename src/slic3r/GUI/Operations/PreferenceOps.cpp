@@ -306,6 +306,8 @@ std::vector<Preference> build_table()
              {{"all", L("All")}, {"color change", L("Color")}, {"disabled", L("None")}},
              {L("Auto calculate flushing volumes when selected values changed")});
     t.checkbox("auto_arrange", L("Auto arrange plate after cloning"));
+    t.checkbox("global_disable_interference_travel", L("Disable interference travel everywhere"),
+               {L("Forces reduce_infill_retraction off and disables retraction-skipping in support islands and inner-tree support bases for all slices on this installation, overriding presets and 3MF projects.")});
     // The checkbox and the delay's field share a row.
     t.checkbox("auto_slice_after_change", L("Auto slice after changes"),
                {L("If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change.")})
@@ -857,6 +859,9 @@ void apply_preference(const std::string& key)
         app.update_internal_development();
         if (config.get("internal_developer_mode") == "true")
             app.mainframe->show_log_window();
+    } else if (key == "global_disable_interference_travel") {
+        if (Plater* plater = app.plater())
+            plater->update(false, true);
     } else if (key == "show_unsupported_presets" || key == "group_filament_presets") {
         app.plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
     } else if (key == "use_printer_agents") {

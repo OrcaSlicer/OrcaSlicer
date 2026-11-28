@@ -7079,6 +7079,34 @@ int CLI::run(int argc, char **argv)
                             ConfigOptionEnumsGeneric* final_nozzle_volume_type_opt = new_print_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true);
                             final_nozzle_volume_type_opt->values.resize(new_extruder_count, nvtStandard);
                         }
+                        {
+                            auto resolve_cli_data_dir = []() -> std::string {
+                                if (!Slic3r::data_dir().empty())
+                                    return Slic3r::data_dir();
+#ifdef __linux__
+                                return Slic3r::default_data_dir();
+#elif defined(__APPLE__)
+                                if (const char* home = boost::nowide::getenv("HOME"); home != nullptr && *home != '\0')
+                                    return std::string(home) + "/Library/Application Support/" + SLIC3R_APP_KEY;
+                                return {};
+#elif defined(_WIN32)
+                                if (const char* appdata = boost::nowide::getenv("APPDATA"); appdata != nullptr && *appdata != '\0')
+                                    return std::string(appdata) + "\\" + SLIC3R_APP_KEY;
+                                return {};
+#else
+                                return {};
+#endif
+                            };
+                            const std::string effective_data_dir = resolve_cli_data_dir();
+                            const bool disable_interference = !effective_data_dir.empty() &&
+                                AppConfig::peek_bool(effective_data_dir, "global_disable_interference_travel");
+                            if (disable_interference) {
+                                new_print_config.option<ConfigOptionBool>("reduce_infill_retraction", true)->value = false;
+                                BOOST_LOG_TRIVIAL(info) << "Global override: forcing reduce_infill_retraction = false (global_disable_interference_travel)";
+                            }
+                            if (print_fff != nullptr)
+                                print_fff->set_global_disable_interference_travel(disable_interference);
+                        }
                         print->apply(model, new_print_config);
                         BOOST_LOG_TRIVIAL(info) << boost::format("set no_check to %1%:")%no_check;
                         print->set_no_check_flag(no_check);//BBS

@@ -1,6 +1,7 @@
 #include "CalibUtils.hpp"
 #include "../GUI/I18N.hpp"
 #include "../GUI/GUI_App.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "../GUI/DeviceCore/DevStorage.h"
 #include "../GUI/DeviceManager.hpp"
 #include "NetworkAgent.hpp"
@@ -1688,9 +1689,16 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
 
     // apply the new print config
     DynamicPrintConfig new_print_config = full_config;
-    print->apply(*model, new_print_config);
-
     Print *fff_print = dynamic_cast<Print *>(print);
+    const AppConfig *app_config = Slic3r::GUI::wxGetApp().app_config;
+    const bool disable_interference = (app_config != nullptr && app_config->get_bool("global_disable_interference_travel"));
+    if (disable_interference) {
+        new_print_config.option<ConfigOptionBool>("reduce_infill_retraction", true)->value = false;
+        BOOST_LOG_TRIVIAL(info) << "Global override: forcing reduce_infill_retraction = false (global_disable_interference_travel)";
+    }
+    if (fff_print != nullptr)
+        fff_print->set_global_disable_interference_travel(disable_interference);
+    print->apply(*model, new_print_config);
     fff_print->set_calib_params(params);
     fff_print->is_BBL_printer() = true;
 
