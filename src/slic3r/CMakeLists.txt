@@ -901,6 +901,14 @@ set(SLIC3R_GUI_SOURCES
     Utils/InstanceID.hpp
     Utils/json_diff.cpp
     Utils/json_diff.hpp
+    Utils/KobraX.cpp
+    Utils/KobraX.hpp
+    Utils/KobraXHost.cpp
+    Utils/KobraXHost.hpp
+    Utils/KobraXPrinterAgent.cpp
+    Utils/KobraXPrinterAgent.hpp
+    Utils/KobraXSession.cpp
+    Utils/KobraXSession.hpp
     Utils/minilzo_extension.cpp
     Utils/minilzo_extension.hpp
     Utils/MKS.cpp
