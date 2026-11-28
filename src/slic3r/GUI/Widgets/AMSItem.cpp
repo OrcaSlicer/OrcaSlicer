@@ -58,6 +58,7 @@ namespace Slic3r { namespace GUI {
     wxDEFINE_EVENT(EVT_AMS_EXTRUSION_CALI, wxCommandEvent);
     wxDEFINE_EVENT(EVT_AMS_LOAD, SimpleEvent);
     wxDEFINE_EVENT(EVT_AMS_UNLOAD, SimpleEvent);
+wxDEFINE_EVENT(EVT_AMS_EJECT, SimpleEvent);
     wxDEFINE_EVENT(EVT_AMS_SETTINGS, SimpleEvent);
     wxDEFINE_EVENT(EVT_AMS_FILAMENT_BACKUP, SimpleEvent);
     wxDEFINE_EVENT(EVT_AMS_REFRESH_RFID, wxCommandEvent);

@@ -378,7 +378,8 @@ public:
     void set_thumbnail_img(const wxBitmap& bmp, const std::string& bmp_name);
     void set_brightness_value(int value) { m_brightness_value = value; }
     void set_plate_index(int plate_idx = -1);
-    void market_scoring_show();
+    void market_scoring_show(bool show = true);
+    bool is_market_scoring_show();
     void market_scoring_hide();
 
 public:
@@ -704,6 +705,10 @@ protected:
     int speed_lvl = 1; // 0 - 3
     int speed_lvl_timeout {0};
     boost::posix_time::ptime speed_dismiss_time;
+    // qidi (ref QIDI Studio): speed popup may change the level only when this is set
+    bool m_allow_print_speed_control{ false };
+    // same source as the temp ctrl allows (show_printing_status temp_area)
+    bool m_monitor_misc_temp_area{ false };
     bool m_show_mode_changed = false;
     std::map<wxString, wxImage> img_list; // key: url, value: wxBitmap png Image
     std::map<std::string, std::string> m_print_connect_types;
@@ -758,6 +763,8 @@ protected:
     void on_ams_load_vams(wxCommandEvent& event);
     void on_ams_switch(SimpleEvent &event);
     void on_ams_unload(SimpleEvent &event);
+    void on_ams_eject(SimpleEvent &event);
+    void update_market_scoring(bool show);
     void on_ams_filament_backup(SimpleEvent& event);
     void on_ams_setting_click(SimpleEvent& event);
     void on_filament_edit(wxCommandEvent &event);

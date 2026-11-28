@@ -4,6 +4,7 @@
 
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 using namespace nlohmann;
 
@@ -36,6 +37,8 @@ void DevLamp::CtrlSetChamberLight(LIGHT_EFFECT effect)
 
 int DevLamp::command_set_chamber_light(LIGHT_EFFECT effect, int on_time, int off_time, int loops, int interval)
 {
+    // Qidi: QidiDialect maps the chamber_light ledctrl -> SET_PIN PIN=caselight
+    // (one caselight pin; the JSON ledctrl path is silently swallowed agent-side).
     json j;
     j["system"]["command"] = "ledctrl";
     j["system"]["led_node"] = "chamber_light";
@@ -50,6 +53,8 @@ int DevLamp::command_set_chamber_light(LIGHT_EFFECT effect, int on_time, int off
 
 int DevLamp::command_set_chamber_light2(LIGHT_EFFECT effect, int on_time, int off_time, int loops, int interval)
 {
+    // Qidi: QidiDialect drops the second BBL light node (Qidi exposes a single caselight
+    // pin; CtrlSetChamberLight fires both, only the first must reach the printer).
     json j;
     j["system"]["command"] = "ledctrl";
     j["system"]["led_node"] = "chamber_light2";

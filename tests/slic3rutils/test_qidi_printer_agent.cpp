@@ -39,6 +39,36 @@ TEST_CASE("A mapping without a usable Box slot saves nothing", "[QidiPrinterAgen
     CHECK(QidiPrinterAgent::build_tool_slot_script(mapping).empty());
 }
 
+TEST_CASE("A filament mapped to the external spool holder saves slot 255", "[QidiPrinterAgent]")
+{
+    // The v0 mapping flattens the external spool to -1; ams_mapping_info keeps the raw 255.
+    CHECK(QidiPrinterAgent::build_tool_slot_script("[-1, -1, -1]",
+                                                    "[{\"ams\": -1}, {\"ams\": -1}, {\"ams\": 255}]") ==
+          "SAVE_VARIABLE VARIABLE=value_t2 VALUE=\"'slot255'\"");
+}
+
+TEST_CASE("The mapping info wins over the flattened v0 mapping for every accepted target", "[QidiPrinterAgent]")
+{
+    // info[2].ams = 0 overrides v0 value 3 (external Box slot choices ride in this array);
+    // an out-of-range info target (filament 1) falls back to the v0 value 4.
+    CHECK(QidiPrinterAgent::build_tool_slot_script("[5, 4, 3]",
+                                                    "[{\"ams\": 5}, {\"ams\": 17}, {\"ams\": 0}]") ==
+          "SAVE_VARIABLE VARIABLE=value_t0 VALUE=\"'slot5'\"\n"
+          "SAVE_VARIABLE VARIABLE=value_t1 VALUE=\"'slot4'\"\n"
+          "SAVE_VARIABLE VARIABLE=value_t2 VALUE=\"'slot0'\"");
+}
+
+TEST_CASE("Invalid or missing mapping info falls back to the v0 mapping", "[QidiPrinterAgent]")
+{
+    const std::string info = GENERATE(as<std::string>{},
+                                       "",          // omitted by older callers
+                                       "[]",        // shorter than the mapping
+                                       "[1]",       // not objects
+                                       "[1,");      // not valid JSON
+    CAPTURE(info);
+    CHECK(QidiPrinterAgent::build_tool_slot_script("[-1, -1, 5]", info) == "SAVE_VARIABLE VARIABLE=value_t2 VALUE=\"'slot5'\"");
+}
+
 TEST_CASE("Filaments past the firmware's last tool variable are skipped", "[QidiPrinterAgent]")
 {
     // The firmware has value_t0 to value_t15: filament 15 maps to slot 1, filament 16 to slot 4.

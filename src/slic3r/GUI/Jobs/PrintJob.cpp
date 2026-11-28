@@ -307,6 +307,8 @@ void PrintJob::process(Ctl &ctl)
     params.nozzles_info         = this->task_nozzles_info;
     params.connection_type      = this->connection_type;
     params.task_use_ams         = this->task_use_ams;
+    params.task_enable_box      = this->task_enable_box;
+    params.task_qidi_enhanced   = this->task_qidi_enhanced;
     params.task_bed_type        = this->task_bed_type;
     params.print_type           = this->m_print_type;
     params.auto_bed_leveling    = this->auto_bed_leveling;

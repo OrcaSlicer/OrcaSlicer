@@ -92,6 +92,9 @@ public:
     bool        has_sdcard { false };
     bool        could_emmc_print { false };
     bool        task_use_ams { true };
+    bool        task_enable_box { true };
+    // false => "Standard" sync profile: the Qidi agent skips box/slot extras
+    bool        task_qidi_enhanced { true };
 
     DevStorage::SdcardState sdcard_state = DevStorage::SdcardState::NO_SDCARD;        
     bool        task_ext_change_assist { false };

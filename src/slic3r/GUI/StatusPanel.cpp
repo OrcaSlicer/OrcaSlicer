@@ -1348,11 +1348,16 @@ void PrintingTaskPanel::set_plate_index(int plate_idx)
     m_plate_index = plate_idx;
 }
 
-void PrintingTaskPanel::market_scoring_show()
+void PrintingTaskPanel::market_scoring_show(bool show)
 {
-    m_score_staticline->Show();
-    m_score_subtask_info->Show();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " show market scoring page";
+    m_score_staticline->Show(show);
+    m_score_subtask_info->Show(show);
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << (show ? " show" : " hide") << " market scoring page";
+}
+
+bool PrintingTaskPanel::is_market_scoring_show()
+{
+    return m_score_subtask_info->IsShown();
 }
 
 void PrintingTaskPanel::market_scoring_hide()
@@ -2642,6 +2647,7 @@ void StatusPanel::wire_controls()
     Bind(EVT_AMS_EXTRUSION_CALI, &StatusPanel::on_filament_extrusion_cali, this);
     Bind(EVT_AMS_LOAD, &StatusPanel::on_ams_load, this);
     Bind(EVT_AMS_UNLOAD, &StatusPanel::on_ams_unload, this);
+    Bind(EVT_AMS_EJECT, &StatusPanel::on_ams_eject, this);
     Bind(EVT_AMS_SWITCH, &StatusPanel::on_ams_switch, this);
     Bind(EVT_AMS_FILAMENT_BACKUP, &StatusPanel::on_ams_filament_backup, this);
     Bind(EVT_AMS_SETTINGS, &StatusPanel::on_ams_setting_click, this);
@@ -3114,6 +3120,8 @@ void StatusPanel::update_error_message()
 
 void StatusPanel::show_printing_status(bool ctrl_area, bool temp_area)
 {
+    // qidi: remember whether the temp/misc area is enabled (same source as the temp ctrl allows)
+    m_monitor_misc_temp_area = temp_area;
     if (!ctrl_area) {
         m_bpButton_xy->Enable(false);
         m_bpButton_z_10->Enable(false);
@@ -3346,6 +3354,15 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
     }
 }
 
+// qidi (ref QIDI Studio 5623): toggle market-scoring stars with a bool
+void StatusPanel::update_market_scoring(bool show)
+{
+    if (m_project_task_panel->is_market_scoring_show() != show) {
+        m_project_task_panel->market_scoring_show(show);
+        Layout();
+    }
+}
+
 void StatusPanel::update_misc_ctrl(MachineObject *obj)
 {
     auto get_extder_shown_state = [](bool ext_has_filament) -> ExtruderState
@@ -3469,6 +3486,16 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
         this->speed_lvl = obj->GetPrintingSpeedLevel();
             wxString text_speed = wxString::Format("%d%%", obj->printing_speed_mag);
             m_switch_speed->SetLabels(text_speed, text_speed);
+    }
+
+    // qidi (ref QIDI Studio cl_3): speed control allowed only while the temp/misc
+    // area is enabled and the printer is actually printing.
+    if (m_monitor_misc_temp_area && m_switch_speed) {
+        m_allow_print_speed_control = obj->is_in_printing();
+        m_switch_speed->Enable(m_allow_print_speed_control);
+    } else if (!m_monitor_misc_temp_area && m_switch_speed) {
+        m_allow_print_speed_control = false;
+        m_switch_speed->Enable(false);
     }
 }
 
@@ -3985,7 +4012,7 @@ void StatusPanel::update_subtask(MachineObject *obj)
                                 m_project_task_panel->set_has_reted_text(false);
                             }
                         }
-                        m_project_task_panel->market_scoring_show();
+                        update_market_scoring(true);
                     } else if (obj && obj->rating_info && !obj->rating_info->request_successful) {
                         BOOST_LOG_TRIVIAL(info) << "model mall result request failed";
                         if (403 != obj->rating_info->http_code) {
@@ -4612,6 +4639,16 @@ void StatusPanel::on_ams_unload(SimpleEvent &event)
     }
 }
 
+void StatusPanel::on_ams_eject(SimpleEvent &event)
+{
+    (void)event;
+    BOOST_LOG_TRIVIAL(info) << "on_ams_eject";
+    if (!obj) return;
+    std::string curr_ams_id = m_ams_control->GetCurentAms();
+    std::string curr_can_id = m_ams_control->GetCurrentCan(curr_ams_id);
+    obj->command_ams_eject_filament(curr_ams_id, curr_can_id);
+}
+
 void StatusPanel::on_ams_filament_backup(SimpleEvent& event)
 {
     if (obj) {
@@ -5008,12 +5045,19 @@ void StatusPanel::on_switch_speed(wxCommandEvent &event)
     }
     step->SelectItem(selected_item);
 
+    // qidi (ref QIDI Studio 7107/7111): steps are interactive only while speed
+    // control is allowed (printing/paused + misc area visible).
+    step->Enable(m_allow_print_speed_control);
+
     if (!obj->is_in_printing()) {
         step->Bind(wxEVT_LEFT_DOWN, [](auto& e) {
             return; });
     }
 
     step->Bind(EVT_STEP_CHANGED, [this](auto &e) {
+        // qidi (ref QIDI Studio 7111): ignore step changes while not allowed
+        if (!m_allow_print_speed_control)
+            return;
         this->speed_lvl        = e.GetInt() + 1;
         if (obj) {
             set_hold_count(this->speed_lvl_timeout);

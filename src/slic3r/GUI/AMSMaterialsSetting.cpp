@@ -893,8 +893,17 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
 
     // set filament
     if (m_is_third) {
+        // Qidi's UPDATE_FILAMENT_INFORMATION also wants VENDOR; QIDI Studio derives it from
+        // the combo entry's first word ("QIDI PLA" -> "QIDI"), mirrored here for its gcode path
+        std::string tray_vendor;
+        {
+            const std::string combo_name = m_comboBox_filament->GetValue().ToStdString();
+            const auto         space_pos  = combo_name.find(' ');
+            if (space_pos != std::string::npos && space_pos > 0)
+                tray_vendor = combo_name.substr(0, space_pos);
+        }
         obj->command_ams_filament_settings(ams_id, slot_id, ams_filament_id, ams_setting_id, tray_color, m_filament_type, nozzle_temp_min_int, nozzle_temp_max_int,
-                                           tray_colors, tray_ctype);
+                                           tray_colors, tray_ctype, tray_vendor);
 
         // Refresh the edited tray immediately while its MQTT acknowledgement is pending.
         DevAmsTray* tray = nullptr;

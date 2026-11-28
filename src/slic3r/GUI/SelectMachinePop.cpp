@@ -35,6 +35,7 @@
 #include "slic3r/GUI/ReleaseNote.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Auxiliary.hpp"
 #include "libslic3r/Preset.hpp"
 #include <cstddef>
@@ -634,6 +635,21 @@ void SelectMachinePopup::update_other_devices()
     m_hyperlink = new HyperLink(m_placeholder_panel, _L("Can\'t find devices\?"), wxT("https://www.orcaslicer.com/wiki/")); // Orca: neutral wiki link (vendor URL removed)
     m_hyperlink->SetFont(::Label::Body_12);
     placeholder_sizer->Add(m_hyperlink, 0, wxALIGN_CENTER | wxALL, 5);
+
+    // Orca: one-window "Add printer by IP ..." entry. Collects IP:port + access code +
+    // printer agent, stores them in the edited printer preset and runs the normal
+    // select_machine() flow, so the printer shows up in the list and starts connecting.
+    Button* add_by_ip_btn = new Button(m_placeholder_panel, _L("Add printer by IP..."));
+    add_by_ip_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+    add_by_ip_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        ConnectPrinterDialog dlg(wxGetApp().mainframe, wxID_ANY, _L("Add printer by IP"));
+        dlg.enable_add_by_ip();
+        if (dlg.ShowModal() == wxID_OK) {
+            wxCommandEvent refresh_evt;
+            update_machine_list(refresh_evt);
+        }
+    });
+    placeholder_sizer->Add(add_by_ip_btn, 0, wxALIGN_CENTER | wxBOTTOM, FromDIP(10));
 
 
     m_placeholder_panel->SetSizer(placeholder_sizer);

@@ -10,6 +10,7 @@
 
 #include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 using json = nlohmann::json;
 
@@ -314,6 +315,9 @@ void DevPrintOptions::parse_filament_tangle_detect_status(int flag)
 
 int DevPrintOptions::command_xcam_control(std::string module_name, bool on_off , MachineObject *obj, std::string lvl)
 {
+    // Qidi: QidiDialect maps xcam_control_set -> SAVE_VARIABLE (same persistent-variable
+    // mapping as MachineObject::command_xcam_control - noodle detector and pre-print model
+    // check exist printer-side, every other xcam module is acknowledged silently).
     json j;
     j["xcam"]["command"]     = "xcam_control_set";
     j["xcam"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);

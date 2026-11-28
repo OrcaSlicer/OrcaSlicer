@@ -1220,6 +1220,15 @@ void PrintConfigDef::init_common_params()
     def->plugin_type = "printer-connection";
     def->set_default_value(new ConfigOptionString(""));
 
+    def = this->add("printer_sync_profile", coString);
+    def->label = L("Sync Profile");
+    def->tooltip = L("How this printer's data is interpreted during synchronization. "
+                     "\"Qidi Plus 5 enhanced\" enables Qidi Box handling, the external spool and the Enable Box toggle. "
+                     "\"Standard\" keeps plain agent behavior without vendor-specific extras.");
+    def->cli = ConfigOptionDef::nocli;
+    def->enum_values = { "qidi_enhanced", "classic" };
+    def->set_default_value(new ConfigOptionString("qidi_enhanced"));
+
     def = this->add("print_host", coString);
     def->label = L("Hostname, IP or URL");
     // The URL is an example of the format to type, not a link, so it stays in the text.

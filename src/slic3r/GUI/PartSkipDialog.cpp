@@ -913,6 +913,15 @@ void PartSkipDialog::OnApplyDialog(wxCommandEvent &event)
         if (part_state == PartState::psChecked) { m_partskip_ids.push_back(part_id); }
     }
 
+    // Qidi: EXCLUDE_OBJECT needs object names, keep them next to the ids (same channel).
+    if (m_obj) {
+        m_obj->m_partskip_names.clear();
+        for (const auto &[pid, pstate] : m_parts_state) {
+            if (pstate == PartState::psChecked && m_parts_name.count(pid))
+                m_obj->m_partskip_names[(int) pid] = m_parts_name.at(pid);
+        }
+    }
+
     bool all_skipped = true;
     for (auto [part_id, part_state] : m_parts_state) {
         if (part_state == PartState::psUnCheck) all_skipped = false;

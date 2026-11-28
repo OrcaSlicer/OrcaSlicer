@@ -617,6 +617,9 @@ public:
 
     // part skip
     std::vector<int> m_partskip_ids;
+    // id -> plate object name, filled by PartSkipDialog alongside m_partskip_ids;
+    // used to build the Qidi EXCLUDE_OBJECT NAME=... script (BBL uses ids only).
+    std::map<int, std::string> m_partskip_names;
 
     /*target from Studio-SwitchBoard, default to INVALID_NOZZLE_ID if no switching control from PC*/
     int targ_nozzle_id_from_pc = INVALID_EXTRUDER_ID;
@@ -808,11 +811,13 @@ public:
     // ams controls
     //int command_ams_switch(int tray_index, int old_temp = 210, int new_temp = 210);
     int command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp = 210, int new_temp = 210, std::optional<int> extruder_id = std::nullopt);
+    // Qidi: eject filament via the EJECT_FILAMENT_CONTROL Box macro (same channel as load/unload).
+    int command_ams_eject_filament(std::string ams_id, std::string slot_id);
     int command_ams_user_settings(bool start_read_opt, bool tray_read_opt, bool remain_flag = false);
     int command_ams_switch_filament(bool switch_filament);
     int command_ams_air_print_detect(bool air_print_detect);
     int command_ams_calibrate(int ams_id);
-    int command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max, const std::vector<std::string>& tray_colors = {}, int tray_ctype = 2);
+    int command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max, const std::vector<std::string>& tray_colors = {}, int tray_ctype = 2, std::string tray_vendor = {});
     int command_ams_select_tray(std::string tray_id);
     int command_ams_refresh_rfid(int ams_id, int slot_id);
     int command_ams_control(std::string action);
