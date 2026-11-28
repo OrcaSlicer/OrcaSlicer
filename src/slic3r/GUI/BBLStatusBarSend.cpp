@@ -7,6 +7,7 @@
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 #include <cstddef>
 #include <wx/timer.h>
 #include <wx/gauge.h>
@@ -20,6 +21,11 @@
 
 #include <iostream>
 #include <regex>
+
+#ifdef __WXGTK__
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#endif
 
 namespace Slic3r {
 
@@ -36,13 +42,25 @@ BBLStatusBarSend::BBLStatusBarSend(wxWindow *parent, int id)
     wxBoxSizer *m_sizer_bottom = new wxBoxSizer(wxHORIZONTAL);
 
     m_status_text = new wxStaticText(m_self, wxID_ANY, wxEmptyString);
-    m_status_text->SetForegroundColour(wxColour(107, 107, 107));
+    m_status_text->SetForegroundColour(wxColour("#363636"));
     m_status_text->SetFont(::Label::Body_13);
     m_status_text->SetMaxSize(wxSize(m_self->FromDIP(360), m_self->FromDIP(40)));
 
-    m_prog = new wxGauge(m_self, wxID_ANY, 100, wxDefaultPosition, wxSize(-1, m_self->FromDIP(6)), wxGA_HORIZONTAL);
-    m_prog->SetMinSize(wxSize(m_self->FromDIP(300),m_self->FromDIP(6)));
+    m_prog = new wxGauge(m_self, wxID_ANY, 100, wxDefaultPosition, wxSize(-1, m_self->FromDIP(8)), wxGA_HORIZONTAL);
+    m_prog->SetMinSize(wxSize(m_self->FromDIP(300),m_self->FromDIP(8)));
+#ifdef __WXGTK__
+    GUI::SetGaugeColor(m_prog, 
+        StateColor::darkModeColorFor(wxColour("#009688")).GetAsString(), 
+        StateColor::darkModeColorFor(wxColour("#D9D9D9")).GetAsString()
+    );
+#else
+    m_prog->Pulse(); // colors not applied without this. probably it switches to a dc painted version of progressbar
+    m_prog->SetForegroundColour(wxColour("#009688"));
+    m_prog->SetBackgroundColour(wxColour("#D9D9D9"));
+    Slic3r::GUI::wxGetApp().UpdateDarkUI(m_prog);
+#endif
     m_prog->SetValue(0);
+
 
     //StateColor btn_bd_white(std::pair<wxColour, int>(*wxWHITE, StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
 
@@ -54,7 +72,7 @@ BBLStatusBarSend::BBLStatusBarSend(wxWindow *parent, int id)
     });
 
     m_stext_percent = new wxStaticText(m_self, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 0);
-    m_stext_percent->SetForegroundColour(wxColour(107, 107, 107));
+    m_stext_percent->SetForegroundColour(wxColour("#363636"));
     m_stext_percent->SetFont(::Label::Body_13);
     m_stext_percent->Wrap(-1);
 
@@ -312,7 +330,7 @@ void BBLStatusBarSend::set_status_text(const char *txt)
 
 void BBLStatusBarSend::msw_rescale() {
     //set_prog_block();
-    m_cancelbutton->SetMinSize(wxSize(m_self->FromDIP(56), m_self->FromDIP(24)));
+    m_cancelbutton->Rescale(); // ORCA rescale applies style
 }
 
 wxString BBLStatusBarSend::get_status_text() const

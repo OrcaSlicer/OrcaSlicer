@@ -9,6 +9,7 @@
 #include <utility>
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 #include <cstddef>
 #include <wx/timer.h>
 #include <wx/gauge.h>
@@ -22,6 +23,11 @@
 
 #include <iostream>
 #include <regex>
+
+#ifdef __WXGTK__
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#endif
 
 namespace Slic3r {
 
@@ -39,33 +45,17 @@ BBLStatusBarPrint::BBLStatusBarPrint(wxWindow *parent, int id)
 
     top_panel = new wxPanel(m_self, wxID_ANY);
     top_panel->SetBackgroundColour(*wxWHITE);
-    top_panel->SetMinSize(wxSize(m_self->FromDIP(550), m_self->FromDIP(26)));
-    top_panel->SetMaxSize(wxSize(m_self->FromDIP(550), m_self->FromDIP(26)));
+    top_panel->SetMinSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(26)));
+    top_panel->SetMaxSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(26)));
 
     m_status_text = new wxStaticText(top_panel, wxID_ANY, wxEmptyString);
-    m_status_text->SetForegroundColour(wxColour(107, 107, 107));
+    m_status_text->SetForegroundColour(wxColour("#363636"));
     m_status_text->SetMaxSize(wxSize(m_self->FromDIP(400), m_self->FromDIP(26)));
     m_status_text->SetMinSize(wxSize(m_self->FromDIP(400), m_self->FromDIP(26)));
     m_status_text->SetFont(::Label::Body_13);
 
-    StateColor btn_bt_white(std::pair<wxColour, int>(wxColour(0x90, 0x90, 0x90), StateColor::Disabled),
-        std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-        std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
-    StateColor btn_bd_white(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Disabled),
-        std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-
-
-    StateColor btn_txt_white(std::pair<wxColour, int>(wxColour("#FFFFFE"), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Normal));
-
     m_cancelbutton = new Button(m_self, _L("Cancel"));
-    m_cancelbutton->SetMinSize(wxSize(m_self->FromDIP(80), m_self->FromDIP(32)));
-    m_cancelbutton->SetMaxSize(wxSize(m_self->FromDIP(80), m_self->FromDIP(32)));
-    m_cancelbutton->SetBackgroundColor(btn_bt_white);
-    m_cancelbutton->SetBorderColor(btn_bd_white);
-    m_cancelbutton->SetTextColor(btn_txt_white);
-    m_cancelbutton->SetCornerRadius(4);
+    m_cancelbutton->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_cancelbutton->Bind(wxEVT_BUTTON,
         [this](wxCommandEvent &evt) {
         m_was_cancelled = true;
@@ -74,7 +64,7 @@ BBLStatusBarPrint::BBLStatusBarPrint(wxWindow *parent, int id)
     });
 
     m_stext_percent = new wxStaticText(top_panel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 0);
-    m_stext_percent->SetForegroundColour(wxColour(107, 107, 107));
+    m_stext_percent->SetForegroundColour(wxColour("#363636"));
     m_stext_percent->SetFont(::Label::Head_13);
     m_stext_percent->Wrap(-1);
 
@@ -115,9 +105,20 @@ BBLStatusBarPrint::BBLStatusBarPrint(wxWindow *parent, int id)
     m_sizer_status_text->Add(m_static_bitmap_show_error, 0, wxALIGN_CENTER, 0);
 
 
-    m_prog = new wxGauge(m_self, wxID_ANY, 100, wxDefaultPosition, wxSize(-1, m_self->FromDIP(6)), wxGA_HORIZONTAL);
-    m_prog->SetMinSize(wxSize(m_self->FromDIP(550), m_self->FromDIP(6)));
-    m_prog->SetMaxSize(wxSize(m_self->FromDIP(550), m_self->FromDIP(6)));
+    m_prog = new wxGauge(m_self, wxID_ANY, 100, wxDefaultPosition, wxSize(-1, m_self->FromDIP(8)), wxGA_HORIZONTAL);
+    m_prog->SetMinSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(8)));
+    m_prog->SetMaxSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(8)));
+#ifdef __WXGTK__
+    GUI::SetGaugeColor(m_prog, 
+        StateColor::darkModeColorFor(wxColour("#009688")).GetAsString(), 
+        StateColor::darkModeColorFor(wxColour("#D9D9D9")).GetAsString()
+    );
+#else
+    m_prog->Pulse(); // colors not applied without this. probably it switches to a dc painted version of progressbar
+    m_prog->SetForegroundColour(wxColour("#009688"));
+    m_prog->SetBackgroundColour(wxColour("#D9D9D9"));
+    Slic3r::GUI::wxGetApp().UpdateDarkUI(m_prog);
+#endif
     m_prog->SetValue(0);
 
     m_sizer_bottom->Add(m_prog, 1, wxALIGN_CENTER, 0);
@@ -137,7 +138,7 @@ BBLStatusBarPrint::BBLStatusBarPrint(wxWindow *parent, int id)
     m_sizer_body->Add(0, 0, 1, wxEXPAND, 0);
 
     wxBoxSizer *m_sizer_button = new wxBoxSizer(wxVERTICAL);
-    m_sizer_button->Add(m_cancelbutton, 0, wxALIGN_CENTER, 0);
+    m_sizer_button->Add(m_cancelbutton, 0, wxALIGN_CENTER | wxLEFT, m_self->FromDIP(15));
 
     m_sizer->Add(m_sizer_body, 1, wxALIGN_CENTER, 0);
     m_sizer->Add(m_sizer_button, 0, wxALIGN_CENTER, 0);
@@ -199,8 +200,8 @@ void BBLStatusBarPrint::show_error_info(wxString msg, int code, wxString descrip
     m_link_show_error->Show();
     m_static_bitmap_show_error->Show();
 
-    top_panel->SetMinSize(wxSize(m_self->FromDIP(550), m_self->FromDIP(32)));
-    top_panel->SetMaxSize(wxSize(m_self->FromDIP(550), m_self->FromDIP(32)));
+    top_panel->SetMinSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(32)));
+    top_panel->SetMaxSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(32)));
     m_status_text->SetMaxSize(wxSize(m_self->FromDIP(400), m_self->FromDIP(32)));
     m_status_text->SetMinSize(wxSize(m_self->FromDIP(400), m_self->FromDIP(32)));
 
@@ -364,7 +365,7 @@ void BBLStatusBarPrint::set_status_text(const char *txt)
 
 void BBLStatusBarPrint::msw_rescale() {
     //set_prog_block();
-    m_cancelbutton->SetMinSize(wxSize(m_self->FromDIP(56), m_self->FromDIP(24)));
+    m_cancelbutton->Rescale(); // ORCA rescale applies style
 }
 
 wxString BBLStatusBarPrint::get_status_text() const
@@ -394,8 +395,8 @@ void BBLStatusBarPrint::reset()
     m_cancelbutton->Show();
     m_was_cancelled = false;
 
-    top_panel->SetMinSize(wxSize(m_self->FromDIP(550), m_self->FromDIP(26)));
-    top_panel->SetMaxSize(wxSize(m_self->FromDIP(550), m_self->FromDIP(26)));
+    top_panel->SetMinSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(26)));
+    top_panel->SetMaxSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(26)));
     m_status_text->SetMaxSize(wxSize(m_self->FromDIP(400), m_self->FromDIP(26)));
     m_status_text->SetMinSize(wxSize(m_self->FromDIP(400), m_self->FromDIP(26)));
 
