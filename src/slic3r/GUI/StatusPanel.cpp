@@ -9,6 +9,7 @@
 
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "MainFrame.hpp"
 
 #include "MsgDialog.hpp"
@@ -1093,7 +1094,8 @@ void PrintingTaskPanel::msw_rescale()
 
 void PrintingTaskPanel::init_bitmaps()
 {
-    m_thumbnail_placeholder     = ScalableBitmap(this, "monitor_placeholder", 120);
+    m_thumbnail_placeholder         = ScalableBitmap(this, "monitor_placeholder", 120);
+    m_thumbnail_placeholder_default = ScalableBitmap(this, "monitor_placeholder_default", 120);
     m_bitmap_use_time           = ScalableBitmap(this, "print_info_time", 16);
     m_bitmap_use_weight         = ScalableBitmap(this, "print_info_weight", 16);
 }
@@ -1121,9 +1123,11 @@ void PrintingTaskPanel::show_error_msg(wxString msg)
     m_error_text->SetLabel(msg);
 }
 
-void PrintingTaskPanel::reset_printing_value()
+void PrintingTaskPanel::reset_printing_value(const MachineObject* obj)
 {
-    this->set_thumbnail_img(m_thumbnail_placeholder.bmp(), m_thumbnail_placeholder.name());
+    const bool            bbl         = !obj || obj->printer_agent_id == BBL_PRINTER_AGENT_ID;
+    const ScalableBitmap& placeholder = bbl ? m_thumbnail_placeholder : m_thumbnail_placeholder_default;
+    this->set_thumbnail_img(placeholder.bmp(), placeholder.name());
     this->set_plate_index(-1);
 }
 
@@ -4145,7 +4149,7 @@ void StatusPanel::reset_printing_values()
     m_project_task_panel->enable_partskip_button(nullptr, false);
     m_project_task_panel->enable_pause_resume_button(false, "pause_disable");
     m_project_task_panel->enable_abort_button(false);
-    m_project_task_panel->reset_printing_value();
+    m_project_task_panel->reset_printing_value(obj);
     m_project_task_panel->update_subtask_name(NA_STR);
     m_project_task_panel->show_profile_info(false);
    // m_project_task_panel->update_stage_value_with_machine(wxEmptyString, 0, obj);
