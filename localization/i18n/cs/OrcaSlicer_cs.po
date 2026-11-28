@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -9657,8 +9657,8 @@ msgid "Span"
 msgstr "Span"
 
 # AI Translated
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "Řídí všechny slicované dráhy. Vždy nástroj 0 — pomocí volby Pozice nástroje 0 výše zvolte, ve kterém rohu podložky se nachází. Z mřížky jej nelze přesunout."
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "Řídí všechny slicované dráhy. Vždy nástroj 1 — pomocí volby Pozice nástroje 1 výše zvolte, ve kterém rohu podložky se nachází. Z mřížky jej nelze přesunout."
 
 # AI Translated
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
@@ -15674,13 +15674,13 @@ msgid "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the
 msgstr "Vícebarevný tisk v paralelních režimech IDEX/IQEX vyžaduje nástroj Span na portálu primárního nástroje — bez něj režim nedefinuje partnera pro vícebarevný tisk v rámci portálu. Buď omezte tisk na jediný filament, přepněte do režimu Primární, nebo otevřete v nastavení tiskárny editor režimů IDEX/IQEX a označte nástroj na portálu primárního nástroje jako Span."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "V tomto režimu Span se barvy tisknou pouze pomocí %1%, ale filament %2% není přiřazen k žádnému nástroji. Použijte filamenty přiřazené k %1%, nebo přepněte tuto desku do režimu Primární."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "V tomto režimu Span se barvy tisknou pouze pomocí %1%, ale filament %2% je přiřazen k T%3%. Použijte filamenty přiřazené k %1%, nebo přepněte tuto desku do režimu Primární."
@@ -20768,12 +20768,12 @@ msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "Počet nezávislých tiskových hlav na portálu podél osy X. 2 pro uspořádání typu IDEX."
 
 # AI Translated
-msgid "Tool 0 Position"
-msgstr "Pozice nástroje 0"
+msgid "Tool 1 Position"
+msgstr "Pozice nástroje 1"
 
 # AI Translated
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "Fyzická pozice na podložce, kde se nachází nástroj T0 (index 0). Určuje, jak se indexy nástrojů mapují na zóny podložky. U sestav s jedním portálem (IDEX) záleží pouze na levé/pravé straně; u sestav se dvěma portály (IQEX) lze zvolit všechny čtyři rohy (vpředu = nižší Y / blíže k obsluze, vzadu = vyšší Y / zadní část stroje)."
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "Fyzická pozice na podložce, kde se nachází nástroj T1. Určuje, jak se indexy nástrojů mapují na zóny podložky. U sestav s jedním portálem (IDEX) záleží pouze na levé/pravé straně; u sestav se dvěma portály (IQEX) lze zvolit všechny čtyři rohy (vpředu = nižší Y / blíže k obsluze, vzadu = vyšší Y / zadní část stroje)."
 
 # AI Translated
 msgid "Nozzle Clearance X"
@@ -24998,6 +24998,11 @@ msgstr "Časosběr"
 # AI Translated
 msgid "Enable IFS"
 msgstr "Povolit IFS"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "Kalibrace průtoku"
 
 # AI Translated
 #, c-format, boost-format

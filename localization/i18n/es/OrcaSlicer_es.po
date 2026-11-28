@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -9297,8 +9297,8 @@ msgid "Span"
 msgstr "Span"
 
 # AI Translated
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "Controla todas las trayectorias laminadas. Siempre es la herramienta 0: use «Posición de la herramienta 0» arriba para elegir en qué esquina de la cama se sitúa. No se puede mover de la cuadrícula."
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "Controla todas las trayectorias laminadas. Siempre es la herramienta 1: use «Posición de la herramienta 1» arriba para elegir en qué esquina de la cama se sitúa. No se puede mover de la cuadrícula."
 
 # AI Translated
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
@@ -15047,13 +15047,13 @@ msgid "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the
 msgstr "Las impresiones multicolor en los modos paralelos IDEX/IQEX requieren una herramienta Span en el pórtico de la herramienta principal; sin ella, el modo no declara un compañero multicolor dentro del pórtico. Reduzca la impresión a un solo filamento, cambie al modo Principal (Primary) o abra el editor de modos IDEX/IQEX en los ajustes de la impresora y marque como Span una herramienta del pórtico de la herramienta principal."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "En este modo Span, solo se imprimen colores con %1%, pero el filamento %2% no está asignado a ninguna herramienta. Use filamentos asignados a %1% o cambie esta cama al modo Principal (Primary)."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "En este modo Span, solo se imprimen colores con %1%, pero el filamento %2% está asignado a T%3%. Use filamentos asignados a %1% o cambie esta cama al modo Principal (Primary)."
@@ -19996,12 +19996,12 @@ msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "Número de cabezales independientes por pórtico a lo largo de X. 2 para el estilo IDEX."
 
 # AI Translated
-msgid "Tool 0 Position"
-msgstr "Posición de la herramienta 0"
+msgid "Tool 1 Position"
+msgstr "Posición de la herramienta 1"
 
 # AI Translated
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "Posición física en la cama donde se encuentra la herramienta T0 (índice 0). Determina cómo se asignan los índices de herramienta a las zonas de la cama. En configuraciones de un solo pórtico (IDEX) solo importa izquierda/derecha; en configuraciones de doble pórtico (IQEX) se pueden seleccionar las cuatro esquinas (frontal = Y menor / cerca del operario, posterior = Y mayor / parte trasera de la máquina)."
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "Posición física en la cama donde se encuentra la herramienta T1. Determina cómo se asignan los índices de herramienta a las zonas de la cama. En configuraciones de un solo pórtico (IDEX) solo importa izquierda/derecha; en configuraciones de doble pórtico (IQEX) se pueden seleccionar las cuatro esquinas (frontal = Y menor / cerca del operario, posterior = Y mayor / parte trasera de la máquina)."
 
 # AI Translated
 msgid "Nozzle Clearance X"
@@ -24164,6 +24164,11 @@ msgstr "Time-lapse"
 
 msgid "Enable IFS"
 msgstr "Habilitar IFS"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "Calibración del flujo"
 
 # AI Translated
 #, c-format, boost-format

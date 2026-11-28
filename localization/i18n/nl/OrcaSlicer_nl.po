@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -10222,9 +10222,8 @@ msgid "Span"
 msgstr "Span"
 
 # AI Translated
-# Needs human review: Unsettled glossary term (⚠) "Tool (printer)": this entry uses "gereedschap"; align it once the term is settled.
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "Stuurt elk geslicet pad aan. Altijd gereedschap 0 — gebruik Positie gereedschap 0 hierboven om te kiezen welke hoek van het printbed het inneemt. Het kan niet uit het raster worden verplaatst."
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "Stuurt elk geslicet pad aan. Altijd gereedschap 1 — gebruik Positie gereedschap 1 hierboven om te kiezen welke hoek van het printbed het inneemt. Het kan niet uit het raster worden verplaatst."
 
 # AI Translated
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
@@ -16541,13 +16540,13 @@ msgstr "Prints in meerdere kleuren in parallelle IDEX/IQEX-modi vereisen een Spa
 
 # AI Translated
 # Needs human review: Unsettled glossary term (⚠) "Tool (printer)": this entry uses "gereedschap"; align it once the term is settled.
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "In deze Span-modus wordt alleen met %1% in kleur geprint, maar filament %2% is aan geen enkel gereedschap gekoppeld. Gebruik filamenten die aan %1% zijn gekoppeld, of zet dit printbed in de modus Primair."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "In deze Span-modus wordt alleen met %1% in kleur geprint, maar filament %2% is gekoppeld aan T%3%. Gebruik filamenten die aan %1% zijn gekoppeld, of zet dit printbed in de modus Primair."
@@ -22152,14 +22151,12 @@ msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "Aantal onafhankelijke printkoppen per portaal langs X. 2 voor IDEX-opstellingen."
 
 # AI Translated
-# Needs human review: Unsettled glossary term (⚠) "Tool (printer)": this entry uses "gereedschap"; align it once the term is settled.
-msgid "Tool 0 Position"
-msgstr "Positie gereedschap 0"
+msgid "Tool 1 Position"
+msgstr "Positie gereedschap 1"
 
 # AI Translated
-# Needs human review: Unsettled glossary term (⚠) "Tool (printer)": this entry uses "gereedschap"; align it once the term is settled.
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "Fysieke positie op het printbed waar gereedschap T0 (index 0) zich bevindt. Bepaalt hoe gereedschapsindexen aan zones van het printbed worden gekoppeld. Bij opstellingen met één portaal (IDEX) telt alleen links/rechts; bij opstellingen met twee portalen (IQEX) zijn alle vier de hoeken te kiezen (voor = lagere Y / dicht bij de gebruiker, achter = hogere Y / achterkant van de machine)."
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "Fysieke positie op het printbed waar gereedschap T1 zich bevindt. Bepaalt hoe gereedschapsindexen aan zones van het printbed worden gekoppeld. Bij opstellingen met één portaal (IDEX) telt alleen links/rechts; bij opstellingen met twee portalen (IQEX) zijn alle vier de hoeken te kiezen (voor = lagere Y / dicht bij de gebruiker, achter = hogere Y / achterkant van de machine)."
 
 # AI Translated
 msgid "Nozzle Clearance X"
@@ -26726,6 +26723,11 @@ msgstr "Time-lapse"
 # AI Translated
 msgid "Enable IFS"
 msgstr "IFS inschakelen"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "Flow-kalibratie"
 
 # AI Translated
 #, c-format, boost-format

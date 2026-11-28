@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -9286,8 +9286,8 @@ msgctxt "IDEX/IQEX role"
 msgid "Span"
 msgstr "Парная"
 
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "Служит источником информации о перемещениях. Роль может быть назначена только на T0; для смены позиции воспользуйтесь настройкой «Положение инструмента 0»."
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "Служит источником информации о перемещениях. Роль может быть назначена только на T1; для смены позиции воспользуйтесь настройкой «Положение инструмента 1»."
 
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
 msgstr "Повторяет движения основной головы на уровне прошивки, печатая такие же линии в своей зоне."
@@ -15009,12 +15009,12 @@ msgstr "В данном режиме параллельная печать ра�
 msgid "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the primary's gantry — without one, the mode doesn't declare a within-gantry multicolor partner. Either reduce the print to a single filament, switch to Primary mode, or open the printer settings IDEX/IQEX Modes editor and mark a tool on the primary's gantry as Span."
 msgstr "Параллельная печать разноцветных моделей на принтерах IQEX требует настройки парной головы на той же балке. Без назначенной пары этот режим не сможет подготовить параллельную печать двумя соседними головами на разных балках. Назначьте парную голову рядом с основной в настройках IMEX, переключитесь в основной режим или сделайте модель отноцветной."
 
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "В парном режиме разными цветами печатают только %1%, но материал %2% не подаётся ни в одну голову. Переключите стол в основной режим или назначьте материалы, подаваемые в %1%."
 
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "В парном режиме разными цветами печатают только %1%, но материал %2% подаётся в T%3%. Переключите стол в основной режим или назначьте материалы, подаваемые в %1%."
@@ -20153,11 +20153,11 @@ msgstr "Голов на балке"
 msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "Количество независимых печатающих голов на одной направляющей оси X. 2 для IDEX-подобных."
 
-msgid "Tool 0 Position"
-msgstr "Положение инструмента 0"
+msgid "Tool 1 Position"
+msgstr "Положение инструмента 1"
 
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "Физическое положение головы с индексом 0 на столе (T0). Определяет нумерацию голов и их зон. Для принтеров с одной балкой доступен только выбор стороны; для принтеров с двумя балками можно выбрать конкретный угол."
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "Физическое положение головы T1 на столе. Определяет нумерацию голов и их зон. Для принтеров с одной балкой доступен только выбор стороны; для принтеров с двумя балками можно выбрать конкретный угол."
 
 msgid "Nozzle Clearance X"
 msgstr "Отступ от сопла по X"
@@ -24378,6 +24378,11 @@ msgstr "Таймлапсы"
 
 msgid "Enable IFS"
 msgstr "Включить IFS"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "Калибровка потока"
 
 # AI Translated
 #, c-format, boost-format

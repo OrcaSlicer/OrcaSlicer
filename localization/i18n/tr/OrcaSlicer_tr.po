@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -9448,9 +9448,8 @@ msgid "Span"
 msgstr "Span"
 
 # AI Translated
-# Needs human review: "grid" here is the role-tile grid of the IDEX/IQEX Modes editor (Printer Settings), not the Grid pattern, so it is "Izgara" rather than the glossary "Kafes"; check it reads right next to the tiles; Unsettled glossary term (⚠) "Tool (printer)": this entry uses "araç"; align it once the term is settled.
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "Tüm dilimlenmiş yolları yürütür. Her zaman araç 0'dır — yatağın hangi köşesinde bulunacağını seçmek için yukarıdaki Araç 0 Konumu ayarını kullanın. Izgarada yeri değiştirilemez."
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "Tüm dilimlenmiş yolları yürütür. Her zaman araç 1'dir — yatağın hangi köşesinde bulunacağını seçmek için yukarıdaki Araç 1 Konumu ayarını kullanın. Izgarada yeri değiştirilemez."
 
 # AI Translated
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
@@ -15359,14 +15358,14 @@ msgstr "IDEX/IQEX paralel modlarında çok renkli baskılar, birincil aracın po
 
 # AI Translated
 # Needs human review: 'Tool' is rendered 'araç' as in the old translation; the glossary row Tool (printer) is unsettled (Takım / Araç). %1% is a list such as T0/T1.
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "Bu Span modunda renkleri yalnızca %1% basar, ancak filament %2% hiçbir araca yönlendirilmemiş. %1% üzerine yönlendirilmiş filamentleri kullanın veya bu plakayı Birincil moda geçirin."
 
 # AI Translated
 # Needs human review: %1% is a list of tools such as T0/T1 and %3% a tool number; check the phrasing reads right with both substitutions.
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "Bu Span modunda renkleri yalnızca %1% basar, ancak filament %2%, T%3% üzerine yönlendirilmiş. %1% üzerine yönlendirilmiş filamentleri kullanın veya bu plakayı Birincil moda geçirin."
@@ -20492,14 +20491,12 @@ msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "X boyunca portal başına bağımsız baskı kafası sayısı. IDEX tipi için 2."
 
 # AI Translated
-# Needs human review: Unsettled glossary term (⚠) "Tool (printer)": this entry uses "araç"; align it once the term is settled.
-msgid "Tool 0 Position"
-msgstr "Araç 0 Konumu"
+msgid "Tool 1 Position"
+msgstr "Araç 1 Konumu"
 
 # AI Translated
-# Needs human review: Unsettled glossary term (⚠) "Tool (printer)": this entry uses "araç"; align it once the term is settled.
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "T0 aracının (indeks 0) yatak üzerindeki fiziksel konumu. Araç indekslerinin yatak bölgelerine nasıl eşleneceğini belirler. Tek portallı kurulumlarda (IDEX) yalnızca sol/sağ önemlidir; çift portallı kurulumlarda (IQEX) dört köşenin tümü seçilebilir (ön = düşük Y / operatöre yakın, arka = yüksek Y / makinenin arkası)."
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "T1 aracının yatak üzerindeki fiziksel konumu. Araç indekslerinin yatak bölgelerine nasıl eşleneceğini belirler. Tek portallı kurulumlarda (IDEX) yalnızca sol/sağ önemlidir; çift portallı kurulumlarda (IQEX) dört köşenin tümü seçilebilir (ön = düşük Y / operatöre yakın, arka = yüksek Y / makinenin arkası)."
 
 # AI Translated
 msgid "Nozzle Clearance X"
@@ -24765,6 +24762,11 @@ msgstr "Hızlandırılmış"
 # AI Translated
 msgid "Enable IFS"
 msgstr "IFS'yi etkinleştir"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "Akış kalibrasyonu"
 
 # AI Translated
 #, c-format, boost-format

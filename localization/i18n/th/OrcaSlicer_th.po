@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -9518,8 +9518,8 @@ msgid "Span"
 msgstr "Span"
 
 # AI Translated
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "ควบคุมทุกเส้นทางที่สไลซ์ เป็นเครื่องมือ 0 เสมอ — ใช้ ตำแหน่งเครื่องมือ 0 ด้านบนเพื่อเลือกว่าเครื่องมือนี้อยู่ที่มุมใดของฐานพิมพ์ ไม่สามารถย้ายออกจากตารางได้"
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "ควบคุมทุกเส้นทางที่สไลซ์ เป็นเครื่องมือ 1 เสมอ — ใช้ ตำแหน่งเครื่องมือ 1 ด้านบนเพื่อเลือกว่าเครื่องมือนี้อยู่ที่มุมใดของฐานพิมพ์ ไม่สามารถย้ายออกจากตารางได้"
 
 # AI Translated
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
@@ -15424,13 +15424,13 @@ msgid "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the
 msgstr "การพิมพ์หลายสีในโหมดขนาน IDEX/IQEX ต้องมีเครื่องมือ Span บนแกนทรีของเครื่องมือหลัก — หากไม่มี โหมดนี้จะไม่ได้ระบุคู่พิมพ์หลายสีภายในแกนทรีเดียวกัน ให้ลดงานพิมพ์เหลือเส้นพลาสติกเดียว สลับไปใช้โหมดหลัก (Primary) หรือเปิดตัวแก้ไขโหมด IDEX/IQEX ในการตั้งค่าเครื่องพิมพ์ แล้วกำหนดเครื่องมือบนแกนทรีของเครื่องมือหลักเป็น Span"
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "ในโหมด Span นี้ สีจะถูกพิมพ์โดย %1% เท่านั้น แต่เส้นพลาสติก %2% ไม่ได้ส่งไปยังเครื่องมือใดเลย ใช้เส้นพลาสติกที่ส่งไปยัง %1% หรือสลับเพลตนี้เป็นโหมดหลัก (Primary)"
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "ในโหมด Span นี้ สีจะถูกพิมพ์โดย %1% เท่านั้น แต่เส้นพลาสติก %2% ถูกส่งไปยัง T%3% ใช้เส้นพลาสติกที่ส่งไปยัง %1% หรือสลับเพลตนี้เป็นโหมดหลัก (Primary)"
@@ -20605,12 +20605,12 @@ msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "จำนวนหัวพิมพ์อิสระต่อแกนทรีตามแนวแกน X 2 สำหรับแบบ IDEX"
 
 # AI Translated
-msgid "Tool 0 Position"
-msgstr "ตำแหน่งเครื่องมือ 0"
+msgid "Tool 1 Position"
+msgstr "ตำแหน่งเครื่องมือ 1"
 
 # AI Translated
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "ตำแหน่งจริงบนฐานพิมพ์ที่เครื่องมือ T0 (ดัชนี 0) อยู่ ใช้กำหนดว่าดัชนีเครื่องมือจับคู่กับโซนบนฐานพิมพ์อย่างไร สำหรับระบบแกนทรีเดี่ยว (IDEX) มีผลเฉพาะซ้าย/ขวา สำหรับระบบแกนทรีคู่ (IQEX) เลือกได้ทั้งสี่มุม (ด้านหน้า = Y ต่ำกว่า / ใกล้ผู้ใช้งาน, ด้านหลัง = Y สูงกว่า / ด้านหลังเครื่อง)"
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "ตำแหน่งจริงบนฐานพิมพ์ที่เครื่องมือ T1 อยู่ ใช้กำหนดว่าดัชนีเครื่องมือจับคู่กับโซนบนฐานพิมพ์อย่างไร สำหรับระบบแกนทรีเดี่ยว (IDEX) มีผลเฉพาะซ้าย/ขวา สำหรับระบบแกนทรีคู่ (IQEX) เลือกได้ทั้งสี่มุม (ด้านหน้า = Y ต่ำกว่า / ใกล้ผู้ใช้งาน, ด้านหลัง = Y สูงกว่า / ด้านหลังเครื่อง)"
 
 # AI Translated
 msgid "Nozzle Clearance X"
@@ -24844,6 +24844,11 @@ msgstr "ไทม์แลปส์"
 
 msgid "Enable IFS"
 msgstr "เปิดใช้ IFS"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "ปรับเทียบการไหล"
 
 # AI Translated
 #, c-format, boost-format

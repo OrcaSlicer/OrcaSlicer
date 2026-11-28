@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -9959,8 +9959,8 @@ msgid "Span"
 msgstr "Span"
 
 # AI Translated
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "Điều khiển mọi đường chạy đã slice. Luôn là công cụ 0 — dùng Vị trí công cụ 0 ở trên để chọn góc bàn in mà nó chiếm. Không thể di chuyển nó khỏi lưới."
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "Điều khiển mọi đường chạy đã slice. Luôn là công cụ 1 — dùng Vị trí công cụ 1 ở trên để chọn góc bàn in mà nó chiếm. Không thể di chuyển nó khỏi lưới."
 
 # AI Translated
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
@@ -16156,13 +16156,13 @@ msgid "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the
 msgstr "Bản in nhiều màu trong các chế độ song song IDEX/IQEX yêu cầu một công cụ Span trên giàn trục của công cụ chính — nếu không có, chế độ này không khai báo cộng sự in nhiều màu trong cùng giàn trục. Hãy giảm bản in xuống một filament, chuyển sang chế độ Chính, hoặc mở trình chỉnh sửa Chế độ IDEX/IQEX trong cài đặt máy in và đánh dấu một công cụ trên giàn trục của công cụ chính là Span."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "Trong chế độ Span này, màu chỉ được in bởi %1%, nhưng filament %2% không được định tuyến đến công cụ nào. Hãy dùng các filament được định tuyến đến %1%, hoặc chuyển plate này sang chế độ Chính."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "Trong chế độ Span này, màu chỉ được in bởi %1%, nhưng filament %2% được định tuyến đến T%3%. Hãy dùng các filament được định tuyến đến %1%, hoặc chuyển plate này sang chế độ Chính."
@@ -21355,12 +21355,12 @@ msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "Số đầu công cụ độc lập trên mỗi giàn trục theo trục X. 2 cho kiểu IDEX."
 
 # AI Translated
-msgid "Tool 0 Position"
-msgstr "Vị trí công cụ 0"
+msgid "Tool 1 Position"
+msgstr "Vị trí công cụ 1"
 
 # AI Translated
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "Vị trí vật lý trên bàn in nơi đặt công cụ T0 (chỉ số 0). Xác định cách các chỉ số công cụ ánh xạ đến các vùng trên bàn in. Với thiết lập một giàn trục (IDEX), chỉ trái/phải có ý nghĩa; với thiết lập hai giàn trục (IQEX), có thể chọn cả bốn góc (trước = Y thấp hơn / gần người vận hành, sau = Y cao hơn / phía sau máy)."
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "Vị trí vật lý trên bàn in nơi đặt công cụ T1. Xác định cách các chỉ số công cụ ánh xạ đến các vùng trên bàn in. Với thiết lập một giàn trục (IDEX), chỉ trái/phải có ý nghĩa; với thiết lập hai giàn trục (IQEX), có thể chọn cả bốn góc (trước = Y thấp hơn / gần người vận hành, sau = Y cao hơn / phía sau máy)."
 
 # AI Translated
 msgid "Nozzle Clearance X"
@@ -25647,6 +25647,11 @@ msgstr "Timelapse"
 # AI Translated
 msgid "Enable IFS"
 msgstr "Bật IFS"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "Hiệu chỉnh lưu lượng"
 
 # AI Translated
 #, c-format, boost-format
