@@ -1298,7 +1298,10 @@ TEST_CASE("Print statistics in custom G-code cannot be used in a calculation", "
 {
     const std::string key = GENERATE(as<std::string>{}, "total_weight", "used_filament", "total_cost", "print_time", "normal_print_time",
                                      "silent_print_time", "total_wipe_tower_cost", "total_wipe_tower_filament", "print_time_total_sec",
-                                     "print_time_day", "print_time_hour", "print_time_minute", "print_time_sec", "used_filament_length");
+                                     "print_time_day", "print_time_hour", "print_time_minute", "print_time_sec", "used_filament_length",
+                                     "used_filament_mm", "filament_used_mm", "filament_used_g", "gcode_line_count",
+                                     "gcode_command_line_count", "extruded_bbox_min_x", "extruded_bbox_min_y", "extruded_bbox_min_z",
+                                     "extruded_bbox_max_x", "extruded_bbox_max_y", "extruded_bbox_max_z");
     CAPTURE(key);
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({ { "file_start_gcode", "; {" + key + " + 1}\n" } });
@@ -1306,6 +1309,191 @@ TEST_CASE("Print statistics in custom G-code cannot be used in a calculation", "
     Model model;
     init_print({ cube(20) }, print, model, config);
     CHECK_THROWS_WITH(Slic3r::Test::gcode(print), Catch::Matchers::ContainsSubstring("known only after the G-code is generated"));
+}
+
+// A finished-file line the processor counts as a command: not blank, and not a full-line comment.
+// Matches GCodeProcessor::substitute_final_line_counts().
+static bool is_gcode_command_line(std::string_view line)
+{
+    size_t i = 0;
+    while (i < line.size() && (line[i] == ' ' || line[i] == '\t'))
+        ++i;
+    return i < line.size() && line[i] != ';';
+}
+
+static std::vector<double> numbers_in(const std::string &text)
+{
+    std::vector<double> values;
+    size_t              i = 0;
+    while (i < text.size()) {
+        while (i < text.size() && (text[i] == ' ' || text[i] == ','))
+            ++i;
+        if (i >= text.size())
+            break;
+        size_t count = 0;
+        values.push_back(std::stod(text.substr(i), &count));
+        REQUIRE(count > 0);
+        i += count;
+    }
+    return values;
+}
+
+// File header G-code is expanded before the time estimate, the filament totals and the line counts
+// exist. The placeholders are tokens until post-processing, which then writes the final values,
+// including into the header. Line counts include the header and every line the post-processor inserts.
+TEST_CASE("File header G-code gets the final slicing results", "[Print][GCode]")
+{
+    const bool is_bbl = GENERATE(false, true);
+    CAPTURE(is_bbl);
+
+    const std::vector<std::string> keys = {
+        "print_time_total_sec", "print_time", "print_time_day", "print_time_hour", "print_time_minute", "print_time_sec",
+        "used_filament", "used_filament_length", "used_filament_mm", "filament_used_mm", "filament_used_g", "total_weight",
+        "gcode_line_count", "gcode_command_line_count", "total_layer_count",
+        "extruded_bbox_min_x", "extruded_bbox_min_y", "extruded_bbox_min_z",
+        "extruded_bbox_max_x", "extruded_bbox_max_y", "extruded_bbox_max_z",
+    };
+    std::string templ;
+    for (const std::string &key : keys)
+        templ += ";header " + key + "={" + key + "}\n";
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "file_start_gcode",   templ },
+        { "filament_density",   "1.24" },
+        // Straight moves only, so the bounding box is the G1 endpoints and not arc chords.
+        { "enable_arc_fitting", "disabled" },
+        { "wipe",               "0" },
+    });
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    print.is_BBL_printer() = is_bbl;
+
+    std::string gcode;
+    REQUIRE_NOTHROW(gcode = Slic3r::Test::gcode(print));
+
+    const std::string lines = "\n" + gcode;
+    const auto        header_value = [&lines](const std::string &key) {
+        const std::string prefix = "\n;header " + key + "=";
+        const size_t      start  = lines.find(prefix);
+        REQUIRE(start != std::string::npos);
+        const size_t begin = start + prefix.size();
+        // The config block repeats the template, still containing '{'. The expanded header is first.
+        const std::string value = lines.substr(begin, lines.find('\n', begin) - begin);
+        REQUIRE(value.find('@') == std::string::npos);
+        REQUIRE(value.find('{') == std::string::npos);
+        return value;
+    };
+
+    for (const std::string &token : { "@GCODE_LINE_COUNT@", "@GCODE_COMMAND_LINE_COUNT@", "@USED_FILAMENT_MM@",
+                                      "@FILAMENT_USED_MM@", "@FILAMENT_USED_G@", "@EXTRUDED_BBOX_MIN_X@", "@EXTRUDED_BBOX_MAX_Z@" })
+        CHECK(gcode.find(token) == std::string::npos);
+
+    // The same statistics filename_format is expanded with, filled in after export.
+    const DynamicConfig stats = print.print_statistics().config();
+    CHECK(stats.opt_float("total_weight") > 0.);
+    CHECK(header_value("print_time") == stats.opt_string("print_time"));
+    const double seconds = std::stod(header_value("print_time_total_sec"));
+    CHECK(seconds > 0.);
+    const int rebuilt = std::stoi(header_value("print_time_day")) * 86400 + std::stoi(header_value("print_time_hour")) * 3600 +
+                        std::stoi(header_value("print_time_minute")) * 60 + std::stoi(header_value("print_time_sec"));
+    CHECK(rebuilt == static_cast<int>(seconds));
+    CHECK_THAT(std::stod(header_value("used_filament")), Catch::Matchers::WithinAbs(stats.opt_float("used_filament"), 0.01));
+    CHECK_THAT(std::stod(header_value("used_filament_length")), Catch::Matchers::WithinAbs(stats.opt_float("used_filament"), 0.01));
+    CHECK_THAT(std::stod(header_value("used_filament_mm")), Catch::Matchers::WithinAbs(stats.opt_float("used_filament") * 1000., 0.05));
+    CHECK_THAT(std::stod(header_value("total_weight")), Catch::Matchers::WithinAbs(stats.opt_float("total_weight"), 0.01));
+
+    const auto comment_numbers = [&lines](const std::string &label) {
+        const std::string prefix = "\n; " + label + " = ";
+        const size_t      start  = lines.find(prefix);
+        REQUIRE(start != std::string::npos);
+        const size_t begin = start + prefix.size();
+        return numbers_in(lines.substr(begin, lines.find('\n', begin) - begin));
+    };
+    const std::vector<double> mm = numbers_in(header_value("filament_used_mm"));
+    const std::vector<double> g  = numbers_in(header_value("filament_used_g"));
+    const std::vector<double> comment_mm = comment_numbers("filament used [mm]");
+    const std::vector<double> comment_g  = comment_numbers("filament used [g]");
+    REQUIRE_FALSE(mm.empty());
+    REQUIRE(mm.size() == g.size());
+    // The comment lists the filaments that were loaded, which for this print is the whole list.
+    REQUIRE(mm.size() == comment_mm.size());
+    REQUIRE(g.size() == comment_g.size());
+    double mm_sum = 0.;
+    double g_sum  = 0.;
+    for (size_t i = 0; i < mm.size(); ++i) {
+        CHECK_THAT(mm[i], Catch::Matchers::WithinAbs(comment_mm[i], 0.01));
+        CHECK_THAT(g[i], Catch::Matchers::WithinAbs(comment_g[i], 0.01));
+        mm_sum += mm[i];
+        g_sum += g[i];
+    }
+    CHECK_THAT(std::stod(header_value("used_filament_mm")), Catch::Matchers::WithinAbs(mm_sum, 0.05));
+    CHECK_THAT(std::stod(header_value("total_weight")), Catch::Matchers::WithinAbs(g_sum, 0.05));
+
+    const int layers = std::stoi(header_value("total_layer_count"));
+    CHECK(layers > 0);
+    if (!is_bbl) {
+        const std::string layer_prefix = "\n; total layers count = ";
+        const size_t      layer_at     = lines.find(layer_prefix);
+        REQUIRE(layer_at != std::string::npos);
+        CHECK(layers == std::stoi(lines.substr(layer_at + layer_prefix.size())));
+    }
+
+    size_t total_lines   = 0;
+    size_t command_lines = 0;
+    for (size_t i = 0; i < gcode.size();) {
+        size_t end = i;
+        while (end < gcode.size() && gcode[end] != '\n' && gcode[end] != '\r')
+            ++end;
+        if (is_gcode_command_line(std::string_view(gcode.data() + i, end - i)))
+            ++command_lines;
+        ++total_lines;
+        if (end < gcode.size() && gcode[end] == '\r')
+            ++end;
+        if (end < gcode.size() && gcode[end] == '\n')
+            ++end;
+        i = end;
+    }
+    CHECK(std::stoi(header_value("gcode_line_count")) == static_cast<int>(total_lines));
+    CHECK(std::stoi(header_value("gcode_command_line_count")) == static_cast<int>(command_lines));
+    // The header itself is part of the file, and it is not the whole file.
+    CHECK(total_lines > keys.size());
+    CHECK(command_lines > 0);
+    CHECK(command_lines < total_lines);
+
+    BoundingBoxf3 scanned;
+    GCodeReader   reader;
+    reader.apply_config(config);
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        // Positive extrusion with XY travel: the same moves the processor calls extrude.
+        if (!line.extruding(self) || (line.dist_X(self) == 0.f && line.dist_Y(self) == 0.f))
+            return;
+        scanned.merge(Vec3d(self.x(), self.y(), self.z()));
+        scanned.merge(Vec3d(line.new_X(self), line.new_Y(self), line.new_Z(self)));
+    });
+    REQUIRE(scanned.defined);
+    CHECK_THAT(std::stod(header_value("extruded_bbox_min_x")), Catch::Matchers::WithinAbs(scanned.min.x(), 0.001));
+    CHECK_THAT(std::stod(header_value("extruded_bbox_min_y")), Catch::Matchers::WithinAbs(scanned.min.y(), 0.001));
+    CHECK_THAT(std::stod(header_value("extruded_bbox_min_z")), Catch::Matchers::WithinAbs(scanned.min.z(), 0.001));
+    CHECK_THAT(std::stod(header_value("extruded_bbox_max_x")), Catch::Matchers::WithinAbs(scanned.max.x(), 0.001));
+    CHECK_THAT(std::stod(header_value("extruded_bbox_max_y")), Catch::Matchers::WithinAbs(scanned.max.y(), 0.001));
+    CHECK_THAT(std::stod(header_value("extruded_bbox_max_z")), Catch::Matchers::WithinAbs(scanned.max.z(), 0.001));
+    CHECK(scanned.min.x() < scanned.max.x());
+    CHECK(scanned.min.y() < scanned.max.y());
+    CHECK(scanned.min.z() < scanned.max.z());
+}
+
+// An export that never mentions the new placeholders must not grow a second rewrite or any of their tokens.
+TEST_CASE("File header placeholders are absent when the template does not use them", "[Print][GCode]")
+{
+    const std::string gcode = slice({ cube(20) }, { { "file_start_gcode", "; header only\n" } });
+    CHECK(gcode.find("; header only\n") != std::string::npos);
+    for (const std::string &token : { "@GCODE_LINE_COUNT@", "@GCODE_COMMAND_LINE_COUNT@", "@USED_FILAMENT_MM@",
+                                      "@FILAMENT_USED_MM@", "@FILAMENT_USED_G@", "@EXTRUDED_BBOX_MIN_X@",
+                                      "@EXTRUDED_BBOX_MIN_Y@", "@EXTRUDED_BBOX_MIN_Z@", "@EXTRUDED_BBOX_MAX_X@",
+                                      "@EXTRUDED_BBOX_MAX_Y@", "@EXTRUDED_BBOX_MAX_Z@" })
+        CHECK(gcode.find(token) == std::string::npos);
 }
 
 TEST_CASE("export_gcode writes G-code without a result pointer", "[Print][export_gcode]")

@@ -132,7 +132,20 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     "@TOTAL_COST@",
     "@TOTAL_WIPE_TOWER_COST@",
     "@TOTAL_WIPE_TOWER_FILAMENT@",
-    " OUTER_OVERHANG_WALL"
+    " OUTER_OVERHANG_WALL",
+    // Keep in lockstep with ETags, after Outer_Overhang_Wall. The same strings are in
+    // Reserved_Tags_compatible: the token text does not depend on the Bambu tag flavor.
+    "@USED_FILAMENT_MM@",
+    "@FILAMENT_USED_MM@",
+    "@FILAMENT_USED_G@",
+    "@GCODE_LINE_COUNT@",
+    "@GCODE_COMMAND_LINE_COUNT@",
+    "@EXTRUDED_BBOX_MIN_X@",
+    "@EXTRUDED_BBOX_MIN_Y@",
+    "@EXTRUDED_BBOX_MIN_Z@",
+    "@EXTRUDED_BBOX_MAX_X@",
+    "@EXTRUDED_BBOX_MAX_Y@",
+    "@EXTRUDED_BBOX_MAX_Z@"
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -166,7 +179,18 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     "@TOTAL_COST@",
     "@TOTAL_WIPE_TOWER_COST@",
     "@TOTAL_WIPE_TOWER_FILAMENT@",
-    " OUTER_OVERHANG_WALL"
+    " OUTER_OVERHANG_WALL",
+    "@USED_FILAMENT_MM@",
+    "@FILAMENT_USED_MM@",
+    "@FILAMENT_USED_G@",
+    "@GCODE_LINE_COUNT@",
+    "@GCODE_COMMAND_LINE_COUNT@",
+    "@EXTRUDED_BBOX_MIN_X@",
+    "@EXTRUDED_BBOX_MIN_Y@",
+    "@EXTRUDED_BBOX_MIN_Z@",
+    "@EXTRUDED_BBOX_MAX_X@",
+    "@EXTRUDED_BBOX_MAX_Y@",
+    "@EXTRUDED_BBOX_MAX_Z@"
 };
 
 
@@ -1374,12 +1398,21 @@ void GCodeProcessor::run_post_process()
         return ret;
     };
 
-    // Process inline placeholders (print_time_*, used_filament_length and the print statistics known only after export)
+    // Process inline placeholders (print_time_*, filament totals, the extruding-move box and the
+    // other print statistics known only after export). Line-count tokens are noticed here but not
+    // replaced: post-processing is still inserting lines, so the count is written later by
+    // substitute_final_line_counts(), once the file is finished.
     auto process_inline_placeholders = [&](std::string& gcode_line) {
         bool processed = false;
         // Every inline placeholder contains '@', so a line without one has nothing to replace.
         if (gcode_line.find('@') == std::string::npos)
             return processed;
+
+        // Remember that this file asked for a line count. The token stays in the line so the
+        // later pass can find it, and so this pass's own inserted lines are included in the count.
+        if (gcode_line.find(reserved_tag(ETags::GCode_Line_Count_Placeholder)) != std::string::npos ||
+            gcode_line.find(reserved_tag(ETags::GCode_Command_Line_Count_Placeholder)) != std::string::npos)
+            m_substitute_line_counts = true;
 
         auto replace_tag = [&gcode_line, &processed](ETags tag, const std::string& value) {
             const std::string& placeholder = reserved_tag(tag);
@@ -1414,6 +1447,36 @@ void GCodeProcessor::run_post_process()
         replace_tag(ETags::Print_Time_Sec_Placeholder, std::to_string(print_time_sec));
         replace_tag(ETags::Used_Filament_Length_Placeholder,
                     Slic3r::float_to_string_decimal_point(total_filament_mm / 1000.0, 2)); // Convert mm to m
+        // Total length in millimeters, the unit of the "; filament used [mm]" comment below.
+        replace_tag(ETags::Used_Filament_Mm_Placeholder, Slic3r::float_to_string_decimal_point(total_filament_mm, 2));
+        // One number per configured filament, in filament index order, unused filaments as 0.
+        // The separator matches the comment process_used_filament() writes, so a header can show
+        // the same list. filament_mm / filament_g are built from the extruded volumes at the top
+        // of this function, which is the same source as that comment.
+        auto format_per_extruder = [](const std::vector<double>& values) {
+            if (values.empty())
+                return std::string("0.00");
+            std::string out;
+            for (size_t i = 0; i < values.size(); ++i) {
+                if (i != 0)
+                    out += ", ";
+                out += Slic3r::float_to_string_decimal_point(values[i], 2);
+            }
+            return out;
+        };
+        replace_tag(ETags::Filament_Used_Mm_Placeholder, format_per_extruder(filament_mm));
+        replace_tag(ETags::Filament_Used_G_Placeholder, format_per_extruder(filament_g));
+        // Nozzle position while extruding, millimeters, three decimals like the G-code coordinates.
+        // With no extruding move the box was never defined; report zeros rather than leaving the token.
+        auto format_bbox = [this](double value) {
+            return m_extruded_bbox.defined ? Slic3r::float_to_string_decimal_point(value, 3) : std::string("0.000");
+        };
+        replace_tag(ETags::Extruded_BBox_Min_X_Placeholder, format_bbox(m_extruded_bbox.min.x()));
+        replace_tag(ETags::Extruded_BBox_Min_Y_Placeholder, format_bbox(m_extruded_bbox.min.y()));
+        replace_tag(ETags::Extruded_BBox_Min_Z_Placeholder, format_bbox(m_extruded_bbox.min.z()));
+        replace_tag(ETags::Extruded_BBox_Max_X_Placeholder, format_bbox(m_extruded_bbox.max.x()));
+        replace_tag(ETags::Extruded_BBox_Max_Y_Placeholder, format_bbox(m_extruded_bbox.max.y()));
+        replace_tag(ETags::Extruded_BBox_Max_Z_Placeholder, format_bbox(m_extruded_bbox.max.z()));
         // Same values as the print statistics that filename_format gets (PrintStatistics::config(), filled in by
         // update_print_estimated_stats() in GCode.cpp), which runs only after this post-processing.
         replace_tag(ETags::Normal_Print_Time_Placeholder, get_time_dhm(PrintEstimatedStatistics::ETimeMode::Normal));
@@ -2147,6 +2210,142 @@ void GCodeProcessor::handle_offsets_of_second_process(const TimeProcessor::Inser
         }
         move.gcode_id += total_offset;
     }
+}
+
+namespace {
+// A line a printer would execute. Blank lines and full-line comments (optional leading space or
+// tab, then ';') are not commands. "G1 X1 ; move" is a command: the ';' is trailing, not leading.
+bool is_gcode_command_line(std::string_view line)
+{
+    while (!line.empty() && (line.back() == '\n' || line.back() == '\r'))
+        line.remove_suffix(1);
+    size_t i = 0;
+    while (i < line.size() && (line[i] == ' ' || line[i] == '\t'))
+        ++i;
+    return i < line.size() && line[i] != ';';
+}
+
+void replace_all(std::string& text, const std::string& from, const std::string& to)
+{
+    if (from.empty())
+        return;
+    size_t pos = 0;
+    while ((pos = text.find(from, pos)) != std::string::npos) {
+        text.replace(pos, from.size(), to);
+        pos += to.size();
+    }
+}
+} // namespace
+
+// Fill {gcode_line_count} and {gcode_command_line_count}.
+//
+// The counts have to be taken from the file after M73 lines and the pre-heat injector have been
+// inserted, and they have to include the file header that contains the placeholders. Replacing the
+// token with a number does not add or remove a newline and does not change whether the line is a
+// comment, so the count taken before the replacement is the count of the file after it.
+//
+// Skipped entirely when the placeholders were not used. An ordinary export is not rewritten.
+void GCodeProcessor::substitute_final_line_counts()
+{
+    if (!m_substitute_line_counts)
+        return;
+
+    const std::string& total_tag   = reserved_tag(ETags::GCode_Line_Count_Placeholder);
+    const std::string& command_tag = reserved_tag(ETags::GCode_Command_Line_Count_Placeholder);
+
+    // Same EOL-preserving read as run_second_pass_injection(): keep the original '\r' and '\n'
+    // bytes, and count a final fragment that has no newline. A file that ends with '\n' does not
+    // gain an extra empty line.
+    auto read_lines = [](FILE* file, const auto& on_line) {
+        std::string       gcode_line;
+        std::vector<char> buffer(65536 * 10, 0);
+        for (;;) {
+            size_t cnt_read = ::fread(buffer.data(), 1, buffer.size(), file);
+            if (::ferror(file))
+                return false;
+            bool eof       = cnt_read == 0;
+            auto it        = buffer.begin();
+            auto it_bufend = buffer.begin() + cnt_read;
+            while (it != it_bufend || (eof && !gcode_line.empty())) {
+                bool eol    = false;
+                auto it_end = it;
+                for (; it_end != it_bufend && !(eol = *it_end == '\r' || *it_end == '\n'); ++it_end);
+                eol |= eof && it_end == it_bufend;
+                gcode_line.insert(gcode_line.end(), it, it_end);
+                it = it_end;
+                if (it != it_bufend && *it == '\r')
+                    gcode_line += *it++;
+                if (it != it_bufend && *it == '\n')
+                    gcode_line += *it++;
+                if (eol) {
+                    on_line(gcode_line);
+                    gcode_line.clear();
+                }
+            }
+            if (eof)
+                break;
+        }
+        return true;
+    };
+
+    size_t total_lines   = 0;
+    size_t command_lines = 0;
+    size_t tag_hits      = 0;
+    {
+        FilePtr in{ boost::nowide::fopen(m_result.filename.c_str(), "rb") };
+        if (in.f == nullptr)
+            throw Slic3r::RuntimeError(_u8L("G-code processor line-count substitution failed.\nCannot open file for reading.\n"));
+        const bool ok = read_lines(in.f, [&](const std::string& line) {
+            ++total_lines;
+            if (is_gcode_command_line(line))
+                ++command_lines;
+            if (line.find(total_tag) != std::string::npos || line.find(command_tag) != std::string::npos)
+                ++tag_hits;
+        });
+        if (!ok)
+            throw Slic3r::RuntimeError(_u8L("G-code processor line-count substitution failed.\nError while reading from file.\n"));
+    }
+    // The first pass saw a token that a later rewrite no longer contains. Nothing to fill in,
+    // and the file must not be rewritten.
+    if (tag_hits == 0)
+        return;
+
+    const std::string total_value   = std::to_string(total_lines);
+    const std::string command_value = std::to_string(command_lines);
+
+    FilePtr in{ boost::nowide::fopen(m_result.filename.c_str(), "rb") };
+    if (in.f == nullptr)
+        throw Slic3r::RuntimeError(_u8L("G-code processor line-count substitution failed.\nCannot open file for reading.\n"));
+
+    const std::string out_path = m_result.filename + ".linecount";
+    FilePtr out{ boost::nowide::fopen(out_path.c_str(), "wb") };
+    if (out.f == nullptr)
+        throw Slic3r::RuntimeError(_u8L("G-code processor line-count substitution failed.\nCannot open file for writing.\n"));
+
+    // The numbers are a different length from the tokens, so every later byte offset moves.
+    // Rebuild lines_ends from the file we are about to write. Line ids (gcode_id) do not move:
+    // this pass inserts no lines.
+    m_result.lines_ends.clear();
+    GCodeFileWriter writer(out, out_path, m_result.lines_ends, "GCode processor line-count substitution failed.\nIs the disk full?\n");
+
+    const bool ok = read_lines(in.f, [&](std::string line) {
+        replace_all(line, total_tag, total_value);
+        replace_all(line, command_tag, command_value);
+        writer.append(line);
+    });
+    // Flush before the error check so a failed read does not leave the writer's buffer unflushed.
+    writer.flush();
+    out.close();
+    in.close();
+    if (!ok) {
+        boost::nowide::remove(out_path.c_str());
+        throw Slic3r::RuntimeError(_u8L("G-code processor line-count substitution failed.\nError while reading from file.\n"));
+    }
+
+    if (rename_file(out_path, m_result.filename))
+        // TRN %1% is the temporary file path, %2% the output file path.
+        throw Slic3r::RuntimeError(Slic3r::format(_u8L("Failed to rename the output G-code file from %1% to %2%.\nIs %1% locked?"),
+                                                  out_path, m_result.filename) + '\n');
 }
 
 // The pre-cool / pre-heat injection engine. See the class comment in the header. The methods populate
@@ -3818,6 +4017,9 @@ void GCodeProcessor::reset()
     m_highest_bed_temp = 0;
 
     m_extruded_last_z = 0.0f;
+    // A previous export on this processor must not leak its bounds or a pending line-count rewrite.
+    m_extruded_bbox.reset();
+    m_substitute_line_counts = false;
     m_zero_layer_height = 0.0f;
     m_first_layer_height = 0.0f;
     m_processing_start_custom_gcode = false;
@@ -4042,6 +4244,9 @@ void GCodeProcessor::finalize(bool post_process)
         // merge/offset machinery on the multi-nozzle fleet (H2D/X2D/H2D-Pro/H2C).
         if (m_enable_pre_heating)
             run_second_pass_injection();
+        // After every rewrite that can still insert a line. No-op when the file never used a
+        // line-count placeholder, so the bytes of an ordinary export do not change.
+        substitute_final_line_counts();
     }
     update_exclusion_volume_path_check_result();
     //BBS: update slice warning
@@ -5361,6 +5566,15 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
     }
 
     if (type == EMoveType::Extrude) {
+        // Bounds of the nozzle while filament is actually being deposited: positive E together
+        // with an XY move. Record the commanded positions before the Z == 0 visualization
+        // adjustment below, so the box matches the coordinates in the file. Arcs arrive here as
+        // the chords process_G2_G3() already walks for the time estimate (within the arc-fitting
+        // tolerance of the real arc). Travels, retractions and wipes are other move types and
+        // are left out; a wipe slides along plastic that was already counted.
+        m_extruded_bbox.merge(Vec3d(m_start_position[X], m_start_position[Y], m_start_position[Z]));
+        m_extruded_bbox.merge(Vec3d(m_end_position[X], m_end_position[Y], m_end_position[Z]));
+
         float volume_extruded_filament = area_filament_cross_section * delta_pos[E];
         float area_toolpath_cross_section = volume_extruded_filament / delta_xyz;
 
