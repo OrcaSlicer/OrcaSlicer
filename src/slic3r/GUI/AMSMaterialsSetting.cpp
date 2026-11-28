@@ -1,5 +1,6 @@
 #include "AMSMaterialsSetting.hpp"
 #include "ColorPickerDialog.hpp"
+#include "EncodedFilament.hpp"
 #include "FilamentBitmapUtils.hpp"
 #include "libslic3r/Color.hpp"
 #include <optional>
@@ -20,6 +21,11 @@
 #include <iomanip>
 #include <wx/anybutton.h>
 #include <wx/checklst.h>
+#include <wx/colour.h>
+#include <wx/defs.h>
+#include <wx/stattext.h>
+#include <wx/string.h>
+#include <vector>
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/DropDown.hpp"
@@ -199,6 +205,73 @@ static std::vector<ColorPickerPopup::ColorItem> collect_preset_color_items(const
     }
 
     return items;
+}
+
+// Name of the slot colour from the Bambu colour catalogue, with its product code and the RGB value(s).
+// ams_filament_id is our OF id; the catalogue (filaments_color_codes.json, downloaded from Bambu) is keyed by the
+// printer's own ids, so translate for this lookup only.
+static wxString slot_color_label(const std::string& ams_filament_id, const std::vector<wxColour>& colors, int ctype)
+{
+    wxString name;
+    wxString code;
+    if (auto* clr_query = GUI::wxGetApp().get_filament_color_code_query()) {
+        FilamentColor fila_color;
+        for (const wxColour& color : colors)
+            fila_color.m_colors.insert(color);
+        fila_color.EndSet(ctype);
+        auto* agent = GUI::wxGetApp().getAgent();
+        if (auto* info = clr_query->GetFilaInfo(agent ? agent->from_orca_filament_id(ams_filament_id) : ams_filament_id, fila_color)) {
+            name = info->GetFilaColorName();
+            code = info->GetFilaColorCode();
+        }
+    }
+
+    wxString rgb;
+    for (const wxColour& color : colors) {
+        if (!rgb.IsEmpty())
+            rgb += ", ";
+        rgb += color.GetAsString(wxC2S_HTML_SYNTAX);
+    }
+
+    wxString label = name;
+    if (!label.IsEmpty() && !code.IsEmpty())
+        label += " (" + code + ")";
+    if (!label.IsEmpty() && !rgb.IsEmpty())
+        label += " ";
+    return label + rgb;
+}
+
+// "Estimated remaining" of the filament in a slot of a Bambu spool, or an empty string when it is not known. It uses the
+// weight in grams reported by the firmware, or else the remaining percentage of a standard AMS with the detection on.
+static wxString estimated_remaining_text(MachineObject* obj, int ams_id, int slot_id)
+{
+    if (obj == nullptr || devPrinterUtil::IsVirtualSlot(ams_id))
+        return {};
+
+    const DevAms* ams = obj->GetFilaSystem()->GetAmsById(std::to_string(ams_id));
+    const DevAmsTray* tray = obj->GetFilaSystem()->GetAmsTray(std::to_string(ams_id), std::to_string(slot_id));
+    if (ams == nullptr || tray == nullptr || !tray->is_tray_info_ready() || !DevFilaSystem::IsBBL_Filament(tray->tag_uid))
+        return {};
+
+    long total_weight = 0;
+    wxString::FromUTF8(tray->weight.c_str()).ToLong(&total_weight);
+
+    std::optional<int> remaining;
+    if (tray->remain_g >= 0) {
+        // The weight in grams reported by the firmware. Zero is a valid value for an empty spool.
+        remaining = tray->remain_g;
+    } else if (obj->GetFilaSystem()->IsDetectRemainEnabled() && ams->GetAmsType() != DevAmsType::AMS_LITE &&
+               tray->remain >= 0 && tray->remain <= 100 && total_weight > 0) {
+        remaining = int(total_weight * tray->remain / 100);
+    }
+    if (!remaining)
+        return {};
+
+    // TRN: Remaining filament of a spool, in grams. The first number is the estimated remaining weight, the second the weight of a full spool.
+    if (total_weight > 0)
+        return wxString::Format(_L("Estimated remaining: ≈ %d g of %d g"), *remaining, int(total_weight));
+    // TRN: Remaining filament of a spool, in grams, when the weight of a full spool is not known.
+    return wxString::Format(_L("Estimated remaining: ≈ %d g"), *remaining);
 }
 
 AMSMaterialsSetting::AMSMaterialsSetting(wxWindow *parent, wxWindowID id)
@@ -454,6 +527,11 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
     m_panel_SN->Layout();
     m_panel_SN->Fit();
 
+    m_remaining_text = new wxStaticText(parent, wxID_ANY, wxEmptyString);
+    m_remaining_text->SetFont(::Label::Body_13);
+    m_remaining_text->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
+    m_remaining_text->Hide();
+
     wxBoxSizer* m_tip_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_tip_readonly = new Label(parent, "");
     m_tip_readonly->SetForegroundColour(*wxBLACK);
@@ -472,6 +550,8 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
     sizer->Add(0, 0, 0, wxTOP, FromDIP(5));
     sizer->Add(warning_text, 0, wxLEFT | wxRIGHT, FromDIP(20));
     sizer->Add(m_panel_SN, 0, wxLEFT, FromDIP(20));
+    sizer->Add(0, 0, 0, wxTOP, FromDIP(8));
+    sizer->Add(m_remaining_text, 0, wxLEFT, FromDIP(20));
     sizer->Add(0, 0, 0, wxTOP, FromDIP(24));
     sizer->Add(m_tip_sizer, 0, wxLEFT, FromDIP(20));
     parent->SetSizer(sizer);
@@ -1028,14 +1108,8 @@ void AMSMaterialsSetting::set_color(wxColour color)
     m_clr_picker->is_empty(false);
     m_clr_picker->set_color(color);
 
-    FilamentColor fila_color;
-    fila_color.m_colors.insert(color);
-    fila_color.EndSet(m_clr_picker->ctype);
-    auto clr_query = GUI::wxGetApp().get_filament_color_code_query();
-    // ams_filament_id is our OF id; GetFilaColorName looks up filaments_color_codes.json,
-    // downloaded from Bambu and keyed by the printer's own ids, so translate for this lookup only.
-    auto* agent = GUI::wxGetApp().getAgent();
-    m_clr_name->SetLabelText(clr_query->GetFilaColorName(agent ? agent->from_orca_filament_id(ams_filament_id) : ams_filament_id, fila_color));
+    m_clr_name->SetLabelText(slot_color_label(ams_filament_id, {color}, m_clr_picker->ctype));
+    if (m_clr_picker->GetParent()) m_clr_picker->GetParent()->Layout();
 }
 
 void AMSMaterialsSetting::set_empty_color(wxColour color)
@@ -1052,16 +1126,9 @@ void AMSMaterialsSetting::set_colors(std::vector<wxColour> colors)
     //m_clrData->SetColour(color);
     m_clr_picker->set_colors(colors);
 
-    if (!colors.empty())
-    {
-        FilamentColor fila_color;
-        for (const auto& clr : colors) { fila_color.m_colors.insert(clr); }
-        fila_color.EndSet(m_clr_picker->ctype);
-        auto clr_query = GUI::wxGetApp().get_filament_color_code_query();
-        // ams_filament_id is our OF id; GetFilaColorName looks up filaments_color_codes.json,
-        // downloaded from Bambu and keyed by the printer's own ids, so translate for this lookup only.
-        auto* agent = GUI::wxGetApp().getAgent();
-        m_clr_name->SetLabelText(clr_query->GetFilaColorName(agent ? agent->from_orca_filament_id(ams_filament_id) : ams_filament_id, fila_color));
+    if (!colors.empty()) {
+        m_clr_name->SetLabelText(slot_color_label(ams_filament_id, colors, m_clr_picker->ctype));
+        if (m_clr_picker->GetParent()) m_clr_picker->GetParent()->Layout();
     }
 }
 
@@ -1382,6 +1449,10 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
     else {
         m_panel_SN->Hide();
     }
+
+    // Estimated remaining filament of a Bambu spool, from the remaining percentage the AMS reports.
+    m_remaining_text->SetLabel(estimated_remaining_text(obj, ams_id, slot_id));
+    m_remaining_text->Show(!m_remaining_text->GetLabel().IsEmpty());
 
     if (obj) {
         if (!m_is_third) {

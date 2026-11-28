@@ -27,6 +27,7 @@
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <wx/sizer.h>
+#include <wx/stattext.h>
 #include <wx/string.h>
 #include <string>
 #include "libslic3r/calib.hpp"
@@ -206,6 +207,7 @@ protected:
     wxPanel *           m_panel_normal;
     wxPanel *           m_panel_SN;
     wxStaticText *      m_sn_number;
+    wxStaticText *      m_remaining_text{nullptr};
     wxStaticText *      warning_text;
     //wxPanel *           m_panel_body;
     wxStaticText *      m_title_filament;
