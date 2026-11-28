@@ -2443,10 +2443,11 @@ static WipeTower::ToolChangeResult merge_tcr(WipeTower::ToolChangeResult& first,
     assert(first.new_tool == second.initial_tool);
     WipeTower::ToolChangeResult out = first;
     out.is_contact = first.is_contact || second.is_contact;
-    if (first.end_pos != second.start_pos)
-        out.gcode += "G1 X" + Slic3r::float_to_string_decimal_point(second.start_pos.x(), 3)
-                     + " Y" + Slic3r::float_to_string_decimal_point(second.start_pos.y(), 3)
-                     + " F7200\n";
+    // blocks stack in y, so join them with axis-aligned legs instead of a diagonal
+    if (std::abs(first.end_pos.y() - second.start_pos.y()) > (float) EPSILON)
+        out.gcode += "G1 Y" + Slic3r::float_to_string_decimal_point(second.start_pos.y(), 3) + " F7200\n";
+    if (std::abs(first.end_pos.x() - second.start_pos.x()) > (float) EPSILON)
+        out.gcode += "G1 X" + Slic3r::float_to_string_decimal_point(second.start_pos.x(), 3) + " F7200\n";
     out.gcode += second.gcode;
     out.extrusions.insert(out.extrusions.end(), second.extrusions.begin(), second.extrusions.end());
     out.end_pos = second.end_pos;
