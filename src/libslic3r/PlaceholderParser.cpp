@@ -4,6 +4,7 @@
 #include "Flow.hpp"
 #include "PrintConfig.hpp"
 #include "Point.hpp"
+#include "SourceDateEpoch.hpp"
 #include "Utils.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
@@ -41,6 +42,7 @@
 #include <cstring>
 #include <ctime>
 #include <iomanip>
+#include <optional>
 #include <random>
 #include <set>
 #include <memory>
@@ -119,9 +121,12 @@ PlaceholderParser::PlaceholderParser(const DynamicConfig *external_config) : m_e
 
 void PlaceholderParser::update_timestamp(DynamicConfig &config)
 {
-    time_t rawtime;
-    time(&rawtime);
-    struct tm* timeinfo = localtime(&rawtime);
+    // ORCA_SOURCE_DATE_EPOCH replaces the clock, read as UTC, so that an export can be repeated.
+    const std::optional<std::time_t> fixed_time = source_date_epoch();
+    time_t rawtime = fixed_time.value_or(0);
+    if (!fixed_time)
+        time(&rawtime);
+    struct tm* timeinfo = fixed_time ? gmtime(&rawtime) : localtime(&rawtime);
 
     {
         std::ostringstream ss;

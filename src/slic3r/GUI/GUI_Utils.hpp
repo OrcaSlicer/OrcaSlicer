@@ -45,6 +45,7 @@
 
 
 class wxCheckBox;
+class wxTextCtrl;
 class wxTopLevelWindow;
 class wxRect;
 
@@ -524,6 +525,7 @@ int get_dpi_for_window(const wxWindow *window);
 #ifdef __WXOSX__
 void dataview_remove_insets(wxDataViewCtrl* dv);
 void staticbox_remove_margin(wxStaticBox* sb);
+void textctrl_disable_text_replacement(wxTextCtrl* ctrl);
 // Clip a top-level window (and its webview) to a rounded rect with a native layer.
 void set_window_corner_radius(wxWindow* win, int radius);
 // Returns an opaque sRGB color, or std::nullopt on cancel, on the GUI thread.

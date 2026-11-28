@@ -10,6 +10,7 @@ add_executable(${_TEST_NAME}_tests
     test_creality_cfs_match.cpp
     test_creality_print.cpp
     test_dev_mapping.cpp
+    test_dev_extruder_system.cpp
     test_device_access.cpp
     test_moonraker_printer_agent.cpp
     test_moonraker_filament_sources.cpp
@@ -57,6 +58,7 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_config.cpp
     test_plugin_capabilities_in_use.cpp
     test_plugin_status.cpp
+    test_orca_mqtt_connection.cpp
     test_printer_agent.cpp
     test_qidi_printer_agent.cpp
     test_plugin_install.cpp

@@ -872,6 +872,12 @@ if (SLIC3R_GUI)
     endif()
 
     find_package(LibDataChannel CONFIG REQUIRED)
+
+    # Header-only MQTT protocol layer used by OrcaMqttConnection.
+    find_path(ASYNC_MQTT_INCLUDE_DIR async_mqtt/protocol/rv_connection.hpp)
+    if (NOT ASYNC_MQTT_INCLUDE_DIR)
+        message(FATAL_ERROR "async_mqtt not found; build the dependencies (the dep_AsyncMqtt target).")
+    endif()
 endif()
 
 

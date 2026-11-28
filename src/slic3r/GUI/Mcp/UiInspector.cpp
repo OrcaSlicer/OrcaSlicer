@@ -3062,16 +3062,25 @@ void UiInspector::reveal(UiTarget& target)
         target.canvas->render();
         item = imgui_record(target);
     }
+    // A scroll can carry the item past the middle. ImGui truncates line positions toward zero, so a
+    // row a fraction of a pixel high takes a pixel more above the screen's top edge than below it,
+    // and the item moves a pixel further for each row the scroll takes past that edge: Text's font
+    // list puts a font 200 rows down 200 px below where it was aimed. So each window is scrolled
+    // again from where the item landed until it shows or moves no more.
+    constexpr int max_scroll_steps = 4;
     for (ImGuiWindow* w = ImGui::FindWindowByName(item.window.c_str()); item.clipped && w != nullptr;
          w = (w->Flags & ImGuiWindowFlags_ChildWindow) != 0 ? w->ParentWindow : nullptr) {
-        if (w->ScrollMax.y <= 0.f)
-            continue;
-        ImGui::SetScrollFromPosY(w, item.y + item.h / 2.f - w->Pos.y, 0.5f);
-        for (int frame = 0; frame < 2; ++frame) {
-            target.canvas->set_as_dirty();
-            target.canvas->render();
+        for (int step = 0; item.clipped && w->ScrollMax.y > 0.f && step < max_scroll_steps; ++step) {
+            const float landed = item.y;
+            ImGui::SetScrollFromPosY(w, item.y + item.h / 2.f - w->Pos.y, 0.5f);
+            for (int frame = 0; frame < 2; ++frame) {
+                target.canvas->set_as_dirty();
+                target.canvas->render();
+            }
+            item = imgui_record(target);
+            if (item.y == landed) // the window scrolls no further that way
+                break;
         }
-        item = imgui_record(target);
     }
     if (item.clipped)
         throw ToolFailure("\"" + target.imgui_label + "\" is outside the visible part of its panel, which does not scroll to it; "

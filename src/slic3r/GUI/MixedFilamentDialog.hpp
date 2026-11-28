@@ -20,6 +20,7 @@
 #include "libslic3r/FilamentMixer.hpp"
 
 class Button;
+class ScalableButton;
 class LabeledCheckBox;
 class ComboBox;
 class wxMouseEvent;
@@ -98,11 +99,8 @@ private:
     void update_ok_button_state();
     void update_gradient_direction_items();
     void update_component_count_ui();
-    // Picks dialog (width, height) based on current state so the gradient curve
-    // editor and the recommendation list stay visible at the same time.
-    wxSize compute_dialog_size() const;
-    // Resizes the dialog to compute_dialog_size() around its centre, clamped to its display.
-    void resize_keeping_centre();
+    // Fits the dialog to its content and keeps it on its display.
+    void fit_within_display();
     void rebuild_all_combos();
     void rebuild_recommendation_items();
     void refresh_curve_editor_colors();
@@ -112,8 +110,7 @@ private:
 
     // Reserves the same width on every material row label so the combo boxes line up.
     static void apply_uniform_label_width(wxStaticText* lbl);
-    // Appends one "Filament N" label + combo row to m_material_rows_sizer.  N follows the
-    // number of rows already there, so callers must not renumber anything themselves.
+    // Appends a label + combo row to m_material_rows_sizer, numbered after the existing rows.
     void append_material_row();
 
     // Helpers for component/ratio access
@@ -149,8 +146,8 @@ private:
     wxBoxSizer*                 m_curve_sizer{nullptr};
     LabeledCheckBox*            m_chk_per_part_gradient{nullptr};
     wxBoxSizer*                 m_per_part_gradient_sizer{nullptr};
-    Button*                     m_btn_add_material{nullptr};
-    Button*                     m_btn_remove_material{nullptr};
+    ScalableButton*             m_btn_add_material{nullptr};
+    ScalableButton*             m_btn_remove_material{nullptr};
     Button*                     m_btn_ok{nullptr};
     Button*                     m_btn_cancel{nullptr};
     wxBoxSizer*                 m_warning_sizer{nullptr};

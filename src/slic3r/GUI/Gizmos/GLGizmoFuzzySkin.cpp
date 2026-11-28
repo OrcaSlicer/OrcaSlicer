@@ -262,9 +262,13 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         ImGui::SameLine(drag_left_width + cursor_slider_left);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        render_ortho_switch(scale);
     } else if (m_current_tool == ImGui::TriangleButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type   = ToolType::BRUSH;
+
+        render_ortho_switch(scale);
     } else {
         assert(m_current_tool == ImGui::FillButtonIcon);
         m_cursor_type = TriangleSelector::CursorType::POINTER;

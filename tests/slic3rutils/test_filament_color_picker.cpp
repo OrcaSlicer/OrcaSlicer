@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 #include <cstddef>
 #include <catch2/catch_test_macros.hpp>
@@ -59,7 +60,7 @@ TEST_CASE("Project gradient direction survives editing and RGB serialization", "
 TEST_CASE("Unrepresentable project colors remain unchanged until a different selection is confirmed", "[FilamentColorPicker]")
 {
     const auto value = GENERATE(FilamentColorPickerValue{too_many_gradient_colors(), true},
-                                FilamentColorPickerValue{{"#FF0000", "#0000FF"}, false});
+                                FilamentColorPickerValue{too_many_gradient_colors(), false});
     REQUIRE_FALSE(filament_color_picker_selection(value));
     const auto seed = filament_color_picker_initial(value);
     REQUIRE_FALSE(filament_color_picker_changed(seed, seed));
@@ -133,7 +134,7 @@ TEST_CASE("Unrepresentable filament seeds retain first endpoint or valid primary
     auto too_many = too_many_gradient_colors();
     too_many.front() = "#FF000000";
     const auto value = GENERATE_COPY(FilamentColorPickerValue{too_many, true},
-                                FilamentColorPickerValue{{"#FF000000", "#0000FF80"}, false},
+                                FilamentColorPickerValue{too_many, false},
                                 FilamentColorPickerValue{{"invalid", "#FF0000"}, true, "#FF000000"});
     REQUIRE_FALSE(filament_color_picker_selection(value));
     const auto initial = filament_color_picker_initial(value);
@@ -160,6 +161,40 @@ TEST_CASE("Ordered multi-color gradients round trip up to the color limit", "[Fi
         REQUIRE(filament_color_picker_changed(*selection, filament_color_picker_selection({reordered, true})));
     }
     REQUIRE_FALSE(filament_color_picker_selection({too_many_gradient_colors(), true}));
+}
+
+TEST_CASE("Co-extruded colors follow the gradient capability and the shared color limit", "[FilamentColorPicker]")
+{
+    const auto limit = GENERATE(std::size_t{2}, std::size_t{4}, COLOR_PICKER_MAX_GRADIENT_COLORS);
+    const ColorPickerOptions options{true, true, limit};
+    REQUIRE_FALSE(options.supports_gradient(1));
+    REQUIRE(options.supports_gradient(2));
+    REQUIRE(options.supports_gradient(limit));
+    REQUIRE_FALSE(options.supports_gradient(limit + 1));
+    REQUIRE_FALSE(ColorPickerOptions{false, true, limit}.supports_gradient(2));
+    REQUIRE(COLOR_PICKER_ALL_CAPABILITIES.supports_gradient(COLOR_PICKER_MAX_GRADIENT_COLORS));
+}
+
+TEST_CASE("Project co-extruded colors keep order and alpha and stay distinct from gradients", "[FilamentColorPicker]")
+{
+    const std::vector<std::string> all = {"#FF0000", "#FFFF0080", "#00FF00", "#00FFFF01", "#0000FF", "#FF00FF00", "#123456"};
+    for (std::size_t count = 2; count <= std::min(all.size(), COLOR_PICKER_MAX_GRADIENT_COLORS); ++count) {
+        const std::vector<std::string> colors(all.begin(), all.begin() + count);
+        const auto coextruded = filament_color_picker_selection({colors, false});
+        REQUIRE(coextruded);
+        REQUIRE(std::holds_alternative<ColorMulti>(*coextruded));
+        REQUIRE_FALSE(std::get<ColorMulti>(*coextruded).gradient);
+        const auto result = filament_color_picker_result(*coextruded);
+        REQUIRE_FALSE(result.gradient);
+        REQUIRE(result.colors == colors);
+        REQUIRE_FALSE(filament_color_picker_changed(*coextruded, filament_color_picker_selection(result)));
+        REQUIRE(filament_color_picker_changed(*coextruded, filament_color_picker_selection({colors, true})));
+        std::vector<std::string> reordered = colors;
+        std::swap(reordered.front(), reordered.back());
+        REQUIRE(filament_color_picker_changed(*coextruded, filament_color_picker_selection({reordered, false})));
+    }
+    REQUIRE_FALSE(filament_color_picker_selection({too_many_gradient_colors(), false}));
+    REQUIRE_FALSE(filament_color_picker_selection({{"#112233", "invalid"}, false}));
 }
 
 TEST_CASE("Filament selections require complete hexadecimal colors and exact endpoint counts", "[FilamentColorPicker]")
@@ -197,5 +232,5 @@ TEST_CASE("Filament serialization rejects invalid native RGBA channels", "[Filam
     ColorRGBA color;
     color[channel] = invalid;
     REQUIRE_THROWS_AS(filament_color_picker_result(color), std::invalid_argument);
-    REQUIRE_THROWS_AS(filament_color_picker_result(ColorGradient{ColorRGBA::WHITE(), color}), std::invalid_argument);
+    REQUIRE_THROWS_AS(filament_color_picker_result(ColorMulti{{ColorRGBA::WHITE(), color}, true}), std::invalid_argument);
 }

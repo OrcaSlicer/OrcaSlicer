@@ -1,0 +1,55 @@
+name: Post sliced G-code comparison
+
+# Posts the comparison that the Slice check of build_all.yml wrote into its gcode-fingerprints
+# artifact, on an open pull request with the check-gcode label. Woken by both workflows below,
+# whichever finishes last; scripts/ci_check_gcode.py then starts from each pull request's
+# current head.
+#
+# Its token can write, so it never checks out, unpacks or runs anything from a pull request.
+# The artifact is read in memory, and its text only appears inside a fence in the comment.
+#
+# The names in 'workflows' must match the 'name' fields of build_all.yml and
+# check_gcode_label.yml exactly.
+on:
+  workflow_run:
+    workflows: ["Build all", "check-gcode label"]
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+  # Needed to delete outdated bot comments through the issues/comments endpoint.
+  issues: write
+
+jobs:
+  post_comment:
+    name: Post the comparison comment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # A label workflow run for any other label is skipped and has nothing to wake.
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'skipped' }}
+    # One handler at a time per source branch, so two wakes cannot race post-and-delete. On the
+    # job, not the workflow, so the skipped wakes of other labels never take a pending place.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout the scripts from the default branch
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            scripts/ci_check_gcode.py
+            scripts/gcode_fingerprint.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Update the comment
+        # The comparison is not a check; a failure is reported in the log and the next wake retries.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: python3 scripts/ci_check_gcode.py comment --repo "$GITHUB_REPOSITORY" --head-repo "$HEAD_REPO" --head-branch "$HEAD_BRANCH"

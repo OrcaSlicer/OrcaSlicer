@@ -497,6 +497,8 @@ set(lisbslic3r_sources
     SlicingAdaptive.hpp
     Slicing.cpp
     Slicing.hpp
+    SourceDateEpoch.cpp
+    SourceDateEpoch.hpp
     Support/BeltFloorContext.cpp
     Support/BeltFloorContext.hpp
     Support/SupportCommon.cpp

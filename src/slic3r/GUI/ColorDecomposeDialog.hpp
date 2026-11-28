@@ -78,7 +78,7 @@ protected:
 private:
     void build_ui();
     wxBoxSizer* create_filament_selector();
-    wxBoxSizer* create_target_color_section();
+    wxFlexGridSizer* create_target_color_section();
     wxBoxSizer* create_mode_selection_section();
     wxPanel*    create_mode_card(wxWindow* parent, DecomposeMode mode, const wxString& title);
     wxBoxSizer* create_button_panel();

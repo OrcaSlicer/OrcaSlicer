@@ -29,6 +29,9 @@
 #include <cstddef>
 #include <fstream>
 #include <initializer_list>
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
 #include <ios>
 #include <regex>
 #include <set>
@@ -85,6 +88,33 @@ TEST_CASE("Kobra 2 layer-change templates do not emit numeric commands", "[GCode
             CHECK_FALSE(std::isdigit(static_cast<unsigned char>(command.front())));
         }
     });
+}
+
+TEST_CASE("ORCA_SOURCE_DATE_EPOCH makes custom G-code print the same time and random numbers on every export", "[GCode]")
+{
+    const ScopedEnvVar epoch("ORCA_SOURCE_DATE_EPOCH", "1000000000"); // 2001-09-09 01:46:40 UTC
+    const auto config = Test::multifilament_config(1, {
+        {"layer_height", "0.2"},
+        {"first_layer_height", "0.2"},
+        {"layer_change_gcode", "; clock [timestamp] roll {random(0, 1000000)}"},
+    });
+    const auto clock_lines = [&config]() {
+        std::vector<std::string> lines;
+        // A 2 mm cube at 0.2 mm layers changes layer several times, so random() is drawn several times.
+        std::istringstream gcode(Test::slice({Test::cube(2.)}, config));
+        for (std::string line; std::getline(gcode, line);)
+            if (line.rfind("; clock ", 0) == 0)
+                lines.push_back(line);
+        return lines;
+    };
+
+    const std::vector<std::string> first = clock_lines();
+    REQUIRE(first.size() > 1);
+    for (const std::string &line : first)
+        CHECK(line.rfind("; clock 20010909-014640 roll ", 0) == 0);
+    // The sequence still advances from layer to layer. Only its starting point is fixed.
+    CHECK(std::set<std::string>(first.begin(), first.end()).size() > 1);
+    CHECK(clock_lines() == first);
 }
 
 TEST_CASE("Klipper object labels name each copy without the characters Klipper cannot parse", "[GCode]")
@@ -747,6 +777,51 @@ TEST_CASE("Z hop follows the lift settings of the filament printing", "[GCode]")
         CHECK(first > 1. - EPSILON);
     else
         CHECK(last < 0.2 + EPSILON);
+}
+
+// With lifts enforced on top surfaces only, nothing lifts before a top surface is printed. The
+// role of the last fill decides it, and the first travel of the print comes before any fill, so
+// that role must start empty rather than hold whatever was in memory. On glibc the test fills new
+// memory with the byte of a top solid infill role, so a missing initial value always shows.
+TEST_CASE("A lift enforced on top surfaces only never lifts before the first top surface", "[GCode]")
+{
+    DynamicPrintConfig config = Test::multifilament_config(1, {
+        {"filament_retract_lift_enforce", "Top Only"},
+        {"z_hop", "0.6"},
+        {"retraction_length", "1"},
+        {"layer_height", "0.2"},
+        {"initial_layer_print_height", "0.2"},
+    });
+#if defined(__GLIBC__)
+    mallopt(M_PERTURB, int(erTopSolidInfill) ^ 0xff);
+#endif
+    Print print;
+    Model model;
+    // Two objects, so the first layer travels between them with a retraction.
+    Test::init_print({Test::cube(20), Test::cube(20)}, print, model, config);
+    const std::string gcode = Test::gcode(print);
+#if defined(__GLIBC__)
+    mallopt(M_PERTURB, 0);
+#endif
+
+    double             layer_z = 0.;
+    size_t             first_layer_lifts = 0;
+    std::istringstream lines(gcode);
+    std::string        line;
+    const std::regex   z_word(R"(\bZ([-0-9.]+))");
+    while (std::getline(lines, line)) {
+        if (line.rfind(";Z:", 0) == 0) {
+            layer_z = std::stod(line.substr(3));
+            continue;
+        }
+        if (layer_z <= 0. || layer_z > 0.2 + EPSILON || (line.rfind("G1 ", 0) != 0 && line.rfind("G0 ", 0) != 0))
+            continue;
+        const std::string move = line.substr(0, line.find(';'));
+        std::smatch       match;
+        first_layer_lifts += std::regex_search(move, match, z_word) && std::stod(match[1]) > layer_z + 0.3;
+    }
+    CHECK(layer_z > 0.2); // the print has more than the first layer
+    CHECK(first_layer_lifts == 0);
 }
 
 // A temperature tower re-targets the hotend at every layer. On a multi-tool printer that

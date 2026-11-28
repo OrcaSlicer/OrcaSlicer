@@ -61,6 +61,43 @@ TEST_CASE("Islands overlapping their neighbors' make one body", "[ConnectedBodie
     CHECK(count == 2);
 }
 
+TEST_CASE("Islands in the holes of a sheet stay apart unless they reach it", "[ConnectedBodies]")
+{
+    // A sheet with a grid of square holes and a small island in each hole, apart from the sheet, for three layers, as on a
+    // relief print. On the layer above, a cap over every seventh hole reaches both the island below it and the sheet.
+    constexpr int    holes = 40;
+    constexpr double pitch = 2.5;
+    const auto       square = [](double x, double y, double half) {
+        return Polygon::new_scale({ { x - half, y - half }, { x + half, y - half }, { x + half, y + half }, { x - half, y + half } });
+    };
+    ExPolygon sheet(Polygon::new_scale({ { 0., 0. }, { holes * pitch, 0. }, { holes * pitch, holes * pitch }, { 0., holes * pitch } }));
+    ExPolygons islands, caps;
+    for (int i = 0; i < holes * holes; ++i) {
+        const double x = (i % holes + 0.5) * pitch;
+        const double y = (i / holes + 0.5) * pitch;
+        Polygon      hole = square(x, y, 0.9);
+        hole.make_clockwise();
+        sheet.holes.emplace_back(hole);
+        islands.emplace_back(square(x, y, 0.5));
+        caps.emplace_back(square(x, y, i % 7 == 0 ? 1.2 : 0.5));
+    }
+    ExPolygons layer = islands;
+    layer.emplace_back(sheet);
+    size_t                                 count  = 0;
+    const std::vector<std::vector<size_t>> bodies = connected_bodies({ &layer, &layer, &layer, &caps }, count);
+
+    // The islands come first on each layer. The first is capped, so the sheet's body is 0, and the others are numbered in turn.
+    size_t apart = 0;
+    for (int i = 0; i < holes * holes; ++i) {
+        const size_t body = i % 7 == 0 ? 0 : ++apart;
+        for (size_t l = 0; l < 4; ++l)
+            CHECK(bodies[l][i] == body);
+    }
+    for (size_t l = 0; l < 3; ++l)
+        CHECK(bodies[l][holes * holes] == 0);
+    CHECK(count == apart + 1);
+}
+
 TEST_CASE("The island locator tests the outlines only where boxes overlap", "[ConnectedBodies]")
 {
     const ExPolygons    islands = ring_inner_alone();

@@ -2136,12 +2136,15 @@ std::optional<ColorSelection> ColorPickerPopup::ColorItem::picker_selection(bool
         const wxColour& color = colors.front();
         return ColorRGBA(color.Red(), color.Green(), color.Blue(), color.Alpha());
     }
-    if (ctype != 0 || !ColorPickerOptions{allow_gradient, true, MAX_EDITABLE_COLORS}.supports_gradient(colors.size()))
-        return std::nullopt;
-    ColorGradient gradient;
-    for (const wxColour& color : colors)
-        gradient.emplace_back(color.Red(), color.Green(), color.Blue(), color.Alpha());
-    return gradient;
+    // ctype 0 is a gradient and 1 is co-extruded colors; both need firmware with manual multi-color support.
+    const ColorPickerOptions options{allow_gradient, true, MAX_EDITABLE_COLORS};
+    if ((ctype == 0 || ctype == 1) && options.supports_gradient(colors.size())) {
+        ColorMulti multi{{}, ctype == 0};
+        for (const wxColour& color : colors)
+            multi.colors.emplace_back(color.Red(), color.Green(), color.Blue(), color.Alpha());
+        return multi;
+    }
+    return std::nullopt;
 }
 
 ColorPickerPopup::ColorItem ColorPickerPopup::ColorItem::from_picker_selection(const ColorSelection& selection)
@@ -2156,9 +2159,10 @@ ColorPickerPopup::ColorItem ColorPickerPopup::ColorItem::from_picker_selection(c
     if (const auto* solid = std::get_if<ColorRGBA>(&selection)) {
         append(*solid);
     } else {
-        for (const ColorRGBA& color : std::get<ColorGradient>(selection))
+        const auto& multi = std::get<ColorMulti>(selection);
+        for (const ColorRGBA& color : multi.colors)
             append(color);
-        item.ctype = 0;
+        item.ctype = multi.gradient ? 0 : 1;
     }
     return item;
 }
