@@ -1,0 +1,107 @@
+# Keeps the OrcaSlicer Releases project in line with the release-pick label and the release branches:
+# labelled issues and pull requests are added, unlabelled ones archived (unless on their release branch,
+# or Picked and the pick was not reverted), and statuses move Proposed -> In progress -> Ready to pick ->
+# Picked, back from Picked only when the pick is reverted. See scripts/release_pick_sync.py.
+#
+# Runs as a GitHub App installed on the organization with organization Projects read/write and
+# repository Issues and Pull requests read: its client id in the repository variable
+# RELEASE_PICK_APP_CLIENT_ID and its private key in the secret RELEASE_PICK_APP_PRIVATE_KEY. Until both
+# are set, every run skips with a notice. It changes the project only when the repository variable
+# RELEASE_PICK_APPLY is "true"; otherwise each run is a dry run that writes the planned changes to its
+# summary.
+#
+# Optional Discord status post: the secret RELEASE_STATUS_DISCORD_WEBHOOK, a webhook on a forum channel
+# that allows posts without tags. Run the workflow by hand once with RELEASE_PICK_APPLY on and "Create the
+# Discord status post" ticked: it creates the post and prints its id. Put that id in the repository variable
+# RELEASE_STATUS_MESSAGE_ID and pin the post; later runs edit it in place. Only a manual run with that box
+# ticked creates a post. The post never
+# mentions anyone, and a Discord failure (an archived post, an outage) is a warning in the run summary.
+#
+# pull_request_target gives this workflow secrets on pull requests from forks, so it must never check
+# out or run pull request code: it checks out only the default branch and reads GitHub data.
+name: Release pick sync
+
+on:
+  issues:
+    types: [labeled, unlabeled, closed, reopened, milestoned, demilestoned]
+  pull_request_target:
+    # Actions has no milestone activity types for pull requests; the schedule catches those.
+    types: [labeled, unlabeled, opened, reopened, closed]
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      create_discord_post:
+        description: Create the Discord status post when RELEASE_STATUS_MESSAGE_ID is not set
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-pick-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: >-
+      github.repository == 'OrcaSlicer/OrcaSlicer' && (
+        github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
+        github.event.label.name == 'release-pick' ||
+        contains(github.event.issue.labels.*.name, 'release-pick') ||
+        contains(github.event.pull_request.labels.*.name, 'release-pick'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # A step's if cannot read secrets directly.
+      HAS_APP: ${{ secrets.RELEASE_PICK_APP_PRIVATE_KEY != '' && vars.RELEASE_PICK_APP_CLIENT_ID != '' }}
+    steps:
+      - name: Skip without the app
+        if: env.HAS_APP != 'true'
+        run: >-
+          echo "::notice::RELEASE_PICK_APP_CLIENT_ID or RELEASE_PICK_APP_PRIVATE_KEY is not set;
+          skipping the release-pick sync."
+
+      - name: Mint the project token
+        id: token
+        if: env.HAS_APP == 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_PICK_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_PICK_APP_PRIVATE_KEY }}
+          owner: OrcaSlicer
+          repositories: OrcaSlicer
+          permission-organization-projects: write
+          permission-issues: read
+          permission-pull-requests: read
+
+      - uses: actions/checkout@v7
+        if: env.HAS_APP == 'true'
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          filter: blob:none
+          sparse-checkout: scripts
+          persist-credentials: false
+
+      - name: Fetch the release branches and tags
+        if: env.HAS_APP == 'true'
+        run: >-
+          git fetch origin
+          '+refs/heads/rc/*:refs/remotes/origin/rc/*'
+          '+refs/heads/release/*:refs/remotes/origin/release/*'
+          --tags
+
+      - name: Sync the project
+        if: env.HAS_APP == 'true'
+        env:
+          RELEASE_PROJECT_TOKEN: ${{ steps.token.outputs.token }}
+          APPLY: ${{ vars.RELEASE_PICK_APPLY }}
+          RELEASE_STATUS_DISCORD_WEBHOOK: ${{ secrets.RELEASE_STATUS_DISCORD_WEBHOOK }}
+          RELEASE_STATUS_MESSAGE_ID: ${{ vars.RELEASE_STATUS_MESSAGE_ID }}
+          CREATE_DISCORD_POST: ${{ inputs.create_discord_post }}
+        run: |
+          args=(--owner OrcaSlicer --project 15 --repo OrcaSlicer/OrcaSlicer --repo-dir .)
+          if [ "$APPLY" = true ]; then args+=(--apply); fi
+          python3 scripts/release_pick_sync.py "${args[@]}"
