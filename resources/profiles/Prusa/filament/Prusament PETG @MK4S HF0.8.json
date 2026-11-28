@@ -15,7 +15,11 @@
         "37"
     ],
     "filament_retract_before_wipe": "50",
-    "nozzle_temperature_initial_layer": "240",
+    "nozzle_temperature_initial_layer": "260",
     "overhang_fan_speed": "45",
-    "slow_down_layer_time": "18"
+    "slow_down_layer_time": "18",
+    "nozzle_temperature": "260",
+    "filament_start_gcode": [
+        "M572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.047{elsif nozzle_diameter[filament_extruder_id]==0.5}0.042{elsif nozzle_diameter[filament_extruder_id]==0.6}0.033{elsif nozzle_diameter[filament_extruder_id]==0.8}0.021{elsif nozzle_diameter[filament_extruder_id]==0.25}0.17{elsif nozzle_diameter[filament_extruder_id]==0.3}0.09{else}0{endif} ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
+    ]
 }

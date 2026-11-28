@@ -9,5 +9,12 @@
     "compatible_printers": [
         "Prusa MK4S 0.6 nozzle"
     ],
-    "slow_down_layer_time": "15"
+    "nozzle_temperature": [
+        "280"
+    ],
+    "filament_max_volumetric_speed": [
+        "13"
+    ],
+    "fan_min_speed": "15",
+    "fan_max_speed": "15"
 }
