@@ -42,8 +42,8 @@ function SortUI()
 		HtmlMode+='<label><input type="checkbox" mode="'+sModel['model']+'"  nozzle="'+sModel['nozzle_selected']+'"   onChange="MachineClick()" /><span>'+sModel['model']+'</span></label>';
 	}
 	
-	$('#MachineList .CValues').append(HtmlMode);	
-	$('#MachineList .CValues input').prop("checked",true);
+	$('#MachineList .CValues').append(HtmlMode);
+	SetCheckedState($('#MachineList .CValues input'), true);
 	//if(nMode<=1)
 	//{
 	//	$('#MachineList').hide();
@@ -187,8 +187,8 @@ function SortUI()
 	{
 		$("#FilatypeList .CValues").append( TypeHtmlArray[key] );
 	}
-	$("#FilatypeList .CValues input").prop("checked",true);
-	
+	SetCheckedState($("#FilatypeList .CValues input"), true);
+
 	//Sort VendorArray
 	let VendorAdvNum=VendorPriority.length;
 	for( let n=0;n<VendorAdvNum;n++ )
@@ -205,20 +205,22 @@ function SortUI()
 	{
 		$("#VendorList .CValues").append( VendorHtmlArray[key] );
 	}	
-	$("#VendorList .CValues input").prop("checked",true);
-	
+	SetCheckedState($("#VendorList .CValues input"), true);
+
 	if(SelectNumber==0)
 		ChooseDefaultFilament();
-	
+
 	UpdateStats();
+	// ORCA the counts are filled silently, so they don't talk over the page loading, and speak only their changes
+	$("#FilamentCountText, #FilamentShownText").attr("role", "status");
 }
 
 function ChooseAllMachine()
 {
 	let bCheck=$("#MachineList input:first").prop("checked");
-	
-	$("#MachineList input").prop("checked",bCheck);
-	
+
+	SetCheckedState($("#MachineList input"), bCheck);
+
 	SortFilament();
 }
 
@@ -226,22 +228,17 @@ function MachineClick()
 {
 	let nChecked=$("#MachineList input:gt(0):checked").length
 	let nAll    =$("#MachineList input:gt(0)").length
-	
-	if(nAll==nChecked) {
-		$("#MachineList input:first").prop("checked",true);
-	}
-	else {
-		$("#MachineList input:first").prop("checked",false);
-	}
-	
+
+	SetCheckedState($("#MachineList input:first"), nAll==nChecked);
+
 	SortFilament();
 }
 
 function ChooseAllFilament()
 {
-	let bCheck=$("#FilatypeList input:first").prop("checked");	
-	$("#FilatypeList input").prop("checked",bCheck);	
-	
+	let bCheck=$("#FilatypeList input:first").prop("checked");
+	SetCheckedState($("#FilatypeList input"), bCheck);
+
 	SortFilament();
 }
 
@@ -250,22 +247,17 @@ function FilaClick()
 {
 	let nChecked=$("#FilatypeList input:gt(0):checked").length
 	let nAll    =$("#FilatypeList input:gt(0)").length
-	
-	if(nAll==nChecked) {
-		$("#FilatypeList input:first").prop("checked",true);
-	}
-	else {
-		$("#FilatypeList input:first").prop("checked",false);
-	}
-	
-	SortFilament();	
+
+	SetCheckedState($("#FilatypeList input:first"), nAll==nChecked);
+
+	SortFilament();
 }
 
 function ChooseAllVendor()
 {
-	let bCheck=$("#VendorList input:first").prop("checked");	
-	$("#VendorList input").prop("checked",bCheck);	
-	
+	let bCheck=$("#VendorList input:first").prop("checked");
+	SetCheckedState($("#VendorList input"), bCheck);
+
 	SortFilament();
 }
 
@@ -273,14 +265,9 @@ function VendorClick()
 {
 	let nChecked=$("#VendorList input:gt(0):checked").length
 	let nAll    =$("#VendorList input:gt(0)").length
-	
-	if(nAll==nChecked) {
-		$("#VendorList input:first").prop("checked",true);
-	}
-	else {
-		$("#VendorList input:first").prop("checked",false);
-	}
-	
+
+	SetCheckedState($("#VendorList input:first"), nAll==nChecked);
+
 	SortFilament();
 }
 
@@ -376,46 +363,54 @@ function SortFilament()
 	UpdateStats();
 }
 
-function UpdateStats()
+let ShownTimer = null;
+
+// nShownDelay holds back the results count, so typing in Filter items speaks it once typing pauses
+function UpdateStats(nShownDelay)
 {
 	let $i             = $("#ItemBlockArea");
 	let $allItems      = $i.find(".MItem");
 	let $visibleItems  = $i.find(".MItem:visible");
 	let $filteredItems = $visibleItems.filter(function() { return $(this).css('position') !== 'absolute'});
 	let visibleCount   = Math.min($filteredItems.length, $visibleItems.length);
-	
+	let nChecked       = $i.find("input:checked").length;
+	let nAll           = $allItems.length;
+	let bFiltered      = nAll > visibleCount;
+
 	$(".list-item-count").text(
-		$i.find("input:checked").length + " / " + 
-		$allItems.length +
-		($allItems.length > visibleCount ? (" [" + visibleCount + "]") : "") // filtered items
+		nChecked + " / " + nAll +
+		(bFiltered ? (" [" + visibleCount + "]") : "") // filtered items
 	);
+
+	// ORCA selection and filtering are announced apart, so a change speaks only the count that changed
+	SetStatusText("FilamentCountText", T("count_selected", "%s of %s selected", nChecked, nAll));
+	clearTimeout(ShownTimer);
+	if (nShownDelay)
+		ShownTimer = setTimeout(() => SetStatusText("FilamentShownText", ResultsText(visibleCount)), nShownDelay);
+	else
+		SetStatusText("FilamentShownText", ResultsText(visibleCount));
+}
+
+// Write a status only when its text changes: Chromium announces every write.
+function SetStatusText(strId, strText)
+{
+	let el = document.getElementById(strId);
+	if (el.textContent !== strText)
+		el.textContent = strText;
 }
 
 function SelectAllFilament( nShow )
 {
 	// ORCA add ability to only select / unselect filted items
 	if (document.querySelector('.cbr-filter-bar').value) {
-		$('#ItemBlockArea .MItem:visible input')
-		.filter(function() {return $(this).closest('.MItem').css('position') !== 'absolute'})
-		.prop("checked", nShow != 0);
+		SetCheckedState($('#ItemBlockArea .MItem:visible input')
+			.filter(function() {return $(this).closest('.MItem').css('position') !== 'absolute'}), nShow != 0);
 	}
 	else {
-		$('#ItemBlockArea .MItem:visible input').prop("checked",nShow!=0);
+		SetCheckedState($('#ItemBlockArea .MItem:visible input'), nShow != 0);
 	}
 
 	UpdateStats();
-}
-
-function ShowNotice( nShow )
-{
-	if(nShow==0) {
-		$("#NoticeMask").hide();
-		$("#NoticeBody").hide();
-	}
-	else {
-		$("#NoticeMask").show();
-		$("#NoticeBody").show();
-	}
 }
 
 function ChooseDefaultFilament()
@@ -455,9 +450,8 @@ function ChooseDefaultFilament()
 	{
 		let OneNode=FilaNodes[m];
 		let OneFF=OneNode.getElementsByTagName("input")[0];
-		$(OneFF).prop("checked",false);
-		
-	    let filamentList=GetFilamentShortname(OneFF.getAttribute("filalist")); 
+
+	    let filamentList=GetFilamentShortname(OneFF.getAttribute("filalist"));
 		//alert(filamentList);
 		let filamentArray=filamentList.split(';')
 		
@@ -474,8 +468,7 @@ function ChooseDefaultFilament()
 			}
 		}
 			
-		if(HasModel)
-		    $(OneFF).prop("checked",true);
+		SetCheckedState(OneFF, HasModel);
 	}
 	
 	ShowNotice(0);
@@ -536,9 +529,18 @@ function addClearBtnEvents(el){
 	});
 }
 
+// ORCA what a column's search count is spoken as, by the column's list: [key, fallback] for a total
+// of 1, then for any other total. T() has no plural forms.
+const ColumnCountText = {
+	MachineList:  [["count_of_printers_one", "%s of %s printer"], ["count_of_printers", "%s of %s printers"]],
+	FilatypeList: [["count_of_filament_types_one", "%s of %s filament type"], ["count_of_filament_types", "%s of %s filament types"]],
+	VendorList:   [["count_of_vendors_one", "%s of %s vendor"], ["count_of_vendors", "%s of %s vendors"]],
+};
+let ColumnSearchTimer = null;
+
 function initInputEvents(){
 	document.querySelectorAll('.cbr-search-bar').forEach(searchBar => {
-        searchBar.addEventListener('input', function() {
+        searchBar.addEventListener('input', function(e) {
             const search = this.value.trim().toLowerCase(),
             	  list   = this.closest('.cbr-column').querySelector('.cbr-content'),
             	  items  = list.querySelectorAll('label');
@@ -555,6 +557,13 @@ function initInputEvents(){
                 if(hide) hidden++;
             });
 
+			// ORCA say how many entries the search leaves, once typing pauses; "All" isn't counted
+			const nTotal = items.length - 1;
+			const [strKey, strFallback] = ColumnCountText[list.id][nTotal == 1 ? 0 : 1];
+			const strCount = T(strKey, strFallback, nTotal - hidden, nTotal);
+			clearTimeout(ColumnSearchTimer);
+			ColumnSearchTimer = setTimeout(() => SetStatusText("ColumnSearchText", strCount), e.isTrusted ? 500 : 0);
+
 			if(items.length - hidden == 1){
 				items[0].style.display = "none";
 				hidden++;
@@ -569,7 +578,9 @@ function initInputEvents(){
 	const filterModeFilter  = document.querySelector('.cbr-filter-mode-filter' );
 	const filterModeVisible = document.querySelector('.cbr-filter-mode-visible');
 	
-	filterBar.addEventListener('input', function() {
+	const filterTags        = document.querySelector('#filter-tags');
+
+	filterBar.addEventListener('input', function(e) {
         const search = this.value.trim().toLowerCase();
         const list   = this.closest('.cbr-column').querySelector('.cbr-content');
         const items  = list.querySelectorAll('label');
@@ -577,15 +588,19 @@ function initInputEvents(){
 		
 		filterModeFilter.style.display  = search ? "block" : "none";
 		filterModeVisible.style.display = search ? "none" : "block";
+		// ORCA the button group is named by whichever of the two labels shows
+		SetAriaState(filterModeVisible.parentNode, 'aria-labelledby', search ? filterModeFilter.id : filterModeVisible.id);
 
 		const showSel   = search == "::checked";
 		const showUnsel = search == "::unchecked";
-		
+		filterTags.value = showSel ? 1 : showUnsel ? 2 : 0;
+
 		if(showSel || showUnsel){
 			items.forEach(item => {
 				const cb   = item.querySelector("input");
 				const hide = showSel ? !cb.checked : cb.checked;
 				item.style.position = hide ? "absolute" : "unset";
+				item.inert = hide; // ORCA moved out of view, so keep Tab and the screen reader out too
 				if(hide) hidden++;
 			});
 		}
@@ -594,21 +609,21 @@ function initInputEvents(){
 				const text = item.querySelector("span").textContent.toLowerCase();
 				const hide = search && !text.includes(search);
 				item.style.position = hide ? "absolute" : "unset";
+				item.inert = !!hide;
 				if(hide) hidden++;
 			});
 		}
-	
+
         list.querySelector('.cbr-no-items').style.display = (hidden === items.length) ? "block" : "none";
 
-		UpdateStats();
+		UpdateStats(e.isTrusted ? 500 : 0); // typed, rather than set by Filter by state or the clear icon
 	});
 	addClearBtnEvents(filterBar);
 
-	document.querySelector('#filter-tags').addEventListener('change', e => {
+	// ORCA the menu shows the state filter in force, and "All" removes it
+	filterTags.addEventListener('change', e => {
 		let v = e.target.value;
-		filterBar.value = v == "1" ? "::checked" : "::unchecked";
-		filterBar.dispatchEvent(new Event('input', {bubbles: true}));
-		filterBar.focus();
-		e.target.value = 0; // reset back to make dropdown items always selectable
+		filterBar.value = v == "1" ? "::checked" : v == "2" ? "::unchecked" : "";
+		filterBar.dispatchEvent(new Event('input', {bubbles: true})); // focus stays, so arrows go on through the states
     });
 }
