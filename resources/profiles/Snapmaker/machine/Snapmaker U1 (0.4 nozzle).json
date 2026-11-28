@@ -118,13 +118,13 @@
 		"0.4"
 	],
 	"nozzle_type": [
+		"stainless_steel",
 		"hardened_steel",
+		"stainless_steel",
 		"hardened_steel",
+		"stainless_steel",
 		"hardened_steel",
-		"hardened_steel",
-		"hardened_steel",
-		"hardened_steel",
-		"hardened_steel",
+		"stainless_steel",
 		"hardened_steel"
 	],
 	"printable_area": [
