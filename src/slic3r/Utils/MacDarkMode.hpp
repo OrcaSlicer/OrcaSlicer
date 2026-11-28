@@ -19,6 +19,8 @@ void WKWebView_evaluateJavaScript(void * web, wxString const & script, void (*ca
 void WKWebView_evaluateJavaScriptForResult(void * web, wxString const & script, std::function<void(bool, const std::string&)> done);
 void WKWebView_setTransparentBackground(void * web);
 void WKWebView_force_display(void * web);
+double WKWebView_pageZoom(void * web);
+void WKWebView_setPageZoom(void * web, double zoom);
 void set_tag_when_enter_full_screen(bool isfullscreen);
 void set_title_colour_after_set_title(void * window);
 // Keeps a top-level window (by its GetHandle()) above `parent` while `keep` holds, as a Cocoa child
