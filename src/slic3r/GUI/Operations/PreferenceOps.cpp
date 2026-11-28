@@ -324,6 +324,15 @@ std::vector<Preference> build_table()
     t.checkbox("remember_print_action", L("Remember last print action"),
                {L("If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate "
                   "sliced file, Export G-code file) and use it as the default on next startup.")});
+    // ORCA: global override for installs that keep getting interference travel back from presets, .3mf projects and
+    // version upgrades (OrcaSlicer#17866). Stored in the app configuration, so it survives an upgrade.
+    t.checkbox(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, L("Disable interference travel everywhere"),
+               {L("Keep \"Reduce infill retraction\" switched off for every slice on this OrcaSlicer, whatever the printer, filament and "
+                  "process presets ask for, and whatever a .3mf project carries with it."),
+                L("Turn this on when travel moves over already printed material leave blobs and burnt crumbs on the print, or knock tall "
+                  "parts over: every such travel then retracts first, which can add a few minutes to a print."),
+                L("The setting is stored in the OrcaSlicer configuration file, so it survives a version upgrade. It takes effect from the "
+                  "next slice.")});
 
     //// BEHAVIOUR > Preview
     t.section(kBehaviour, L("Preview"));

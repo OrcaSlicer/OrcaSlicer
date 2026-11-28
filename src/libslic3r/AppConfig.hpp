@@ -25,6 +25,12 @@
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK "always_ask"
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY "load_geometry_only"
 
+// Keep interference travel (travel moves over already printed material that skip the retraction,
+// i.e. what "reduce_infill_retraction" allows) disabled for every slice on this install. Kept in the
+// application configuration, not in a preset, so that a preset change, a loaded project or a version
+// upgrade that rewrites the presets cannot turn it back on.
+#define SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL "global_disable_interference_travel"
+
 #define SETTING_NETWORK_PLUGIN_VERSION "network_plugin_version"
 #define SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS "network_plugin_skipped_versions"
 #define SETTING_NETWORK_PLUGIN_UPDATE_DISABLED "network_plugin_update_prompts_disabled"
@@ -74,6 +80,11 @@
 
 namespace Slic3r {
 
+// Only referenced by apply_print_config_overrides() below, so a declaration is enough: the app
+// configuration says nothing about print settings, and this header (included from Model.hpp and
+// PresetBundle.hpp) has no reason to pull PrintConfig.hpp in. AppConfig.cpp includes it for the
+// definition.
+class DynamicPrintConfig;
 
 // Connected LAN mode BambuLab printer
 struct BBLocalMachine
@@ -125,6 +136,12 @@ public:
 	std::string get_hms_host();
 	bool get_stealth_mode();
 	bool get_hide_login_side_panel();
+
+	// ORCA: Applies the overrides of print settings that must hold for every slice on this install,
+	// whatever the printer, filament and process presets, the plate configuration or the loaded
+	// project ask for. Call it on the full print configuration right before a Print applies it, from
+	// the editor (BackgroundSlicingProcess::apply) and from the CLI (CLI::run) alike.
+	void				apply_print_config_overrides(DynamicPrintConfig &config) const;
 
 	// Clear and reset to defaults.
 	void 			   	reset();
