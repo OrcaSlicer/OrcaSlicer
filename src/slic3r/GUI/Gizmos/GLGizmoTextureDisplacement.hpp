@@ -112,7 +112,7 @@ public:
     // actually pick it. Stops early once another mix would make no noticeable difference, so a texture
     // the filaments already cover gets few mixes or none.
     //
-    // Ratios are the short-cycle ones (k/d for d up to 6): the slicer interleaves a mix layer by layer,
+    // Ratios are k/d for d up to MIX_MAX_DENOMINATOR: the slicer interleaves a mix layer by layer,
     // and a long cycle prints as visible bands rather than as a colour. A mix's `rgb` is the colour its
     // mixed filament slot will show (blend_color_multi(), as the sidebar computes it), so the match, the
     // preview and the slot all agree on what the mix looks like.
