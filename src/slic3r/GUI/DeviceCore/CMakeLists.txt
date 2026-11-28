@@ -4,6 +4,7 @@
 # status -- Building
 
 list(APPEND SLIC3R_GUI_SOURCES
+    GUI/DeviceCore/DevAgentOrder.h
     GUI/DeviceCore/DevBed.cpp
     GUI/DeviceCore/DevBed.h
     GUI/DeviceCore/DevConfig.h
