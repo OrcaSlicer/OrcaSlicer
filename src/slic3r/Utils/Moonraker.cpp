@@ -1,4 +1,5 @@
 #include "Moonraker.hpp"
+#include "SnapmakerProtocol.hpp"
 
 #include <exception>
 #include <sstream>
@@ -172,7 +173,7 @@ bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_
     return got_any;
 }
 
-bool Moonraker::start_print(wxString &error_msg, const std::string &filename) const
+bool Moonraker::start_print(wxString &error_msg, const std::string &filename, const std::string &snapmaker_mapping) const
 {
     //ORCA: POST /printer/print/start with JSON body { "filename": "<name>.gcode" }.
     //      `filename` is the item.path /server/files/upload returned (the storage-relative
@@ -183,7 +184,17 @@ bool Moonraker::start_print(wxString &error_msg, const std::string &filename) co
     bool res = true;
     auto url = make_url("printer/print/start");
     pt::ptree body_tree;
-    body_tree.put("filename", filename);
+    if (snapmaker_mapping.empty()) {
+        body_tree.put("filename", filename);
+    } else {
+        const auto script = SnapmakerProtocol::start_script(filename, snapmaker_mapping);
+        if (script.empty()) {
+            error_msg = _(L("Invalid filament mapping."));
+            return false;
+        }
+        url = make_url("printer/gcode/script");
+        body_tree.put("script", script);
+    }
     std::ostringstream body_ss;
     pt::write_json(body_ss, body_tree, /*pretty=*/false);
     std::string body = body_ss.str();
@@ -263,7 +274,9 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     http.form_add("root", root);
     if (!plateindex.empty())
         http.form_add("plateindex", plateindex);
-    http.form_add("print", want_start ? "true" : "false");
+    // Native U1 mapping must arrive atomically with start; upload must not auto-start first.
+    const auto snapmaker_mapping = upload_data.extended("snapmaker_filament_map");
+    http.form_add("print", want_start && snapmaker_mapping.empty() ? "true" : "false");
     http.form_add_file("file", upload_data.source_path.string(), upload_filename.string())
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: upload HTTP %2%: %3%") % name % status % body;
@@ -325,7 +338,7 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     // printer cannot start it, the error from this request is what the user sees.
     if (want_start && !uploaded_path.empty() && !moonraker_started_print) {
         wxString start_msg;
-        if (!start_print(start_msg, uploaded_path)) {
+        if (!start_print(start_msg, uploaded_path, snapmaker_mapping)) {
             error_fn(std::move(start_msg));
             return false;
         }
