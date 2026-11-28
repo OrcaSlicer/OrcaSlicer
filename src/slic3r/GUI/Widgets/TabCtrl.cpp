@@ -15,6 +15,9 @@
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
+#ifdef __WXOSX__
+#include "slic3r/GUI/Accessibility/AccessibilityMac.h"
+#endif
 
 wxDEFINE_EVENT(wxEVT_TAB_SEL_CHANGING, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_TAB_SEL_CHANGED, wxCommandEvent);
@@ -52,6 +55,14 @@ TabCtrl::TabCtrl(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSi
     hsizer->Add(sizer, 0, wxEXPAND | wxBOTTOM, border_width * 4);
     SetSizer(hsizer);
     Bind(wxEVT_COMMAND_BUTTON_CLICKED, &TabCtrl::buttonClicked, this);
+#ifdef __WXOSX__
+    // Expose the tab strip to VoiceOver as a toolbar, matching the macOS toolbar
+    // paradigm (like the Activity Monitor toolbar): its tab buttons are the items
+    // and the active tab announces as "selected".
+    Slic3r::GUI::Accessibility::Descriptor desc;
+    desc.role = Slic3r::GUI::Accessibility::Role::Toolbar;
+    Slic3r::GUI::Accessibility::apply(this, desc);
+#endif
     // wxString reason;
     // IsTransparentBackgroundSupported(&reason);
 }
@@ -80,6 +91,12 @@ void TabCtrl::SelectItem(int item)
     sendTabCtrlEvent();
     relayout();
     Refresh();
+#ifdef __WXOSX__
+    // Keep VoiceOver's "selected" state on the tab buttons in sync with the
+    // selection (also covers Unselect(), where sel is -1).
+    for (size_t i = 0; i < btns.size(); ++i)
+        btns[i]->applyAccessibility(static_cast<int>(i) == sel);
+#endif
 }
 
 void TabCtrl::Unselect() { SelectItem(-1); }
@@ -150,6 +167,11 @@ bool TabCtrl::DeleteItem(int item)
     relayout();
     if (selection_changed) {
         sendTabCtrlEvent();
+#ifdef __WXOSX__
+        // The tab that took the removed one's place is the selection now.
+        if (sel >= 0)
+            btns[sel]->applyAccessibility(true);
+#endif
     }
 
     return true;
