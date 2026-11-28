@@ -1,21 +1,40 @@
 #include "K3DAccuracyDialog.hpp"
 
 #include <algorithm>
-#include <cmath>
+#include <array>
+#include <cstddef>
 #include <vector>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <wx/bitmap.h>
 #include <wx/button.h>
+#include <wx/checkbox.h>
+#include <wx/choice.h>
+#include <wx/defs.h>
+#include <wx/dialog.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/image.h>
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
+#include <wx/spinctrl.h>
+#include <wx/statbmp.h>
+#include <wx/stattext.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/window.h>
 
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "Plater.hpp"
 #include "Tab.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Format/ProjectStrategy.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
 
 namespace Slic3r { namespace GUI {
