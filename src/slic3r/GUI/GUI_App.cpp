@@ -202,6 +202,7 @@
 #include "GeneratedConfig.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "LanDevicePool.hpp"
 
 #include "../Utils/PresetUpdater.hpp"
 #include "../Utils/PrintHost.hpp"
@@ -3103,6 +3104,9 @@ void GUI_App::init_plugin_gui_wiring()
 
             app->switch_printer_agent();
             app->refresh_printer_agent_dropdown();
+            // The Multi-device tab's instances of the plugin's agent go with it
+            if (auto* dev = app->getDeviceManager(); dev && dev->lan_devices())
+                dev->lan_devices()->prune();
         });
     };
 
@@ -4249,6 +4253,19 @@ bool GUI_App::on_init_network(bool try_backup)
     if (this->is_enable_multi_machine()) {
         if (!m_task_manager) {
             m_task_manager = new Slic3r::TaskManager(m_agent);
+            if (m_device_manager)
+                m_device_manager->EnableMultiMachine(true); // creates the pool
+            // The device manager, and so its pool, lives until the app exits. Held weakly: a sending
+            // thread may outlive it.
+            if (const std::weak_ptr<LanDevicePool> devices = m_device_manager ? m_device_manager->lan_devices() : nullptr; !devices.expired()) {
+                m_task_manager->set_device_print(
+                    [devices](const PrintParams& params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) -> std::optional<int> {
+                        if (const auto pool = devices.lock())
+                            return pool->start_print(params.dev_id, params, std::move(update_fn), std::move(cancel_fn));
+                        // Closing: which printer the task names is unknown, so the live agent does not get it
+                        return BAMBU_NETWORK_ERR_CONNECTION_TO_PRINTER_FAILED;
+                    });
+            }
             m_task_manager->start();
         }
 

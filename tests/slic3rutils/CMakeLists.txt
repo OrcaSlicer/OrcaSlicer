@@ -12,6 +12,7 @@ add_executable(${_TEST_NAME}_tests
     test_dev_mapping.cpp
     test_dev_extruder_system.cpp
     test_device_access.cpp
+    test_lan_device_pool.cpp
     test_moonraker_printer_agent.cpp
     test_moonraker_filament_sources.cpp
     test_snapmaker_filament_match.cpp

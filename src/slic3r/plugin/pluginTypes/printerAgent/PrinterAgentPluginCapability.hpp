@@ -22,6 +22,12 @@ class PrinterAgentPluginCapability : public PluginCapabilityInterface, public IP
 public:
     static void RegisterBindings(pybind11::module_& module);
 
+    // A new instance of the plugin's agent class, with the prototype's identity, for one more
+    // printer (the Multi-device tab); nullptr when Python is gone or the class can't be built.
+    // The class is called without arguments, as the plugin loader calls it. The instance gets no
+    // cloud agent: it only talks to its printer on the LAN.
+    static std::shared_ptr<IPrinterAgent> new_device_instance(const std::shared_ptr<PrinterAgentPluginCapability>& prototype);
+
     PluginCapabilityType get_type() const override { return PluginCapabilityType::PrinterConnection; }
 
     // set_cloud_agent is the host-managed dependency injection point — the host hands the

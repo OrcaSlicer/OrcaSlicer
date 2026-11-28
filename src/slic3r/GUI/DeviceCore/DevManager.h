@@ -1,6 +1,7 @@
 #pragma once
 #include <chrono>
 #include <map>
+#include <memory>
 #include <mutex>
 #include "libslic3r/CommonDefs.hpp"
 
@@ -17,6 +18,7 @@ struct BBLocalMachine;
 class MachineObject;
 class NetworkAgent;
 class AppConfig;
+class LanDevicePool;
 
 namespace GUI {
 class GUI_App;
@@ -41,6 +43,7 @@ private:
     std::string local_selected_machine;                         /* dev_id */
     std::map<std::string, MachineObject*> localMachineList;     /* dev_id -> MachineObject*, localMachine SSDP   */
     std::map<std::string, MachineObject*> userMachineList;      /* dev_id -> MachineObject*  cloudMachine of User */
+    std::shared_ptr<LanDevicePool> m_lan_devices;               /* the Multi-device tab's LAN printers, apart from the lists above */
 
 public:
     DeviceManager(NetworkAgent* agent = nullptr, bool enable_refresher = true,
@@ -126,6 +129,11 @@ public:
     // mutil-device
     void EnableMultiMachine(bool enable = true);
     bool IsMultiMachineEnabled() const { return m_enable_mutil_machine; }
+    // The Multi-device tab's printers: the cloud machines and the LAN printers of the user's
+    // presets that a printer agent other than Bambu's drives, each on a connection of its own.
+    // UI thread; connects new LAN printers and drops removed ones.
+    std::map<std::string, MachineObject*> get_multi_device_machine_list();
+    std::shared_ptr<LanDevicePool> lan_devices() const { return m_lan_devices; }
     std::vector<std::string> subscribe_list_cache;//multiple machine subscribe list cache
     std::map<std::string, std::vector<std::string>> device_subseries;
 

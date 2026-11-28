@@ -1,6 +1,9 @@
 #include "DevManager.h"
+#include "slic3r/GUI/LanDevicePool.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
 #include <boost/log/trivial.hpp>
+#include <memory>
 #include <mutex>
 #include <chrono>
 #include "libslic3r/LifecycleEvents.hpp"
@@ -153,6 +156,7 @@ namespace Slic3r
     {
         if (m_refresher)
             delete m_refresher;
+        m_lan_devices.reset();
 
         for (auto it = localMachineList.begin(); it != localMachineList.end(); it++)
         {
@@ -224,6 +228,11 @@ namespace Slic3r
     {
         m_agent->enable_multi_machine(enable);
         m_enable_mutil_machine = enable;
+        if (enable && !m_lan_devices)
+            m_lan_devices = std::make_shared<LanDevicePool>(this);
+        // The Multi-device tab is gone: so are its connections
+        if (!enable && m_lan_devices)
+            m_lan_devices->sync({}, {});
     }
 
     void DeviceManager::start_refresher() { if (m_refresher) m_refresher->Start(); }
@@ -857,6 +866,9 @@ namespace Slic3r
         }
         for (auto& it : dev_list)
         {
+            // A LAN printer of the Multi-device tab is connected by its own agent, not subscribed through the cloud
+            if (m_lan_devices && m_lan_devices->owns(it))
+                continue;
             subscribe_list_cache.push_back(it);
             BOOST_LOG_TRIVIAL(trace) << "subscribe_device_list: sub dev id = " << it;
         }
@@ -865,6 +877,27 @@ namespace Slic3r
             m_agent->del_subscribe(unsub_list);
         if (!dev_list.empty())
             m_agent->add_subscribe(subscribe_list_cache);
+    }
+
+    std::map<std::string, MachineObject*> DeviceManager::get_multi_device_machine_list()
+    {
+        std::map<std::string, MachineObject*> result = get_my_cloud_machine_list();
+        auto* bundle = GUI::wxGetApp().preset_bundle;
+        if (!m_enable_mutil_machine || !m_lan_devices || !bundle)
+            return result;
+        std::vector<LanDevice> devices = lan_devices_from_presets(*bundle);
+        // A cloud machine keeps an id it shares with a LAN printer, which is then left out of the pool
+        devices.erase(std::remove_if(devices.begin(), devices.end(), [&](const LanDevice& d) { return result.count(d.dev_id) != 0; }),
+                      devices.end());
+        // Only the printers picked in "Manage devices" are connected
+        std::set<std::string> selected;
+        if (const AppConfig* config = get_app_config(); config && config->has_section("multi_devices"))
+            for (const auto& [index, dev_id] : config->get_section("multi_devices"))
+                selected.insert(dev_id);
+        m_lan_devices->sync(devices, selected);
+        for (const auto& [dev_id, obj] : m_lan_devices->machines())
+            result.emplace(dev_id, obj);
+        return result;
     }
 
     void DeviceManager::reselect_cloud_machine()

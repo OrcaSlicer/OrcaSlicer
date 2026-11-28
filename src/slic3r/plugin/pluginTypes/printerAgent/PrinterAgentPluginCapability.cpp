@@ -5,18 +5,65 @@
 #include <pybind11/cast.h>
 #include "slic3r/Utils/bambu_networking.hpp"
 
+#include <exception>
 #include <memory>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
 #include <string>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
+#include "slic3r/plugin/PythonInterpreter.hpp"
+#include <boost/log/trivial.hpp>
 #include <utility>
 
 namespace py = pybind11;
 
 namespace Slic3r {
+
+std::shared_ptr<IPrinterAgent> PrinterAgentPluginCapability::new_device_instance(const std::shared_ptr<PrinterAgentPluginCapability>& prototype)
+{
+    // Keeps the Python object alive as long as the C++ agent, as PythonPluginBridge's PluginInstanceHandle
+    struct Owner
+    {
+        std::shared_ptr<PrinterAgentPluginCapability> agent;
+        py::object                                     keep_alive;
+        ~Owner()
+        {
+            PythonGILState gil;
+            if (gil)
+                keep_alive = py::object();
+            else
+                (void) keep_alive.release();
+        }
+    };
+
+    if (!prototype)
+        return nullptr;
+    PythonGILState gil;
+    if (!gil)
+        return nullptr;
+    try {
+        const py::object existing = py::cast(prototype);
+        py::object       instance = py::type::of(existing)();
+        auto             agent    = instance.cast<std::shared_ptr<PrinterAgentPluginCapability>>();
+        if (!agent)
+            return nullptr;
+        agent->set_resolved_identity(prototype->name(), prototype->type());
+        agent->set_audit_plugin_key(prototype->audit_plugin_key());
+        agent->set_enabled(prototype->is_enabled());
+        auto owner        = std::make_shared<Owner>();
+        owner->agent      = agent;
+        owner->keep_alive = std::move(instance);
+        return std::shared_ptr<IPrinterAgent>(owner, owner->agent.get());
+    } catch (const py::error_already_set& err) {
+        BOOST_LOG_TRIVIAL(error) << "Printer-agent plugin '" << prototype->name() << "': no instance for another printer: " << err.what();
+    } catch (const std::exception& err) {
+        BOOST_LOG_TRIVIAL(error) << "Printer-agent plugin '" << prototype->name() << "': no instance for another printer: " << err.what();
+    }
+    return nullptr;
+}
 
 void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
 {
