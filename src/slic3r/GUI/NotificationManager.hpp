@@ -186,6 +186,8 @@ enum class NotificationType
     // A mixed-color filament is printed on a single-nozzle printer (frequent changes and purging).
     BBLSingleExtruderMixedFilamentRisk,
     OrcaSharedProfilesAvailable,
+    // The sliced preview keeps drawing slowly while dragged; suggests a cheaper drag mode.
+    PreviewSlowRender,
 	OrcaCloudAPIError,
     OrcaSyncConflict,
     // Active preset requires plugin capabilities that are not installed/loadable. Persistent,
@@ -323,6 +325,9 @@ public:
 
 	// Shared profiles available for selected printer
 	void push_shared_profiles_notification(const std::string& explore_url);
+	// fps is the measured frame rate, shown in the text.
+	// mode: the drag mode the notification offers, "shell" or "solid"
+	void push_preview_slow_render_notification(int fps, const std::string& mode);
 	void push_orca_sync_conflict_notification(const std::string& text,
 		int conflict_code,
 		std::function<bool(wxEvtHandler*)> pull_callback,
@@ -549,6 +554,8 @@ private:
 		virtual void render_text(ImGuiWrapper& imgui,
 			                     const float win_size_x, const float win_size_y,
 			                     const float win_pos_x , const float win_pos_y);
+		// Draws every wrapped line of the text from the top of the window; returns the y of the row below it.
+		float render_text_lines(ImGuiWrapper& imgui);
 		virtual void render_close_button(ImGuiWrapper& imgui,
 			                             const float win_size_x, const float win_size_y,
 			                             const float win_pos_x , const float win_pos_y);
@@ -957,6 +964,28 @@ private:
 
 		std::string m_explore_url;
 		bool m_dont_show_clicked{ false };
+	};
+
+	class PreviewSlowRenderNotification : public PopNotification
+	{
+	public:
+		PreviewSlowRenderNotification(const NotificationData& n, NotificationIDProvider& id_provider, wxEvtHandler* evt_handler,
+			const std::string& mode)
+			: PopNotification(n, id_provider, evt_handler)
+			, m_mode(mode)
+		{
+			m_multiline = true;
+		}
+	protected:
+		void init() override;
+		void render_text(ImGuiWrapper& imgui,
+			const float win_size_x, const float win_size_y,
+			const float win_pos_x, const float win_pos_y) override;
+		// Collapsed, the window would hide the links with nothing to bring them back.
+		void render_minimize_button(ImGuiWrapper& /*imgui*/,
+			const float /*win_pos_x*/, const float /*win_pos_y*/) override { m_minimize_b_visible = false; }
+
+		std::string m_mode;
 	};
 
 	class OrcaSyncConflictNotification : public PopNotification

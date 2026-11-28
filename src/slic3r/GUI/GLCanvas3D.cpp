@@ -108,6 +108,7 @@
 #include "I18N.hpp"
 #include "format.hpp"
 #include "NotificationManager.hpp"
+#include "PreviewFrameRateMonitor.hpp"
 #include "DailyTips.hpp"
 #include "FilamentMapDialog.hpp"
 #include "Gizmos/GLGizmoUtils.hpp"
@@ -3222,6 +3223,8 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     if (only_init)
         return;
 
+    const auto frame_start = std::chrono::steady_clock::now();
+
 #if ENABLE_ENVIRONMENT_MAP
     if (wxGetApp().is_editor())
         wxGetApp().plater()->init_environment_texture();
@@ -3302,6 +3305,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     // Whether the preview draws its reduced set is decided before the cached scene is consulted,
     // since switching changes what the scene pass draws.
+    m_preview_interacting = false;
     if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview && m_gcode_viewer.has_data() && _update_preview_interaction())
         scene_dirty = true;
 
@@ -3488,6 +3492,9 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
         if (!overlay_tick)
             m_render_stats.increment_fps_counter();
         m_presented_signature = signature;
+        // A slider drag rebuilds the visible range on the CPU, which a cheaper drag mode does not speed up.
+        if (m_preview_interacting && !reuse_scene && !overlay_tick && !m_benchmarking && !m_gcode_viewer.is_slider_dragging())
+            _track_preview_frame_time(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - frame_start).count());
     }
     else {
         if (m_canvas->IsShownOnScreen()) {
@@ -4590,6 +4597,9 @@ void GLCanvas3D::load_gcode_preview(const GCodeProcessorResult& gcode_result, co
     PartPlateList& partplate_list = wxGetApp().plater()->get_partplate_list();
     PartPlate* plate = partplate_list.get_curr_plate();
     const std::vector<BoundingBoxf3>& exclude_bounding_box = plate->get_exclude_areas();
+
+    // The first frames of a new preview upload it; they say nothing about how fast it draws.
+    m_preview_frame_monitor.reset();
 
     _set_shown_canvas_current();
     // The viewer uploads to the GPU from here on. Without a context the driver lets us make
@@ -10861,6 +10871,38 @@ void GLCanvas3D::_render_wireframe_overlay()
     shader->stop_using();
 }
 
+void GLCanvas3D::_track_preview_frame_time(double frame_ms)
+{
+    const AppConfig* cfg = wxGetApp().app_config;
+    const std::optional<std::string> suggested = suggested_preview_drag_mode(cfg->get("preview_reduced_detail_mode"),
+                                                                             m_gcode_viewer.shell_mode_hides_infill(),
+                                                                             m_gcode_viewer.solid_mode_usable());
+    if (!suggested || s_preview_slow_hints_shown.count(*suggested) > 0 || !cfg->get_bool("show_preview_slow_render_hint")) {
+        m_preview_frame_monitor.reset();
+        return;
+    }
+    if (const std::optional<double> fps = m_preview_frame_monitor.add_frame(frame_ms)) {
+        s_preview_slow_hints_shown.insert(*suggested);
+        const int max_shown_fps = static_cast<int>(std::ceil(PreviewFrameRateMonitor::min_fps)) - 1;
+        wxGetApp().plater()->get_notification_manager()->push_preview_slow_render_notification(
+            std::clamp(static_cast<int>(std::lround(*fps)), 1, max_shown_fps), *suggested);
+    }
+}
+
+void GLCanvas3D::apply_preview_reduced_detail_mode(const std::string& mode)
+{
+    AppConfig* cfg = wxGetApp().app_config;
+    cfg->set("preview_reduced_detail_mode", mode);
+    cfg->save();
+    m_gcode_viewer.set_reduced_detail_mode(mode);
+    // slow seconds counted in the old mode say nothing about the new one, and a hint still on screen
+    // would offer to replace the mode just chosen
+    m_preview_frame_monitor.reset();
+    wxGetApp().plater()->get_notification_manager()->close_notification_of_type(NotificationType::PreviewSlowRender);
+    set_as_dirty();
+    request_extra_frame();
+}
+
 // The reduced set is drawn while the camera, the navigator or either slider is dragged. A wheel
 // step has no duration, so it holds the reduced set for a settle time instead, and the frame that
 // restores the full toolpaths is scheduled for when that time runs out. Returns whether what the scene
@@ -10870,6 +10912,7 @@ bool GLCanvas3D::_update_preview_interaction()
     const auto now = std::chrono::steady_clock::now();
     const bool settling = now < m_preview_interaction_until;
     const bool dragging = is_user_interacting();
+    m_preview_interacting = dragging || settling;
     const bool was_reduced = m_gcode_viewer.is_reduced_detail();
     m_gcode_viewer.set_interacting(dragging || settling);
     if (settling && !dragging && m_gcode_viewer.is_reduced_detail()) {
@@ -12123,22 +12166,27 @@ void GLCanvas3D::_render_canvas_toolbar()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding  , ImVec2(4.f, 10.f) * sc);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing    , ImVec2(0.f, 8.f ) * sc);
 
+    // Drawn after the popup's style is popped, so the tooltip does not take the popup's colors.
+    std::string hovered_tip;
     if (ImGui::BeginPopup("CanvasToolbarMenu", ImGuiWindowFlags_NoMove)) {
         ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
 
         Plater*    p   = wxGetApp().plater();
         AppConfig* cfg = wxGetApp().app_config;
 
-        auto create_menu_item = [sc](
+        auto create_menu_item = [sc, &hovered_tip](
             const std::string& name,
             bool enable,
             bool condition,
-            const std::function<void()>& action
+            const std::function<void()>& action,
+            const std::string& tooltip = {}
         ) {
             ImGui::Dummy({2.f * sc,0});
             ImGui::SameLine();
             if (ImGui::BBLMenuItem(("        " + _u8L(name)).c_str(), nullptr, false, enable, ImGui::CalcTextSize(_u8L(name).c_str()).y))
                 action();
+            if (!tooltip.empty() && ImGui::IsItemHovered())
+                hovered_tip = tooltip;
             ImGui::SameLine(12.f * sc);
             ImGui::TextColored(enable ? ImVec4(1,1,1,1) : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), "%s", into_u8(condition ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
         };
@@ -12248,6 +12296,30 @@ void GLCanvas3D::_render_canvas_toolbar()
             [this]{wxGetApp().toggle_show_center_of_mass(); m_dirty = true;}
         );
 
+        ImGui::Separator();
+
+        // Both eyes closed means the full toolpaths are drawn while dragging.
+        const std::string reduced_detail_mode = cfg->get("preview_reduced_detail_mode");
+        auto create_drag_mode_item = [&](const std::string& name, const std::string& mode, const std::string& tooltip) {
+            const bool on = reduced_detail_mode == mode;
+            create_menu_item(name,
+                m_canvas_type == ECanvasType::CanvasPreview, // work only on preview
+                on,
+                [this, p, next = on ? std::string("off") : mode]{
+                    p->CallAfter([this, next]{ apply_preview_reduced_detail_mode(next); });
+                },
+                tooltip
+            );
+        };
+        // TRN View menu toggle: what the sliced preview draws while the camera or a slider is dragged.
+        create_drag_mode_item(_utf8(L("Solid model while dragging")), "solid",
+            _u8L("While you drag the camera or a preview slider, or zoom, the sliced objects are drawn as solid shapes. "
+                 "The full toolpaths return when you let go. A print made object by object, or one on a belt printer, keeps its full toolpaths."));
+        // TRN View menu toggle: what the sliced preview draws while the camera or a slider is dragged.
+        create_drag_mode_item(_utf8(L("Shell only while dragging")), "shell",
+            _u8L("While you drag the camera or a preview slider, or zoom, the toolpaths are drawn without the infill hidden under the walls. "
+                 "The full toolpaths return when you let go."));
+
         // Belt printers, G-code preview only: show the raw machine-frame G-code instead of
         // the designed (upright) view. This menu is the only place the toggle lives (plus
         // its shortcut); the reload is deferred (CallAfter) so the preview is not rebuilt
@@ -12270,6 +12342,9 @@ void GLCanvas3D::_render_canvas_toolbar()
 
     ImGui::PopStyleColor(6);
     ImGui::PopStyleVar(6);
+
+    if (!hovered_tip.empty())
+        imgui.tooltip(hovered_tip, ImGui::GetFontSize() * 20.f);
 
     imgui.end();
 

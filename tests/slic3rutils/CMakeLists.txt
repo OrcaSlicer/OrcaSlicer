@@ -31,6 +31,7 @@ add_executable(${_TEST_NAME}_tests
     test_part_plate.cpp
     test_scene_raycaster.cpp
     test_scene_benchmark.cpp
+    test_preview_frame_rate_monitor.cpp
     test_lazy.cpp
     test_mcp_activity_log.cpp
     test_mcp_config.cpp

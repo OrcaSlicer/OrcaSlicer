@@ -350,6 +350,10 @@ std::vector<Preference> build_table()
                 "outside.\n"
                 "The bottom and top layers of the visible range are always drawn whole; a layer with no infill of its own, as with infill "
                 "combination, takes the layers down to the nearest one with infill along.")});
+    t.checkbox("show_preview_slow_render_hint", L("Warn when the preview renders slowly"),
+               // TRN "Shell only" and "Solid model" are values of "Simplify preview while dragging" above; keep them as translated there.
+               {L("Show a notification when the sliced preview draws slower than 15 frames per second for 5 seconds while you drag it. "
+                  "It suggests Shell only, or Solid model when Shell only is already on or would not help.")});
     t.checkbox("preview_dim_previous_layers", L("Dim lower layers"),
                {L("When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only "
                   "the layer being viewed is shown at full brightness.")});
@@ -835,10 +839,8 @@ void apply_preference(const std::string& key)
         }
     } else if (key == "preview_reduced_detail_mode") {
         // apply the new mode immediately to the currently loaded preview
-        if (GLCanvas3D* canvas = preview_canvas()) {
-            canvas->get_gcode_viewer().set_reduced_detail_mode(config.get(key));
-            redraw_preview(*canvas);
-        }
+        if (GLCanvas3D* canvas = preview_canvas())
+            canvas->apply_preview_reduced_detail_mode(config.get(key));
 #ifdef __WXMSW__
     } else if (key == "associate_3mf" || key == "associate_drc" || key == "associate_stl" || key == "associate_step") {
         const std::wstring extension = wxString::FromUTF8(key.substr(std::string("associate_").size())).ToStdWstring();

@@ -570,6 +570,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/PresetComboBoxes.hpp
     GUI/PresetHints.cpp
     GUI/PresetHints.hpp
+    GUI/PreviewFrameRateMonitor.hpp
     GUI/PrimitiveSizeDialog.cpp
     GUI/PrimitiveSizeDialog.hpp
     GUI/PrinterCloudAuthDialog.cpp

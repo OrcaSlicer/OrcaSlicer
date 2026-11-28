@@ -230,6 +230,8 @@ void AppConfig::set_defaults()
         if (mode != "off" && mode != "solid" && mode != "shell")
             set("preview_reduced_detail_mode", "off");
     }
+    if (get("show_preview_slow_render_hint").empty())
+        set_bool("show_preview_slow_render_hint", true);
 
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     if (get("preview_dim_previous_layers").empty())

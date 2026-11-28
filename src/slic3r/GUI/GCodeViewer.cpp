@@ -1845,7 +1845,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // the shell drag mode hides the infill only where the profile covers it: with no top or bottom
     // shell, or no walls, the infill is the surface. Per-object settings are not consulted.
     const PrintRegionConfig& region = print.default_region_config();
-    m_viewer.set_reduced_detail_hide_infill(region.top_shell_layers.value > 0 && region.bottom_shell_layers.value > 0 && region.wall_loops.value > 0);
+    m_reduced_detail_hides_infill = region.top_shell_layers.value > 0 && region.bottom_shell_layers.value > 0 && region.wall_loops.value > 0;
+    m_viewer.set_reduced_detail_hide_infill(m_reduced_detail_hides_infill);
     // Orca hack: Hide filament group for non-bbl printers
     if (!print.is_BBL_printer()) m_nozzle_nums = 1;
     std::vector<int>         filament_maps = print.get_filament_maps();
@@ -3068,11 +3069,8 @@ void GCodeViewer::update_layers_slider_mode()
 
 void GCodeViewer::set_interacting(bool interacting)
 {
-    // With the mode off nothing changes while dragging. The solid model needs shells to stand in
-    // for the toolpaths and a single height to cut them at; a belt printer's layers are tilted
-    // planes, which no height cuts.
-    const bool usable = m_reduced_detail_mode != libvgcode::EReducedDetailMode::Off &&
-                        (!solid_model_enabled() || (!m_shells.volumes.empty() && m_layers_z_rising && !m_belt_view_enabled));
+    // With the mode off nothing changes while dragging.
+    const bool usable = m_reduced_detail_mode != libvgcode::EReducedDetailMode::Off && (!solid_model_enabled() || solid_mode_usable());
     // sampled afresh as each drag begins: the legend may have recoloured the toolpaths, and the
     // sliders may have moved the span, since the last one
     if (interacting && !m_viewer.is_reduced_detail())

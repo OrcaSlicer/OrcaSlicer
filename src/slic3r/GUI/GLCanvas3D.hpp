@@ -42,6 +42,7 @@
 #include "SceneCache.hpp"
 #include "SelectionOutline.hpp"
 #include "FrameProfiler.hpp"
+#include "PreviewFrameRateMonitor.hpp"
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Slicing.hpp"
@@ -52,6 +53,7 @@
 #include <wx/event.h>
 #include <utility>
 #include <vector>
+#include <set>
 #include <string>
 #include <wx/string.h>
 
@@ -904,6 +906,13 @@ private:
     std::chrono::time_point<std::chrono::steady_clock> m_preview_interaction_until{};
     // whether the frame that restores the toolpaths once that time is up is still owed
     bool m_preview_settle_pending{ false };
+    // whether this frame is drawn while the user moves the preview (a drag or a wheel step's settle time)
+    bool m_preview_interacting{ false };
+    // watches those frames for a preview too slow to move in its current drag mode
+    PreviewFrameRateMonitor m_preview_frame_monitor;
+    // the drag modes the slow preview notification has offered, each once per run; static, so that
+    // rebuilding the GUI does not reset them
+    inline static std::set<std::string> s_preview_slow_hints_shown;
 
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;
@@ -1542,6 +1551,9 @@ public:
     void msw_rescale() { m_gcode_viewer.invalidate_legend(); }
 
     void request_extra_frame() { m_extra_frame_requested = true; }
+    // Stores what the preview draws while dragging ("off", "solid" or "shell") and applies it to this canvas.
+    // Inside a frame, call it through CallAfter: switching can upload volumes.
+    void apply_preview_reduced_detail_mode(const std::string& mode);
     // whether the user is holding the camera, the navigator, a gizmo, the rectangle selection or a preview slider
     bool is_user_interacting() const;
 
@@ -1737,6 +1749,8 @@ private:
     // decides whether the preview draws its reduced set this frame and returns whether what the scene
     // pass draws changed; runs before the cached scene is consulted
     bool _update_preview_interaction();
+    // feeds the render time of a frame drawn while the user moves the preview to the slow preview monitor
+    void _track_preview_frame_time(double frame_ms);
     //BBS: render a plane for assemble
     void _render_plane() const;
     void _render_selection();
