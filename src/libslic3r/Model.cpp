@@ -1140,6 +1140,11 @@ void Model::convert_from_imperial_units(bool only_small_volumes)
                 v->source.is_converted_from_inches = true;
             }
         }
+    // The texture import paints texture_mesh and its result replaces the volume, so it needs the same units.
+    if (texture_mesh)
+        for (auto& v : texture_mesh->vertices)
+            for (float& coord : v)
+                coord *= in_to_mm;
 }
 
 static constexpr const double volume_threshold_meters = 0.008; // 0.008 = 0.2*0.2*0.2
@@ -1167,6 +1172,11 @@ void Model::convert_from_meters(bool only_small_volumes)
                 v->source.is_converted_from_meters = true;
             }
         }
+    // The texture import paints texture_mesh and its result replaces the volume, so it needs the same units.
+    if (texture_mesh)
+        for (auto& v : texture_mesh->vertices)
+            for (float& coord : v)
+                coord *= float(m_to_mm);
 }
 
 static constexpr const double zero_volume = 0.0000000001;
