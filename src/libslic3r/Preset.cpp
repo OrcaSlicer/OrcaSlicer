@@ -148,27 +148,6 @@ std::string user_presets_lock_path(bool read_only)
     return read_only || data_dir().empty() ? std::string() : (fs::path(data_dir()) / (PRESET_USER_DIR ".lock")).string();
 }
 
-// Removes a preset file the scan could not load, and its .info, under the lock.
-// The scan passes read_only when it could not take the lock, since the file may
-// then be another instance's fresh write that it merely raced.
-static void remove_preset_files(const std::string &preset_file, bool read_only)
-{
-    if (read_only)
-        return;
-    InstanceLock instance_lock(user_presets_lock_path());
-    // A symlink whose target is missing stays, since the target may come back; one
-    // that cannot even be followed is removed like any other unreadable file.
-    auto remove = [](const fs::path &file) {
-        boost::system::error_code ec;
-        if (fs::status(file, ec).type() != fs::file_not_found)
-            fs::remove(file, ec);
-    };
-    fs::path file_path(preset_file);
-    remove(file_path);
-    file_path.replace_extension(".info");
-    remove(file_path);
-}
-
 std::string get_preset_bare_name(const std::string &canonical_name)
 {
     const auto pos = canonical_name.find_last_of('/');
@@ -1900,7 +1879,6 @@ PresetCollection::UserPresetLoad PresetCollection::resolve_user_preset(
         if (! config_substitutions.empty())
             out.substitutions.push_back({ preset.name, m_type, PresetConfigSubstitutions::Source::UserFile, preset.file, std::move(config_substitutions) });
         if (!reason.empty()) {
-            out.discard_file = true;
             out.errors.push_back((boost::format("parse config %1% failed") % preset.file).str());
             return out;
         }
@@ -1981,11 +1959,9 @@ PresetCollection::UserPresetLoad PresetCollection::resolve_user_preset(
         preset.loaded = true;
         out.complete = true;
     } catch (const std::ifstream::failure &err) {
-        out.discard_file = true;
         out.errors.push_back((boost::format("The user-config cannot be loaded: %1%. Reason: %2%") % preset.file % err.what()).str());
         //throw Slic3r::RuntimeError(std::string("The selected preset cannot be loaded: ") + preset.file + "\n\tReason: " + err.what());
     } catch (const std::runtime_error &err) {
-        out.discard_file = true;
         out.errors.push_back((boost::format("Failed loading the user-config file: %1%. Reason: %2%") % preset.file % err.what()).str());
         //throw Slic3r::RuntimeError(std::string("Failed loading the preset file: ") + preset.file + "\n\tReason: " + err.what());
     }
@@ -2006,8 +1982,6 @@ void PresetCollection::commit_user_preset(UserPresetLoad &&loaded, std::deque<Pr
         ++m_errors;
         BOOST_LOG_TRIVIAL(error) << error;
     }
-    if (loaded.discard_file)
-        remove_preset_files(loaded.preset.file, read_only);
     if (!loaded.install)
         return;
 
@@ -2109,7 +2083,7 @@ void PresetCollection::load_presets(
         [&](size_t i, UserPresetLoad &&loaded) {
             // Resolve read the files without the lock, so another instance may have saved
             // over them since. A file that changed is resolved again under the lock before
-            // commit removes or rewrites it, which also keeps its .json and .info from two
+            // commit rewrites it, which also keeps its .json and .info from two
             // different saves apart. Without the lock nothing is checked, so commit leaves
             // the files alone.
             const std::string lock_path = user_presets_lock_path(read_only);
@@ -2118,7 +2092,7 @@ void PresetCollection::load_presets(
                 const PresetFilesOnDisk   on_disk = PresetFilesOnDisk::read(files[i].path);
                 boost::system::error_code ec;
                 // The link itself, and a stat error counts as present, so a file that is
-                // there but cannot be read is still counted and removed by commit.
+                // there but cannot be read is still reported by commit.
                 if (! on_disk.json && fs::symlink_status(files[i].path, ec).type() == fs::file_not_found)
                     return; // removed by another instance since it was read
                 if (! (on_disk == loaded.on_disk)) {
@@ -2128,8 +2102,7 @@ void PresetCollection::load_presets(
                 }
             }
             const bool leave_files = read_only || (! lock_path.empty() && ! instance_lock.locked());
-            // Committing can remove an unreadable preset's file, and a filesystem error
-            // there is reported without stopping the rest of the directory.
+            // Report an unreadable preset without stopping the rest of the directory.
             try {
                 this->commit_user_preset(std::move(loaded), presets_loaded, substitutions, preset_loaded_fn, leave_files);
             } catch (const std::runtime_error &err) {
