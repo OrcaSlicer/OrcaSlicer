@@ -448,7 +448,13 @@ void GLGizmoPainterBase::render_cursor_height_range(const Transform3d& trafo) co
         m_cut_contours.resize(volumes_count * 2);
     }
     m_volumes_index = 0;
+    int part_idx = -1;
     for (const ModelVolume* mv : model_object->volumes) {
+        if (mv->is_model_part() && !is_mesh_paintable(++part_idx)) {
+            m_volumes_index += zs.size();
+            continue;
+        }
+
         TriangleMesh vol_mesh = mv->mesh();
         if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView) {
             Transform3d temp = mi->get_assemble_transformation().get_matrix() * mv->get_matrix();
@@ -679,23 +685,12 @@ std::vector<GLGizmoPainterBase::ProjectedHeightRange> GLGizmoPainterBase::get_pr
     if (m_rr.mesh_id == -1)
         return hit_triangles_by_mesh;
 
-    ProjectedMousePosition mesh_hit_point = { m_rr.hit, m_rr.mesh_id, m_rr.facet };
     float z_bot_world= (trafo_matrices[m_rr.mesh_id] * Vec3d(m_rr.hit(0), m_rr.hit(1), m_rr.hit(2))).z();
     float z_top_world = z_bot_world+ m_cursor_height;
     hit_triangles_by_mesh.push_back({ z_bot_world, m_rr.mesh_id, size_t(m_rr.facet) });
 
-    const Selection& selection = m_parent.get_selection();
-    const ModelObject* mo = m_c->selection_info()->model_object();
-    const ModelInstance* mi = mo->instances[selection.get_instance_idx()];
-    const Transform3d   instance_trafo = m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView ?
-        mi->get_assemble_transformation().get_matrix() :
-        mi->get_transformation().get_matrix();
-    const Transform3d   instance_trafo_not_translate = m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView ?
-        mi->get_assemble_transformation().get_matrix_no_offset() :
-        mi->get_transformation().get_matrix_no_offset();
-
     for (int mesh_idx = 0; mesh_idx < part_volumes.size(); mesh_idx++) {
-        if (mesh_idx == m_rr.mesh_id)
+        if (mesh_idx == m_rr.mesh_id || !is_mesh_paintable(mesh_idx))
             continue;
 
         const Transform3d& trafo = trafo_matrices[mesh_idx];
