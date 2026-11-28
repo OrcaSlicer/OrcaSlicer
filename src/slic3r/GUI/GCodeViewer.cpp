@@ -2471,7 +2471,25 @@ void GCodeViewer::render_markers(int canvas_width, int canvas_height)
             m_sequential_view.m_imex_secondary_markers.clear();
             // The primary marker is the one every preview draws, so the carriage colour it may
             // have been given has to come back off when no parallel mode is active.
-            m_sequential_view.marker.set_color(SequentialView::Marker::default_color());
+            // ORCA: Dynamic nozzle color feature. Use 0.5f alpha to match default nozzle transparency.
+            // "filament_only" colors it only where the toolpaths are colored by filament as well.
+            const std::string          nozzle_color_mode = wxGetApp().app_config->get("dynamic_nozzle_color");
+            const libvgcode::EViewType view_type         = m_viewer.get_view_type();
+            const bool                 tool_view         = view_type == libvgcode::EViewType::Tool;
+            const bool dynamic_nozzle_color = nozzle_color_mode == "on" ||
+                (nozzle_color_mode == "filament_only" &&
+                 (tool_view || view_type == libvgcode::EViewType::ColorPrint || view_type == libvgcode::EViewType::Summary));
+            // The palettes the toolpaths are drawn with: the Tool view colors by extruder, every other view
+            // takes the filament loaded at the vertex, which a color change replaces.
+            const libvgcode::PaletteWithAlpha& palette = tool_view ? m_viewer.get_tool_colors() : m_viewer.get_color_print_colors();
+            const size_t color_id = tool_view ? curr_vertex.extruder_id : curr_vertex.color_id;
+            if (dynamic_nozzle_color && color_id < palette.size()) {
+                ColorRGBA color = libvgcode::convert(palette[color_id]);
+                color.a(0.5f);
+                m_sequential_view.marker.set_color(color);
+            } else {
+                m_sequential_view.marker.set_color(SequentialView::Marker::default_color());
+            }
         }
     }
     m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
