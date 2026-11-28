@@ -9,6 +9,7 @@
 #include <limits>
 #include <cstddef>
 #include <cmath>
+#include <utility>
 
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -20,6 +21,7 @@
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Geometry/ConvexHull.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/MultiMaterialSegmentation.hpp"
@@ -187,9 +189,19 @@ void arrange_by_object(ArrangePolygons &items, ArrangePolygons &fixed)
         ap.extrude_ids = {1}; // the sequential sort reads extrude_ids.front()
 
     update_arrange_params(p, &cfg, items);
+    std::vector<ArrangePolygons> groups = pack_print_groups(items, &cfg, p);
     update_selected_items_inflation(items, &cfg, p);
     update_unselected_items_inflation(fixed, &cfg, p);
     arrange(items, fixed, get_shrink_bedpts(&cfg, p), p);
+    unpack_print_groups(items, groups);
+}
+
+// Whether the placed shapes of a and b come closer than distance_mm.
+bool closer_than(const ArrangePolygon &a, const ArrangePolygon &b, double distance_mm)
+{
+    const float half = float(scaled(distance_mm / 2));
+    return !intersection_ex(offset_ex(a.transformed_poly(), half, jtRound, scaled(0.01)),
+                            offset_ex(b.transformed_poly(), half, jtRound, scaled(0.01))).empty();
 }
 
 } // namespace
@@ -888,6 +900,130 @@ TEST_CASE("Sequential print keeps an object distance already above the floor", "
 
     update_selected_items_inflation(items, &cfg, p);
     CHECK(p.min_obj_distance == stored);
+}
+
+TEST_CASE("Sequential print keeps a group of objects together and the clearance between groups", "[Arrange]")
+{
+    // Objects taller than the nozzle, which need the whole clearance radius between them, of two filaments.
+    ArrangePolygons items = squares(4, 20., NOZZLE_HEIGHT_MM * 2);
+    for (size_t idx = 0; idx < items.size(); ++idx) {
+        items[idx].brim_width  = 1.;
+        items[idx].print_group = int(idx % 2);
+    }
+    ArrangePolygons fixed;
+    arrange_by_object(items, fixed);
+
+    REQUIRE(items.size() == 4);
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        CHECK(bed(200, 200).contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    for (size_t i = 0; i < items.size(); ++i)
+        for (size_t j = i + 1; j < items.size(); ++j) {
+            CAPTURE(i, j, items[i].print_group, items[j].print_group);
+            if (items[i].print_group == items[j].print_group) {
+                // The room of a print by layer, a brim width each.
+                CHECK(closer_than(items[i], items[j], CLEARANCE_MM));
+                CHECK_FALSE(closer_than(items[i], items[j], 2. - 0.01));
+            } else
+                CHECK_FALSE(closer_than(items[i], items[j], CLEARANCE_MM - 0.01));
+        }
+}
+
+TEST_CASE("Unpacking a group moves its objects as the arrange moved the group", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config();
+    ArrangeParams      p     = seq_print_params(0);
+    ArrangePolygons    items = squares(3, 20., NOZZLE_HEIGHT_MM * 2);
+    for (ArrangePolygon &ap : items)
+        ap.print_group = 0;
+    items.back().print_group = -1;
+
+    std::vector<ArrangePolygons> groups = pack_print_groups(items, &cfg, p);
+    REQUIRE(groups.size() == 1);
+    REQUIRE(groups.front().size() == 2);
+    // The object that prints alone, then the group.
+    REQUIRE(items.size() == 2);
+    CHECK(items.front().print_group == -1);
+
+    ArrangePolygon &group = items.back();
+    group.translation     = Vec2crd(scaled(100.), scaled(60.));
+    group.rotation        = PI / 2;
+    group.bed_idx         = 1;
+    const ExPolygon placed_group = group.transformed_poly();
+
+    unpack_print_groups(items, groups);
+    REQUIRE(items.size() == 3);
+    CHECK(groups.empty());
+    Points points;
+    for (const ArrangePolygon &ap : items)
+        if (ap.print_group == 0) {
+            CHECK(ap.bed_idx == 1);
+            append(points, ap.transformed_poly().contour.points);
+        }
+    // The hull of the objects as placed is the group as placed, turned a quarter.
+    const Polygon     hull     = Geometry::convex_hull(std::move(points));
+    const BoundingBox hull_bb  = hull.bounding_box();
+    const BoundingBox group_bb = placed_group.contour.bounding_box();
+    CHECK_THAT(hull.area(), WithinRel(placed_group.area(), 1e-6));
+    CHECK((hull_bb.min - group_bb.min).cast<double>().norm() < scaled(0.01));
+    CHECK((hull_bb.max - group_bb.max).cast<double>().norm() < scaled(0.01));
+}
+
+TEST_CASE("Filling the bed with the copies of a group keeps the clearance from the other groups only", "[Arrange]")
+{
+    DynamicPrintConfig cfg    = bed_config();
+    ArrangeParams      p      = seq_print_params(0);
+    p.bed_shrink_x            = BED_SHRINK_SEQ_PRINT;
+    p.bed_shrink_y            = BED_SHRINK_SEQ_PRINT;
+    p.clearance_height_to_rod = float(NOZZLE_HEIGHT_MM * 10);
+    p.clearance_height_to_lid = float(NOZZLE_HEIGHT_MM * 40);
+
+    // An object and its copies, taller than the nozzle, and on the bed an object of their filament and one of another.
+    ArrangePolygons items = squares(6, 20., NOZZLE_HEIGHT_MM * 2);
+    ArrangePolygons fixed = squares(2, 20., NOZZLE_HEIGHT_MM * 2);
+    for (ArrangePolygon &ap : items) {
+        ap.brim_width  = 1.;
+        ap.print_group = 0;
+        ap.extrude_ids = {1}; // the sequential sort reads extrude_ids.front()
+    }
+    for (ArrangePolygon &ap : fixed) {
+        ap.brim_width  = 1.;
+        ap.extrude_ids = {1};
+    }
+    fixed[0].print_group = 0;
+    fixed[0].translation = Vec2crd(scaled(30.), scaled(90.));
+    fixed[1].print_group = 1;
+    fixed[1].translation = Vec2crd(scaled(150.), scaled(90.));
+    update_arrange_params(p, &cfg, items);
+
+    SECTION("copies of objects of more than one group are no group") {
+        items.back().print_group = 1;
+        const ArrangeParams before = p;
+        CHECK_FALSE(update_print_group_fill_inflation(items, fixed, &cfg, p));
+        for (const ArrangePolygon &ap : items)
+            CHECK(ap.inflation == 0);
+        CHECK(p.bed_shrink_x == before.bed_shrink_x);
+    }
+    SECTION("copies of one group") {
+        REQUIRE(update_print_group_fill_inflation(items, fixed, &cfg, p));
+        arrange(items, fixed, get_shrink_bedpts(&cfg, p), p);
+
+        size_t close_pairs = 0;
+        for (size_t i = 0; i < items.size(); ++i) {
+            CAPTURE(i);
+            REQUIRE(items[i].bed_idx == 0);
+            CHECK(bed(200, 200).contains(items[i].transformed_poly().contour.bounding_box()));
+            CHECK_FALSE(closer_than(items[i], fixed[0], 2. - 0.01));
+            CHECK_FALSE(closer_than(items[i], fixed[1], CLEARANCE_MM - 0.01));
+            for (size_t j = i + 1; j < items.size(); ++j) {
+                CHECK_FALSE(closer_than(items[i], items[j], 2. - 0.01));
+                close_pairs += closer_than(items[i], items[j], CLEARANCE_MM);
+            }
+        }
+        // Packed as when printing by layer.
+        CHECK(close_pairs > 0);
+    }
 }
 
 TEST_CASE("Sequential print keeps the clearance of an object almost as wide as the bed", "[Arrange]")

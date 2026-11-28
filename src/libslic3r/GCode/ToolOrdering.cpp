@@ -625,6 +625,47 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
     this->mark_skirt_layers(print.config(), max_layer_height);
 }
 
+// Orca: The layers of a group of objects that print together in a sequential print, as the Print constructor does
+// for all objects. Custom tool changes per print_z are not used in a sequential print.
+ToolOrdering::ToolOrdering(const Print &print, const std::vector<const PrintObject*> &objects, unsigned int first_extruder)
+{
+    m_print_full_config = &print.full_print_config();
+    m_print = const_cast<Print *>(&print);
+    m_print_config_ptr = &print.config();
+    if (objects.empty())
+        return;
+
+    coordf_t max_layer_height = 0.;
+    {
+        std::vector<coordf_t> zs;
+        for (const PrintObject *object : objects) {
+            for (auto layer : object->layers())
+                zs.emplace_back(layer->print_z);
+            for (auto layer : object->support_layers())
+                zs.emplace_back(layer->print_z);
+            for (const BeltBrimBand &band : object->belt_brim_prologue())
+                zs.emplace_back(band.print_z);
+            max_layer_height = std::max(max_layer_height, object->config().layer_height.value);
+        }
+        this->initialize_layers(zs);
+    }
+    max_layer_height = calc_max_layer_height(print.config(), max_layer_height);
+
+    for (const PrintObject *object : objects)
+        this->collect_extruders(*object, std::vector<std::pair<double, unsigned int>>());
+
+    std::vector<unsigned int> first_layer_tool_order;
+    if (first_extruder == (unsigned int) -1)
+        first_layer_tool_order = generate_first_layer_tool_order(*objects.front());
+    if (!first_layer_tool_order.empty())
+        this->handle_dontcare_extruder(first_layer_tool_order);
+    else
+        this->handle_dontcare_extruder(first_extruder);
+
+    this->collect_extruder_statistics(false);
+    this->mark_skirt_layers(print.config(), max_layer_height);
+}
+
 static void apply_first_layer_order(const DynamicPrintConfig* config, std::vector<unsigned int>& tool_order) {
     const ConfigOptionInts* first_layer_print_sequence_op = config->option<ConfigOptionInts>("first_layer_print_sequence");
     if (first_layer_print_sequence_op) {
