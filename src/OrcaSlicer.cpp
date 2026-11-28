@@ -1169,6 +1169,16 @@ static void load_downward_settings_list_from_config(std::string config_file, std
     }
 }
 
+// A Bambu Lab printer, by its printer_model, or by the preset name when the model is not set.
+static bool is_bbl_vendor_printer(const std::string &printer_model, const std::string &new_printer_name, const std::string &current_printer_system_name)
+{
+    if (!printer_model.empty())
+        return printer_model.compare(0, 9, "Bambu Lab") == 0;
+    if (!new_printer_name.empty())
+        return new_printer_name.compare(0, 9, "Bambu Lab") == 0;
+    return current_printer_system_name.compare(0, 9, "Bambu Lab") == 0;
+}
+
 #ifdef __WXGTK__
 // Virtual GPUs (VirtualBox, VMware, QEMU) cannot back WebKit's hardware DMABUF renderer.
 static bool is_hypervisor_guest()
@@ -6984,7 +6994,11 @@ int CLI::run(int argc, char **argv)
                                         }
                                     }
 
-                                    for (int f_index = 0; f_index < plate_filaments.size(); f_index++) {
+                                    // filament_printable defaults to the first two extruders, so only Bambu Lab
+                                    // printers declare it. ToolOrdering applies the same check to them alone.
+                                    auto *printer_model_opt = m_print_config.option<ConfigOptionString>("printer_model");
+                                    bool check_filament_printable = is_bbl_vendor_printer(printer_model_opt ? printer_model_opt->value : std::string(), new_printer_name, current_printer_system_name);
+                                    for (int f_index = 0; check_filament_printable && f_index < plate_filaments.size(); f_index++) {
                                         for (int f_index = 0; f_index < plate_filaments.size(); f_index++) {
                                             if (plate_filaments[f_index] <= filament_count) {
                                                 int filament_extruder = filament_maps[plate_filaments[f_index] - 1];
@@ -7085,19 +7099,12 @@ int CLI::run(int argc, char **argv)
 
                         // Set is_BBL_printer flag before validation as the validation depends on it.
                         std::string& printer_model_string = new_print_config.opt_string("printer_model", true);
-                        bool is_bbl_vendor_preset = false;
+                        bool is_bbl_vendor_preset = is_bbl_vendor_printer(printer_model_string, new_printer_name, current_printer_system_name);
 
-                        if (!printer_model_string.empty()) {
-                            is_bbl_vendor_preset = (printer_model_string.compare(0, 9, "Bambu Lab") == 0);
+                        if (!printer_model_string.empty())
                             BOOST_LOG_TRIVIAL(info) << boost::format("printer_model_string: %1%, is_bbl_vendor_preset %2%")%printer_model_string %is_bbl_vendor_preset;
-                        }
-                        else {
-                            if (!new_printer_name.empty())
-                                is_bbl_vendor_preset = (new_printer_name.compare(0, 9, "Bambu Lab") == 0);
-                            else if (!current_printer_system_name.empty())
-                                is_bbl_vendor_preset = (current_printer_system_name.compare(0, 9, "Bambu Lab") == 0);
+                        else
                             BOOST_LOG_TRIVIAL(info) << boost::format("new_printer_name: %1%, current_printer_system_name %2%, is_bbl_vendor_preset %3%")%new_printer_name %current_printer_system_name %is_bbl_vendor_preset;
-                        }
                         (dynamic_cast<Print*>(print))->is_BBL_printer() = is_bbl_vendor_preset;
 
                         std::vector<StringObjectException> warnings;
