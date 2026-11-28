@@ -40,7 +40,12 @@ unsigned int Extruder::extruder_id() const
 {
     assert(m_config);
     if (m_id < m_config->filament_map.size()) {
-        return m_config->filament_map.get_at(m_id) - 1;
+        const int mapped_extruder = m_config->filament_map.get_at(m_id);
+        if (mapped_extruder <= 0)
+            return 0;
+        if (mapped_extruder > int(MAXIMUM_EXTRUDER_NUMBER))
+            throw Slic3r::RuntimeError("Filament map references an unsupported physical extruder.");
+        return unsigned(mapped_extruder - 1);
     }
     return 0;
 }

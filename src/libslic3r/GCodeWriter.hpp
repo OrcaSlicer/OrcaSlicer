@@ -36,17 +36,17 @@ public:
         m_is_first_layer(true), m_current_speed(3600),
         m_kinematics(std::make_unique<CartesianKinematics>()),
         m_cached_extruder_idx(0),
-        m_curr_filament_extruder(MAXIMUM_EXTRUDER_NUMBER, nullptr),
+        m_curr_filament_extruder_idx{},
         m_curr_extruder_id (-1),
         m_single_extruder_multi_material(false),
         m_last_acceleration(0), m_max_acceleration(0),m_last_travel_acceleration(0), m_max_travel_acceleration(0),
         m_last_jerk(0), m_max_jerk_x(0), m_max_jerk_y(0),
         m_last_bed_temperature(0), m_last_bed_temperature_reached(true)
-        {}
-    Extruder* filament(size_t extruder_id) { assert(extruder_id < m_curr_filament_extruder.size()); return m_curr_filament_extruder[extruder_id]; }
-    const Extruder* filament(size_t extruder_id) const { assert(extruder_id < m_curr_filament_extruder.size()); return m_curr_filament_extruder[extruder_id]; }
-    Extruder* filament() { if (m_curr_extruder_id == -1) return nullptr; return m_curr_filament_extruder[m_curr_extruder_id]; }
-    const Extruder* filament() const { if(m_curr_extruder_id==-1) return nullptr; return m_curr_filament_extruder[m_curr_extruder_id]; }
+        { m_curr_filament_extruder_idx.fill(-1); }
+    Extruder*       filament(size_t extruder_id);
+    const Extruder* filament(size_t extruder_id) const;
+    Extruder*       filament();
+    const Extruder* filament() const;
 
     void                 apply_print_config(const PrintConfig &print_config);
     // Extruders are expected to be sorted in an increasing order.
@@ -259,7 +259,7 @@ private:
 	// Extruders are sorted by their ID, so that binary search is possible.
     std::vector<Extruder> m_filament_extruders;
     bool            m_single_extruder_multi_material;
-    std::vector<Extruder*> m_curr_filament_extruder;
+    std::array<int, MAXIMUM_EXTRUDER_NUMBER> m_curr_filament_extruder_idx;
     int        m_curr_extruder_id;
     unsigned int              m_last_acceleration;
     unsigned int              m_last_travel_acceleration;

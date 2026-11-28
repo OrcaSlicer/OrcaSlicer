@@ -53,6 +53,33 @@
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
+TEST_CASE("GCodeWriter rejects invalid or reset filament lookups", "[GCodeWriter]")
+{
+    GCodeWriter writer;
+    CHECK(writer.filament() == nullptr);
+    CHECK(writer.filament(MAXIMUM_EXTRUDER_NUMBER) == nullptr);
+
+    writer.set_extruders({ 0 });
+    writer.set_extruder(0);
+    REQUIRE(writer.filament() != nullptr);
+    CHECK(writer.filament()->id() == 0);
+
+    writer.set_extruders({ 1 });
+    CHECK(writer.filament() == nullptr);
+    CHECK(writer.filament(0) == nullptr);
+
+    writer.config.filament_map.values = { 0 };
+    writer.set_extruders({ 0 });
+    CHECK_NOTHROW(writer.set_extruder(0));
+    REQUIRE(writer.filament() != nullptr);
+    CHECK(writer.filament()->extruder_id() == 0);
+
+    writer.config.filament_map.values = { int(MAXIMUM_EXTRUDER_NUMBER + 1) };
+    writer.set_extruders({ 0 });
+    CHECK_THROWS_AS(writer.set_extruder(0), Slic3r::RuntimeError);
+    CHECK_THROWS_AS(writer.set_extruder(99), Slic3r::InvalidArgument);
+}
+
 TEST_CASE("Belt machine coordinates retain a non-45-degree slicing angle", "[GCodeWriter][belt]")
 {
     PrintConfig config;
