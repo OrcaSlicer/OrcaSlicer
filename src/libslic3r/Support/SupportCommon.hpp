@@ -21,6 +21,15 @@ namespace Slic3r {
 
 class PrintObject;
 class SupportLayer;
+class Layer;
+class ExtrusionEntityCollection;
+
+// Shared by normal support collision trimming and tree bridge contact placement.
+void collect_bridging_perimeter_areas(const ExtrusionEntityCollection &perimeters, float expansion_scaled, Polygons &out);
+
+// Extra extrusion height below each region's nominal bridge bottom, with its footprint.
+// Tree generators use this to preserve the top gap without moving ordinary overhangs.
+std::vector<std::pair<coordf_t, Polygons>> tree_support_bridge_clearance(const PrintObject &object, const Layer &layer);
 
 // Turn some of the base layers into base interface layers.
 // For soluble interfaces with non-soluble bases, print maximum two first interface layers with the base

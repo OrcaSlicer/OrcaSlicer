@@ -10,6 +10,7 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "TreeSupportCommon.hpp"
+#include "SupportCommon.hpp"
 #include "BeltFloorContext.hpp"
 
 #include "../BuildVolume.hpp"
@@ -144,6 +145,24 @@ TreeModelVolumes::TreeModelVolumes(
             for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx)
                 outlines[layer_idx] = polygons_simplify(to_polygons(print_object.get_layer(layer_idx - num_raft_layers)->lslices), mesh_settings.resolution);
         });
+
+        // Higher overhangs can grow support back under a lower thick bridge.
+        // Include its extrusion footprint in every layer it physically occupies.
+        if (print_object.config().thick_bridges && !print_object.slicing_parameters().zero_gap_interface_top) {
+            for (size_t layer_idx = num_raft_layers; layer_idx < num_layers; ++layer_idx) {
+                const Layer &layer = *print_object.get_layer(layer_idx - num_raft_layers);
+                for (const auto &[extra_height, bridges] : tree_support_bridge_clearance(print_object, layer)) {
+                    const coordf_t bottom_z = layer.bottom_z() - extra_height;
+                    for (size_t occupied = layer_idx + 1; occupied-- > num_raft_layers;) {
+                        if (print_object.get_layer(occupied - num_raft_layers)->print_z <= bottom_z + EPSILON)
+                            break;
+                        append(outlines[occupied], bridges);
+                    }
+                }
+            }
+            for (Polygons &outline : outlines)
+                outline = union_(outline);
+        }
 
         // Belt floor: pre-compute belt surface polygon per-layer for clipping.
         // Branches grow toward the belt and their slices are clipped at the belt
