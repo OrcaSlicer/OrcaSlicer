@@ -43,8 +43,8 @@ namespace GUI {
 static const wxColour COLOR_BRAND("#009688");
 static const wxColour COLOR_BORDER_NORMAL("#EEEEEE");
 static const wxColour COLOR_BG_CARD("#F8F8F8");
-static const wxColour COLOR_LABEL_GREY("#ACACAC");
-static const wxColour COLOR_TEXT_DARK("#262E30");
+static const wxColour COLOR_LABEL_GREY("#363636");
+static const wxColour COLOR_TEXT_DARK("#363636");
 static const wxColour COLOR_DIVIDER("#EEEEEE");
 
 // Standard CMYW base colors
@@ -58,6 +58,8 @@ static const wxColour RYBW_RED(255, 0, 0);
 static const wxColour RYBW_YELLOW(255, 255, 0);
 static const wxColour RYBW_BLUE(0, 0, 255);
 static const wxColour RYBW_WHITE(255, 255, 255);
+
+static const wxSize   CARD_SIZE(160, 111);
 
 static size_t mode_index(DecomposeMode mode)
 {
@@ -159,7 +161,7 @@ static wxPanel* create_h_divider(wxWindow* parent, int fixed_width = -1)
 static wxStaticText* create_mode_group_label(wxWindow* parent, const wxString& text)
 {
     auto* label = new wxStaticText(parent, wxID_ANY, text);
-    label->SetFont(Label::Body_11);
+    label->SetFont(Label::Body_14);
     label->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_GREY));
     return label;
 }
@@ -235,17 +237,15 @@ void ColorDecomposeDialog::build_ui()
 
     auto* main_sizer = new wxBoxSizer(wxVERTICAL);
 
-    const int selector_side_margin = FromDIP(26);
-    const int selector_top_gap = FromDIP(22);
-    const int content_side_margin = FromDIP(30);
+    const int selector_side_margin = FromDIP(15);
+    const int selector_top_gap = FromDIP(20);
+    const int content_side_margin = FromDIP(15);
     const int target_section_top_gap = FromDIP(18);
 
     main_sizer->AddSpacer(selector_top_gap);
     main_sizer->Add(create_filament_selector(), 0, wxEXPAND | wxLEFT | wxRIGHT, selector_side_margin);
     main_sizer->AddSpacer(target_section_top_gap);
     main_sizer->Add(create_target_color_section(), 0, wxEXPAND | wxLEFT | wxRIGHT, content_side_margin);
-    main_sizer->AddSpacer(FromDIP(16));
-    main_sizer->Add(create_h_divider(this), 0, wxEXPAND | wxLEFT | wxRIGHT, content_side_margin);
     main_sizer->AddSpacer(FromDIP(16));
     main_sizer->Add(create_mode_selection_section(), 0, wxEXPAND | wxLEFT | wxRIGHT, content_side_margin);
     main_sizer->AddSpacer(FromDIP(16));
@@ -263,7 +263,7 @@ wxBoxSizer* ColorDecomposeDialog::create_filament_selector()
 
     m_type_combo = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                 wxSize(-1, FromDIP(36)), 0, nullptr, wxCB_READONLY);
-    m_type_combo->SetFont(Label::Body_13);
+    m_type_combo->SetFont(Label::Body_14);
 
     m_combo_item_types.clear();
     int default_sel = -1;
@@ -361,34 +361,35 @@ static wxPanel* create_color_swatch(wxWindow* parent, const wxColour& color, int
     return panel;
 }
 
-wxBoxSizer* ColorDecomposeDialog::create_target_color_section()
+wxFlexGridSizer* ColorDecomposeDialog::create_target_color_section()
 {
-    auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto* sizer = new wxFlexGridSizer(2, 3, FromDIP(8), FromDIP(8));
 
     auto* label = new wxStaticText(this, wxID_ANY, _L("Target Color"));
-    label->SetFont(Label::Head_14);
+    label->SetFont(Label::Body_14);
     label->SetForegroundColour(StateColor::darkModeColorFor(COLOR_TEXT_DARK));
-    sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(19));
+    sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL);
 
     m_target_swatch = create_color_swatch(this, m_target_color, FromDIP(28));
-    sizer->Add(m_target_swatch, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
+    sizer->Add(m_target_swatch, 0, wxALIGN_CENTER_VERTICAL);
 
     m_target_rgb_text = new wxStaticText(this, wxID_ANY,
         wxString::Format("RGB: %d, %d, %d", m_target_color.Red(), m_target_color.Green(), m_target_color.Blue()));
-    m_target_rgb_text->SetFont(Label::Body_13);
+    m_target_rgb_text->SetFont(Label::Body_14);
     m_target_rgb_text->SetForegroundColour(StateColor::darkModeColorFor(COLOR_TEXT_DARK));
-    sizer->Add(m_target_rgb_text, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
+    sizer->Add(m_target_rgb_text, 0, wxALIGN_CENTER_VERTICAL);
 
-    auto* arrow_text = new wxStaticText(this, wxID_ANY, wxString::FromUTF8("\xe2\x86\x92"));
-    arrow_text->SetForegroundColour(StateColor::darkModeColorFor(COLOR_TEXT_DARK));
-    sizer->Add(arrow_text, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
+    auto* matched_label = new wxStaticText(this, wxID_ANY, _L("Matching Color"));
+    matched_label->SetFont(Label::Body_14);
+    matched_label->SetForegroundColour(StateColor::darkModeColorFor(COLOR_TEXT_DARK));
+    sizer->Add(matched_label, 0, wxALIGN_CENTER_VERTICAL);
 
     m_matched_swatch = create_color_swatch(this, m_target_color, FromDIP(28));
-    sizer->Add(m_matched_swatch, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
+    sizer->Add(m_matched_swatch, 0, wxALIGN_CENTER_VERTICAL);
 
     m_matched_rgb_text = new wxStaticText(this, wxID_ANY,
         wxString::Format("RGB: %d, %d, %d", m_target_color.Red(), m_target_color.Green(), m_target_color.Blue()));
-    m_matched_rgb_text->SetFont(Label::Head_13);
+    m_matched_rgb_text->SetFont(Label::Body_14);
     m_matched_rgb_text->SetForegroundColour(StateColor::darkModeColorFor(COLOR_TEXT_DARK));
     sizer->Add(m_matched_rgb_text, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -408,7 +409,7 @@ wxPanel* ColorDecomposeDialog::create_mode_card(wxWindow* parent, DecomposeMode 
     auto* title_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto* title_label = new wxStaticText(card, wxID_ANY, title);
     title_label->SetFont(Label::Body_14);
-    title_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6A6A")));
+    title_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
     match_parent_bg(title_label, StateColor::darkModeColorFor(COLOR_BG_CARD));
     title_sizer->Add(title_label, 1, wxALIGN_CENTER_VERTICAL);
 
@@ -438,8 +439,8 @@ wxPanel* ColorDecomposeDialog::create_mode_card(wxWindow* parent, DecomposeMode 
     controls.components_sizer = colors_sizer;
 
     card->SetSizer(card_sizer);
-    card->SetMinSize(wxSize(FromDIP(128), FromDIP(111)));
-    card->SetMaxSize(wxSize(FromDIP(128), FromDIP(111)));
+    card->SetMinSize(FromDIP(CARD_SIZE));
+    card->SetMaxSize(FromDIP(CARD_SIZE));
 
     card->Bind(wxEVT_PAINT, [this, card, mode](wxPaintEvent&) {
         wxBufferedPaintDC dc(card);
@@ -491,7 +492,7 @@ wxBoxSizer* ColorDecomposeDialog::create_mode_selection_section()
     section_label->SetForegroundColour(StateColor::darkModeColorFor(COLOR_TEXT_DARK));
     sizer->Add(section_label, 0, wxBOTTOM, FromDIP(4));
 
-    auto* modes_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto* modes_sizer = new wxBoxSizer(wxVERTICAL);
 
     // --- Arbitrary mode column (wrapped in a panel so the whole column hides together) ---
     m_arb_column_panel = new wxPanel(this, wxID_ANY);
@@ -501,7 +502,7 @@ wxBoxSizer* ColorDecomposeDialog::create_mode_selection_section()
         auto* arb_header_sizer = new wxBoxSizer(wxHORIZONTAL);
         arb_header_sizer->Add(create_mode_group_label(m_arb_column_panel, _L("Arbitrary Mode")),
                               0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
-        arb_header_sizer->Add(create_h_divider(m_arb_column_panel, FromDIP(88)), 0, wxALIGN_CENTER_VERTICAL);
+        arb_header_sizer->Add(create_h_divider(m_arb_column_panel), 1, wxALIGN_CENTER_VERTICAL);
         arb_col->Add(arb_header_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
 
         m_card_material_list = create_mode_card(m_arb_column_panel, DecomposeMode::MaterialList,
@@ -509,7 +510,7 @@ wxBoxSizer* ColorDecomposeDialog::create_mode_selection_section()
         arb_col->Add(m_card_material_list, 0, wxEXPAND);
     }
     m_arb_column_panel->SetSizer(arb_col);
-    modes_sizer->Add(m_arb_column_panel, 0, wxEXPAND | wxRIGHT, FromDIP(16));
+    modes_sizer->Add(m_arb_column_panel, 0, wxEXPAND | wxTOP, FromDIP(10));
 
     // --- Standard mode column ---
     auto* std_col = new wxBoxSizer(wxVERTICAL);
@@ -530,7 +531,7 @@ wxBoxSizer* ColorDecomposeDialog::create_mode_selection_section()
 
         std_col->Add(cards_sizer, 0, wxEXPAND);
     }
-    modes_sizer->Add(std_col, 0, wxEXPAND);
+    modes_sizer->Add(std_col, 0, wxEXPAND | wxTOP, FromDIP(10));
 
     sizer->Add(modes_sizer, 0, wxEXPAND);
 
@@ -566,18 +567,18 @@ wxBoxSizer* ColorDecomposeDialog::create_button_panel()
     auto* sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->AddStretchSpacer();
 
-    m_btn_cancel = new Button(this, _L("Cancel"));
-    m_btn_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
-    m_btn_cancel->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
-
     m_btn_ok = new Button(this, _L("OK"));
     m_btn_ok->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_btn_ok->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         EndModal(wxID_OK);
     });
 
-    sizer->Add(m_btn_cancel, 0, wxRIGHT, FromDIP(12));
-    sizer->Add(m_btn_ok, 0);
+    m_btn_cancel = new Button(this, _L("Cancel"));
+    m_btn_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+    m_btn_cancel->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
+
+    sizer->Add(m_btn_ok, 0, wxRIGHT, FromDIP(ButtonProps::ChoiceButtonGap()));
+    sizer->Add(m_btn_cancel, 0);
 
     return sizer;
 }
@@ -767,7 +768,7 @@ void ColorDecomposeDialog::update_mode_card_content(DecomposeMode mode)
         sizer->Add(col, 0, wxALIGN_TOP);
 
         if (i + 1 < count) {
-            sizer->AddStretchSpacer();
+            //sizer->AddStretchSpacer();
             auto* plus_panel = new wxPanel(card, wxID_ANY, wxDefaultPosition, wxSize(plus_gap, swatch_sz));
             plus_panel->SetMinSize(wxSize(plus_gap, swatch_sz));
             plus_panel->SetMaxSize(wxSize(plus_gap, swatch_sz));
@@ -784,13 +785,13 @@ void ColorDecomposeDialog::update_mode_card_content(DecomposeMode mode)
             plus_sizer->AddStretchSpacer();
             plus_panel->SetSizer(plus_sizer);
             sizer->Add(plus_panel, 0, wxALIGN_TOP);
-            sizer->AddStretchSpacer();
+            //sizer->AddStretchSpacer();
         }
     }
+    sizer->AddStretchSpacer();
 
-    const int card_width = FromDIP(128 + (count > 2 ? static_cast<int>(count - 2) * 31 : 0));
-    card->SetMinSize(wxSize(card_width, FromDIP(111)));
-    card->SetMaxSize(wxSize(card_width, FromDIP(111)));
+    card->SetMinSize(FromDIP(CARD_SIZE));
+    card->SetMaxSize(FromDIP(CARD_SIZE));
 
     card->Layout();
     card->Refresh();
