@@ -3,61 +3,61 @@ name: Build all
 on:
   push:
     branches:
-     - main
-     - release/*
+      - main
+      - release/*
     paths:
-     - 'deps/**'
-     - 'deps_src/**'
-     - 'cmake/**'
-     - 'src/**'
-     - '**/CMakeLists.txt'
-     - 'version.inc'
-     - 'localization/**'
-     - 'resources/**'
-     - ".github/workflows/build_*.yml"
-     - ".github/workflows/unit_tests*.yml"
-     - ".github/workflows/mcp_sweep.yml"
-     - 'build_linux.sh'
-     - 'build_win.bat'
-     - 'scripts/test_build_win.ps1'
-     - 'scripts/check_exception_throw_info.ps1'
-     - 'scripts/test_check_exception_throw_info.ps1'
-     - 'build_release_macos.sh'
-     - 'scripts/build_preset_cache.*'
-     - 'scripts/prune_cached_presets.ps1'
-     - 'scripts/test_prune_cached_presets.ps1'
-     - 'scripts/flatpak/**'
-     - 'scripts/msix/**'
-     - 'scripts/sign_windows.ps1'
-     - 'tests/**'
+      - 'deps/**'
+      - 'deps_src/**'
+      - 'cmake/**'
+      - 'src/**'
+      - '**/CMakeLists.txt'
+      - 'version.inc'
+      - 'localization/**'
+      - 'resources/**'
+      - ".github/workflows/build_*.yml"
+      - ".github/workflows/unit_tests*.yml"
+      - ".github/workflows/mcp_sweep.yml"
+      - 'build_linux.sh'
+      - 'build_win.ps1'
+      - 'scripts/build_win_steps/**'
+      - 'scripts/check_exception_throw_info.ps1'
+      - 'scripts/test_check_exception_throw_info.ps1'
+      - 'build_release_macos.sh'
+      - 'scripts/build_preset_cache.*'
+      - 'scripts/prune_cached_presets.ps1'
+      - 'scripts/test_prune_cached_presets.ps1'
+      - 'scripts/flatpak/**'
+      - 'scripts/msix/**'
+      - 'scripts/sign_windows.ps1'
+      - 'tests/**'
 
   pull_request:
     branches:
-     - main
-     - release/*
-    # build_optional.yml keeps the same list, plus scripts/flatpak/**.
+      - main
+      - release/*
     paths:
-     - 'deps/**'
-     - 'deps_src/**'
-     - 'cmake/**'
-     - 'src/**'
-     - '**/CMakeLists.txt'
-     - 'version.inc'
-     - ".github/workflows/build_*.yml"
-     - ".github/workflows/unit_tests*.yml"
-     - ".github/workflows/mcp_sweep.yml"
-     - 'build_linux.sh'
-     - 'build_win.bat'
-     - 'scripts/test_build_win.ps1'
-     - 'scripts/check_exception_throw_info.ps1'
-     - 'scripts/test_check_exception_throw_info.ps1'
-     - 'build_release_macos.sh'
-     - 'scripts/build_preset_cache.*'
-     - 'scripts/prune_cached_presets.ps1'
-     - 'scripts/test_prune_cached_presets.ps1'
-     - 'scripts/msix/**'
-     - 'scripts/sign_windows.ps1'
-     - 'tests/**'
+      - 'deps/**'
+      - 'deps_src/**'
+      - 'cmake/**'
+      - 'src/**'
+      - '**/CMakeLists.txt'
+      - 'version.inc'
+      - ".github/workflows/build_*.yml"
+      - ".github/workflows/unit_tests*.yml"
+      - ".github/workflows/mcp_sweep.yml"
+      - 'build_linux.sh'
+      - 'build_win.ps1'
+      - 'scripts/build_win_steps/**'
+      - 'scripts/check_exception_throw_info.ps1'
+      - 'scripts/test_check_exception_throw_info.ps1'
+      - 'build_release_macos.sh'
+      - 'scripts/build_preset_cache.*'
+      - 'scripts/prune_cached_presets.ps1'
+      - 'scripts/test_prune_cached_presets.ps1'
+      - 'scripts/flatpak/**'
+      - 'scripts/msix/**'
+      - 'scripts/sign_windows.ps1'
+      - 'tests/**'
 
 
   schedule:
@@ -69,6 +69,10 @@ on:
         description: 'Only build dependencies (bypasses caching)'
         type: boolean
         default: false
+      clean-build:
+        description: 'Remove the slicer build tree first, so each leg times a full build'
+        type: boolean
+        default: false
 
 concurrency:
   # cancel_closed_pr_builds.yml joins this group by name, so update that file
@@ -77,183 +81,151 @@ concurrency:
   # Pushes don't cancel a running build, because only a finished branch build
   # saves caches every pull request can restore.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-  
 
 jobs:
-  # build_win.bat and two of the scripts it runs ship test suites. They run
-  # before the Windows builds, on a pull request only when it changes one of
-  # the scripts or the suites: the suites build their own fixtures and read
-  # nothing else from the tree. Pushes and the nightly always run them.
-  build_script_changes:
-    name: Look for build script changes
-    if: ${{ github.event_name == 'pull_request' }}
-    runs-on: ubuntu-24.04
-    outputs:
-      changed: ${{ steps.changes.outputs.changed }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          lfs: 'false'
-          # The merge commit plus its first parent, the base it is diffed against.
-          fetch-depth: 2
-          sparse-checkout: .github/workflows
-      - name: Look for changed files
-        id: changes
-        run: |
-          if git diff --quiet HEAD^1 HEAD -- build_win.bat .github/workflows/build_all.yml \
-              scripts/check_exception_throw_info.ps1 scripts/prune_cached_presets.ps1 \
-              scripts/test_build_win.ps1 scripts/test_check_exception_throw_info.ps1 scripts/test_prune_cached_presets.ps1; then
-            echo "No build script changes."
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
+  # The build scripts that stay in the repo ship test suites. Run them before
+  # the builds.
   check_build_script:
     name: Windows build script tests
-    needs: build_script_changes
-    # Runs unless the lookup ran and found nothing: skipped off pull requests,
-    # and failed lookups run the suites rather than skip them.
-    if: ${{ !cancelled() && (needs.build_script_changes.result != 'success' || needs.build_script_changes.outputs.changed == 'true') }}
-    runs-on: windows-latest
+    # Without it on Windows: build script tests run on wrong runner
+    runs-on: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-2022' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          lfs: 'false'
-
-      # Windows PowerShell rather than pwsh: the suite drives build_win.bat
-      # through cmd, and the two differ in how they quote native arguments.
-      - name: Run the build script test suite
-        shell: powershell
-        run: .\scripts\test_build_win.ps1
+          lfs: false
 
       - name: Run the exception throw info check tests
+        timeout-minutes: 5
         shell: powershell
         run: .\scripts\test_check_exception_throw_info.ps1
 
       - name: Run the preset prune tests
+        timeout-minutes: 5
         shell: powershell
         run: .\scripts\test_prune_cached_presets.ps1
 
-  build_linux:
-    strategy:
-      fail-fast: false
-      # SELF_HOSTED skips arm64 (no arm self-hosted server). amd64's empty arch
-      # is load-bearing: it keeps the historical 'linux-clang' deps cache key and
-      # the unsuffixed asset names.
-      matrix:
-        include: ${{ fromJSON(vars.SELF_HOSTED
-          && '[{"arch":"","os":"orca-lnx-server"}]'
-          || '[{"arch":"","os":"ubuntu-24.04"},{"arch":"aarch64","os":"ubuntu-24.04-arm"}]') }}
-    # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
-    uses: ./.github/workflows/build_check_cache.yml
-    with:
-      os: ${{ matrix.os }}
-      arch: ${{ matrix.arch }}
-      build-deps-only: ${{ inputs.build-deps-only || false }}
-    secrets: inherit
   build_windows:
-    name: Build Windows ${{ matrix.arch }}
+    name: Build Windows ${{ matrix.arch }} (${{ matrix.preset }})
     strategy:
       fail-fast: false
-      # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
-      # So does a pull request; build_optional.yml builds arm64 on the
-      # build-windows-arm64 label or a change outside the sources.
       matrix:
-        include: ${{ fromJSON(vars.SELF_HOSTED
-          && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
-          || (github.event_name == 'pull_request'
-            && '[{"arch":"x64","os":"windows-latest","compiler":"clang"}]'
-            || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-vs2026-arm","compiler":"clang"}]')) }}
+        include:
+          - arch: x64
+            compiler: clang
+            preset: x64-clang
+            flags: -l -x
     needs: check_build_script
-    # id-token lets release builds sign through Google Cloud Workload Identity Federation (see
-    # "Configure code signing" in build_orca.yml); the rest is what the build already used.
-    permissions:
-      actions: write
-      contents: write
-      id-token: write
-    # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && contains(fromJSON('["success", "skipped"]'), needs.check_build_script.result) && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
-    uses: ./.github/workflows/build_check_cache.yml
+    if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    uses: ./.github/workflows/build_check_cache_windows.yml
     with:
-      os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
       compiler: ${{ matrix.compiler }}
+      preset: ${{ matrix.preset }}
+      flags: ${{ matrix.flags }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
+      clean: ${{ inputs.clean-build || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
+  
   build_macos_arch:
+    name: Build macOS ${{ matrix.arch }}
+    # Don't run scheduled builds on forks:
+    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     strategy:
       fail-fast: false
       # Hosted macOS runners are scarce, so a pull request builds arm64 only and
-      # ships it as its own DMG; build_optional.yml builds x86_64 on the
-      # build-macos-x86_64 label. Pushes build both and combine them below.
+      # ships it as its own DMG. Pushes build both and combine them below.
       matrix:
         arch: ${{ fromJSON(github.event_name == 'pull_request' && '["arm64"]' || '["arm64", "x86_64"]') }}
-    # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
-    uses: ./.github/workflows/build_check_cache.yml
+    uses: ./.github/workflows/build_check_cache_macos.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
+      clean: ${{ inputs.clean-build || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
+
   build_macos_universal:
     name: Build macOS Universal
     needs: build_macos_arch
     if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && github.event_name != 'pull_request' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_orca.yml
     with:
+      # Without it on macOS: self-hosted uses arm64 runner
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       arch: universal
       macos-combine-only: true
+      cache-key: ${{ needs.build_macos_arch.outputs.cache-key }}
+      cache-prefix: ${{ needs.build_macos_arch.outputs.cache-prefix }}
+      cache-path: ${{ needs.build_macos_arch.outputs.cache-path }}
     secrets: inherit
-  # One test job per built arch, on the runner that built it.
+  
+  build_linux:
+    name: Build Linux ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      # SELF_HOSTED skips arm64: the local Linux server is x86_64 only.
+      # Without it on Linux: self-hosted (x86_64 only) gets arm64 leg
+      matrix:
+        include: ${{ fromJSON(vars.SELF_HOSTED
+          && '[{"arch":"x64","compiler":"clang","preset":"x64-clang","flags":"-l -x"}]'
+          || '[{"arch":"x64","compiler":"clang","preset":"x64-clang","flags":"-l -x"},{"arch":"aarch64","compiler":"clang","preset":"aarch64-clang","flags":"-l -x"}]') }}
+    needs: check_build_script
+    if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    uses: ./.github/workflows/build_check_cache_linux.yml
+    with:
+      arch: ${{ matrix.arch }}
+      compiler: ${{ matrix.compiler }}
+      preset: ${{ matrix.preset }}
+      flags: ${{ matrix.flags }}
+      build-deps-only: ${{ inputs.build-deps-only || false }}
+      clean: ${{ inputs.clean-build || false }}
+      force-build: ${{ github.event_name == 'schedule' }}
+    secrets: inherit
+
   unit_tests_linux_x86_64:
     name: Linux x86_64
     needs: build_linux
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
+      # Without it on Linux: self-hosted tests run on wrong runner
       os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
       artifact: ${{ github.sha }}-tests-linux-x86_64
+  
   unit_tests_linux_aarch64:
     name: Linux aarch64
     needs: build_linux
+    # Without it on Linux: arm64 tests run on self-hosted (no arm64 runner)
+    # Without it on macOS: x86_64 tests run on self-hosted (cross build, tests off)
     if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ubuntu-24.04-arm
       artifact: ${{ github.sha }}-tests-linux-aarch64
-  # The explicit result, as the script tests ahead of the build may be skipped.
-  unit_tests_windows_x64:
-    name: Windows x64
+  
+  unit_tests_windows_x64_clang:
+    name: Windows x64 (clang-cl + Ninja)
     needs: build_windows
-    if: ${{ !cancelled() && needs.build_windows.result == 'success' }}
+    if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
-      artifact: ${{ github.sha }}-tests-windows-x64
-  unit_tests_windows_arm64:
-    name: Windows arm64
-    needs: build_windows
-    if: ${{ !cancelled() && needs.build_windows.result == 'success' && !vars.SELF_HOSTED && github.event_name != 'pull_request' }}
-    uses: ./.github/workflows/unit_tests.yml
-    with:
-      os: windows-11-vs2026-arm
-      artifact: ${{ github.sha }}-tests-windows-arm64
-      test-dir: build-arm64/tests
+      # Without it on Windows: self-hosted tests run on wrong runner
+      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-2022' }}
+      artifact: ${{ github.sha }}-tests-windows-x64-x64-clang
+  
   unit_tests_macos_arm64:
     name: macOS arm64
     needs: build_macos_arch
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
+      # Without it on macOS: self-hosted uses arm64 runner
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       artifact: ${{ github.sha }}-tests-macos-arm64
       test-dir: build/arm64/tests
+
   # Drive the x86_64 AppImage's GUI through every MCP sweep test on Xvfb.
   # GitHub-hosted only, as the job installs Xvfb, Openbox and the AppImage's
   # host libraries with apt.
@@ -262,6 +234,7 @@ jobs:
     needs: build_linux
     if: ${{ !cancelled() && success() && !inputs.build-deps-only && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/mcp_sweep.yml
+
   # Slice a two-colour cube through every shipped printer, and through every
   # system process/filament whose templates no printer's own slice reaches, so
   # every custom g-code and filename_format shipped is expanded (names in {if}
@@ -270,10 +243,12 @@ jobs:
   # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
   # covers src/engine PRs with the PR-built binary.
   slice_check_linux:
+    # Without it on Linux: slice check arch wrong on self-hosted
     name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
     needs: build_linux
     if: ${{ !cancelled() && success() }}
     # Follows whichever Linux leg built the validator.
+    # Without it on Linux: slice check runs on wrong runner
     runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04-arm' }}
     steps:
       - name: Checkout repository
@@ -281,6 +256,7 @@ jobs:
       - name: Download profile validator
         uses: actions/download-artifact@v8
         with:
+          # Without it on Linux: validator artifact name wrong on self-hosted
           name: ${{ github.sha }}-profile-validator-linux-${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }}
           path: validator-bin
       - name: Validate slice (expand custom g-code)
@@ -288,36 +264,4 @@ jobs:
         run: |
           chmod +x validator-bin/OrcaSlicer_profile_validator
           ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
-  publish_test_results:
-    name: Publish Test Results
-    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, flatpak]
-    if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Test Results
-        uses: actions/download-artifact@v8
-        with:
-          pattern: test-results-*
-          path: test-results
-      # Best-effort: a read-only token (e.g. fork PRs) can't write the check, so
-      # don't let a publish failure fail the run. The test jobs gate correctness.
-      # Skipped when every build failed: there is nothing to publish.
-      - name: Publish Test Results
-        if: ${{ hashFiles('test-results/**/*.xml') != '' }}
-        continue-on-error: true
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: "test-results/**/*.xml"
-      - name: Delete Test Results
-        if: success()
-        uses: geekyeggo/delete-artifact@v6
-        with:
-          name: test-results-*
-          failOnError: false
-  # Pull requests build it on the build-flatpak label, from build_optional.yml.
-  flatpak:
-    name: Flatpak
-    # Don't run scheduled builds on forks; skip entirely on self-hosted runners
-    if: ${{ !cancelled() && !vars.SELF_HOSTED && github.event_name != 'pull_request' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
-    uses: ./.github/workflows/build_flatpak.yml
-    secrets: inherit
+
