@@ -418,9 +418,17 @@ std::vector<Preference> build_table()
     orbit.own_row     = true;
     t.checkbox("zoom_to_mouse", L("Zoom to mouse position"),
                {L("Zoom in towards the mouse pointer's position in the 3D view, rather than the 2D window center.")});
+    // TRN: "Dolly" is a film and camera term: the camera itself travels towards or away from the scene.
+    t.checkbox("perspective_camera_dolly", L("Dolly the perspective camera"),
+               {L("In perspective view, zooming moves the camera towards the scene and keeps the field of view fixed. If not enabled, "
+                  "the camera stays at about the same distance and zooming changes the field of view.\nThe camera can enter the scene "
+                  "when this is enabled, and nearby objects are then cut off.")});
     t.checkbox("use_free_camera", L("Use free camera"), {L("If enabled, use free camera. If not enabled, use constrained camera.")});
     t.checkbox("reverse_mouse_wheel_zoom", L("Reverse mouse zoom"), {L("If enabled, reverses the direction of zoom with mouse wheel.")});
-    const Choices drag_actions = {{"0", L("None")}, {"1", L("Pan")}, {"2", L("Rotate")}};
+    // These values are saved in the config, so new actions go at the end.
+    const Choices drag_actions = {{"0", L("None")}, {"1", L("Pan")}, {"2", L("Rotate")},
+                                  // TRN: Mouse drag action. It moves the camera in dolly mode ("Dolly" is a film and camera term) and zooms otherwise.
+                                  {"3", L("Dolly/Zoom")}};
     t.choice("left_mouse_drag_action", L("Left Mouse Drag"), drag_actions,
              {L("Set the action that dragging the left mouse button should perform.")});
     t.choice("middle_mouse_drag_action", L("Middle Mouse Drag"), drag_actions,
@@ -815,6 +823,12 @@ void apply_preference(const std::string& key)
     } else if (key == "hide_login_side_panel") {
         if (WebViewPanel* home = WebViewPanel::if_built())
             home->SendCloudProvidersInfo();
+    } else if (key == "perspective_camera_dolly") {
+        // ORCA: apply the camera change immediately to the current view
+        if (Plater* plater = app.plater()) {
+            plater->apply_camera_dolly_setting();
+            plater->set_current_canvas_as_dirty();
+        }
     } else if (key == "preview_translucent_filaments") {
         // ORCA: apply the filament translucency change immediately to the currently loaded preview
         if (GLCanvas3D* canvas = preview_canvas()) {

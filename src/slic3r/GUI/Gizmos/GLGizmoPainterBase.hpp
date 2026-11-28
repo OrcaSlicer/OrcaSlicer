@@ -241,7 +241,7 @@ protected:
     // object - and drawing those parts' selectors over it would bury the preview under a flat surface.
     void render_triangles(const Selection& selection, const std::vector<const ModelVolume*>& skip) const;
     void render_cursor();
-    void render_cursor_circle();
+    void render_cursor_circle(const Transform3d& trafo);
     void render_cursor_sphere(const Transform3d& trafo) const;
     // BBS
     void render_cursor_height_range(const Transform3d& trafo) const;

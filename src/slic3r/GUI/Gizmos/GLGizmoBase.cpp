@@ -168,13 +168,14 @@ void GLGizmoBase::Grabber::render(float size, const ColorRGBA& render_color)
     }
 
     //BBS set to fixed size grabber
-    const float  grabber_size   = FixedGrabberSize * INV_ZOOM;
-    const double extension_size = 0.75 * FixedGrabberSize * INV_ZOOM;
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    const float   pixel_size     = (float)camera.get_pixel_size_at(matrix * center);
+    const float   grabber_size   = FixedGrabberSize * pixel_size;
+    const double  extension_size = 0.75 * FixedGrabberSize * pixel_size;
 
     s_cube.model.set_color(render_color);
     s_cone.model.set_color(render_color);
 
-    const Camera& camera = wxGetApp().plater()->get_camera();
     shader->set_uniform("projection_matrix", camera.get_projection_matrix());
     const Transform3d& view_matrix = camera.get_view_matrix();
     const Matrix3d view_matrix_no_offset = view_matrix.matrix().block(0, 0, 3, 3);
