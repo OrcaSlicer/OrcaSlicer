@@ -268,6 +268,49 @@ TEST_CASE("Arrange spaces items by their inflation", "[Arrange]")
     REQUIRE(min_gap >= double(scaled(8.)) - double(scaled(0.5)));
 }
 
+TEST_CASE("Fill bed counts a copy with the room the arrange keeps around it", "[Arrange]")
+{
+    // Fill bed divides the free bed area by the area of one copy grown by this room on each side.
+    // A set spacing gives half of it; with Spacing 0 the arrange keeps the auto spacing, half the
+    // tree support's reach with tree support, else the brim width. Printing by object, an object
+    // taller than the nozzle keeps half the extruder clearance.
+    struct Room { double spacing_mm; bool tree_support; double brim_mm; bool by_object; double per_side_mm; };
+    const Room r = GENERATE(values<Room>({{0., true, 24., false, 12.},
+                                          {0., false, 6., false, 6.},
+                                          {6., true, 24., false, 3.},
+                                          {0., false, 6., true, CLEARANCE_MM / 2}}));
+
+    DynamicPrintConfig  cfg     = bed_config();
+    ArrangePolygon      item    = squares(1, 20., 10 * NOZZLE_HEIGHT_MM).front();
+    item.has_tree_support       = r.tree_support;
+    item.brim_width             = r.brim_mm;
+    const coord_t       spacing = scaled(r.spacing_mm);
+    const ArrangeParams params  = r.by_object ? seq_print_params(spacing) : quiet_params(spacing);
+
+    REQUIRE_THAT(unscaled(get_selected_item_inflation(item, &cfg, params)), WithinAbs(r.per_side_mm, 1e-2));
+}
+
+TEST_CASE("Arrange keeps the same room around an object it leaves in place", "[Arrange]")
+{
+    // With Spacing 0, an object the arrange leaves in place keeps the auto spacing an object it moves keeps:
+    // half the tree support's reach with tree support, else the brim width.
+    struct Room { bool tree_support; double brim_mm; double per_side_mm; };
+    const Room r = GENERATE(values<Room>({{true, 24., 12.}, {false, 6., 6.}}));
+
+    DynamicPrintConfig cfg   = bed_config();
+    ArrangePolygons    fixed = squares(1, 20.);
+    fixed.front().has_tree_support = r.tree_support;
+    fixed.front().brim_width       = r.brim_mm;
+    ArrangePolygons moved          = fixed;
+    ArrangeParams   params         = quiet_params(0);
+
+    update_selected_items_inflation(moved, &cfg, params);
+    update_unselected_items_inflation(fixed, &cfg, quiet_params(0));
+
+    REQUIRE_THAT(unscaled(fixed.front().inflation), WithinAbs(r.per_side_mm, 1e-2));
+    REQUIRE(fixed.front().inflation == moved.front().inflation);
+}
+
 TEST_CASE("An item larger than the bed cannot be placed", "[Arrange]")
 {
     ArrangePolygons items;

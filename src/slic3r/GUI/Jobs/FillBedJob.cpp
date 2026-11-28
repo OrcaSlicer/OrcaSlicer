@@ -172,7 +172,10 @@ void FillBedJob::prepare()
 
     double sc = scaled<double>(1.) * scaled(1.);
 
-    auto polys = offset_ex(m_selected.front().poly, params.min_obj_distance / 2);
+    // Count each copy with the room the arrange keeps around it, the auto spacing when Spacing is 0.
+    // Counted bare, a copy asks for far more items than fit, and past 100 they go on a grid unarranged.
+    const coord_t inflation = get_selected_item_inflation(m_selected.front(), m_plater->config(), params);
+    auto polys = offset_ex(m_selected.front().poly, float(inflation));
     ExPolygon poly = polys.empty() ? m_selected.front().poly : polys.front();
     double poly_area = poly.area() / sc;
     const ArrangePolygon &fill_template = m_selected.front();
@@ -187,7 +190,9 @@ void FillBedJob::prepare()
                                         }) / sc;
 
     double fixed_area = unsel_area + m_selected.size() * poly_area;
-    double bed_area   = Polygon{m_bedpts}.area() / sc;
+    // Printing by object, that room may reach past the bed edge, and the arrange grows its bed by as much.
+    const Polygon bed{m_bedpts};
+    double bed_area   = (params.is_seq_print ? area(offset(bed, float(inflation))) : bed.area()) / sc;
 
     // This is the maximum number of items, the real number will always be close but less.
     int needed_items = (bed_area - fixed_area) / poly_area;

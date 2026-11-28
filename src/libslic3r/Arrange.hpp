@@ -220,6 +220,10 @@ void update_arrange_items(ArrangePolygons& selected, ArrangePolygons& unselected
 // Call after update_selected_items_axis_align(), since it measures each item as it is turned.
 void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, ArrangeParams& params);
 
+// The room update_selected_items_inflation() keeps around a copy of item on each side. With no
+// object distance set, that is the auto spacing. Fill bed counts the copies that fit by it.
+coord_t get_selected_item_inflation(const ArrangePolygon& item, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
+
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 
 // Orca: how far in mm the objects in placed have to stay from a prime tower compacted by "No sparse
