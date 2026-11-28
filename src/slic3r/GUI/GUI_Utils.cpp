@@ -41,6 +41,12 @@
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
+#include <pango/pangocairo.h>
+#include <pango/pango-context.h>
+#include <pango/pango-font.h>
+#include <pango/pango-language.h>
+#include <pango/pango-types.h>
+#include <map>
 #endif 
 
 #include <wx/toplevel.h>
@@ -783,6 +789,34 @@ void RemoveInputBorder(wxWindow* win)
         "class \"GtkEntry\" style \"no-padding-entry\""
     );
 #endif
+}
+
+int GetInputTextHeight(wxWindow* win)
+{
+    const int char_height = win->GetCharHeight();
+    GtkWidget* widget = win->GetHandle();
+    PangoContext* ctx = widget ? gtk_widget_get_pango_context(widget) : nullptr;
+    if (!ctx)
+        return char_height;
+
+    // ORCA: GetCharHeight() only measures "H" in the primary font. Text in the UI language may fall back to taller
+    // fonts (e.g. Thai tone marks), which the language metrics include. Pango shapes a sample text of the language
+    // to compute them, so cache them per font, language and resolution.
+    const wxFont font = win->GetFont();
+    PangoFontDescription* desc = font.GetNativeFontInfo()->description;
+    const std::string lang = into_u8(wxGetApp().current_language_code());
+    char* desc_str = pango_font_description_to_string(desc);
+    const std::string key = std::string(desc_str) + '|' + lang + '|' + std::to_string(pango_cairo_context_get_resolution(ctx));
+    g_free(desc_str);
+
+    static std::map<std::string, int> line_heights;
+    auto it = line_heights.find(key);
+    if (it == line_heights.end()) {
+        PangoFontMetrics* metrics = pango_context_get_metrics(ctx, desc, lang.empty() ? nullptr : pango_language_from_string(lang.c_str()));
+        it = line_heights.emplace(key, PANGO_PIXELS_CEIL(pango_font_metrics_get_ascent(metrics) + pango_font_metrics_get_descent(metrics))).first;
+        pango_font_metrics_unref(metrics);
+    }
+    return std::max(char_height, it->second);
 }
 
 void SetGaugeColor(wxGauge* gauge, const wxString& barColor, const wxString& troughColor)

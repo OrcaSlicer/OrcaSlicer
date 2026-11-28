@@ -535,6 +535,7 @@ void sample_screen_color(std::function<void(std::optional<ColorRGBA>)> done);
 #ifdef __WXGTK__
 void RemoveButtonBorder(wxWindow* win);   // for wxButton/wxBitmapToggleButton based controls (SwitchButton, CheckBox)
 void RemoveInputBorder(wxWindow* win);    // for TextCtrl based controls (TextInput, ComboBox, SpinInput..)
+int  GetInputTextHeight(wxWindow* win);   // line height of win's font, including the fallback fonts of the UI language
 void SetGaugeColor(wxGauge* gauge, const wxString& barColor, const wxString& troughColor);
 #endif
 
