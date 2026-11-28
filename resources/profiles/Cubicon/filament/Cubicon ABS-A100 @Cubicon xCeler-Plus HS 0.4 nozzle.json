@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Cubicon ABS-A100 @Cubicon xCeler-Plus HS 0.4 nozzle",
+	"inherits": "Cubicon ABS-A100 @base",
+	"setting_id": "xxwap1XFnDf3le2G",
+	"filament_id": "OFy8tYJE",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-Plus HS 0.4 nozzle"
+	],
+	"filament_settings_id": [
+		"Cubicon ABS-A100 @Cubicon xCeler-Plus HS 0.4 nozzle"
+	],
+	"hot_plate_temp": [
+		"100"
+	],
+	"hot_plate_temp_initial_layer": [
+		"105"
+	]
+}
