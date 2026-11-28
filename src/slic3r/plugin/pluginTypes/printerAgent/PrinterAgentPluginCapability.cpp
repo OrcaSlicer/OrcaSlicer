@@ -42,6 +42,14 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .value("RTSP", CameraStreamMode::rtsp, "An rtsp:// stream on the LAN.")
         .export_values();
 
+    py::enum_<DialogMode>(printer_agent_module, "DialogMode",
+                          "Who shows the window that opens when the user presses Print or Send; returned by\n"
+                          "PrinterAgentBase.print_dialog_mode() and PrinterAgentBase.send_dialog_mode().")
+        .value("Orca", DialogMode::orca, "OrcaSlicer's printer selection dialog.")
+        .value("Takeover", DialogMode::takeover,
+               "The agent's own window. OrcaSlicer skips its dialog and hands over the sliced plate.")
+        .export_values();
+
     py::class_<AgentInfo>(printer_agent_module, "AgentInfo",
                           "Identity of a printer agent, returned by PrinterAgentBase.get_agent_info().")
         .def(py::init<>())
@@ -285,6 +293,14 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
              py::arg("update_fn"), py::arg("cancel_fn"),
              "Required. Upload the job to a printer in LAN-only mode and start it. params is a PrintParams; see\n"
              "start_print() for the callables and the return value.")
+        .def("print_dialog_mode", &PrinterAgentPluginCapability::print_dialog_mode,
+             "Return the DialogMode saying who shows the window Print opens. With DialogMode.Takeover, Print\n"
+             "skips the printer selection dialog and hands the sliced plate to start_local_print(). The default\n"
+             "is DialogMode.Orca.")
+        .def("send_dialog_mode", &PrinterAgentPluginCapability::send_dialog_mode,
+             "Return the DialogMode saying who shows the window Send opens. With DialogMode.Takeover, Send\n"
+             "skips the send dialog and hands the sliced plate to start_send_gcode_to_sdcard(). The default is\n"
+             "DialogMode.Orca.")
         .def("get_filament_sync_mode", &PrinterAgentPluginCapability::get_filament_sync_mode,
              "Return the FilamentSyncMode saying how the host gets the printer's filament data. The default is\n"
              "FilamentSyncMode.None_.")
