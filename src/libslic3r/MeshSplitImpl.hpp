@@ -2,6 +2,15 @@
 #define MESHSPLITIMPL_HPP
 
 // Disable meaningless boost warning on MSVC
+#include <vector>
+#include "Point.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <cassert>
+#include <utility>
+#include <limits>
+#include "libslic3r.h"
+#include <iterator>
 #ifdef _MSC_VER
 #pragma warning( push )
 #pragma warning( disable : 4805 )

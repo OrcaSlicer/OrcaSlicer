@@ -1,28 +1,46 @@
 #include "CrealityPrint.hpp"
 
 #include <algorithm>
+#include <boost/asio/io_context.hpp>
+#include <boost/beast/websocket/stream.hpp>
+#include <boost/beast/core/tcp_stream.hpp>
+#include <boost/beast/core/stream_traits.hpp>
+#include <chrono>
+#include <boost/beast/websocket/stream_base.hpp>
+#include <boost/beast/websocket/rfc6455.hpp>
+#include <boost/beast/http/field.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/beast/core/flat_buffer.hpp>
+#include <boost/beast/core/error.hpp>
+#include <boost/beast/core/buffers_to_string.hpp>
+#include <map>
+#include <unordered_set>
 #include <sstream>
 #include <exception>
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/asio.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/nowide/convert.hpp>
 
 #include <curl/curl.h>
+#include <optional>
+#include <thread>
+#include <utility>
+#include <vector>
 #include <wx/progdlg.h>
 
+#include "PrintHost.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/format.hpp"
+#include "AsioUtils.hpp"
 #include "Http.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "Bonjour.hpp"
 #include "slic3r/GUI/BonjourDialog.hpp"
 
 #include <boost/beast/core.hpp>
@@ -35,17 +53,14 @@
 
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
 using json = nlohmann::json;
-using std::to_string;
 
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace websocket = beast::websocket;
 namespace net = boost::asio;
 using tcp = boost::asio::ip::tcp;
-
-namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace Slic3r {
 
@@ -79,7 +94,12 @@ wxString CrealityPrint::get_test_failed_msg(wxString& msg) const
 }
 
 bool CrealityPrint::test(wxString& msg) const
-{ 
+{
+    return probe_info(&msg);
+}
+
+bool CrealityPrint::probe_info(wxString* msg) const
+{
     bool res = true;
     const char* name = get_name();
     auto url = make_url("info");
@@ -88,21 +108,33 @@ bool CrealityPrint::test(wxString& msg) const
     // Here we do not have to add custom "Host" header - the url contains host filled by user and libCurl will set the header by itself.
     auto http = Http::get(std::move(url));
     set_auth(http);
-    http.on_error([&](std::string body, std::string error, unsigned status) {
+    http.timeout_max(5)
+        .on_error([&](std::string body, std::string error, unsigned status) {
             BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error getting version: %2%, HTTP %3%, body: `%4%`") % name % error % status %
                                             body;
             res = false;
-            msg = format_error(body, error, status);
+            if (msg)
+                *msg = format_error(body, error, status);
         })
         .on_complete([&, this](std::string body, unsigned) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Got version: %2%") % name % body;
+            try {
+                auto info = json::parse(body);
+                if (info.contains("model")) {
+                    m_model = info["model"].get<std::string>();
+                    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Detected model: %2%") % name % m_model;
+                }
+            } catch (const json::exception& e) {
+                BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Failed to parse /info response: %2%") % name % e.what();
+            }
         })
 #ifdef WIN32
         .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
         .on_ip_resolve([&](std::string address) {
             // Workaround for Windows 10/11 mDNS resolve issue, where two mDNS resolves in succession fail.
             // Remember resolved address to be reused at successive REST API call.
-            msg = GUI::from_u8(address);
+            if (msg)
+                *msg = GUI::from_u8(address);
         })
 #endif // WIN32
         .perform_sync();
@@ -126,18 +158,29 @@ bool CrealityPrint::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, 
     }
 
     bool res = true;
-    auto url = make_url("upload/" + safe_filename(upload_filename.string()));
+    const auto safe_upload_filename = safe_filename(upload_filename.string());
+    // Only encode the URL path segment; keep the multipart filename and start-print path as the stored filename.
+    auto url = make_url("upload/" + Http::url_encode(safe_upload_filename));
 
     auto  http = Http::post(url); // std::move(url));
     set_auth(http);
-    http.form_add("path", upload_parent_path.string())
-        .form_add_file("file", upload_data.source_path.string(), upload_filename.string())
+    // Multi-color models get no folder with the upload, so they keep it right under printer_data/gcodes.
+    const bool  multi_color = supports_multi_color_print();
+    const auto  remote_path = multi_color || upload_parent_path.empty() ? safe_upload_filename :
+                                                                          (upload_parent_path / safe_upload_filename).generic_string();
+    if (!multi_color)
+        http.form_add("path", upload_parent_path.string());
+    http.form_add_file("file", upload_data.source_path.string(), safe_upload_filename)
 
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: File uploaded: HTTP %2%: %3%") % name % status % body;
 
             if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
-                start_print(safe_filename(upload_filename.string()));
+                wxString errormsg;
+                if (!start_print(errormsg, remote_path, upload_data.extended_info)) {
+                    error_fn(std::move(errormsg));
+                    res = false;
+                }
             }
         })
         .on_error([&](std::string body, std::string error, unsigned status) {
@@ -182,53 +225,495 @@ std::string CrealityPrint::safe_filename(const std::string &filename) const
     return safe_filename;
 }
 
-void CrealityPrint::start_print(const std::string &filename) const
+// Run every websocket call through run_until_done(), since expires_after() does not apply to synchronous Beast calls.
+static void ws_connect(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws,
+                       const std::string& host_url, const std::string& port, std::chrono::milliseconds timeout)
+{
+    std::string host = Http::get_host_from_url(host_url);
+
+    tcp::resolver resolver{ioc};
+    beast::tcp_stream& stream = beast::get_lowest_layer(ws);
+    if (const auto ec = connect_until_done(ioc, stream, resolver.resolve(host, port), timeout))
+        throw beast::system_error{ec};
+    host += ':' + std::to_string(stream.socket().remote_endpoint().port());
+
+    ws.set_option(websocket::stream_base::decorator(
+        [](websocket::request_type& req) {
+            req.set(http::field::user_agent,
+                std::string(BOOST_BEAST_VERSION_STRING) + " websocket-client-coro");
+        }));
+    stream.expires_after(timeout);
+    if (const auto ec = run_until_done(ioc, [&](auto&& handler) { ws.async_handshake(host, "/", handler); }))
+        throw beast::system_error{ec};
+    // K1-family firmware requires TEXT-mode WebSocket frames; K2-family accepts both.
+    ws.text(true);
+}
+
+static beast::error_code ws_write(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, const std::string& text)
+{
+    return run_until_done(ioc, [&](auto&& handler) { ws.async_write(net::buffer(text), handler); });
+}
+
+static void ws_send(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, const std::string& text)
+{
+    if (const auto ec = ws_write(ioc, ws, text))
+        throw beast::system_error{ec};
+}
+
+static void ws_send(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, const json& cmd)
+{
+    ws_send(ioc, ws, to_string(cmd));
+}
+
+static beast::error_code ws_read(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, beast::flat_buffer& buffer)
+{
+    return run_until_done(ioc, [&](auto&& handler) { ws.async_read(buffer, handler); });
+}
+
+// Returns a status's cfsConnect value, 0 without a CFS or 1 with one, or -1 when the message holds neither.
+static int reported_cfs_connect(const std::string& msg)
+{
+    if (msg.find("cfsConnect") == std::string::npos)
+        return -1;
+    const json status = json::parse(msg, nullptr, false);
+    if (!status.is_object() || !status.contains("cfsConnect"))
+        return -1;
+    const json& cfs_connect = status["cfsConnect"];
+    if (cfs_connect == 0)
+        return 0;
+    return cfs_connect == 1 ? 1 : -1;
+}
+
+// Reads the printer's messages until one holds key and returns it, or returns nothing once deadline passes or on_other, which gets
+// every other message, returns false. The deadline also ends the read when the printer keeps sending heartbeats or status updates.
+template<class OnOther>
+static std::string ws_await_reply(net::io_context&                             ioc,
+                                  websocket::stream<beast::tcp_stream>&        ws,
+                                  const std::chrono::steady_clock::time_point& deadline,
+                                  const char*                                  key,
+                                  OnOther&&                                    on_other)
+{
+    while (std::chrono::steady_clock::now() < deadline) {
+        beast::flat_buffer buf;
+        const beast::error_code ec = ws_read(ioc, ws, buf);
+        if (ec == beast::error::timeout)
+            break;
+        if (ec)
+            throw beast::system_error{ec};
+        std::string msg = beast::buffers_to_string(buf.data());
+        // K1-family firmware sends periodic heartbeat pings; ack them so the
+        // printer does not close the connection, then keep reading.
+        if (msg.find("heart_beat") != std::string::npos) {
+            ws_write(ioc, ws, "ok");
+            continue;
+        }
+        if (msg.find(key) != std::string::npos)
+            return msg;
+        if (!on_other(msg))
+            break;
+    }
+    return {};
+}
+
+// Sends the CFS slot query and returns the reply, or nothing when none arrives in time.
+// The query gets slots_reply, or the later of slots_reply and cfs_reply once a status reports a CFS connected, since such a printer does answer.
+// A status reporting no CFS connected cuts the wait to no_cfs_reply from then, and sets *no_cfs if no reply follows: a SPARKX i7
+// reports no CFS connected for its CFS Lite and still sends the slots.
+static std::string ws_query_slots(net::io_context&                      ioc,
+                                  websocket::stream<beast::tcp_stream>& ws,
+                                  std::chrono::milliseconds             slots_reply,
+                                  std::chrono::milliseconds             cfs_reply,
+                                  std::chrono::milliseconds             no_cfs_reply,
+                                  bool*                                 no_cfs)
+{
+    const auto sent     = std::chrono::steady_clock::now();
+    auto       deadline = sent + slots_reply;
+    beast::get_lowest_layer(ws).expires_at(deadline);
+    ws_send(ioc, ws, json{{"method", "get"}, {"params", {{"boxsInfo", 1}}}});
+
+    bool              reported_no_cfs = false;
+    const std::string reply           = ws_await_reply(ioc, ws, deadline, "boxsInfo", [&](const std::string& msg) {
+        const int cfs_connect = reported_cfs_connect(msg);
+        if (cfs_connect == 0 && !reported_no_cfs) {
+            reported_no_cfs = true;
+            deadline        = std::min(deadline, std::chrono::steady_clock::now() + no_cfs_reply);
+            beast::get_lowest_layer(ws).expires_at(deadline);
+        }
+        if (cfs_connect == 1) {
+            reported_no_cfs = false;
+            deadline        = sent + std::max(slots_reply, cfs_reply);
+            beast::get_lowest_layer(ws).expires_at(deadline);
+        }
+        return true;
+    });
+    if (!reply.empty())
+        return reply;
+    if (reported_no_cfs) {
+        BOOST_LOG_TRIVIAL(info) << "CrealityPrint: The printer reports no CFS connected";
+        if (no_cfs)
+            *no_cfs = true;
+    } else
+        BOOST_LOG_TRIVIAL(warning) << "CrealityPrint: Timed out waiting for a 'boxsInfo' response";
+    return reply;
+}
+
+// The full path a reply to reqGcodeFile lists remote_path at, an empty string when it does not list it, or nothing when the reply
+// is no list this code reads. K2-family firmware answers retGcodeFileInfo2, a list of files with their path. K1-family firmware
+// answers retGcodeFileInfo, whose fileInfo holds "folder:name:size:..." entries separated by ';'.
+static std::optional<std::string> listed_gcode_path(const std::string& reply_text, const std::string& remote_path)
+{
+    const json reply = json::parse(reply_text, nullptr, false);
+    if (!reply.is_object())
+        return std::nullopt;
+    const std::string under_gcodes = "/printer_data/gcodes/" + remote_path;
+
+    if (const auto files = reply.find("retGcodeFileInfo2"); files != reply.end() && files->is_array()) {
+        for (const json& file : *files)
+            if (file.is_object() && file.contains("path") && file.at("path").is_string() &&
+                boost::algorithm::ends_with(file.at("path").get<std::string>(), under_gcodes))
+                return file.at("path").get<std::string>();
+        return std::string();
+    }
+
+    const auto info = reply.find("retGcodeFileInfo");
+    if (info == reply.end() || !info->is_object() || !info->contains("fileInfo") || !info->at("fileInfo").is_string())
+        return std::nullopt;
+    // Finds the name between its folder and its size, so a name holding ';' or ':' is found too.
+    const std::string file_info = info->at("fileInfo").get<std::string>();
+    const std::string name      = remote_path.substr(remote_path.rfind('/') + 1);
+    const std::string field     = ':' + name + ':';
+    for (size_t at = file_info.find(field); at != std::string::npos; at = file_info.find(field, at + 1)) {
+        const size_t      entry = file_info.rfind(';', at);
+        const size_t      begin = entry == std::string::npos ? 0 : entry + 1;
+        const std::string path  = file_info.substr(begin, at - begin) + '/' + name;
+        if (boost::algorithm::ends_with(path, under_gcodes))
+            return path;
+    }
+    return std::string();
+}
+
+namespace {
+// What the printer's G-code file list says about an upload.
+struct GcodeListing
+{
+    enum class Result { NoReply, Unreadable, NotListed, Listed } result = Result::NoReply;
+    std::string path; // The full path the upload is listed at
+};
+} // namespace
+
+// Asks for the G-code file list until it lists remote_path or files_reply passes. A printer can answer before it has indexed a
+// file just uploaded, so a list without the upload is asked for again after files_retry.
+static GcodeListing ws_find_listed_gcode(net::io_context&                      ioc,
+                                         websocket::stream<beast::tcp_stream>& ws,
+                                         std::chrono::milliseconds             files_reply,
+                                         std::chrono::milliseconds             files_retry,
+                                         const std::string&                    remote_path)
+{
+    const auto   deadline = std::chrono::steady_clock::now() + files_reply;
+    GcodeListing listing;
+    for (;;) {
+        beast::get_lowest_layer(ws).expires_at(deadline);
+        ws_send(ioc, ws, json{{"method", "get"}, {"params", {{"reqGcodeFile", 1}}}});
+        const std::string reply = ws_await_reply(ioc, ws, deadline, "retGcodeFileInfo", [](const std::string&) { return true; });
+        if (reply.empty())
+            return listing;
+        const std::optional<std::string> path = listed_gcode_path(reply, remote_path);
+        if (!path) {
+            listing.result = GcodeListing::Result::Unreadable;
+            return listing;
+        }
+        if (!path->empty()) {
+            listing.result = GcodeListing::Result::Listed;
+            listing.path   = *path;
+            return listing;
+        }
+        listing.result = GcodeListing::Result::NotListed;
+        if (std::chrono::steady_clock::now() + files_retry >= deadline)
+            return listing;
+        std::this_thread::sleep_for(files_retry);
+    }
+}
+
+// The K1 SE closes its side after a reply and K1-family printers after a start command, so a close error is not a failure.
+static void ws_close(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, std::chrono::milliseconds timeout)
+{
+    beast::get_lowest_layer(ws).expires_after(timeout);
+    run_until_done(ioc, [&](auto&& handler) { ws.async_close(websocket::close_code::normal, handler); });
+}
+
+// The folder for a printer that lists no G-code file. Add a model by its /info value once its firmware is known to keep gcodes
+// under /usr/data; every other model uses /mnt/UDISK.
+static bool stores_gcode_in_usr_data(const std::string& model)
+{
+    static const std::unordered_set<std::string> usr_data_models = {
+        "F001", // Ender-3 V3 series
+        "F002", // Ender-3 V3 Plus
+        "F003", // CR-10 SE
+        "F004", // Ender-5 Max
+        "F005", // Ender-3 V3 KE
+        "F016", // K2 SE
+        "Ender-3 V2 Neo", // Nebula Pad on an Ender-3 V2 Neo
+        "K1",
+        "K1 Max",
+        "K1 Max_CFS-C",
+        "K1 SE",
+        "K1 SE_CFS-C",
+        "K1C",
+        "K1C_CFS-C",
+        "K1_CFS-C",
+    };
+    return usr_data_models.count(model) > 0;
+}
+
+void CrealityPrint::query_model() const
+{
+    if (!m_model.empty())
+        return;
+
+    wxString msg;
+    test(msg);
+}
+
+// CFS-capable models. One table for capability checks, display names and
+// LAN-discovery labelling -- keep additions here only.
+static const std::map<std::string, std::string>& cfs_capable_models()
+{
+    static const std::map<std::string, std::string> models = {
+        {"F008", "K2 Plus"},
+        {"F012", "K2 Pro"},
+        {"F016", "K2 SE"},
+        {"F021", "K2"},
+        {"F022", "SPARKX i7"},
+        {"K1", "K1"},
+        {"K1 Max", "K1 Max"},
+        {"K1 Max_CFS-C", "K1 Max_CFS-C"},
+        {"K1 SE", "K1 SE"},
+        {"K1 SE_CFS-C", "K1 SE_CFS-C"},
+        {"K1C", "K1C"},
+        {"K1C_CFS-C", "K1C_CFS-C"},
+        {"K1_CFS-C", "K1_CFS-C"},
+    };
+    return models;
+}
+
+bool CrealityPrint::model_supports_multi_color(const std::string& model)
+{
+    return cfs_capable_models().count(model) > 0;
+}
+
+std::string CrealityPrint::model_display_name(const std::string& model)
+{
+    auto& names = cfs_capable_models();
+    auto it = names.find(model);
+    return it != names.end() ? it->second : std::string{};
+}
+
+bool CrealityPrint::supports_multi_color_print() const
+{
+    query_model();
+    return model_supports_multi_color(m_model);
+}
+
+std::string CrealityPrint::model_name() const
+{
+    query_model();
+    if (m_model.empty())
+        return "unreachable";
+    std::string name = model_display_name(m_model);
+    return !name.empty() ? name : "unknown (" + m_model + ")";
+}
+
+std::string CrealityPrint::query_boxes_info(bool* no_cfs) const
+{
+    if (no_cfs)
+        *no_cfs = false;
+    try {
+        net::io_context ioc;
+        websocket::stream<beast::tcp_stream> ws{ioc};
+        ws_connect(ioc, ws, m_host, ws_settings.port, ws_settings.connect);
+
+        std::string result = ws_query_slots(ioc, ws, ws_settings.slots_reply, ws_settings.reply, ws_settings.no_cfs_reply, no_cfs);
+
+        ws_close(ioc, ws, ws_settings.close);
+        return result;
+    } catch (std::exception const& e) {
+        BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Failed to query boxsInfo: " << e.what();
+        return {};
+    }
+}
+
+// Uses a connection of its own, since the K1 SE closes its side after a reply. A failed connection is not caught: the start would
+// fail the same way, and trying again would double the wait.
+std::string CrealityPrint::query_listed_gcode(const std::string& remote_path) const
+{
+    net::io_context ioc;
+    websocket::stream<beast::tcp_stream> ws{ioc};
+    ws_connect(ioc, ws, m_host, ws_settings.port, ws_settings.connect);
+
+    GcodeListing listing;
+    try {
+        listing = ws_find_listed_gcode(ioc, ws, ws_settings.files_reply, ws_settings.files_retry, remote_path);
+    } catch (std::exception const& e) {
+        BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Failed to query the G-code file list: " << e.what();
+        return {};
+    }
+    switch (listing.result) {
+    case GcodeListing::Result::Listed:
+        BOOST_LOG_TRIVIAL(info) << "CrealityPrint: The printer lists " << remote_path << " at " << listing.path;
+        break;
+    case GcodeListing::Result::NotListed:
+        BOOST_LOG_TRIVIAL(warning) << "CrealityPrint: The printer's G-code file list does not include " << remote_path;
+        break;
+    case GcodeListing::Result::Unreadable:
+        BOOST_LOG_TRIVIAL(warning) << "CrealityPrint: The printer's G-code file list has no format this host reads";
+        break;
+    case GcodeListing::Result::NoReply:
+        BOOST_LOG_TRIVIAL(warning) << "CrealityPrint: Timed out waiting for the G-code file list";
+        break;
+    }
+
+    // A printer that sent no list may not answer a close either, so its connection is dropped without one.
+    if (listing.result == GcodeListing::Result::NoReply) {
+        beast::error_code ec;
+        beast::get_lowest_layer(ws).socket().close(ec);
+    } else
+        ws_close(ioc, ws, ws_settings.close);
+    return listing.path;
+}
+
+CrealityPrinterInfo CrealityPrint::read_printer_info() const
+{
+    CrealityPrinterInfo info;
+    info.reachable   = probe_info(nullptr);
+    info.multi_color = info.reachable && model_supports_multi_color(m_model);
+    // model_name() probes /info again when the reply names no model.
+    if (info.reachable)
+        info.model_name = m_model.empty() ? std::string("unknown") : model_name();
+    if (info.multi_color)
+        info.boxes_json = query_boxes_info(&info.no_cfs);
+    return info;
+}
+
+std::vector<std::string> CrealityPrint::start_print_commands(bool                                      multi_color,
+                                                             const std::string&                        gcode_path,
+                                                             const std::map<std::string, std::string>& extended_info)
+{
+    // Build colorMatch list from the mapping provided by the dialog
+    bool use_spool_holder = false;
+    json color_list       = json::array();
+    int  enable_self_test = 0;
+    if (multi_color) {
+        for (int i = 0; ; i++) {
+            auto it = extended_info.find("colorMatch_" + std::to_string(i));
+            if (it == extended_info.end())
+                break;
+            // Value format: "toolId\ttype\tcolor\tboxId\tmaterialId"
+            auto val = it->second;
+            std::vector<std::string> parts;
+            std::istringstream iss(val);
+            std::string part;
+            while (std::getline(iss, part, '\t'))
+                parts.push_back(part);
+            if (parts.size() >= 5) {
+                int box_id = std::stoi(parts[3]);
+                if (box_id == 0)
+                    use_spool_holder = true;
+                color_list.push_back({
+                    {"id", parts[0]},
+                    {"type", parts[1]},
+                    {"color", parts[2]},
+                    {"boxId", box_id},
+                    {"materialId", std::stoi(parts[4])}
+                });
+            }
+        }
+        auto it = extended_info.find("enableSelfTest");
+        if (it != extended_info.end())
+            enable_self_test = std::stoi(it->second);
+    }
+
+    std::vector<std::string> commands;
+    // Only a mapping onto CFS slots starts a multi-color job. No mapping means the
+    // printer listed no slots (no CFS attached, or boxsInfo unanswered): start from
+    // the spool holder, as Creality Print does, instead of sending an empty
+    // colorMatch, which makes the firmware flag "no material" for the whole job.
+    if (multi_color && !use_spool_holder && !color_list.empty()) {
+        json color_match = {
+            {"method", "set"},
+            {"params", {
+                {"colorMatch", {
+                    {"path", gcode_path},
+                    {"list", color_list}
+                }}
+            }}
+        };
+        commands.push_back(to_string(color_match));
+
+        json multi_color_print = {
+            {"method", "set"},
+            {"params", {
+                {"multiColorPrint", {
+                    {"gcode", gcode_path},
+                    {"enableSelfTest", enable_self_test}
+                }}
+            }}
+        };
+        commands.push_back(to_string(multi_color_print));
+    } else {
+        json params = {{"opGcodeFile", "printprt:" + gcode_path}};
+        if (multi_color)
+            params["enableSelfTest"] = enable_self_test;
+        json cmd = {{"method", "set"}, {"params", params}};
+        commands.push_back(to_string(cmd));
+    }
+    return commands;
+}
+
+bool CrealityPrint::start_print(wxString &msg, const std::string &remote_path, const std::map<std::string, std::string>& extended_info) const
 {
     try {
-        std::string host = m_host;
-        auto const port = "9999";
-
-        json j2 = {
-            { "method", "set" },
-            {
-                "params", {
-                    { "opGcodeFile", "printprt:/usr/data/printer_data/gcodes/" + filename }
-                }    
-            }
-        };
+        // Runs before the WebSocket opens and its reply deadline starts, since it can query the
+        // printer over HTTP. It also fills m_model.
+        const bool multi_color = supports_multi_color_print();
+        // Starts the file at the path the printer lists it at, as Creality Print does, since the
+        // folder depends on the printer's board and not on its model. The model decides only when
+        // the printer does not list the upload.
+        std::string gcode_path = query_listed_gcode(remote_path);
+        if (gcode_path.empty()) {
+            const std::string data_root = stores_gcode_in_usr_data(m_model) ? "/usr/data" : "/mnt/UDISK";
+            gcode_path = data_root + "/printer_data/gcodes/" + remote_path.substr(remote_path.rfind('/') + 1);
+            BOOST_LOG_TRIVIAL(info) << "CrealityPrint: Using " << data_root << " for model " << m_model;
+        }
 
         net::io_context ioc;
+        websocket::stream<beast::tcp_stream> ws{ioc};
+        ws_connect(ioc, ws, m_host, ws_settings.port, ws_settings.connect);
+        beast::get_lowest_layer(ws).expires_after(ws_settings.reply);
 
-        tcp::resolver resolver{ioc};
-        websocket::stream<tcp::socket> ws{ioc};
+        const std::vector<std::string> commands = start_print_commands(multi_color, gcode_path, extended_info);
+        for (const std::string& cmd : commands)
+            ws_send(ioc, ws, cmd);
 
-        auto const results = resolver.resolve(host, port);
+        if (commands.size() == 1) {
+            // A plain start. K1-family firmware closes the WebSocket right after accepting it,
+            // so a read here surfaces a benign "End of file [asio.misc:2]" even though the print
+            // already started (ws_send() delivered the command). Read best-effort, ignore errors:
+            // it also keeps the close frame from following the command in the same burst.
+            beast::flat_buffer buffer;
+            ws_read(ioc, ws, buffer);
+        }
 
-        auto ep = net::connect(ws.next_layer(), results);
-
-        host += ':' + std::to_string(ep.port());
-
-        ws.set_option(websocket::stream_base::decorator(
-            [](websocket::request_type& req)
-            {
-                req.set(http::field::user_agent,
-                    std::string(BOOST_BEAST_VERSION_STRING) +
-                        " websocket-client-coro");
-            }));
-
-        ws.handshake(host, "/");
-        
-        ws.write(net::buffer(to_string(j2)));
-
-        beast::flat_buffer buffer;
-
-        ws.read(buffer);
-
-        ws.close(websocket::close_code::normal);
+        ws_close(ioc, ws, ws_settings.close);
+        return true;
     } catch(std::exception const& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Error starting print: " << e.what();
+        // Shows a websocket error without Boost's source location, and a timeout the same way as an HTTP one
+        if (const auto* system_error = dynamic_cast<const beast::system_error*>(&e))
+            msg = system_error->code() == beast::error::timeout ? timed_out_message() : wxString::FromUTF8(system_error->code().message());
+        else
+            msg = wxString::FromUTF8(e.what());
+        return false;
     }
-    
 }
 
 }

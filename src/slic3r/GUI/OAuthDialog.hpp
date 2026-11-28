@@ -4,6 +4,11 @@
 #include "GUI_Utils.hpp"
 #include "Jobs/OAuthJob.hpp"
 #include "Jobs/Worker.hpp"
+#include <memory>
+#include <wx/event.h>
+
+class wxEvent;
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {

@@ -19,20 +19,19 @@ namespace igl
   {
     namespace cgal
     {
-      // Inputs:
-      //   V  #V by 3 list of vertex positions.
-      //   F  #F by 3 list of triangle indices into V.
-      //   num_patches  number of patches
-      //   P  #F list of patch ids.
-      //   num_cells    number of cells
-      //   C  #P by 2 list of cell ids on each side of each patch.
-      //   vol_threshold  Volume threshold, cells smaller than this
-      //                  and is completely immersed will be relabeled.
-      //
-      // In/Output:
-      //   W  #F by 2 cell labels.  W(i,0) is the label on the positive side of
-      //      face i, W(i,1) is the label on the negative side of face i.  W
-      //      will be modified in place by this method.
+      /// Relabel winding numbers of small immersed cells.
+      ///
+      /// @param[in] V  #V by 3 list of vertex positions.
+      /// @param[in] F  #F by 3 list of triangle indices into V.
+      /// @param[in] num_patches  number of patches
+      /// @param[in] P  #F list of patch ids.
+      /// @param[in] num_cells    number of cells
+      /// @param[in] C  #P by 2 list of cell ids on each side of each patch.
+      /// @param[in] vol_threshold  Volume threshold, cells smaller than this
+      ///                  and is completely immersed will be relabeled.
+      /// @param[out] W  #F by 2 cell labels.  W(i,0) is the label on the positive side of
+      ///      face i, W(i,1) is the label on the negative side of face i.  W
+      ///      will be modified in place by this method.
       template<
         typename DerivedV,
         typename DerivedF,
@@ -41,14 +40,14 @@ namespace igl
         typename FT,
         typename DerivedW>
       IGL_INLINE void relabel_small_immersed_cells(
-          const Eigen::PlainObjectBase<DerivedV>& V,
-          const Eigen::PlainObjectBase<DerivedF>& F,
-          const size_t num_patches,
-          const Eigen::PlainObjectBase<DerivedP>& P,
-          const size_t num_cells,
-          const Eigen::PlainObjectBase<DerivedC>& C,
-          const FT vol_threashold,
-          Eigen::PlainObjectBase<DerivedW>& W);
+        const Eigen::MatrixBase<DerivedV>& V,
+        const Eigen::MatrixBase<DerivedF>& F,
+        const size_t num_patches,
+        const Eigen::MatrixBase<DerivedP>& P,
+        const size_t num_cells,
+        const Eigen::MatrixBase<DerivedC>& C,
+        const FT vol_threashold,
+        Eigen::PlainObjectBase<DerivedW>& W);
     }
   }
 }

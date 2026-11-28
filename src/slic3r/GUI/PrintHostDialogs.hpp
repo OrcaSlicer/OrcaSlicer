@@ -1,25 +1,45 @@
 #ifndef slic3r_PrintHostSendDialog_hpp_
 #define slic3r_PrintHostSendDialog_hpp_
 
-#include <set>
+#include <atomic>
+#include <map>
+#include <cstddef>
+#include <memory>
+#include <optional>
 #include <string>
+#include <utility>
+#include <vector>
+#include <boost/cstdint.hpp>
 #include <boost/filesystem/path.hpp>
 
+#include <wx/colour.h>
 #include <wx/string.h>
 #include <wx/event.h>
 #include <wx/dialog.h>
+#include <wx/gdicmn.h>
 
 #include "GUI_Utils.hpp"
 #include "MsgDialog.hpp"
 #include "../Utils/PrintHost.hpp"
+#include "../Utils/Flashforge.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/ProjectTask.hpp"
 class wxButton;
 class wxTextCtrl;
-class wxChoice;
 class wxComboBox;
+class ComboBox;
 class wxDataViewListCtrl;
+class wxFlexGridSizer;
+class wxStaticBox;
+class wxStaticText;
+class wxWrapSizer;
+class CheckBox;
+
+namespace Slic3r { namespace GUI { class BitmapComboBox; } }
 
 namespace Slic3r {
+
+struct CrealityPrinterInfo;
 
 namespace GUI {
 
@@ -76,8 +96,22 @@ public:
 
     PrintHostQueueDialog(wxWindow *parent);
 
-    void append_job(const PrintHostJob &job);
+    // Adds the row and notification of a job sent to `host` as `upload_path`; `size` is the source file's size in
+    // bytes, if it could be read. UI thread.
+    void append_job(const std::string &host, const boost::filesystem::path &upload_path, std::optional<boost::uintmax_t> size);
     void get_active_jobs(std::vector<std::pair<std::string, std::string>>& ret);
+
+    // A row as the list shows it, for readers outside the dialog (MCP's get_state.uploads).
+    struct JobInfo
+    {
+        std::string state; // queued, uploading, error, cancelling, cancelled or completed
+        int         progress = 0;
+        std::string host;
+        std::string filename;
+        std::string error;
+    };
+    size_t  job_count() const;
+    JobInfo job_info(size_t row) const;
 
     virtual bool Show(bool show = true) override
     {
@@ -155,7 +189,7 @@ public:
     BedType      bedType() const { return m_BedType; }
 
     virtual void                               init() override;
-    virtual std::map<std::string, std::string> extendedInfo() const
+    virtual std::map<std::string, std::string> extendedInfo() const override
     {
         return {{"bedType", std::to_string(static_cast<int>(m_BedType))},
                 {"timeLapse", std::to_string(m_timeLapse)},
@@ -178,6 +212,114 @@ private:
     int     m_timeLapse;
     int     m_heatedBedLeveling;
     BedType m_BedType;
+};
+
+class CrealityPrintHostSendDialog : public PrintHostSendDialog
+{
+public:
+    CrealityPrintHostSendDialog(const boost::filesystem::path& path,
+                                PrintHostPostUploadActions     post_actions,
+                                const wxArrayString&           groups,
+                                const wxArrayString&           storage_paths,
+                                const wxArrayString&           storage_names,
+                                bool                           switch_to_device_tab,
+                                PrintHost*                     printhost);
+    ~CrealityPrintHostSendDialog() override;
+
+    virtual void                               init() override;
+    virtual std::map<std::string, std::string> extendedInfo() const override;
+
+protected:
+    void on_dpi_changed(const wxRect& suggested_rect) override;
+
+private:
+    static constexpr const char* CONFIG_KEY_ENABLESELFTEST = "crealityprint_enable_self_test";
+
+    void show_printer(const CrealityPrinterInfo& info);
+    void show_read_failure(const wxString& message);
+    void end_read();
+    void fit_content();
+    void add_printer_box(const CrealityPrinterInfo& info);
+
+    bool        m_enableSelfTest;
+    PrintHost*  m_printhost;
+    wxStaticText* m_status_label{nullptr};
+    wxStaticBox*  m_printer_box{nullptr};
+    wxStaticText* m_notice{nullptr};
+    std::shared_ptr<std::atomic<bool>> m_alive{std::make_shared<std::atomic<bool>>(true)};
+
+    struct SlotInfo {
+        std::string tool_id;   // e.g. "T1A"
+        std::string type;      // e.g. "PLA"
+        std::string color;     // e.g. "#ffffff"
+        int         box_id;
+        int         material_id;
+    };
+    std::vector<SlotInfo>   m_printer_slots;
+    std::vector<BitmapComboBox*> m_slot_combos; // one per gcode filament
+};
+
+class FlashforgePrintHostSendDialog : public PrintHostSendDialog
+{
+public:
+    FlashforgePrintHostSendDialog(const boost::filesystem::path&  path,
+                                  PrintHostPostUploadActions      post_actions,
+                                  const wxArrayString&            groups,
+                                  const wxArrayString&            storage_paths,
+                                  const wxArrayString&            storage_names,
+                                  bool                            switch_to_device_tab,
+                                  const Slic3r::Flashforge*       host,
+                                  bool                            supports_material_station,
+                                  std::vector<Slic3r::FlashforgeMaterialSlot> slots,
+                                  const std::vector<FilamentInfo>& project_filaments,
+                                  bool                            manual_filament_change);
+
+    virtual void init() override;
+    virtual void EndModal(int ret) override;
+    virtual std::map<std::string, std::string> extendedInfo() const override;
+
+private:
+    struct MappingRow {
+        int       tool_id {-1};
+        wxWindow* card {nullptr};
+    };
+
+    void load_slots();
+    bool ensure_slots_loaded(bool force_reload = false);
+    void rebuild_mapping_rows();
+    void auto_assign_mappings();
+    void refresh_mapping_card(MappingRow& row);
+    void sync_mapping_section_visibility();
+    const Slic3r::FlashforgeMaterialSlot* find_slot_by_id(const std::string& slot_id_text) const;
+    const FilamentInfo* find_filament_by_tool_id(int tool_id) const;
+    bool slot_matches_filament(const Slic3r::FlashforgeMaterialSlot& slot, const FilamentInfo& filament) const;
+    bool validate_before_close();
+    std::string normalize_material(const std::string& material) const;
+    wxColour to_wx_colour(const std::string& color) const;
+
+private:
+    const Slic3r::Flashforge*        m_host {nullptr};
+    std::vector<FilamentInfo>        m_project_filaments;
+    std::vector<Slic3r::FlashforgeMaterialSlot> m_slots;
+    std::vector<MappingRow>          m_mapping_rows;
+    wxBoxSizer*                      m_flashforge_options_sizer {nullptr};
+    wxBoxSizer*                      m_mapping_section_sizer {nullptr};
+    wxWrapSizer*                     m_mapping_wrap_sizer {nullptr};
+    wxStaticText*                    m_status_text {nullptr};
+    ::CheckBox*                      m_checkbox_leveling {nullptr};
+    ::CheckBox*                      m_checkbox_timelapse {nullptr};
+    ::CheckBox*                      m_checkbox_ifs {nullptr};
+    bool                             m_flow_calibration {false};
+    bool                             m_leveling_before_print {true};
+    bool                             m_time_lapse_video {false};
+    bool                             m_use_material_station {false};
+    bool                             m_supports_material_station {false};
+    bool                             m_slots_loaded {false};
+    bool                             m_manual_filament_change {false};
+
+    const char* CONFIG_KEY_LEVELING  = "flashforge_leveling_before_print";
+    const char* CONFIG_KEY_TIMELAPSE = "flashforge_timelapse_video";
+    const char* CONFIG_KEY_IFS       = "flashforge_use_material_station";
 };
 
 wxDECLARE_EVENT(EVT_PRINTHOST_PROGRESS, PrintHostQueueDialog::Event);

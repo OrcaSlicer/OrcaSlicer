@@ -13,17 +13,24 @@
 
 namespace igl 
 {
-  // check if the mesh is edge-manifold
-  //
-  // Inputs:
-  //   V  #V by dim list of mesh vertex positions **unneeded**
-  //   F  #F by 3 list of triangle indices
-  // Returns whether mesh is edge manifold.
-  //
-  // Known Bugs:
-  //  Does not check for non-manifold vertices
-  //
-  // See also: is_vertex_manifold
+  /// Check if the mesh is edge-manifold (every edge is incident one one face
+  /// (boundary) or two oppositely oriented faces).
+  ///
+  /// @param[in] F  #F by 3 list of triangle indices
+  /// @return true iff all edges are manifold
+  ///
+  /// \see is_vertex_manifold
+  template <typename DerivedF>
+  IGL_INLINE bool is_edge_manifold(
+    const Eigen::MatrixBase<DerivedF>& F);
+  /// Checks if mesh is edge-manifold and outputs per-edge info.
+  ///
+  /// @param[in] F  #F by 3 list of triangle indices
+  /// @param[out] BF  #F by 3 list of flags revealing if edge opposite
+  /// corresponding vertex is non-manifold.
+  /// @param[out] E  #E by 2 list of unique edges
+  /// @param[out] EMAP  3*#F list of indices of opposite edges in "E"
+  /// @param[out] BE  #E list of flags whether edge is non-manifold
   template <
     typename DerivedF, 
     typename DerivedBF,
@@ -36,9 +43,18 @@ namespace igl
     Eigen::PlainObjectBase<DerivedE>& E,
     Eigen::PlainObjectBase<DerivedEMAP>& EMAP,
     Eigen::PlainObjectBase<DerivedBE>& BE);
-  template <typename DerivedF>
+  /// \overload
+  template <
+    typename DerivedF,
+    typename DerivedEMAP,
+    typename DerivedBF,
+    typename DerivedBE>
   IGL_INLINE bool is_edge_manifold(
-    const Eigen::MatrixBase<DerivedF>& F);
+    const Eigen::MatrixBase<DerivedF>& F,
+    const typename DerivedF::Index ne,
+    const Eigen::MatrixBase<DerivedEMAP>& EMAP,
+    Eigen::PlainObjectBase<DerivedBF>& BF,
+    Eigen::PlainObjectBase<DerivedBE>& BE);
 }
 
 #ifndef IGL_STATIC_LIBRARY

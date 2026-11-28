@@ -1,7 +1,17 @@
 #include "AnimaController.hpp"
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <vector>
+#include <string>
+#include "slic3r/GUI/wxExtensions.hpp"
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <wx/timer.h>
+#include <wx/event.h>
 #ifdef __APPLE__
 #include "libslic3r/MacUtils.hpp"
 #endif
@@ -78,7 +88,7 @@ void AnimaIcon::Stop()
     m_timer->Stop();
 }
 
-void AnimaIcon::Enable()
+void AnimaIcon::ShowEnabledIcon()
 {
     if (m_bitmap) { m_bitmap->SetBitmap(m_image_enable); }
 }

@@ -5,8 +5,24 @@
 #include "MainFrame.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/regex.hpp>
+#include <string>
+#include <wx/utils.h>
+#include <utility>
+#include <cstddef>
+#include <wx/event.h>
+#include <cassert>
+#include <memory>
+#include "slic3r/GUI/DownloaderFileGet.hpp"
+#include "libslic3r/Utils.hpp"
+#include <functional>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <wx/arrstr.h>
+#include <wx/string.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -17,15 +33,13 @@ void open_folder(const std::string& path)
 	// Code taken from NotificationManager.cpp
 
 	// Execute command to open a file explorer, platform dependent.
-	// FIXME: The const_casts aren't needed in wxWidgets 3.1, remove them when we upgrade.
-
 #ifdef _WIN32
 	const wxString widepath = from_u8(path);
 	const wchar_t* argv[] = { L"explorer", widepath.GetData(), nullptr };
-	::wxExecute(const_cast<wchar_t**>(argv), wxEXEC_ASYNC, nullptr);
+	::wxExecute(argv, wxEXEC_ASYNC, nullptr);
 #elif __APPLE__
 	const char* argv[] = { "open", path.data(), nullptr };
-	::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr);
+	::wxExecute(argv, wxEXEC_ASYNC, nullptr);
 #else
 	const char* argv[] = { "xdg-open", path.data(), nullptr };
 
@@ -53,11 +67,11 @@ void open_folder(const std::string& path)
 			exec_env.cwd = std::move(owd);
 		}
 
-		::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr, &exec_env);
+		::wxExecute(argv, wxEXEC_ASYNC, nullptr, &exec_env);
 	}
 	else {
 		// Looks like we're NOT running from AppImage, we'll make no changes to the environment.
-		::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr, nullptr);
+		::wxExecute(argv, wxEXEC_ASYNC, nullptr, nullptr);
 	}
 #endif
 }
@@ -136,7 +150,7 @@ void Downloader::start_download(const std::string& full_url)
     Plater* plater = wxGetApp().plater();
 
     mainframe->Freeze();
-    mainframe->select_tab((size_t)MainFrame::TabPosition::tp3DEditor);
+    mainframe->select_tab(TAB_ID_PREPARE);
     plater->select_view_3D("3D");
     plater->select_view("plate");
     plater->get_current_canvas3D()->zoom_to_bed();
@@ -153,7 +167,7 @@ void Downloader::start_download(const std::string& full_url)
         // Orca: show error
         NotificationManager* ntf_mngr = wxGetApp().notification_manager();
         ntf_mngr->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel,
-                                    "Could not start download due to malformed URL");
+                                    _u8L("Could not start download due to malformed URL"));
 		return;
 	}
     size_t id = get_next_id();

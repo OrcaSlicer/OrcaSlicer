@@ -9,6 +9,7 @@
     "bridge_flow": "1",
     "elefant_foot_compensation": "0.15",
     "initial_layer_line_width": "0.25",
+    "initial_layer_infill_line_width": "0.25",
     "initial_layer_print_height": "0.1",
     "initial_layer_speed": [
         "20",

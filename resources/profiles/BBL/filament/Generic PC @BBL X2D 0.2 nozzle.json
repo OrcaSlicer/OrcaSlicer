@@ -1,0 +1,77 @@
+{
+    "type": "filament",
+    "name": "Generic PC @BBL X2D 0.2 nozzle",
+    "inherits": "Generic PC @base",
+    "from": "system",
+    "setting_id": "GFSC99_17",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "0.94",
+        "0.94",
+        "0.94",
+        "0.94"
+    ],
+    "filament_flush_volumetric_speed": [
+        "3",
+        "3",
+        "3",
+        "3"
+    ],
+    "filament_max_volumetric_speed": [
+        "1",
+        "1",
+        "1",
+        "1"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_tower_interface_print_temp": [
+        "280"
+    ],
+    "include": [
+        "fdm_filament_template_direct_bowden"
+    ],
+    "nozzle_temperature": [
+        "280",
+        "280",
+        "280",
+        "280"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270",
+        "270",
+        "270",
+        "270"
+    ],
+    "retraction_distances_when_ec": [
+        "3",
+        "3",
+        "4",
+        "4"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

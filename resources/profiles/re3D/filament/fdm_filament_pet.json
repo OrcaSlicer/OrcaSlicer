@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "fdm_filament_pet",
+	"inherits": "fdm_filament_common",
+	"from": "system",
+	"instantiation": "false",
+	"filament_type": [
+		"PETG"
+	]
+}

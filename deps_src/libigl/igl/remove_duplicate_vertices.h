@@ -11,24 +11,15 @@
 #include <Eigen/Dense>
 namespace igl
 {
-  // REMOVE_DUPLICATE_VERTICES Remove duplicate vertices upto a uniqueness
-  // tolerance (epsilon)
-  //
-  // Inputs:
-  //   V  #V by dim list of vertex positions
-  //   epsilon  uniqueness tolerance (significant digit), can probably think of
-  //     this as a tolerance on L1 distance
-  // Outputs:
-  //   SV  #SV by dim new list of vertex positions
-  //   SVI #V by 1 list of indices so SV = V(SVI,:) 
-  //   SVJ #SV by 1 list of indices so V = SV(SVJ,:)
-  //
-  // Example:
-  //   % Mesh in (V,F)
-  //   [SV,SVI,SVJ] = remove_duplicate_vertices(V,1e-7);
-  //   % remap faces
-  //   SF = SVJ(F);
-  //
+  /// Remove duplicate vertices upto a uniqueness tolerance (epsilon)
+  ///
+  /// @param[in] V  #V by dim list of vertex positions
+  /// @param[in] epsilon  uniqueness tolerance used coordinate-wise: 1e0 --> integer
+  ///     match, 1e-1 --> match up to first decimal, ... , 0 --> exact match.
+  /// @param[out] SV  #SV by dim new list of vertex positions
+  /// @param[out] SVI #SV by 1 list of indices so SV = V(SVI,:) 
+  /// @param[out] SVJ #V by 1 list of indices so V = SV(SVJ,:)
+  ///
   template <
     typename DerivedV, 
     typename DerivedSV, 
@@ -40,7 +31,9 @@ namespace igl
     Eigen::PlainObjectBase<DerivedSV>& SV,
     Eigen::PlainObjectBase<DerivedSVI>& SVI,
     Eigen::PlainObjectBase<DerivedSVJ>& SVJ);
-  // Wrapper that also remaps given faces (F) --> (SF) so that SF index SV
+  /// \overload
+  /// \brief Wrapper that also remaps given faces (F) --> (SF) so that SF index SV
+  /// @param[out] SF  #F by dim list of face indices into SV
   template <
     typename DerivedV, 
     typename DerivedF,

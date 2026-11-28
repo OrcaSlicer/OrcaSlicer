@@ -1,0 +1,83 @@
+{
+    "type": "filament",
+    "name": "Bambu PVA @BBL H2S 0.6 nozzle",
+    "inherits": "Bambu PVA @base",
+    "from": "system",
+    "setting_id": "GFSS04_36",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_dev_ams_drying_temperature": [
+        "65",
+        "85",
+        "65",
+        "70"
+    ],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "18",
+        "12",
+        "18"
+    ],
+    "filament_flow_ratio": [
+        "1",
+        "1",
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "6",
+        "6",
+        "6"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual_e3d"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "240",
+        "240",
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240",
+        "240",
+        "240"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0",
+        "0"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2S 0.6 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

@@ -1,0 +1,102 @@
+{
+    "type": "filament",
+    "name": "Generic PPA-CF @BBL X2D",
+    "inherits": "Generic PPA-CF @base",
+    "from": "system",
+    "setting_id": "GFSN97_06",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "fan_max_speed": [
+        "35",
+        "35",
+        "35",
+        "35",
+        "35",
+        "35"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "0.96",
+        "0.96",
+        "0.96",
+        "0.96",
+        "0.96",
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "6.5",
+        "6.5",
+        "6.5",
+        "6.5",
+        "6.5",
+        "6.5"
+    ],
+    "filament_printable": [
+        "1"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_tower_interface_print_temp": [
+        "290"
+    ],
+    "include": [
+        "fdm_filament_template_direct_bowden_e3d"
+    ],
+    "nozzle_temperature": [
+        "290",
+        "290",
+        "290",
+        "290",
+        "290",
+        "290"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "290",
+        "290",
+        "290",
+        "290",
+        "290",
+        "290"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "retraction_distances_when_ec": [
+        "3",
+        "3",
+        "3",
+        "4",
+        "4",
+        "4"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20",
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.6 nozzle",
+        "Bambu Lab X2D 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

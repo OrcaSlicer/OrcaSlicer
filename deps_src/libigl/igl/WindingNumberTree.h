@@ -11,74 +11,67 @@
 #include <map>
 #include <Eigen/Dense>
 #include "WindingNumberMethod.h"
+#include <memory>
 
 namespace igl
 {
-  // Space partitioning tree for computing winding number hierarchically.
-  //
-  // Templates:
-  //   Point  type for points in space, e.g. Eigen::Vector3d
+  /// Space partitioning tree for computing winding number hierarchically.
   template <
-    typename Point,
-    typename DerivedV, 
-    typename DerivedF >
+    typename Scalar, 
+    typename Index>
   class WindingNumberTree
   {
     public:
+      using Point = Eigen::Matrix<Scalar,1,3>;
       // Method to use (see enum above)
       //static double min_max_w;
       static std::map< 
         std::pair<const WindingNumberTree*,const WindingNumberTree*>, 
-        typename DerivedV::Scalar>
+        Scalar>
           cached;
-      // This is only need to fill in references, it should never actually be touched
-      // and shouldn't cause race conditions. (This is a hack, but I think it's "safe")
-      static DerivedV dummyV;
     protected:
       WindingNumberMethod method;
       const WindingNumberTree * parent;
       std::list<WindingNumberTree * > children;
       typedef 
-        Eigen::Matrix<typename DerivedV::Scalar,Eigen::Dynamic,Eigen::Dynamic>
+        Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>
         MatrixXS;
       typedef 
-        Eigen::Matrix<typename DerivedF::Scalar,Eigen::Dynamic,Eigen::Dynamic>
+        Eigen::Matrix<Index,Eigen::Dynamic,Eigen::Dynamic>
         MatrixXF;
-      //// List of boundary edges (recall edges are vertices in 2d)
-      //const Eigen::MatrixXi boundary;
-      // Base mesh vertices
-      DerivedV & V;
-      // Base mesh vertices with duplicates removed
+      // Base mesh vertices with duplicates removed (root will fill this in and
+      // then everyone's Vptr will point to it.
       MatrixXS SV;
+      // Shared pointer to base mesh vertices
+      std::shared_ptr<MatrixXS> Vptr;
       // Facets in this bounding volume
       MatrixXF F;
       // Tessellated boundary curve
       MatrixXF cap;
       // Upper Bound on radius of enclosing ball
-      typename DerivedV::Scalar radius;
+      Scalar radius;
       // (Approximate) center (of mass)
       Point center;
     public:
       inline WindingNumberTree();
       // For root
+      template <typename DerivedV, typename DerivedF>
       inline WindingNumberTree(
         const Eigen::MatrixBase<DerivedV> & V,
         const Eigen::MatrixBase<DerivedF> & F);
       // For chilluns 
       inline WindingNumberTree(
-        const WindingNumberTree<Point,DerivedV,DerivedF> & parent,
-        const Eigen::MatrixBase<DerivedF> & F);
+        const WindingNumberTree<Scalar,Index> & parent,
+        const typename igl::WindingNumberTree<Scalar,Index>::MatrixXF & F);
       inline virtual ~WindingNumberTree();
       inline void delete_children();
-      inline virtual void set_mesh(
+      template <typename DerivedV, typename DerivedF>
+      inline void set_mesh(
         const Eigen::MatrixBase<DerivedV> & V,
         const Eigen::MatrixBase<DerivedF> & F);
       // Set method
       inline void set_method( const WindingNumberMethod & m);
     public:
-      inline const DerivedV & getV() const;
-      inline const MatrixXF & getF() const;
-      inline const MatrixXF & getcap() const;
       // Grow the Tree recursively
       inline virtual void grow();
       // Determine whether a given point is inside the bounding 
@@ -93,12 +86,12 @@ namespace igl
       // Inputs:
       //   p  query point 
       // Returns winding number 
-      inline typename DerivedV::Scalar winding_number(const Point & p) const;
+      inline Scalar winding_number(const Point & p) const;
       // Same as above, but always computes winding number using exact method
       // (sum over every facet)
-      inline typename DerivedV::Scalar winding_number_all(const Point & p) const;
+      inline Scalar winding_number_all(const Point & p) const;
       // Same as above, but always computes using sum over tessllated boundary
-      inline typename DerivedV::Scalar winding_number_boundary(const Point & p) const;
+      inline Scalar winding_number_boundary(const Point & p) const;
       //// Same as winding_number above, but if max_simple_abs_winding_number is
       //// less than some threshold min_max_w just return 0 (colloquially the "fast
       //// multipole method)
@@ -121,10 +114,10 @@ namespace igl
       // Inputs:
       //   p  query point 
       // Returns max winding number of 
-      inline virtual typename DerivedV::Scalar max_abs_winding_number(const Point & p) const; 
+      inline virtual Scalar max_abs_winding_number(const Point & p) const; 
       // Same as above, but stronger assumptions on (V,F). Assumes (V,F) is a
       // simple polyhedron
-      inline virtual typename DerivedV::Scalar max_simple_abs_winding_number(const Point & p) const;
+      inline virtual Scalar max_simple_abs_winding_number(const Point & p) const;
       // Compute or read cached winding number for point p with respect to mesh
       // in bounding box, recursing according to approximation criteria
       //
@@ -132,7 +125,7 @@ namespace igl
       //   p  query point 
       //   that  WindingNumberTree containing mesh w.r.t. which we're computing w.n.
       // Returns cached winding number
-      inline virtual typename DerivedV::Scalar cached_winding_number(const WindingNumberTree & that, const Point & p) const;
+      inline virtual Scalar cached_winding_number(const WindingNumberTree & that, const Point & p) const;
   };
 }
 
@@ -143,53 +136,51 @@ namespace igl
 #include "triangle_fan.h"
 #include "exterior_edges.h"
 
-#include <igl/PI.h>
-#include <igl/remove_duplicate_vertices.h>
+#include "PI.h"
+#include "remove_duplicate_vertices.h"
 
 #include <iostream>
 #include <limits>
 
-//template <typename Point, typename DerivedV, typename DerivedF>
-//WindingNumberMethod WindingNumberTree<Point,DerivedV,DerivedF>::method = EXACT_WINDING_NUMBER_METHOD;
-//template <typename Point, typename DerivedV, typename DerivedF>
-//double WindingNumberTree<Point,DerivedV,DerivedF>::min_max_w = 0;
-template <typename Point, typename DerivedV, typename DerivedF>
-std::map< std::pair<const igl::WindingNumberTree<Point,DerivedV,DerivedF>*,const igl::WindingNumberTree<Point,DerivedV,DerivedF>*>, typename DerivedV::Scalar>
-  igl::WindingNumberTree<Point,DerivedV,DerivedF>::cached;
+//template <typename Scalar, typename Index>
+//WindingNumberMethod WindingNumberTree<Scalar,Index>::method = EXACT_WINDING_NUMBER_METHOD;
+//template <typename Scalar, typename Index>
+//double WindingNumberTree<Scalar,Index>::min_max_w = 0;
+template <typename Scalar, typename Index>
+std::map< std::pair<const igl::WindingNumberTree<Scalar,Index>*,const igl::WindingNumberTree<Scalar,Index>*>, Scalar>
+  igl::WindingNumberTree<Scalar,Index>::cached;
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline igl::WindingNumberTree<Point,DerivedV,DerivedF>::WindingNumberTree():
+template <typename Scalar, typename Index>
+inline igl::WindingNumberTree<Scalar,Index>::WindingNumberTree():
   method(EXACT_WINDING_NUMBER_METHOD),
   parent(NULL),
-  V(dummyV),
   SV(),
   F(),
-  //boundary(igl::boundary_facets<Eigen::MatrixXi,Eigen::MatrixXi>(F))
   cap(),
-  radius(std::numeric_limits<typename DerivedV::Scalar>::infinity()),
+  radius(std::numeric_limits<Scalar>::infinity()),
   center(0,0,0)
 {
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline igl::WindingNumberTree<Point,DerivedV,DerivedF>::WindingNumberTree(
+template <typename Scalar, typename Index>
+template <typename DerivedV, typename DerivedF>
+inline igl::WindingNumberTree<Scalar,Index>::WindingNumberTree(
   const Eigen::MatrixBase<DerivedV> & _V,
   const Eigen::MatrixBase<DerivedF> & _F):
   method(EXACT_WINDING_NUMBER_METHOD),
   parent(NULL),
-  V(dummyV),
   SV(),
   F(),
-  //boundary(igl::boundary_facets<Eigen::MatrixXi,Eigen::MatrixXi>(F))
   cap(),
-  radius(std::numeric_limits<typename DerivedV::Scalar>::infinity()),
+  radius(std::numeric_limits<Scalar>::infinity()),
   center(0,0,0)
 {
   set_mesh(_V,_F);
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline void igl::WindingNumberTree<Point,DerivedV,DerivedF>::set_mesh(
+template <typename Scalar, typename Index>
+template <typename DerivedV, typename DerivedF>
+inline void igl::WindingNumberTree<Scalar,Index>::set_mesh(
     const Eigen::MatrixBase<DerivedV> & _V,
     const Eigen::MatrixBase<DerivedF> & _F)
 {
@@ -197,37 +188,45 @@ inline void igl::WindingNumberTree<Point,DerivedV,DerivedF>::set_mesh(
   // Remove any exactly duplicate vertices
   // Q: Can this ever increase the complexity of the boundary?
   // Q: Would we gain even more by remove almost exactly duplicate vertices?
-  MatrixXF SF,SVI,SVJ;
+  Eigen::Matrix<typename MatrixXF::Scalar,Eigen::Dynamic,1> SVI,SVJ;
   igl::remove_duplicate_vertices(_V,_F,0.0,SV,SVI,SVJ,F);
-  triangle_fan(igl::exterior_edges(F),cap);
-  V = SV;
+  {
+    Eigen::Matrix<typename MatrixXF::Scalar,Eigen::Dynamic,2> EE;
+    igl::exterior_edges(F,EE);
+    triangle_fan(EE,cap);
+  }
+  // point Vptr to SV
+  Vptr = std::make_shared<MatrixXS>(SV);
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline igl::WindingNumberTree<Point,DerivedV,DerivedF>::WindingNumberTree(
-  const igl::WindingNumberTree<Point,DerivedV,DerivedF> & parent,
-  const Eigen::MatrixBase<DerivedF> & _F):
+template <typename Scalar, typename Index>
+inline igl::WindingNumberTree<Scalar,Index>::WindingNumberTree(
+  const igl::WindingNumberTree<Scalar,Index> & parent,
+  const typename igl::WindingNumberTree<Scalar,Index>::MatrixXF & _F):
   method(parent.method),
   parent(&parent),
-  V(parent.V),
+  Vptr(parent.Vptr),
   SV(),
   F(_F),
-  cap(triangle_fan(igl::exterior_edges(_F)))
+  cap()
 {
+  Eigen::Matrix<typename MatrixXF::Scalar,Eigen::Dynamic,2> EE;
+  igl::exterior_edges(F,EE);
+  triangle_fan(EE,cap);
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline igl::WindingNumberTree<Point,DerivedV,DerivedF>::~WindingNumberTree()
+template <typename Scalar, typename Index>
+inline igl::WindingNumberTree<Scalar,Index>::~WindingNumberTree()
 {
   delete_children();
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline void igl::WindingNumberTree<Point,DerivedV,DerivedF>::delete_children()
+template <typename Scalar, typename Index>
+inline void igl::WindingNumberTree<Scalar,Index>::delete_children()
 {
   using namespace std;
   // Delete children
-  typename list<WindingNumberTree<Point,DerivedV,DerivedF>* >::iterator cit = children.begin();
+  typename list<WindingNumberTree<Scalar,Index>* >::iterator cit = children.begin();
   while(cit != children.end())
   {
     // clear the memory of this item
@@ -237,8 +236,8 @@ inline void igl::WindingNumberTree<Point,DerivedV,DerivedF>::delete_children()
   }
 }
       
-template <typename Point, typename DerivedV, typename DerivedF>
-inline void igl::WindingNumberTree<Point,DerivedV,DerivedF>::set_method(const WindingNumberMethod & m)
+template <typename Scalar, typename Index>
+inline void igl::WindingNumberTree<Scalar,Index>::set_method(const WindingNumberMethod & m)
 {
   this->method = m;
   for(auto child : children)
@@ -247,42 +246,22 @@ inline void igl::WindingNumberTree<Point,DerivedV,DerivedF>::set_method(const Wi
   }
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline const DerivedV & igl::WindingNumberTree<Point,DerivedV,DerivedF>::getV() const
-{
-  return V;
-}
-
-template <typename Point, typename DerivedV, typename DerivedF>
-inline const typename igl::WindingNumberTree<Point,DerivedV,DerivedF>::MatrixXF& 
-  igl::WindingNumberTree<Point,DerivedV,DerivedF>::getF() const
-{
-  return F;
-}
-
-template <typename Point, typename DerivedV, typename DerivedF>
-inline const typename igl::WindingNumberTree<Point,DerivedV,DerivedF>::MatrixXF& 
-  igl::WindingNumberTree<Point,DerivedV,DerivedF>::getcap() const
-{
-  return cap;
-}
-
-template <typename Point, typename DerivedV, typename DerivedF>
-inline void igl::WindingNumberTree<Point,DerivedV,DerivedF>::grow()
+template <typename Scalar, typename Index>
+inline void igl::WindingNumberTree<Scalar,Index>::grow()
 {
   // Don't grow
   return;
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline bool igl::WindingNumberTree<Point,DerivedV,DerivedF>::inside(const Point & /*p*/) const
+template <typename Scalar, typename Index>
+inline bool igl::WindingNumberTree<Scalar,Index>::inside(const Point & /*p*/) const
 {
   return true;
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline typename DerivedV::Scalar 
-igl::WindingNumberTree<Point,DerivedV,DerivedF>::winding_number(const Point & p) const
+template <typename Scalar, typename Index>
+inline Scalar 
+igl::WindingNumberTree<Scalar,Index>::winding_number(const Point & p) const
 {
   using namespace std;
   //cout<<"+"<<boundary.rows();
@@ -293,9 +272,9 @@ igl::WindingNumberTree<Point,DerivedV,DerivedF>::winding_number(const Point & p)
     if(children.size()>0)
     {
       // Recurse on each child and accumulate
-      typename DerivedV::Scalar sum = 0;
+      Scalar sum = 0;
       for(
-        typename list<WindingNumberTree<Point,DerivedV,DerivedF>* >::const_iterator cit = children.begin();
+        typename list<WindingNumberTree<Scalar,Index>* >::const_iterator cit = children.begin();
         cit != children.end();
         cit++)
       {
@@ -333,7 +312,7 @@ igl::WindingNumberTree<Point,DerivedV,DerivedF>::winding_number(const Point & p)
           return winding_number_boundary(p);
         case APPROX_SIMPLE_WINDING_NUMBER_METHOD:
         {
-          typename DerivedV::Scalar dist = (p-center).norm();
+          Scalar dist = (p-center).norm();
           // Radius is already an overestimate of inside
           if(dist>1.0*radius)
           {
@@ -358,24 +337,22 @@ igl::WindingNumberTree<Point,DerivedV,DerivedF>::winding_number(const Point & p)
   return 0;
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline typename DerivedV::Scalar 
-  igl::WindingNumberTree<Point,DerivedV,DerivedF>::winding_number_all(const Point & p) const
+template <typename Scalar, typename Index>
+inline Scalar 
+  igl::WindingNumberTree<Scalar,Index>::winding_number_all(const Point & p) const
 {
-  return igl::winding_number(V,F,p);
+  return igl::winding_number(*Vptr,F,p);
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline typename DerivedV::Scalar 
-igl::WindingNumberTree<Point,DerivedV,DerivedF>::winding_number_boundary(const Point & p) const
+template <typename Scalar, typename Index>
+inline Scalar 
+igl::WindingNumberTree<Scalar,Index>::winding_number_boundary(const Point & p) const
 {
-  using namespace Eigen;
-  using namespace std;
-  return igl::winding_number(V,cap,p);
+  return igl::winding_number(*Vptr,cap,p);
 }
 
-//template <typename Point, typename DerivedV, typename DerivedF>
-//inline double igl::WindingNumberTree<Point,DerivedV,DerivedF>::winding_number_approx_simple(
+//template <typename Scalar, typename Index>
+//inline double igl::WindingNumberTree<Scalar,Index>::winding_number_approx_simple(
 //  const Point & p, 
 //  const double min_max_w)
 //{
@@ -390,15 +367,15 @@ igl::WindingNumberTree<Point,DerivedV,DerivedF>::winding_number_boundary(const P
 //  }
 //}
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline void igl::WindingNumberTree<Point,DerivedV,DerivedF>::print(const char * tab)
+template <typename Scalar, typename Index>
+inline void igl::WindingNumberTree<Scalar,Index>::print(const char * tab)
 {
   using namespace std;
   // Print all facets
   cout<<tab<<"["<<endl<<F<<endl<<"]";
   // Print children
   for(
-      typename list<WindingNumberTree<Point,DerivedV,DerivedF>* >::iterator cit = children.begin();
+      typename list<WindingNumberTree<Scalar,Index>* >::iterator cit = children.begin();
       cit != children.end();
       cit++)
   {
@@ -407,26 +384,26 @@ inline void igl::WindingNumberTree<Point,DerivedV,DerivedF>::print(const char * 
   }
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline typename DerivedV::Scalar 
-igl::WindingNumberTree<Point,DerivedV,DerivedF>::max_abs_winding_number(const Point & /*p*/) const
+template <typename Scalar, typename Index>
+inline Scalar 
+igl::WindingNumberTree<Scalar,Index>::max_abs_winding_number(const Point & /*p*/) const
 {
-  return std::numeric_limits<typename DerivedV::Scalar>::infinity();
+  return std::numeric_limits<Scalar>::infinity();
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline typename DerivedV::Scalar 
-igl::WindingNumberTree<Point,DerivedV,DerivedF>::max_simple_abs_winding_number(
+template <typename Scalar, typename Index>
+inline Scalar 
+igl::WindingNumberTree<Scalar,Index>::max_simple_abs_winding_number(
   const Point & /*p*/) const
 {
   using namespace std;
-  return numeric_limits<typename DerivedV::Scalar>::infinity();
+  return numeric_limits<Scalar>::infinity();
 }
 
-template <typename Point, typename DerivedV, typename DerivedF>
-inline typename DerivedV::Scalar 
-igl::WindingNumberTree<Point,DerivedV,DerivedF>::cached_winding_number(
-  const igl::WindingNumberTree<Point,DerivedV,DerivedF> & that,
+template <typename Scalar, typename Index>
+inline Scalar 
+igl::WindingNumberTree<Scalar,Index>::cached_winding_number(
+  const igl::WindingNumberTree<Scalar,Index> & that,
   const Point & p) const
 {
   using namespace std;
@@ -450,7 +427,7 @@ igl::WindingNumberTree<Point,DerivedV,DerivedF>::cached_winding_number(
   bool is_far = this->radius<that.radius;
   if(is_far)
   {
-    typename DerivedV::Scalar a = atan2(
+    Scalar a = atan2(
       that.radius - this->radius,
       (that.center - this->center).norm());
     assert(a>0);
@@ -475,7 +452,7 @@ igl::WindingNumberTree<Point,DerivedV,DerivedF>::cached_winding_number(
   }else
   {
     for(
-      typename list<WindingNumberTree<Point,DerivedV,DerivedF>* >::const_iterator cit = children.begin();
+      typename list<WindingNumberTree<Scalar,Index>* >::const_iterator cit = children.begin();
       cit != children.end();
       cit++)
     {
@@ -492,12 +469,5 @@ igl::WindingNumberTree<Point,DerivedV,DerivedF>::cached_winding_number(
   }
   return 0;
 }
-
-// Explicit instantiation of static variable
-template <
-  typename Point,
-  typename DerivedV, 
-  typename DerivedF >
-DerivedV igl::WindingNumberTree<Point,DerivedV,DerivedF>::dummyV;
 
 #endif

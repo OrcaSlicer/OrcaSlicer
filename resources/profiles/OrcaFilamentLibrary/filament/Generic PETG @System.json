@@ -1,11 +1,27 @@
 {
-    "type": "filament",
-    "name": "Generic PETG @System",
-    "renamed_from": "My Generic PETG",
-    "inherits": "fdm_filament_pet",
-    "from": "system",
-    "setting_id": "OGFSA04",
-    "filament_id": "OGFG99",
-    "instantiation": "true",
-    "compatible_printers": []
+	"type": "filament",
+	"name": "Generic PETG @System",
+	"renamed_from": "My Generic PETG",
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"setting_id": "YiQZfhL6hH0giSHL",
+	"filament_id": "OFYPdQJh",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
+	"filament_max_volumetric_speed": [
+		"10",
+		"18",
+		"21",
+		"10",
+		"15",
+		"15"
+	]
 }

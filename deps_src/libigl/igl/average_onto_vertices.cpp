@@ -7,11 +7,11 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "average_onto_vertices.h"
 
-template<typename DerivedV,typename DerivedF,typename DerivedS>
+template<typename DerivedV,typename DerivedF,typename DerivedS,typename DerivedSV >
 IGL_INLINE void igl::average_onto_vertices(const Eigen::MatrixBase<DerivedV> &V,
   const Eigen::MatrixBase<DerivedF> &F,
   const Eigen::MatrixBase<DerivedS> &S,
-  Eigen::MatrixBase<DerivedS> &SV)
+  Eigen::PlainObjectBase<DerivedSV> &SV)
 {
   SV = DerivedS::Zero(V.rows(),S.cols());
   Eigen::Matrix<typename DerivedF::Scalar,Eigen::Dynamic,1> COUNT(V.rows());

@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Overture PLA @Qidi X-Smart 5 0.2 nozzle",
+	"inherits": "Overture PLA@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "rSY3px0cUOZfvkjs",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.057"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.2 nozzle"
+	]
+}

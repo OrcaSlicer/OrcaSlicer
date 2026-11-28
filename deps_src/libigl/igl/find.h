@@ -11,20 +11,18 @@
 #define EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
+#include <vector>
 namespace igl
 {
-  // Find the non-zero entries and there respective indices in a sparse matrix.
-  // Like matlab's [I,J,V] = find(X)
-  //
-  // Templates:
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Input:
-  //   X  m by n matrix whose entries are to be found 
-  // Outputs:
-  //   I  nnz vector of row indices of non zeros entries in X
-  //   J  nnz vector of column indices of non zeros entries in X
-  //   V  nnz vector of type T non-zeros entries in X
-  //
+  /// Find the non-zero entries and there respective indices in a sparse matrix.
+  /// Like matlab's [I,J,V] = find(X)
+  ///
+  /// @tparam T  should be a eigen sparse matrix primitive type like int or double
+  /// @param[in] X  m by n matrix whose entries are to be found 
+  /// @param[out] I  nnz vector of row indices of non zeros entries in X
+  /// @param[out] J  nnz vector of column indices of non zeros entries in X
+  /// @param[out] V  nnz vector of type T non-zeros entries in X
+  ///
   template <
     typename T, 
     typename DerivedI, 
@@ -35,6 +33,11 @@ namespace igl
     Eigen::DenseBase<DerivedI> & I,
     Eigen::DenseBase<DerivedJ> & J,
     Eigen::DenseBase<DerivedV> & V);
+  /// \overload
+  template < typename T>
+  IGL_INLINE std::vector<Eigen::Triplet<T> > find(
+    const Eigen::SparseMatrix<T>& X);
+  /// \overload
   template <
     typename DerivedX,
     typename DerivedI, 
@@ -45,29 +48,38 @@ namespace igl
     Eigen::PlainObjectBase<DerivedI> & I,
     Eigen::PlainObjectBase<DerivedJ> & J,
     Eigen::PlainObjectBase<DerivedV> & V);
+  /// \overload
+  ///
+  /// @param[out] I  nnz vector of indices into vectorization of X
   template <
     typename DerivedX,
     typename DerivedI>
   IGL_INLINE void find(
     const Eigen::DenseBase<DerivedX>& X,
     Eigen::PlainObjectBase<DerivedI> & I);
-  // Find the non-zero entries and there respective indices in a sparse vector.
-  // Similar to matlab's [I,J,V] = find(X), but instead of [I,J] being
-  // subscripts into X, since X is a vector we just return I, a list of indices
-  // into X
-  //
-  // Templates:
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Input:
-  //   X  vector whose entries are to be found
-  // Outputs:
-  //   I  nnz vector of indices of non zeros entries in X
-  //   V  nnz vector of type T non-zeros entries in X
+  /// \overload
   template <typename T>
   IGL_INLINE void find(
     const Eigen::SparseVector<T>& X,
     Eigen::Matrix<int,Eigen::Dynamic,1> & I,
     Eigen::Matrix<T,Eigen::Dynamic,1> & V);
+  /// \overload
+  /// \brief This overload facilitates the use of bool masks for Eigen slicing
+  /// @tparam RowsAtCompileTime number of rows in M at compile time
+  /// @return indices of true entries in M
+  ///
+  /// ##### Example
+  ///
+  /// ```cpp
+  /// igl::slice_mask(A,igl::find(M),igl::find(N),B);
+  /// // Is the same as
+  /// B = A(igl::find(M),igl::find(N));
+  /// ```
+  ///
+  /// \see slice_mask
+  template <int RowsAtCompileTime, int MaxRowsAtCompileTime>
+  IGL_INLINE std::vector<int> find(
+    const Eigen::Array<bool,RowsAtCompileTime,1,0,MaxRowsAtCompileTime,1> & M);
 }
 
 #ifndef IGL_STATIC_LIBRARY

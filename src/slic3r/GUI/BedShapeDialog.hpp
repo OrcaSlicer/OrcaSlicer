@@ -11,8 +11,17 @@
 
 #include "Widgets/ComboBox.hpp"
 
+#include <memory>
+#include "libslic3r/Point.hpp"
+#include <string>
+#include <vector>
+#include "libslic3r/Config.hpp"
 #include <wx/dialog.h>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/simplebook.h> // ORCA
+#include <wx/string.h>
 
 namespace Slic3r {
 namespace GUI {

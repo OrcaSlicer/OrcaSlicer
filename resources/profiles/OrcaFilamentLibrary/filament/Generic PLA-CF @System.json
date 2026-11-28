@@ -1,17 +1,38 @@
 {
-    "type": "filament",
-    "name": "Generic PLA-CF @System",
-    "renamed_from": "My Generic PLA-CF",
-    "inherits": "fdm_filament_pla",
-    "from": "system",
-    "setting_id": "OGFSA04",
-    "filament_id": "OGFL98",
-    "instantiation": "true",
-    "filament_flow_ratio": [
-        "0.95"
-    ],
-    "filament_type": [
-        "PLA-CF"
-    ],
-    "compatible_printers": []
+	"type": "filament",
+	"name": "Generic PLA-CF @System",
+	"renamed_from": "My Generic PLA-CF",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "l2LkEql1SVH0iRqY",
+	"filament_id": "OFWbdGsC",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
+	"filament_flow_ratio": [
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95"
+	],
+	"filament_type": [
+		"PLA-CF"
+	],
+	"compatible_printers": [],
+	"filament_max_volumetric_speed": [
+		"12",
+		"18",
+		"18",
+		"12",
+		"18",
+		"18"
+	]
 }

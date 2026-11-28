@@ -1,0 +1,95 @@
+{
+    "type": "filament",
+    "name": "Bambu Support for ABS @BBL X2D 0.8 nozzle",
+    "inherits": "Bambu Support for ABS @base",
+    "from": "system",
+    "setting_id": "GFSS06_23",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_dev_ams_drying_temperature": [
+        "65",
+        "80",
+        "65",
+        "75"
+    ],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "4",
+        "12",
+        "4"
+    ],
+    "filament_flow_ratio": [
+        "0.95",
+        "0.95",
+        "0.95",
+        "0.95"
+    ],
+    "filament_flush_temp_fast": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_max_volumetric_speed": [
+        "6",
+        "6",
+        "6",
+        "6"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_tower_interface_print_temp": [
+        "270"
+    ],
+    "include": [
+        "fdm_filament_template_direct_bowden"
+    ],
+    "nozzle_temperature": [
+        "270",
+        "270",
+        "270",
+        "270"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260",
+        "260",
+        "260",
+        "260"
+    ],
+    "retraction_distances_when_ec": [
+        "3",
+        "3",
+        "4",
+        "4"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

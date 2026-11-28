@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Basic @Qidi Q2C 0.4 nozzle",
+	"inherits": "QIDI PETG Basic@Q2C-Series",
+	"from": "system",
+	"setting_id": "myllwvTQwpkLwYOJ",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
+}

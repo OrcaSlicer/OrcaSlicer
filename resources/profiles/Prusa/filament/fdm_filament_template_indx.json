@@ -1,0 +1,21 @@
+{
+	"type": "filament",
+	"name": "fdm_filament_template_indx",
+	"from": "system",
+	"instantiation": "false",
+	"filament_multitool_ramming": [
+		"1"
+	],
+	"filament_multitool_ramming_flow": [
+		"30"
+	],
+	"filament_multitool_ramming_volume": [
+		"18"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"10"
+	],
+	"filament_start_gcode": [
+		"M572 S{pressure_advance[filament_extruder_id]} ; Pressure advance\nM573 R"
+	]
+}

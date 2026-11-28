@@ -2,6 +2,28 @@
 
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/ProgressBar.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/DialogButtons.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/utils.h>
+#include "libslic3r/AppConfig.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Operations/ObjectOps.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "slic3r/GUI/Plater.hpp"
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
@@ -21,6 +43,11 @@ CloneDialog::CloneDialog(wxWindow *parent)
     auto count_label = new wxStaticText(this, wxID_ANY, _L("Number of copies:"), wxDefaultPosition, wxDefaultSize, 0);
     m_count_spin = new SpinInput(this, wxEmptyString, "", wxDefaultPosition, wxSize(FromDIP(120), -1), wxSP_ARROW_KEYS, 1, 1000, 1);
     m_count_spin->GetTextCtrl()->SetFocus();
+    m_count_spin->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent &e) {
+        e.SetId(GetId());
+        ProcessEventLocally(e);
+        e.Skip();
+    });
     f_sizer->Add(count_label  , 0, wxEXPAND | wxALIGN_CENTER_VERTICAL);
     f_sizer->Add(m_count_spin, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -41,14 +68,14 @@ CloneDialog::CloneDialog(wxWindow *parent)
     m_progress->SetProgressForedColour(StateColor::darkModeColorFor(wxColour("#DFDFDF")));
     m_progress->SetDoubleBuffered(true);
     m_progress->Hide();
-    bottom_sizer->Add(m_progress, 2, wxEXPAND | wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    bottom_sizer->Add(m_progress, 2, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
 
     auto dlg_btns = new DialogButtons(this, {"Fill", "OK", "Cancel"}, "", 1 /*left_aligned*/);
 
     // Keep pointer to OK button so we can trigger it manually on Enter.
     Button *ok_btn = dlg_btns->GetOK();
 
-    dlg_btns->GetFIRST()->SetToolTip(_L("Fill bed with copies"));
+    dlg_btns->GetFIRST()->SetToolTip(_L("Fill bed with instances"));
     dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         m_plater->fill_bed_with_instances();
         EndModal(wxID_OK);
@@ -70,30 +97,18 @@ CloneDialog::CloneDialog(wxWindow *parent)
         v_sizer->Fit(this);
         Refresh();
 
-        Selection& sel = m_plater->canvas3D()->get_selection();
-        m_plater->take_snapshot(std::string("Selection-clone"));
-        m_plater->Freeze(); // Better to stop rendering canvas while processing
-        sel.copy_to_clipboard();
-        for (int i = 0; i < m_count; i++) { // same method with Selection::clone()
-            m_progress->SetValue(static_cast<int>(static_cast<double>(i) / m_count * 100)); // pass 0 / 100
-            sel.paste_from_clipboard();
-
-            if (m_cancel_process) {
-                m_plater->undo();
-                return;
-            }
- 
+        // The selection's copies, the progress bar showing each; Cancel, which ends the dialog, undoes them.
+        Ops::CloneObjectsArgs clone;
+        clone.targets.from_selection = true;
+        clone.count                  = m_count;
+        clone.arrange                = m_arrange_cb->GetValue();
+        const auto pasted            = [this](int done, int count) {
+            m_progress->SetValue(static_cast<int>(static_cast<double>(done - 1) / count * 100)); // pass 0 / 100
             wxYield(); // Allow event loop to process updates
-        }
-
-        if (!m_cancel_process) {
-            if (m_arrange_cb->GetValue()) {
-                m_plater->set_prepare_state(Job::PREPARE_STATE_MENU);
-                m_plater->arrange();
-            }
-            m_plater->Thaw();
+            return !m_cancel_process;
+        };
+        if (Ops::clone_objects(clone, pasted))
             EndModal(wxID_OK);
-        }
     });
 
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
@@ -107,9 +122,8 @@ CloneDialog::CloneDialog(wxWindow *parent)
 
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
 
-    this->SetSizer(v_sizer);
+    this->SetSizerAndFit(v_sizer);
     this->Layout();
-    v_sizer->Fit(this);
 
     wxGetApp().UpdateDlgDarkUI(this);
 

@@ -1,8 +1,20 @@
 #include "Tesselate.hpp"
 
 #include "ExPolygon.hpp"
+#include "Point.hpp"
+#include "libslic3r.h"
 
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <cstring>
+#include <deque>
 #include <glu-libtess.h>
+#include <vector>
+#include <utility>
+#include "Polygon.hpp"
+
+class GLUtesselator;
 
 namespace Slic3r {
 

@@ -19,20 +19,18 @@ namespace igl
   {
     namespace cgal
     {
-      // Compute lower and upper bounds (l,u) on the Hausdorff distance between a triangle
-      // (V) and a pointset (e.g., mesh, triangle soup) given by a distance function
-      // handle (dist_to_B).
-      //
-      // Inputs:
-      //   V   3 by 3 list of corner positions so that V.row(i) is the position of the
-      //     ith corner
-      //   treeB  CGAL's AABB tree containing triangle soup (VB,FB)
-      //   TB  list of CGAL triangles in order of FB (for determining which was found
-      //     in computation)
-      // Outputs:
-      //   l  lower bound on Hausdorff distance 
-      //   u  upper bound on Hausdorff distance
-      //
+      /// Compute lower and upper bounds (l,u) on the Hausdorff distance between a triangle
+      /// (V) and a pointset (e.g., mesh, triangle soup) given by a distance function
+      /// handle (dist_to_B).
+      ///
+      /// @param[in] V   3 by 3 list of corner positions so that V.row(i) is the position of the
+      ///     ith corner
+      /// @param[in] treeB  CGAL's AABB tree containing triangle soup (VB,FB)
+      /// @param[in] TB  list of CGAL triangles in order of FB (for determining which was found
+      ///     in computation)
+      /// @param[out] l  lower bound on Hausdorff distance 
+      /// @param[out] u  upper bound on Hausdorff distance
+      ///
       template <
         typename DerivedV,
         typename Kernel,
@@ -40,8 +38,8 @@ namespace igl
       IGL_INLINE void hausdorff(
         const Eigen::MatrixBase<DerivedV>& V,
         const CGAL::AABB_tree<
-          CGAL::AABB_traits<Kernel, 
-            CGAL::AABB_triangle_primitive<Kernel, 
+          CGAL::AABB_traits_3<Kernel, 
+            CGAL::AABB_triangle_primitive_3<Kernel, 
               typename std::vector<CGAL::Triangle_3<Kernel> >::iterator
             >
           >

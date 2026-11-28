@@ -3,12 +3,27 @@
 
 #include "Camera.hpp"
 #include "GUI_App.hpp"
+#include "libslic3r/Technologies.hpp"
+#include <string>
+#include "libslic3r/Point.hpp"
+#include <algorithm>
+#include "libslic3r/Geometry.hpp"
+#include <cmath>
+#include "libslic3r/BoundingBox.hpp"
+#include <cassert>
+#include "slic3r/GUI/3DScene.hpp"
+#include <cstdlib>
+#include <utility>
+#include <vector>
+#include <cfloat>
+#include "libslic3r/TriangleMesh.hpp"
+#include <math.h>
 #if ENABLE_CAMERA_STATISTICS
 #include "Mouse3DController.hpp"
 #include "Plater.hpp"
 #endif // ENABLE_CAMERA_STATISTICS
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -55,7 +70,10 @@ void Camera::select_next_type()
 
 void Camera::auto_type(EType preferred_type)
 {
-    if (!wxGetApp().app_config->get_bool("auto_perspective")) return;
+    if (wxApp::GetInstance() == nullptr || wxGetApp().app_config == nullptr)
+        return;
+    if (!wxGetApp().app_config->get_bool("auto_perspective"))
+        return;
     if (preferred_type == EType::Perspective) {
         if (!m_prevent_auto_type) {
             set_type(preferred_type);
@@ -758,4 +776,3 @@ void Camera::update_target() {
 }
 } // GUI
 } // Slic3r
-

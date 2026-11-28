@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Blocks PA @base",
+	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"filament_id": "OFidOgK4",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Blocks"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"10"
+	]
+}

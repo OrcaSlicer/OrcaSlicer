@@ -1,0 +1,597 @@
+// Action Replay page. The host (ActionReplayDialog) parses, describes and replays replay files and words what
+// it reports; this page shows the steps as a rail that fills in as the replay runs, and asks.
+
+const FLAG_LABELS = {
+  writes_file: ["flag_writes_file", "Writes a file"],
+  changes_presets: ["flag_changes_presets", "Changes presets"],
+  replaces_project: ["flag_replaces_project", "Replaces the project"],
+  sends_to_printer: ["flag_sends_to_printer", "Sends to a printer"],
+  runs_program: ["flag_runs_program", "Can run a program"],
+};
+
+const state = {
+  ready: false,
+  fileName: "",        // the file the replay was opened from or saved to; empty for a new replay
+  savedText: "",       // the text as opened or last saved (for a new replay, its draft), to tell when it's edited
+  name: "",            // the replay's name, as last parsed
+  parseSeq: 0,
+  parseTimer: 0,
+  parsed: null,        // the host's last description: {ok, error, name, steps, count_text}
+  steps: [],           // the steps of the last text that parsed, shown while later text doesn't
+  stale: false,        // the text has changed since the host described it; Run waits for the new description
+  pending: false,      // Run was pressed and the host hasn't started or refused the run yet
+  running: false,
+  single: null,        // the step of a single-step run
+  total: 0,
+  started: new Map(),  // step index -> start time of a running step
+  results: new Map(),  // step index -> what the host reported when it finished
+  skipped: new Set(),
+  open: new Set(),     // step indexes opened to their details
+  outcome: null,       // the last run's {kind, text, detail}
+  outDir: "",
+  hasRun: false,
+  message: null,       // a refusal or error to show in the footer: {kind, text, detail}
+};
+
+const rows = new Map(); // step index -> its <li>
+let ticker = 0;
+let savedTimer = 0;
+
+function $(id) { return document.getElementById(id); }
+
+function send(command, extra) {
+  SendWXMessage(JSON.stringify(Object.assign({ command }, extra || {})));
+}
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = text;
+  return node;
+}
+
+function seconds(ms) { return T("seconds", "%s s", (ms / 1000).toFixed(1)); }
+
+// ---- source -----------------------------------------------------------------------------------
+
+function sourceText() { return ed.editor.getValue(); }
+
+function scheduleParse(delay) {
+  clearTimeout(state.parseTimer);
+  // Numbered now, so a description of the text before this change is not taken for this one.
+  const seq = ++state.parseSeq;
+  state.stale = true;
+  state.parseTimer = setTimeout(() => {
+    // Asked again once the automation runtime is ready (HandleStudio's "runtime").
+    if (!state.ready) return;
+    if (!sourceText().trim()) {
+      onParsed({ seq, ok: false, empty: true });
+      return;
+    }
+    send("parse", { seq });
+  }, delay);
+}
+
+// What the editor holds when the dialog opens: a replay that runs as it is, with comments on the format.
+function draftReplay() {
+  return [
+    "// " + T("draft_about", "A replay file runs OrcaSlicer's tools in order, the way an AI agent does through MCP."),
+    "// " + T("draft_steps", "Each step names a \"tool\" and its \"args\"; \"expect\" checks the result before the next step."),
+    "// " + T("draft_out_dir", "%s is this run's output folder.", "${out_dir}"),
+    "// " + T("draft_keys", "%s shows suggestions, %s replays the file.", T("key_suggest", "Ctrl+Space"), T("key_run", "Ctrl+Enter")),
+    "{",
+    '  "orca_replay_version": ' + JSON.stringify(REPLAY_VERSION) + ",",
+    '  "name": ' + JSON.stringify(T("untitled_replay", "Untitled replay")) + ",",
+    '  "steps": [',
+    '    {"tool": "app_wait", "args": {"for": "ready"}},',
+    '    {"tool": "plate_add"},',
+    '    {"tool": "object_add_handy_model", "args": {"model": "orca_cube"}},',
+    '    {"tool": "object_center"},',
+    '    {"tool": "plate_slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},',
+    '    {"tool": "window_screenshot",',
+    '     "args": {"target": "canvas", "save_path": "${out_dir}/preview.png", "overwrite": true}}',
+    "  ]",
+    "}",
+    "",
+  ].join("\n");
+}
+
+// A new source: the dialog's draft or an opened file, unedited, read from the top, with no run of it yet
+// and no steps until the host describes it.
+function setSource(text) {
+  closeEditorSuggestions(ed.editor);
+  setEditorText(ed.editor, text);
+  // As the editor holds it: its line breaks are LF whatever the file has.
+  state.savedText = sourceText();
+  state.outDir = "";
+  state.parsed = null;
+  state.steps = [];
+  state.name = "";
+  resetRun();
+  buildRail();
+  reportEdit();
+  scheduleParse(0);
+  render();
+}
+
+function onSource(msg) {
+  state.fileName = msg.file_name;
+  setSource(msg.text);
+}
+
+function onSourceInput() {
+  reportEdit();
+  scheduleParse(250);
+  render();
+}
+
+function renderChip() {
+  $("chip-name").textContent = state.fileName || state.name || T("untitled_replay", "Untitled replay");
+  $("chip-edited").hidden = !(state.fileName && edited());
+}
+
+// ---- saving -------------------------------------------------------------------------------------
+
+function edited() { return sourceText() !== state.savedText; }
+
+// The host keeps the text and whether it's edited, to parse, run and save it and to ask before closing or
+// replacing it.
+function reportEdit() { send("edit", { text: sourceText(), edited: edited() }); }
+
+// Save writes an opened or saved replay back to its file and asks where to put a new one; Save as
+// (`pick`) asks where to put a copy.
+function save(pick) {
+  const button = pick ? $("save-as") : $("save");
+  if (!button.hidden && !button.disabled) send("save", { pick });
+}
+
+function onSaved(msg) {
+  state.fileName = msg.file_name;
+  state.savedText = msg.text;
+  reportEdit();
+  showSaved();
+  // Saved somewhere new, the replay is that file's: its steps are described again with the file's
+  // folders, and the last run's output folder belongs to the replay as it was.
+  if (msg.moved) {
+    state.outDir = "";
+    resetRun();
+    scheduleParse(0);
+  }
+  render();
+}
+
+function showSaved() {
+  const note = $("save-note");
+  clearTimeout(savedTimer);
+  note.classList.remove("is-fading");
+  note.hidden = false;
+  savedTimer = setTimeout(() => {
+    note.classList.add("is-fading");
+    savedTimer = setTimeout(() => { note.hidden = true; }, 400);
+  }, 2000);
+}
+
+function renderSave() {
+  const button = $("save");
+  button.textContent = state.fileName ? T("save", "Save") : T("save_new", "Save…");
+  button.disabled = busy() || (!!state.fileName && !edited());
+  $("save-as").hidden = !state.fileName;
+  $("save-as").disabled = busy();
+  if (edited()) {
+    clearTimeout(savedTimer);
+    $("save-note").hidden = true;
+  }
+}
+
+// ---- sections ---------------------------------------------------------------------------------
+
+function setSectionOpen(id, open) {
+  const section = $(id);
+  section.classList.toggle("is-open", open);
+  const head = section.querySelector(".section-head");
+  head.setAttribute("aria-expanded", String(open));
+  $(head.getAttribute("aria-controls")).hidden = !open;
+}
+
+function toggleSection(id) { setSectionOpen(id, !$(id).classList.contains("is-open")); }
+
+// ---- the step list ----------------------------------------------------------------------------
+
+function onParsed(msg) {
+  if (msg.seq !== state.parseSeq) return; // an answer to text that has changed since
+  // Run waits for the latest description and the text is frozen from the click on, so no answer can
+  // arrive for a run's replay; none may reset a run's log either way.
+  if (busy()) return;
+  state.stale = false;
+  state.parsed = msg;
+  resetRun();
+  // A replay that doesn't parse keeps the last steps that did, faded, so typing doesn't empty the list.
+  if (msg.ok || msg.empty) {
+    state.steps = msg.ok ? msg.steps : [];
+    buildRail();
+  }
+  if (msg.ok) state.name = msg.name || "";
+  render();
+}
+
+function resetRun() {
+  state.results.clear();
+  state.skipped.clear();
+  state.started.clear();
+  state.open.clear();
+  state.outcome = null;
+  state.message = null;
+  state.hasRun = false;
+}
+
+function buildRail() {
+  const rail = $("steps");
+  rail.textContent = "";
+  rows.clear();
+  for (const step of state.steps) {
+    const row = makeRow(step);
+    rows.set(step.index, row);
+    rail.appendChild(row);
+  }
+}
+
+function makeRow(step) {
+  const row = el("li", "step is-wait");
+  row.dataset.index = step.index;
+
+  row.appendChild(el("span", "dot", String(step.index)));
+
+  const main = el("div", "step-main");
+  const head = el("button", "step-head");
+  head.type = "button";
+  head.setAttribute("aria-expanded", "false");
+  head.appendChild(el("span", "step-title", step.title));
+  if (step.what_text) head.appendChild(el("span", "step-what", step.what_text));
+  if (step.args_text) head.appendChild(el("span", "step-args", step.args_text));
+  const tags = el("span", "step-tags");
+  for (const id of step.flags || []) {
+    const label = FLAG_LABELS[id];
+    if (label) tags.appendChild(el("span", "tag", T(label[0], label[1])));
+  }
+  if (step.checks_result) tags.appendChild(el("span", "tag is-check", T("checks_result", "Checks the result")));
+  if (tags.childNodes.length) head.appendChild(tags);
+  head.addEventListener("click", () => toggleStep(step.index));
+  main.appendChild(head);
+
+  const detail = el("div", "step-detail");
+  detail.hidden = true;
+  main.appendChild(detail);
+  row.appendChild(main);
+
+  const side = el("div", "step-side");
+  side.appendChild(el("span", "time"));
+  const play = el("button", "play", "▷");
+  play.type = "button";
+  play.title = T("run_this_step", "Run this step");
+  play.setAttribute("aria-label", play.title);
+  play.addEventListener("click", () => runStep(step.index));
+  side.appendChild(play);
+  row.appendChild(side);
+  return row;
+}
+
+function stepOf(index) { return state.steps.find((s) => s.index === index); }
+
+function toggleStep(index) {
+  if (state.open.has(index)) state.open.delete(index);
+  else state.open.add(index);
+  renderRow(index);
+}
+
+function renderRow(index) {
+  const row = rows.get(index);
+  const step = stepOf(index);
+  if (!row || !step) return;
+  const result = state.results.get(index);
+  let status = "wait";
+  if (state.started.has(index)) status = "running";
+  else if (result) status = result.cancelled ? "stopped" : !result.ok ? "fail" : result.warning_text ? "warn" : "done";
+  else if (state.skipped.has(index)) status = "skip";
+  row.className = "step is-" + status + (state.open.has(index) ? " is-open" : "");
+
+  const dot = row.querySelector(".dot");
+  dot.textContent = status === "done" ? "✓" : status === "fail" || status === "stopped" || status === "warn" ? "!" : String(index);
+
+  const time = row.querySelector(".time");
+  if (status === "running") time.textContent = seconds(Date.now() - state.started.get(index));
+  else if (result) time.textContent = seconds(result.duration_ms || 0);
+  else if (status === "skip") time.textContent = T("skipped", "Skipped");
+  else time.textContent = "";
+
+  row.querySelector(".play").disabled = !canRun();
+  const head = row.querySelector(".step-head");
+  head.setAttribute("aria-expanded", String(state.open.has(index)));
+  const detail = row.querySelector(".step-detail");
+  detail.hidden = !state.open.has(index);
+  if (!detail.hidden) fillDetail(detail, step, result);
+}
+
+function fillDetail(detail, step, result) {
+  detail.textContent = "";
+  const args = step.args || {};
+  const keys = Object.keys(args);
+  if (keys.length) {
+    const dl = el("dl", "args");
+    for (const key of keys) {
+      dl.appendChild(el("dt", "", key));
+      const value = args[key];
+      dl.appendChild(el("dd", "", typeof value === "string" ? value : JSON.stringify(value)));
+    }
+    detail.appendChild(dl);
+  }
+  if (step.checks && step.checks.length) {
+    // A failed check is told in the failure box; after a pass, each one is marked as met.
+    const checks = el("ul", "checks");
+    for (const text of step.checks) checks.appendChild(el("li", result && result.ok ? "is-met" : "", text));
+    detail.appendChild(checks);
+  }
+  if (result) {
+    const problem = result.failure_text || result.warning_text;
+    if (problem) {
+      const box = el("div", "failure", problem);
+      const more = result.failure_detail || result.warning_detail;
+      if (more) box.appendChild(el("span", "failure-detail", more));
+      detail.appendChild(box);
+    }
+    for (const line of result.result_lines || []) detail.appendChild(el("div", "result-line", line));
+    if (result.thumbnail || (result.files && result.files.length)) {
+      const files = el("div", "files");
+      if (result.thumbnail && result.files && result.files.length) {
+        const img = el("img", "thumb");
+        img.src = result.thumbnail;
+        img.alt = result.files[0].name;
+        img.addEventListener("click", () => send("open_image", { path: result.files[0].path }));
+        files.appendChild(img);
+      }
+      for (const file of result.files || []) {
+        const link = el("button", "link", file.name);
+        link.type = "button";
+        link.title = T("show_in_folder", "Show in folder");
+        link.addEventListener("click", () => send("open_location", { path: file.path }));
+        files.appendChild(link);
+      }
+      detail.appendChild(files);
+    }
+  }
+  const actions = el("div", "actions");
+  const run = el("button", "btn small", "▷ " + T("run_this_step", "Run this step"));
+  run.type = "button";
+  run.disabled = !canRun();
+  run.addEventListener("click", () => runStep(step.index));
+  actions.appendChild(run);
+  if (result && result.raw) {
+    const raw = el("pre", "raw", JSON.stringify(result.raw, null, 2));
+    raw.hidden = true;
+    const toggle = el("button", "link", T("show_raw", "Show raw result"));
+    toggle.type = "button";
+    toggle.addEventListener("click", () => {
+      raw.hidden = !raw.hidden;
+      toggle.textContent = raw.hidden ? T("show_raw", "Show raw result") : T("hide_raw", "Hide raw result");
+    });
+    actions.appendChild(toggle);
+    detail.appendChild(actions);
+    detail.appendChild(raw);
+  } else {
+    detail.appendChild(actions);
+  }
+}
+
+// ---- running ----------------------------------------------------------------------------------
+
+function busy() { return state.pending || state.running; }
+
+function canRun() { return state.ready && !busy() && !state.stale && state.parsed && state.parsed.ok; }
+
+function requestRun(extra) {
+  if (!canRun()) return;
+  // Frozen at once: the host may ask about unsaved changes first, and the replay must not change meanwhile.
+  state.pending = true;
+  send("run", extra);
+  render();
+}
+
+function runAll() { requestRun({}); }
+
+function runStep(index) { requestRun({ step: index }); }
+
+function onRunStarted(msg) {
+  state.pending = false;
+  state.running = true;
+  state.single = msg.step || null;
+  state.total = state.parsed && state.parsed.ok ? state.parsed.steps.length : 0;
+  state.message = null;
+  if (state.single) {
+    state.results.delete(state.single);
+    state.skipped.delete(state.single);
+  } else {
+    state.results.clear();
+    state.skipped.clear();
+    state.outcome = null;
+  }
+  clearInterval(ticker);
+  ticker = setInterval(() => state.started.forEach((_, index) => renderRow(index)), 200);
+  render();
+}
+
+function onStepStarted(msg) {
+  state.started.set(msg.index, Date.now());
+  renderRow(msg.index);
+  renderFooter();
+  const row = rows.get(msg.index);
+  if (row) row.scrollIntoView({ block: "nearest" });
+}
+
+function onStepFinished(msg) {
+  state.started.delete(msg.index);
+  state.results.set(msg.index, msg);
+  if (!msg.ok || msg.warning_text) state.open.add(msg.index);
+  renderRow(msg.index);
+}
+
+function onRunFinished(msg) {
+  state.pending = false;
+  state.running = false;
+  state.started.clear();
+  clearInterval(ticker);
+  state.outDir = msg.out_dir || state.outDir;
+  if (!msg.single) {
+    state.hasRun = true;
+    // A run that ended early leaves the steps after it unrun.
+    if (!msg.passed && state.parsed && state.parsed.ok)
+      for (const step of state.parsed.steps)
+        if (!state.results.has(step.index)) state.skipped.add(step.index);
+  }
+  if (msg.outcome_text) state.outcome = { kind: msg.outcome_kind, text: msg.outcome_text, detail: msg.error_detail || "" };
+  render();
+}
+
+function onRunRefused(msg) {
+  state.pending = false;
+  state.running = false;
+  clearInterval(ticker);
+  state.message = msg.message ? { kind: "fail", text: msg.message, detail: msg.detail || "" } : null;
+  render();
+}
+
+// ---- footer and header --------------------------------------------------------------------------
+
+function render() {
+  const hasRows = rows.size > 0;
+  $("steps").hidden = !hasRows;
+  $("steps").classList.toggle("is-stale", !!(state.parsed && !state.parsed.ok));
+  $("steps-hint").hidden = hasRows;
+  renderChip();
+  renderSave();
+  rows.forEach((_, index) => renderRow(index));
+  renderSummary();
+  renderFooter();
+
+  $("open-file").disabled = busy();
+  ed.editor.setReadOnly(busy());
+  $("editor").classList.toggle("is-readonly", busy());
+  if (busy()) closeEditorSuggestions(ed.editor);
+}
+
+function runningText() {
+  const index = [...state.started.keys()].pop() || state.single || state.results.size + 1;
+  return state.single ? T("running_one", "Running step %s", index) : T("running_step", "Running step %s of %s", index, state.total);
+}
+
+function renderSummary() {
+  const summary = $("steps-summary");
+  summary.classList.remove("is-error");
+  if (state.running) summary.textContent = runningText();
+  else if (state.outcome) summary.textContent = state.outcome.text;
+  else if (state.parsed && state.parsed.ok) summary.textContent = state.parsed.count_text || "";
+  else if (state.parsed && !state.parsed.empty && state.parsed.error) {
+    summary.textContent = state.parsed.error;
+    // Over faded steps the reason stays quiet while the replay is being written.
+    summary.classList.toggle("is-error", rows.size === 0);
+  } else summary.textContent = "";
+  summary.title = summary.textContent;
+}
+
+function renderFooter() {
+  const outcome = $("outcome");
+  const detail = $("outcome-detail");
+  let shown = null;
+  if (!state.ready) shown = { kind: "quiet", text: T("starting", "OrcaSlicer is still starting…"), detail: "" };
+  else if (state.running) shown = { kind: "quiet", text: runningText(), detail: T("hands_off", "Don't use OrcaSlicer until the replay finishes.") };
+  else if (state.message) shown = state.message;
+  else if (state.outcome) shown = state.outcome;
+  outcome.className = shown ? "is-" + shown.kind : "";
+  outcome.textContent = shown ? shown.text : "";
+  detail.textContent = shown ? shown.detail : "";
+  detail.title = detail.textContent;
+
+  $("run").hidden = state.running;
+  $("run").disabled = !canRun();
+  $("run").textContent = state.hasRun ? T("run_again", "Replay again") : T("run", "Replay");
+  $("stop").hidden = !state.running;
+  $("open-output").hidden = state.running || !state.outDir;
+  renderSummary();
+}
+
+// ---- host messages ------------------------------------------------------------------------------
+
+function HandleStudio(msg) {
+  switch (msg.command) {
+  case "runtime": {
+    const was = state.ready;
+    state.ready = !!msg.ready;
+    if (msg.tools) setEditorTools(msg.tools);
+    // A replay parsed while the automation runtime was starting got only "still starting" back.
+    if (state.ready && !was && !busy()) scheduleParse(0);
+    render();
+    break;
+  }
+  case "source": onSource(msg); break;
+  case "saved": onSaved(msg); break;
+  case "parsed": onParsed(msg); break;
+  case "run_started": onRunStarted(msg); break;
+  case "step_started": onStepStarted(msg); break;
+  case "step_finished": onStepFinished(msg); break;
+  case "run_finished": onRunFinished(msg); break;
+  case "run_refused": onRunRefused(msg); break;
+  case "key": onKey(msg.action); break;
+  case "error":
+    state.pending = false;
+    state.message = { kind: "fail", text: msg.message, detail: "" };
+    render();
+    break;
+  }
+}
+
+// A key the host forwards from its menus while this window has the focus: Save and Save as as the buttons save, the
+// editing actions through runEditorAction(), so one press acts once.
+function onKey(action) {
+  if (action === "save" || action === "save_as") {
+    if (!ownKeyRan(ed.editor, action === "save" ? "save" : "saveAs")) save(action === "save_as");
+  } else
+    runEditorAction(ed.editor, action);
+}
+
+// Ctrl/Cmd+Enter replays, Ctrl/Cmd+S saves and with Shift saves as: in the editor as its commands, elsewhere on the page
+// through the document's key handler.
+const PAGE_COMMANDS = [
+  { name: "replay", bindKey: { win: "Ctrl-Return", mac: "Command-Return" }, exec: () => runAll(), readOnly: true },
+  { name: "save", bindKey: { win: "Ctrl-S", mac: "Command-S" }, exec: () => save(false), readOnly: true },
+  { name: "saveAs", bindKey: { win: "Ctrl-Shift-S", mac: "Command-Shift-S" }, exec: () => save(true), readOnly: true },
+];
+
+function OnInit() {
+  TranslatePage();
+  initEditor(onSourceInput, PAGE_COMMANDS);
+  $("open-file").addEventListener("click", () => send("open_file"));
+  $("save").addEventListener("click", () => save(false));
+  $("save-as").addEventListener("click", () => save(true));
+  $("save").title = T("key_save", "Ctrl+S");
+  $("save-as").title = T("key_save_as", "Ctrl+Shift+S");
+  $("run").addEventListener("click", runAll);
+  $("stop").addEventListener("click", () => send("stop"));
+  $("close").addEventListener("click", () => send("close_page"));
+  $("open-output").addEventListener("click", () => send("open_output"));
+  for (const id of ["steps-section", "source-section"])
+    $(id).querySelector(".section-head").addEventListener("click", () => toggleSection(id));
+  document.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    if (e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      // Recorded as the editor's own Save, so the host's forwarded one for this press does nothing more.
+      ed.editor.$orcaOwnAt[e.shiftKey ? "saveAs" : "save"] = Date.now();
+      save(e.shiftKey);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      runAll();
+    }
+  });
+  setSource(draftReplay());
+  send("init");
+  // The keys the editor takes, which the host keeps from its menus while this window has the focus.
+  send("editor_keys", { chords: editorChords(ed.editor) });
+}

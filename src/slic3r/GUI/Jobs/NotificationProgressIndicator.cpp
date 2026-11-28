@@ -1,5 +1,7 @@
 #include "NotificationProgressIndicator.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include <wx/string.h>
+#include <utility>
 
 namespace Slic3r { namespace GUI {
 

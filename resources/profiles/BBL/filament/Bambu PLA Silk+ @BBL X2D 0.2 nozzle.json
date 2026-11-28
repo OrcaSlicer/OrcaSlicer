@@ -1,0 +1,131 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Silk+ @BBL X2D 0.2 nozzle",
+    "inherits": "Bambu PLA Silk+ @base",
+    "from": "system",
+    "setting_id": "GFSA06_17",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_deretraction_speed": [
+        "nil",
+        "nil",
+        "50",
+        "50"
+    ],
+    "filament_extruder_compatibility": [
+        "24"
+    ],
+    "filament_flow_ratio": [
+        "0.98",
+        "0.98",
+        "0.98",
+        "0.98"
+    ],
+    "filament_flush_volumetric_speed": [
+        "3",
+        "3",
+        "3",
+        "3"
+    ],
+    "filament_max_volumetric_speed": [
+        "2",
+        "2",
+        "0.5",
+        "0.5"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_retraction_length": [
+        "nil",
+        "nil",
+        "5",
+        "5"
+    ],
+    "filament_retraction_speed": [
+        "nil",
+        "nil",
+        "50",
+        "50"
+    ],
+    "filament_tower_interface_print_temp": [
+        "230"
+    ],
+    "filament_wipe": [
+        "1",
+        "nil",
+        "1",
+        "nil"
+    ],
+    "filament_wipe_distance": [
+        "1",
+        "nil",
+        "1",
+        "nil"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift",
+        "nil",
+        "Spiral Lift",
+        "nil"
+    ],
+    "first_x_layer_fan_speed": [
+        "40"
+    ],
+    "include": [
+        "fdm_filament_template_direct_bowden"
+    ],
+    "nozzle_temperature": [
+        "230",
+        "230",
+        "230",
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230",
+        "230",
+        "230",
+        "230"
+    ],
+    "retraction_distances_when_ec": [
+        "3",
+        "3",
+        "4",
+        "4"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20",
+        "20"
+    ],
+    "supertack_plate_temp": [
+        "35"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "35"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

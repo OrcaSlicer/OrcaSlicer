@@ -1,6 +1,29 @@
 #include "ImGuiWrapper.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 
+#include <algorithm>
+#include <cstdint>
+#include <cassert>
 #include <cstdio>
+#include "libslic3r/Technologies.hpp"
+#include <map>
+#include <string>
+#include <imgui.h>
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include <cstdlib>
+#include <utility>
+#include <string_view>
+#include <cstring>
+#include <chrono>
+#include "libslic3r/Point.hpp"
+#include <functional>
+#include <optional>
+#include <limits>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Exception.hpp"
+#include <tuple>
 #include <vector>
 #include <cmath>
 #include <stdexcept>
@@ -8,6 +31,9 @@
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
+#include <wx/colour.h>
+#include <wx/utils.h>
+#include <wx/dataobj.h>
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/nowide/convert.hpp>
@@ -18,18 +44,21 @@
 #include <wx/clipbrd.h>
 #include <wx/debug.h>
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
 
+#ifdef __APPLE__
+#include "MacIME.hpp"
+#endif
+
 #include "libslic3r/libslic3r.h"
 #include <libslic3r/ClipperUtils.hpp>
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
-#include "libslic3r/Shape/TextShape.hpp"
 
 #include "3DScene.hpp"
 #include "GUI.hpp"
@@ -37,12 +66,11 @@
 #include "Search.hpp"
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
+#include "KeyChord.hpp"
 
-#include "../Utils/MacDarkMode.hpp"
 #include <nanosvg/nanosvg.h>
 #include <nanosvg/nanosvgrast.h>
 #include "OpenGLManager.hpp"
-#include "GUI_App.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -100,8 +128,8 @@ static const std::map<const wchar_t, std::string> font_icons = {
     {ImGui::CollapseBtn                , "collapse_btn"               },
     {ImGui::RevertBtn                  , "revert_btn"                 },
 
-    {ImGui::HorizontalHide        , "horizontal_hide"               },
-    {ImGui::HorizontalShow        , "horizontal_show"               },
+    //{ImGui::HorizontalHide        , "horizontal_hide"               }, // ORCA use ExpandBtn / CollapseBtn
+    //{ImGui::HorizontalShow        , "horizontal_show"               },
 
     {ImGui::CloseBlockNotifButton      , "block_notification_close"           },
     {ImGui::CloseBlockNotifHoverButton , "block_notification_close_hover"     },
@@ -184,7 +212,11 @@ const ImVec4 ImGuiWrapper::COL_WINDOW_BG_DARK    = { 45 / 255.f, 45 / 255.f, 49 
 const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG        = { 250 / 255.f, 250 / 255.f, 250 / 255.f, 1.f }; // ORCA color matches with toolbar_background.png
 const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG_DARK   = { 57  / 255.f, 60  / 255.f, 66  / 255.f, 1.f }; // ORCA color matches with toolbar_background_dark.png
 const ImVec4 ImGuiWrapper::COL_ORCA              = to_ImVec4(ColorRGBA::ORCA());
+const ImVec4 ImGuiWrapper::COL_ORCA_DARK         = { 0.f       , 103 / 255.f, 91  / 255.f, 1.f };
+const ImVec4 ImGuiWrapper::COL_ORCA_HOVER        = { 38 / 255.f, 166 / 255.f, 154 / 255.f, 1.f };
+const ImVec4 ImGuiWrapper::COL_ORCA_HOVER_DARK   = { 0.f       , 129 / 255.f, 114  / 255.f, 1.f };
 const ImVec4 ImGuiWrapper::COL_MODIFIED          = { 253.f / 255.f, 111.f / 255.f, 40.f / 255.f, 1}; // ORCA same color with m_color_label_modified
+const ImVec4 ImGuiWrapper::COL_WARNING           = to_ImVec4(ColorRGB::WARNING());
 
 int ImGuiWrapper::TOOLBAR_WINDOW_FLAGS = ImGuiWindowFlags_AlwaysAutoResize
                                  | ImGuiWindowFlags_NoMove
@@ -478,10 +510,17 @@ bool ImGuiWrapper::update_mouse_data(wxMouseEvent& evt)
     io.MouseDown[0] = evt.LeftIsDown();
     io.MouseDown[1] = evt.RightIsDown();
     io.MouseDown[2] = evt.MiddleIsDown();
-    float wheel_delta = static_cast<float>(evt.GetWheelDelta());
-    if (wheel_delta != 0.0f) {
+    // Replaces a modifier left held when its key-up was sent to another window.
+    io.KeyCtrl  = evt.ControlDown();
+    io.KeyShift = evt.ShiftDown();
+    io.KeyAlt   = evt.AltDown();
+    io.KeySuper = evt.MetaDown();
+    // Only a vertical wheel event with a direction is a wheel step. A macOS trackpad reports sideways motion
+    // as separate horizontal events, and its wheel events often carry a rotation of 0: wx truncates the
+    // sub-pixel deltas to whole ones and passes on events with no delta at all. Read as vertical steps,
+    // either kind scrolls against the gesture, and scrolling up bounces back and forth.
+    if (evt.GetWheelAxis() == wxMOUSE_WHEEL_VERTICAL && evt.GetWheelRotation() != 0)
         io.MouseWheel = evt.GetWheelRotation() > 0 ? 1.f : -1.f;
-    }
     unsigned buttons = (evt.LeftIsDown() ? 1 : 0) | (evt.RightIsDown() ? 2 : 0) | (evt.MiddleIsDown() ? 4 : 0);
     m_mouse_buttons = buttons;
 
@@ -501,6 +540,23 @@ bool ImGuiWrapper::update_key_data(wxKeyEvent &evt)
     if (evt.GetEventType() == wxEVT_CHAR) {
         // Char event
         const auto key = evt.GetUnicodeKey();
+        // THE MEASUREMENT THAT CANNOT LIE. This is the ONLY place in the application where ImGui
+        // is ever handed a character, so an ImGui text field that stays empty while reporting
+        // itself active has exactly two possible causes, and this line separates them: no output
+        // at all means the wxEVT_CHAR never reached the GL canvas (a focus problem, upstream of
+        // ImGui entirely), while output with unicode=0 means the character arrived empty and is
+        // being dropped right here.
+        //
+        // It lives here rather than on the canvas because a probe bound on the canvas CANNOT
+        // answer this: GLCanvas3D::on_char is bound later than any constructor-time probe, wx
+        // runs handlers in reverse bind order, and on_char returns without Skip() whenever this
+        // function returns true — so such a probe stays silent whether or not the key arrived.
+        // A day was lost to reading that silence as evidence.
+        if (std::getenv("ORCA_CAD_UXTRACE")) {
+            fprintf(stderr, "[UX] imgui_char unicode=%d keycode=%d want_text=%d\n",
+                    (int) key, evt.GetKeyCode(), (int) io.WantTextInput);
+            fflush(stderr);
+        }
         if (key != 0) {
             io.AddInputCharacter(key);
         }
@@ -533,6 +589,16 @@ void ImGuiWrapper::new_frame()
 
     ImGuiIO& io = ImGui::GetIO();
 
+    // ORCA ImGui times button and key repeat with io.DeltaTime. At its default of 1/60 s per frame the clock
+    // counts frames, so a held +/- button repeats as fast as the canvas renders. Feed it the real frame time,
+    // capped at 1/60 s so the idle gaps of the event-driven canvas don't count as time held.
+    const auto now = std::chrono::steady_clock::now();
+    if (m_last_frame_time != std::chrono::steady_clock::time_point{}) {
+        const float dt = std::chrono::duration<float>(now - m_last_frame_time).count();
+        io.DeltaTime   = std::clamp(dt, 1e-4f, 1.f / 60.f); // ImGui asserts a positive DeltaTime
+    }
+    m_last_frame_time = now;
+
     ImGui::NewFrame();
     m_new_frame_open = true;
 
@@ -541,39 +607,218 @@ void ImGuiWrapper::new_frame()
     // synchronize key states
     // when the application loses the focus it may happen that the key up event is not processed
 
-    // synchronize modifier keys
-    constexpr std::array<std::pair<ImGuiKeyModFlags_, wxKeyCode>, 3> imgui_mod_keys{
-        std::make_pair(ImGuiKeyModFlags_Ctrl, WXK_CONTROL),
-        std::make_pair(ImGuiKeyModFlags_Shift, WXK_SHIFT),
-        std::make_pair(ImGuiKeyModFlags_Alt, WXK_ALT) };
-    for (const std::pair<ImGuiKeyModFlags_, wxKeyCode>& key : imgui_mod_keys) {
-        if ((io.KeyMods & key.first) != 0 && !wxGetKeyState(key.second))
-            io.KeyMods &= ~key.first;
-    }
-
     // Not sure if it is neccessary
     // values from 33 to 126 are reserved for the standard ASCII characters
     for (size_t i = 33; i <= 126; ++i) {
         wxKeyCode keycode = static_cast<wxKeyCode>(i);
-        if (io.KeysDown[i] && keycode != WXK_NONE && !wxGetKeyState(keycode))
+        if (io.KeysDown[i] && keycode != WXK_NONE && !Slic3r::GUI::get_key_state(keycode))
             io.KeysDown[i] = false;
     }
 
     // special keys: delete, backspace, ...
     for (int key : io.KeyMap) {
         wxKeyCode keycode = static_cast<wxKeyCode>(key);
-        if (io.KeysDown[key] && keycode != WXK_NONE && !wxGetKeyState(keycode))
+        if (io.KeysDown[key] && keycode != WXK_NONE && !Slic3r::GUI::get_key_state(keycode))
             io.KeysDown[key] = false;
     }
 
     // BBL: end copy & paste
 }
 
-void ImGuiWrapper::render()
+ImDrawData* ImGuiWrapper::end_frame()
 {
+    // The frame becomes its owner's latest, and that owner's last one the buffers the next frame fills.
+    if (m_item_recording && m_frame_owner != nullptr) {
+        // A field that asks for the keyboard takes it a frame after the one that first draws it, and
+        // keys sent before then are dropped, so automation waits for this mark before typing. An
+        // InputText active in this frame asks for text input in the next (text_input_active() reads
+        // that request once the frame is over); the text state alone outlives the edit, and stays
+        // on a slider that was typed into once.
+        const ImGuiContext& g = *ImGui::GetCurrentContext();
+        if (g.WantTextInputNextFrame == 1 && g.ActiveId != 0 && g.InputTextState.ID == g.ActiveId)
+            for (RecordedItem& item : m_frame.items)
+                item.focused = item.id == g.ActiveId;
+        std::swap(m_recorded[m_frame_owner], m_frame);
+    }
+    m_frame.items.clear();
+    m_frame.texts.clear();
+    m_last_string_id = 0;
+#ifdef __APPLE__
+    // io.ImeWindowHandle is the focused canvas' view (GLCanvas3D::on_set_focus()).
+    if (void* view = ImGui::GetIO().ImeWindowHandle)
+        mac_ime_set_active(view, ImGui::GetIO().WantTextInput);
+#endif
     ImGui::Render();
-    render_draw_data(ImGui::GetDrawData());
     m_new_frame_open = false;
+    return ImGui::GetDrawData();
+}
+
+void ImGuiWrapper::set_item_recording(bool on)
+{
+    m_item_recording = on;
+    // The hooks find the recorder through the context, the slot ImGui keeps for its test engine.
+    if (ImGuiContext* ctx = ImGui::GetCurrentContext()) {
+        ctx->TestEngineHookItems = on;
+        ctx->TestEngine          = on ? this : nullptr;
+    }
+    if (!on) {
+        m_frame = {};
+        m_recorded.clear();
+    }
+}
+
+std::vector<ImGuiWrapper::RecordedItem> ImGuiWrapper::recorded_items(const void* owner) const
+{
+    auto it = m_recorded.find(owner);
+    return it == m_recorded.end() ? std::vector<RecordedItem>{} : it->second.items;
+}
+
+std::vector<ImGuiWrapper::RecordedText> ImGuiWrapper::recorded_texts(const void* owner) const
+{
+    auto it = m_recorded.find(owner);
+    return it == m_recorded.end() ? std::vector<RecordedText>{} : it->second.texts;
+}
+
+// The status flags of a control that reports `checked` (0 or 1, -1 for none).
+static int checked_flags(int checked)
+{
+    return checked < 0 ? 0 : ImGuiItemStatusFlags_Checkable | (checked > 0 ? ImGuiItemStatusFlags_Checked : 0);
+}
+
+void ImGuiWrapper::record_named_item(const std::string& name, const char* kind, int checked)
+{
+    if (!m_item_recording || name.empty() || ImGui::GetCurrentContext() == nullptr)
+        return;
+    if (const ImGuiID id = ImGui::GetItemID(); id == 0 || !record_item_name(id, name, kind, checked))
+        record_named_item(name, kind, ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), checked);
+}
+
+bool ImGuiWrapper::record_item_name(unsigned id, const std::string& name, const char* kind, int checked)
+{
+    if (!m_item_recording || name.empty())
+        return false;
+    for (auto it = m_frame.items.rbegin(); it != m_frame.items.rend(); ++it)
+        if (it->id == id) {
+            it->name = name;
+            if (it->kind.empty() && kind != nullptr)
+                it->kind = kind;
+            it->flags |= checked_flags(checked);
+            return true;
+        }
+    return false;
+}
+
+void ImGuiWrapper::record_named_item(const std::string& name, const char* kind, const ImVec2& min, const ImVec2& max, int checked)
+{
+    if (!m_item_recording || name.empty() || ImGui::GetCurrentContext() == nullptr)
+        return;
+    ImGuiWindow* window = ImGui::GetCurrentWindowRead();
+    if (window == nullptr)
+        return;
+    RecordedItem item;
+    // Same-named controls in one ID scope (rows a loop draws without PushID) stay apart by their
+    // order in the frame.
+    const ImGuiID base = window->GetIDNoKeepAlive(name.c_str());
+    item.id            = base;
+    for (int n = 1; std::any_of(m_frame.items.begin(), m_frame.items.end(), [&](const RecordedItem& i) { return i.id == item.id; }); ++n)
+        item.id = ImHashData(&n, sizeof(n), base);
+    item.name    = name;
+    item.kind    = kind != nullptr ? kind : "";
+    item.window  = window->Name;
+    item.x = min.x, item.y = min.y, item.w = max.x - min.x, item.h = max.y - min.y;
+    item.flags   = checked_flags(checked);
+    item.clipped = !window->ClipRect.Contains(ImRect(min, max).GetCenter());
+    m_frame.items.push_back(std::move(item));
+}
+
+void ImGuiWrapper::record_item_add(unsigned id, float x0, float y0, float x1, float y1, const char* window, bool clipped)
+{
+    // ImGui reports an item again when it re-submits it within a frame; keep the last rectangle.
+    for (RecordedItem& item : m_frame.items)
+        if (item.id == id) {
+            item.x = x0, item.y = y0, item.w = x1 - x0, item.h = y1 - y0;
+            item.clipped = clipped;
+            return;
+        }
+    RecordedItem item;
+    item.id      = id;
+    item.window  = window != nullptr ? window : "";
+    item.x = x0, item.y = y0, item.w = x1 - x0, item.h = y1 - y0;
+    item.clipped = clipped;
+    // A widget wholly outside the visible part of its window returns before it reports its label; the
+    // string its id was hashed from is that label. ImGui's own "#image"-style ids are not labels.
+    if (id == m_last_string_id && !(m_last_string.size() > 1 && m_last_string[0] == '#' && m_last_string[1] != '#'))
+        item.label = m_last_string;
+    m_frame.items.push_back(std::move(item));
+}
+
+void ImGuiWrapper::record_item_info(unsigned id, const char* label, int flags)
+{
+    for (auto it = m_frame.items.rbegin(); it != m_frame.items.rend(); ++it)
+        if (it->id == id) {
+            it->label = label != nullptr ? label : "";
+            it->flags = flags;
+            return;
+        }
+}
+
+void ImGuiWrapper::record_item_value(unsigned id, const char* kind, const char* value, int flags)
+{
+    for (auto it = m_frame.items.rbegin(); it != m_frame.items.rend(); ++it)
+        if (it->id == id) {
+            it->kind  = kind != nullptr ? kind : "";
+            it->value = value != nullptr ? value : "";
+            it->flags |= flags;
+            return;
+        }
+}
+
+void ImGuiWrapper::record_text(const char* window, float x0, float y0, float x1, float y1, const char* text, const char* text_end)
+{
+    if (text == nullptr || text == text_end)
+        return;
+    RecordedText t;
+    t.window = window != nullptr ? window : "";
+    t.text.assign(text, text_end != nullptr ? text_end : text + strlen(text));
+    t.x = x0, t.y = y0, t.w = x1 - x0, t.h = y1 - y0;
+    m_frame.texts.push_back(std::move(t));
+}
+
+void ImGuiWrapper::record_string_id(unsigned id, const char* str, const char* str_end)
+{
+    m_last_string_id = id;
+    if (str_end != nullptr)
+        m_last_string.assign(str, str_end);
+    else
+        m_last_string.assign(str);
+}
+
+void ImGuiWrapper::render(ImDrawData* draw_data)
+{
+    render_draw_data(draw_data);
+}
+
+ImGuiID ImGuiWrapper::draw_data_signature(const ImDrawData* draw_data)
+{
+    ImGuiID hash = 0;
+    if (draw_data == nullptr)
+        return hash;
+
+    for (int i = 0; i < draw_data->CmdListsCount; ++i) {
+        const ImDrawList* list = draw_data->CmdLists[i];
+        hash = ImHashData(list->VtxBuffer.Data, list->VtxBuffer.Size * sizeof(ImDrawVert), hash);
+        hash = ImHashData(list->IdxBuffer.Data, list->IdxBuffer.Size * sizeof(ImDrawIdx), hash);
+        // ImDrawCmd has padding, and a hovered ImageButton3() differs only in TextureId.
+        for (const ImDrawCmd& cmd : list->CmdBuffer) {
+            hash = ImHashData(&cmd.ClipRect, sizeof(cmd.ClipRect), hash);
+            hash = ImHashData(&cmd.TextureId, sizeof(cmd.TextureId), hash);
+            hash = ImHashData(&cmd.VtxOffset, sizeof(cmd.VtxOffset), hash);
+            hash = ImHashData(&cmd.IdxOffset, sizeof(cmd.IdxOffset), hash);
+            hash = ImHashData(&cmd.ElemCount, sizeof(cmd.ElemCount), hash);
+            hash = ImHashData(&cmd.UserCallback, sizeof(cmd.UserCallback), hash);
+        }
+    }
+    return hash;
 }
 
 ImVec2 ImGuiWrapper::calc_text_size(std::string_view text,
@@ -687,6 +932,8 @@ bool ImGuiWrapper::bbl_combo_with_filter(const char* label, const std::string& p
         ImGui::OpenPopup(label);
         is_new_open = true;
     }
+    // A combo to automation, which picks its options in the popup; the button shows the value.
+    record_named_item(label + std::strspn(label, "#"), "combo");
     g.Style.ButtonTextAlign.x = ButtonTextAlignX;
     ImGui::PopStyleVar();
     ImGui::PopStyleColor();
@@ -871,8 +1118,8 @@ bool ImGuiWrapper::button(const wxString &label, const wxString& tooltip)
     const bool ret = ImGui::Button(label_utf8.c_str());
 
     if (!tooltip.IsEmpty() && ImGui::IsItemHovered()) {
-        auto tooltip_utf8 = into_u8(tooltip);
-        ImGui::SetTooltip(tooltip_utf8.c_str(), nullptr);
+        const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
+        this->tooltip(tooltip, max_tooltip_width);
     }
 
     return ret;
@@ -884,8 +1131,8 @@ bool ImGuiWrapper::bbl_button(const wxString &label, const wxString& tooltip)
     const bool ret = ImGui::BBLButton(label_utf8.c_str());
 
     if (!tooltip.IsEmpty() && ImGui::IsItemHovered()) {
-        auto tooltip_utf8 = into_u8(tooltip);
-        ImGui::SetTooltip(tooltip_utf8.c_str(), nullptr);
+        const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
+        this->tooltip(tooltip, max_tooltip_width);
     }
 
     return ret;
@@ -906,6 +1153,55 @@ bool ImGuiWrapper::button(const wxString& label, const ImVec2 &size, bool enable
 
     disabled_end();
     return (enable) ? res : false;
+}
+
+// ORCA Glyph based button for correctly rendering icon size based Glyph
+// excludes spacings after Glyph and centers icon properly
+// compared to image_button this supports styling
+bool ImGuiWrapper::glyph_button(wchar_t icon_char, ImVec2 icon_size, const std::string& name)
+{
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImFont*     font      = ImGui::GetFont();
+    ImGuiStyle& style     = ImGui::GetStyle();
+    ImVec2      padding   = style.FramePadding;
+    float       border_w  = style.FrameBorderSize;
+    float       rounding  = style.FrameRounding;
+    std::string icon_str  = into_u8(icon_char);
+    const char* icon      = icon_str.c_str();
+    
+    float  width  = icon_size.x + (padding.x + border_w) * 2.f;
+    float  height = icon_size.y + (padding.y + border_w) * 2.f;
+    ImVec2 rc_min = ImGui::GetCursorScreenPos();
+    ImVec2 rc_max = ImVec2(rc_min.x + width, rc_min.y + height);
+
+    ImGui::Dummy(ImVec2(width, height));
+    record_named_item(name, "button", rc_min, rc_max);
+
+    ImGuiCol bg_color     = ImGuiCol_Button;
+    ImGuiCol border_color = ImGuiCol_Border;
+    bool     clicked      = false;
+
+    if (ImGui::IsMouseHoveringRect(rc_min, rc_max)) {
+        bg_color = ImGuiCol_ButtonHovered;
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            bg_color     = ImGuiCol_ButtonActive;
+            border_color = ImGuiCol_BorderShadow;
+            clicked      = true;
+        }
+    }
+
+    draw_list->AddRectFilled(rc_min, rc_max, ImGui::GetColorU32(bg_color), rounding);
+
+    if (border_w > 0.f)
+        draw_list->AddRect(rc_min, rc_max, ImGui::GetColorU32(border_color), rounding, 0, border_w);
+
+    ImVec2 text_pos = ImVec2(
+        rc_min.x + (width  - font->FontSize) * .5f,
+        rc_min.y + (height - font->FontSize) * .5f
+    );
+    draw_list->AddText(font, font->FontSize, text_pos, ImGui::GetColorU32(ImGuiCol_Text), icon);
+
+    return clicked;
 }
 
 bool ImGuiWrapper::radio_button(const wxString &label, bool active)
@@ -1007,7 +1303,7 @@ void ImGuiWrapper::text(const wxString &label)
 
 void ImGuiWrapper::warning_text(const char *label)
 {
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(ColorRGB::WARNING()));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::COL_WARNING);
     this->text(label);
     ImGui::PopStyleColor();
 }
@@ -1221,7 +1517,7 @@ bool ImGuiWrapper::image_button(ImTextureID user_texture_id, const ImVec2& size,
     return image_button_ex(id, user_texture_id, size, uv0, uv1, padding, bg_col, tint_col, flags);
 }
 
-bool ImGuiWrapper::image_button(const wchar_t icon, const wxString& tooltip)
+bool ImGuiWrapper::image_button(const wchar_t icon, const wxString& tooltip, const std::string& name)
 {
     const ImGuiIO& io = ImGui::GetIO();
     const ImTextureID tex_id = io.Fonts->TexID;
@@ -1236,6 +1532,7 @@ bool ImGuiWrapper::image_button(const wchar_t icon, const wxString& tooltip)
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.4f, 0.4f, 0.4f, 1.0f });
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.25f, 0.25f, 0.25f, 1.0f });
     const bool res = image_button(tex_id, size, uv0, uv1);
+    record_named_item(name);
     ImGui::PopStyleColor(3);
 
     if (!tooltip.empty() && ImGui::IsItemHovered())
@@ -2012,6 +2309,83 @@ bool ImGuiWrapper::want_any_input() const
     return io.WantCaptureMouse || io.WantCaptureKeyboard || io.WantTextInput;
 }
 
+bool ImGuiWrapper::text_input_active() const
+{
+    // An active InputText requests text input in each frame that draws it, and NewFrame() moves the
+    // request into io.WantTextInput.
+    const ImGuiContext& g = *ImGui::GetCurrentContext();
+    return g.WithinFrameScope ? g.IO.WantTextInput : g.WantTextInputNextFrame == 1;
+}
+
+// A popup stays on the popup stack while its canvas is hidden, so it counts only if the last finished frame
+// drew it, which NewFrame() moves from Active to WasActive.
+static bool drawn_last_frame(const ImGuiWindow* popup)
+{
+    return popup != nullptr && (ImGui::GetCurrentContext()->WithinFrameScope ? popup->WasActive : popup->Active);
+}
+
+bool ImGuiWrapper::modal_popup_open() const
+{
+    return drawn_last_frame(ImGui::GetTopMostPopupModal());
+}
+
+bool ImGuiWrapper::popup_open() const
+{
+    const ImVector<ImGuiPopupData>& stack = ImGui::GetCurrentContext()->OpenPopupStack;
+    return std::any_of(stack.begin(), stack.end(), [](const ImGuiPopupData& popup) { return drawn_last_frame(popup.Window); });
+}
+
+void ImGuiWrapper::close_top_popup()
+{
+    const ImVector<ImGuiPopupData>& stack = ImGui::GetCurrentContext()->OpenPopupStack;
+    for (int level = stack.Size - 1; level >= 0; --level) {
+        const ImGuiWindow* popup = stack[level].Window;
+        if (!drawn_last_frame(popup))
+            continue;
+        if ((popup->Flags & ImGuiWindowFlags_Modal) == 0)
+            ImGui::ClosePopupToLevel(level, true);
+        return;
+    }
+}
+
+bool ImGuiWrapper::owns_key(const KeyChord& chord) const
+{
+    return modal_popup_open() || (chord.edits_text() && text_input_active());
+}
+
+bool ImGuiWrapper::item_held() const
+{
+    return ImGui::GetIO().MouseDown[0] && ImGui::GetActiveID() != 0;
+}
+
+bool ImGuiWrapper::owns_keyboard() const
+{
+    return popup_open() || item_held() || text_input_active();
+}
+
+bool ImGuiWrapper::claim_key_event(const wxKeyEvent& evt)
+{
+    const bool claimed = owns_keyboard();
+    const int  key     = evt.GetKeyCode();
+    if (evt.GetEventType() == wxEVT_KEY_DOWN) {
+        m_char_claim = m_key_claims.try_emplace(key, claimed).first->second;
+        return *m_char_claim;
+    }
+    if (evt.GetEventType() == wxEVT_KEY_UP) {
+        m_char_claim.reset();
+        if (const auto press = m_key_claims.extract(key))
+            return press.mapped();
+        return claimed;
+    }
+    return std::exchange(m_char_claim, std::nullopt).value_or(claimed);
+}
+
+void ImGuiWrapper::forget_key_claims()
+{
+    m_key_claims.clear();
+    m_char_claim.reset();
+}
+
 ImFontAtlasCustomRect* ImGuiWrapper::GetTextureCustomRect(const wchar_t& tex_id)
 {
     auto item = m_custom_glyph_rects_ids.find(tex_id);
@@ -2352,6 +2726,25 @@ void ImGuiWrapper::draw(
     }
 }
 
+void ImGuiWrapper::draw_gradient_ramp(ImDrawList *draw_list, const ImVec2 &top_left, const ImVec2 &bottom_right, const std::vector<wxColour> &ramp)
+{
+    if (draw_list == nullptr || ramp.empty() || bottom_right.x <= top_left.x || bottom_right.y <= top_left.y)
+        return;
+
+    const int    rows  = std::max(1, (int) std::lround(bottom_right.y - top_left.y));
+    const float  row_h = (bottom_right.y - top_left.y) / rows;
+    const size_t last  = ramp.size() - 1;
+    for (int r = 0; r < rows; ++r) {
+        // Row 0 is the top of the rect and so takes the ramp's last entry, the model's top.
+        const double    t = (rows > 1) ? (double) (rows - 1 - r) / (rows - 1) : 0.5;
+        const wxColour &c = ramp[(size_t) (t * last + 0.5)];
+        // The bottom row snaps to the rect's edge so rounding never leaves a sliver uncovered.
+        const float y0 = top_left.y + r * row_h;
+        const float y1 = (r + 1 == rows) ? bottom_right.y : top_left.y + (r + 1) * row_h;
+        draw_list->AddRectFilled({top_left.x, y0}, {bottom_right.x, y1}, IM_COL32(c.Red(), c.Green(), c.Blue(), c.Alpha()));
+    }
+}
+
 void ImGuiWrapper::draw_cross_hair(const ImVec2 &position, float radius, ImU32 color, int num_segments, float thickness) {
     auto draw_list = ImGui::GetOverlayDrawList();
     draw_list->AddCircle(position, radius, color, num_segments, thickness);
@@ -2410,6 +2803,19 @@ static const ImWchar ranges_keyboard_shortcuts[] =
     0,
 };
 #endif // __APPLE__
+
+// Names drawn through the atlas come from file names and CAD data, not from the UI language.
+// GetGlyphRangesDefault() already gives every language the CJK ideographs, which is why a
+// Chinese file name renders under an English UI; these are the alphabetic scripts it omits.
+// Codepoints the font lacks are skipped at build time, so only existing glyphs cost anything.
+static const ImWchar ranges_language_independent[] =
+{
+    0x0100, 0x024F, // Latin Extended-A and Extended-B
+    0x0370, 0x03FF, // Greek and Coptic
+    0x0400, 0x04FF, // Cyrillic
+    0x1E00, 0x1EFF, // Latin Extended Additional (Vietnamese)
+    0,
+};
 
 
 std::vector<unsigned char> ImGuiWrapper::load_svg(const std::string& bitmap_name, unsigned target_width, unsigned target_height, unsigned *outwidth, unsigned *outheight)
@@ -2598,18 +3004,18 @@ void ImGuiWrapper::pop_common_window_style() {
 
 void ImGuiWrapper::push_confirm_button_style() {
     if (m_is_dark_mode) {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f / 255.f, 150.f / 255.f, 136.f / 255.f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_Button,        to_ImVec4(decode_color_to_float_array("#00675b")));
         ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f / 255.f, 150.f / 255.f, 136.f / 255.f, 1.f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, to_ImVec4(decode_color_to_float_array("#267E73")));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(27.f / 255.f, 136.f / 255.f, 68.f / 255.f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, to_ImVec4(decode_color_to_float_array("#008172")));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  to_ImVec4(decode_color_to_float_array("#00675b")));
         ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.f, 1.f, 1.f, 0.88f));
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 0.88f));
     }
     else {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f / 255.f, 150.f / 255.f, 136.f / 255.f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_Button,        to_ImVec4(decode_color_to_float_array("#009688")));
         ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f / 255.f, 150.f / 255.f, 136.f / 255.f, 1.f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, to_ImVec4(decode_color_to_float_array("#26A69A")));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(27.f / 255.f, 136.f / 255.f, 68.f / 255.f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  to_ImVec4(decode_color_to_float_array("#009688")));
         ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.f, 1.f, 1.f, 1.f));
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
     }
@@ -2721,6 +3127,7 @@ void ImGuiWrapper::init_font(bool compress)
     ImFontAtlas::GlyphRangesBuilder builder;
     builder.AddRanges(m_glyph_ranges);
     builder.AddRanges(ImGui::GetIO().Fonts->GetGlyphRangesDefault());
+    builder.AddRanges(ranges_language_independent);
 #ifdef __APPLE__
     if (m_font_cjk)
         // Apple keyboard shortcuts are only contained in the CJK fonts.
@@ -2729,6 +3136,11 @@ void ImGuiWrapper::init_font(bool compress)
     builder.BuildRanges(&ranges); // Build the final result (ordered ranges with all the unique characters submitted)
 
     io.Fonts->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
+    // TexDesiredWidth will be increased adaptively below if the built height
+    // exceeds GL_MAX_TEXTURE_SIZE. Leave it at 0 so ImGui picks the minimum
+    // width for small glyph sets and we only widen when actually necessary.
+    io.Fonts->TexDesiredWidth = 0;
+
     ImFontConfig cfg = ImFontConfig();
     cfg.OversampleH = cfg.OversampleV = 1;
     //FIXME replace with io.Fonts->AddFontFromMemoryTTF(buf_decompressed_data, (int)buf_decompressed_size, m_font_size, nullptr, ranges.Data);
@@ -2737,9 +3149,17 @@ void ImGuiWrapper::init_font(bool compress)
     // Orca: temp fix for Korean font
     auto font_name_regular = "HarmonyOS_Sans_SC_Regular.ttf";
     auto font_name_bold = "HarmonyOS_Sans_SC_Bold.ttf";
+    // The Korean and Thai fonts cover their own script and little else, so they need the
+    // default font merged in behind them to reach the full range.
+    bool needs_glyph_fallback = false;
     if(m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesKorean()) {
         font_name_regular = "NanumGothic-Regular.ttf";
         font_name_bold = "NanumGothic-Bold.ttf";
+        needs_glyph_fallback = true;
+    } else if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
+        font_name_regular = "Sarabun-Medium.ttf";
+        font_name_bold = "Sarabun-SemiBold.ttf";
+        needs_glyph_fallback = true;
     }
     default_font = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_regular).c_str(), m_font_size, &cfg, ranges.Data);
     if (default_font == nullptr) {
@@ -2749,10 +3169,29 @@ void ImGuiWrapper::init_font(bool compress)
         }
     }
 
+    // A merged font only supplies glyphs the font ahead of it lacks, so this fills the gaps
+    // without restyling anything the script font already covers.
+    if (needs_glyph_fallback) {
+        ImFontConfig fallback_cfg = cfg;
+        fallback_cfg.MergeMode = true;
+        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf").c_str(), m_font_size, &fallback_cfg, ranges.Data);
+    }
+
     bold_font        = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_bold).c_str(), m_font_size, &cfg, ranges.Data);
     if (bold_font == nullptr) {
         bold_font = io.Fonts->AddFontDefault();
         if (bold_font == nullptr) { throw Slic3r::RuntimeError("ImGui: Could not load deafult font"); }
+    }
+
+    if (needs_glyph_fallback) {
+        ImFontConfig fallback_cfg = cfg;
+        fallback_cfg.MergeMode = true;
+        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Bold.ttf").c_str(), m_font_size, &fallback_cfg, ranges.Data);
+    }
+
+    if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
+        default_font->Scale *= 1.25f;
+        bold_font->Scale *= 1.25f;
     }
 
 #ifdef _WIN32
@@ -2792,7 +3231,28 @@ void ImGuiWrapper::init_font(bool compress)
         io.Fonts->AddCustomRectFontGlyph(default_font, icon.first, icon_sz * 4, icon_sz * 4, 3.0 * font_scale + icon_sz * 4);
     }
 
-    // Build texture atlas
+    // Build texture atlas, widening it if the height would exceed GL_MAX_TEXTURE_SIZE.
+    // Increasing the width allows the packing algorithm to grow more horizontally which reduces the height.
+    io.Fonts->Build();
+    GLint gl_max_tex_size = 0;
+    glsafe(::glGetIntegerv(GL_MAX_TEXTURE_SIZE, &gl_max_tex_size));
+    constexpr int max_retries = 6;
+    for (int attempt = 0; attempt < max_retries && io.Fonts->TexHeight > gl_max_tex_size; ++attempt) {
+        const int width = io.Fonts->TexDesiredWidth > 0 ? io.Fonts->TexDesiredWidth : io.Fonts->TexWidth;
+        // Both dimensions share the same limit, so widening past it would only trade an
+        // illegal height for an illegal width.
+        if (width * 2 > gl_max_tex_size)
+            break;
+        io.Fonts->TexDesiredWidth = width * 2;
+        io.Fonts->Build();
+    }
+    if (io.Fonts->TexHeight > gl_max_tex_size) {
+        // Needs both a very large glyph set and a small GL_MAX_TEXTURE_SIZE.
+        BOOST_LOG_TRIVIAL(error) << "Font atlas " << io.Fonts->TexWidth << "x" << io.Fonts->TexHeight
+            << " does not fit GL_MAX_TEXTURE_SIZE (" << gl_max_tex_size << ")"
+            << " after " << max_retries << " attempts; rendering may be incomplete";
+    }
+
     unsigned char* pixels;
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
@@ -2839,7 +3299,7 @@ void ImGuiWrapper::init_font(bool compress)
     glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
     glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
     glsafe(::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
-    if (compress && GLEW_EXT_texture_compression_s3tc)
+    if (compress && GLAD_GL_EXT_texture_compression_s3tc)
         glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
     else
         glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
@@ -2858,7 +3318,6 @@ void ImGuiWrapper::load_fonts_texture()
     //    io.Fonts->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
     //    ImFontConfig cfg = ImFontConfig();
     //    cfg.OversampleH = cfg.OversampleV = 1;
-    //    std::map<std::string, std::string> sys_fonts_map = get_occt_fonts_maps(); // map<font name, font path>
     //    im_fonts_map.clear();                                                     // map<font name, ImFont*>
     //    BOOST_LOG_TRIVIAL(info) << "init_im_font start";
     //    for (auto sys_font : sys_fonts_map) {
@@ -2941,6 +3400,14 @@ void ImGuiWrapper::init_input()
 
     // Don't let imgui special-case Mac, wxWidgets already do that
     io.ConfigMacOSXBehaviors = false;
+
+#ifdef __APPLE__
+    // Places the input method's candidate window at the text cursor.
+    io.ImeSetInputScreenPosFn = [](int x, int y) {
+        if (void* view = ImGui::GetIO().ImeWindowHandle)
+            mac_ime_set_caret(view, x, y, int(ImGui::GetFontSize()));
+    };
+#endif
 
     // Setup clipboard interaction callbacks
     io.SetClipboardTextFn = clipboard_set;
@@ -3077,6 +3544,9 @@ void ImGuiWrapper::render_draw_data(ImDrawData *draw_data)
     shader->set_uniform("Texture", 0);
     shader->set_uniform("ProjMtx", ortho_projection);
 
+    const uint8_t stage = 0;
+    shader->set_uniform("s_texture", stage);
+
     // Will project scissor/clipping rectangles into framebuffer space
     const ImVec2 clip_off   = draw_data->DisplayPos;       // (0,0) unless using multi-viewports
     const ImVec2 clip_scale = draw_data->FramebufferScale; // (1,1) unless using retina display which are often (2,2)
@@ -3141,6 +3611,7 @@ void ImGuiWrapper::render_draw_data(ImDrawData *draw_data)
                 glsafe(::glScissor((int)clip_min.x, (int)(fb_height - clip_max.y), (int)(clip_max.x - clip_min.x), (int)(clip_max.y - clip_min.y)));
 
                 // Bind texture, Draw
+                glsafe(::glActiveTexture(GL_TEXTURE0 + stage));
                 glsafe(::glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->GetTexID()));
                 glsafe(::glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, (void*)(intptr_t)(pcmd->IdxOffset * sizeof(ImDrawIdx))));
             }
@@ -3233,8 +3704,9 @@ const char* ImGuiWrapper::clipboard_get(void* user_data)
             wxTextDataObject data;
             wxTheClipboard->GetData(data);
 
-            if (data.GetTextLength() > 0) {
-                self->m_clipboard_text = into_u8(data.GetText());
+            const wxString text = data.GetText();
+            if (text.Length() > 0) {
+                self->m_clipboard_text = into_u8(text);
                 res = self->m_clipboard_text.c_str();
             }
         }
@@ -3392,3 +3864,50 @@ bool IMTexture::load_from_svg_file(const std::string& filename, unsigned width, 
 
 } // namespace GUI
 } // namespace Slic3r
+
+// ImGui's test-engine hooks (IMGUI_ENABLE_TEST_ENGINE in imconfig.h). ImGui calls them only while
+// ImGuiContext::TestEngineHookItems is set, i.e. while an ImGuiWrapper records items for automation;
+// that wrapper is the context's TestEngine.
+static Slic3r::GUI::ImGuiWrapper* recorder(ImGuiContext* ctx)
+{
+    auto* imgui = static_cast<Slic3r::GUI::ImGuiWrapper*>(ctx->TestEngine);
+    return imgui != nullptr && imgui->item_recording() ? imgui : nullptr;
+}
+
+void ImGuiTestEngineHook_ItemAdd(ImGuiContext* ctx, const ImRect& bb, ImGuiID id)
+{
+    if (Slic3r::GUI::ImGuiWrapper* imgui = recorder(ctx)) {
+        ImGuiWindow* window = ctx->CurrentWindow;
+        imgui->record_item_add(id, bb.Min.x, bb.Min.y, bb.Max.x, bb.Max.y, window ? window->Name : nullptr,
+                               window != nullptr && !window->ClipRect.Contains(bb.GetCenter()));
+    }
+}
+
+void ImGuiTestEngineHook_ItemInfo(ImGuiContext* ctx, ImGuiID id, const char* label, ImGuiItemStatusFlags flags)
+{
+    if (Slic3r::GUI::ImGuiWrapper* imgui = recorder(ctx))
+        imgui->record_item_info(id, label, int(flags));
+}
+
+void ImGuiTestEngineHook_ItemValue(ImGuiContext* ctx, ImGuiID id, const char* kind, const char* value, ImGuiItemStatusFlags flags)
+{
+    if (Slic3r::GUI::ImGuiWrapper* imgui = recorder(ctx))
+        imgui->record_item_value(id, kind, value, int(flags));
+}
+
+void ImGuiTestEngineHook_Text(ImGuiContext* ctx, const ImRect& bb, const char* text, const char* text_end)
+{
+    if (Slic3r::GUI::ImGuiWrapper* imgui = recorder(ctx))
+        imgui->record_text(ctx->CurrentWindow ? ctx->CurrentWindow->Name : nullptr, bb.Min.x, bb.Min.y, bb.Max.x, bb.Max.y, text, text_end);
+}
+
+void ImGuiTestEngineHook_IdInfo(ImGuiContext*, ImGuiDataType, ImGuiID, const void*) {}
+
+void ImGuiTestEngineHook_IdInfo(ImGuiContext* ctx, ImGuiDataType data_type, ImGuiID id, const void* data_id, const void* data_id_end)
+{
+    if (data_type != ImGuiDataType_String)
+        return;
+    if (Slic3r::GUI::ImGuiWrapper* imgui = recorder(ctx))
+        imgui->record_string_id(id, static_cast<const char*>(data_id), static_cast<const char*>(data_id_end));
+}
+void ImGuiTestEngineHook_Log(ImGuiContext*, const char*, ...) {}

@@ -1,8 +1,10 @@
 #ifndef slic3r_BitmapComboBox_hpp_
 #define slic3r_BitmapComboBox_hpp_
 
+#include <cstddef>
 #include <wx/bmpcbox.h>
 #include <wx/gdicmn.h>
+#include <wx/string.h>
 
 #include "GUI_Utils.hpp"
 
@@ -47,7 +49,7 @@ protected:
  * For this purpose control drawing methods and
  * control size calculation methods (virtual) are overridden.
  **/
-bool OnAddBitmap(const wxBitmap& bitmap) override;
+bool OnAddBitmap(const wxBitmapBundle& bitmap) override;
 void OnDrawItem(wxDC& dc, const wxRect& rect, int item, int flags) const override;
 #endif
 

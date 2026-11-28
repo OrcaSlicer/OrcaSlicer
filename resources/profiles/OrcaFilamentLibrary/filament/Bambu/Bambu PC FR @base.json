@@ -1,20 +1,33 @@
 {
-    "type": "filament",
-    "name": "Bambu PC FR @base",
-    "inherits": "fdm_filament_pc",
-    "from": "system",
-    "filament_id": "OGFC01",
-    "instantiation": "false",
-    "filament_cost": [
-        "0"
-    ],
-    "filament_density": [
-        "1.19"
-    ],
-    "filament_flow_ratio": [
-        "0.94"
-    ],
-    "filament_vendor": [
-        "Bambu Lab"
-    ]
+	"type": "filament",
+	"name": "Bambu PC FR @base",
+	"inherits": "fdm_filament_pc",
+	"from": "system",
+	"filament_id": "OFg57Nmc",
+	"instantiation": "false",
+	"filament_cost": [
+		"51.99"
+	],
+	"filament_density": [
+		"1.19"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
+	"filament_flow_ratio": [
+		"0.94",
+		"0.94",
+		"0.94",
+		"0.94",
+		"0.94",
+		"0.94"
+	],
+	"filament_vendor": [
+		"Bambu Lab"
+	]
 }

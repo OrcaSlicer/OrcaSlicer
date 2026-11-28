@@ -1,0 +1,138 @@
+.plugin-search {
+  --search-width: 300px;
+  flex: 0 0 auto;
+  width: var(--search-width);
+  /* why: the search bar takes the auto margin (pinned far left); sort + Refresh + Install cluster right. */
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  /* why: match the compact toolbar buttons (.toolbar .ButtonTypeChoice is 26px) so the row aligns. */
+  height: 26px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.plugin-search:focus-within {
+  border-color: var(--main-color);
+  box-shadow: 0 0 0 2px rgba(0, 150, 136, 0.25);
+}
+
+.plugin-search-icon {
+  display: inline-flex;
+  color: var(--muted);
+}
+
+.plugin-search-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  font: inherit;
+}
+
+.plugin-search-input::placeholder {
+  color: var(--muted);
+}
+
+/* why: compact squarish toggles - min-width keeps single-char W from collapsing while two-char Cc
+   grows just enough to fit; tight horizontal padding keeps them from reading as wide pills. */
+.plugin-search-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 1px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+/* why: set the clear x apart from the Cc/W pair while keeping the pair itself tight - margins on the
+   toggles only, so the icon-to-text gap is left as-is. clear+toggle = Cc, toggle+toggle = W. */
+.plugin-search-clear + .plugin-search-toggle {
+  margin-left: 4px;
+}
+.plugin-search-toggle + .plugin-search-toggle {
+  margin-left: -1px;
+}
+
+/* why: subtle round clear affordance - a small muted disc, not a square button. The x is an inline SVG
+   (not a text glyph) so it centers pixel-perfectly regardless of the platform font. JS flips its
+   visibility (not display) so its reserved slot never reflows Cc/W. */
+.plugin-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--muted);
+  cursor: pointer;
+  visibility: hidden;
+  background: rgba(127, 127, 127, 0.20);
+}
+
+.plugin-search-clear svg {
+  display: block;
+}
+
+.plugin-search-clear:hover {
+  color: var(--text);
+  background: rgba(127, 127, 127, 0.45);
+}
+
+.plugin-search-toggle:hover {
+  color: var(--text);
+  background: var(--row-hover);
+}
+
+.plugin-search-toggle.on {
+  color: var(--button-fg-light, #fff);
+  background: var(--main-color);
+  border-color: var(--main-color-hover);
+}
+
+/* "ab" over a bracket drawn by ::after box draws it */
+.plugin-search-underline {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 2px;
+}
+.plugin-search-underline::after {
+  content: "";
+  position: absolute;
+  /* why: ticks stick out past the outer edges of "a"/"b" on each side. */
+  left: -1px;
+  right: -1px;
+  bottom: 0;
+  /* why: short ticks + bottom rule, tucked near the baseline. */
+  height: 2px;
+  border: 1px solid currentColor;
+  border-top: 0;
+  /* why: soften the two joints where the ticks meet the bottom rule. */
+  border-bottom-left-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+/* why: reuse the themed warn tokens so matched-char marks track light and dark automatically.
+   note: no padding/margin/border - a highlight must not change text width, else rows reflow. */
+mark.plugin-search-hit {
+  border-radius: 2px;
+  background: var(--plugin-status-warn-bg);
+  color: var(--plugin-status-warn);
+}

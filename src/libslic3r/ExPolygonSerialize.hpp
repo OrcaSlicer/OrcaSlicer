@@ -3,6 +3,7 @@
 
 #include "ExPolygon.hpp"
 #include "Point.hpp" // Cereal serialization of Point
+#include "Polygon.hpp"
 #include <cereal/cereal.hpp>
 #include <cereal/types/vector.hpp>
 

@@ -1,0 +1,69 @@
+{
+    "type": "process",
+    "name": "0.10mm Standard @BBL X2D 0.2 nozzle",
+    "inherits": "fdm_process_dual_0.10_nozzle_0.2",
+    "from": "system",
+    "setting_id": "GP148",
+    "instantiation": "true",
+    "description": "It has a small layer height, and results in almost negligible layer lines and high printing quality. It is suitable for most general printing cases.",
+    "bridge_flow": "1.5",
+    "bridge_speed": [
+        "25",
+        "25",
+        "25",
+        "25"
+    ],
+    "default_acceleration": [
+        "4000",
+        "10000",
+        "4000",
+        "4000"
+    ],
+    "enable_tower_interface_features": "1",
+    "initial_layer_speed": [
+        "40",
+        "20",
+        "20",
+        "20"
+    ],
+    "outer_wall_acceleration": [
+        "2000",
+        "5000",
+        "4000",
+        "4000"
+    ],
+    "outer_wall_speed": [
+        "100",
+        "120",
+        "50",
+        "50"
+    ],
+    "overhang_2_4_speed": [
+        "40",
+        "40",
+        "40",
+        "40"
+    ],
+    "overhang_4_4_speed": [
+        "20",
+        "20",
+        "20",
+        "20"
+    ],
+    "prime_tower_brim_width": "-1",
+    "print_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow",
+        "Bowden Standard",
+        "Bowden High Flow"
+    ],
+    "travel_speed": [
+        "1000",
+        "1000",
+        "1000",
+        "1000"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.2 nozzle"
+    ]
+}

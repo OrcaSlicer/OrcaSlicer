@@ -1,31 +1,374 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
 #include "libslic3r/Layer.hpp"
 
-#include "test_data.hpp" // get access to init_print, etc
+#include <cmath>
+#include <cstddef>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <math.h>
+#include <mutex>
+#include <set>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+#include "test_helpers.hpp" // get access to init_print, etc
+
+// Not self-contained: its inline constructor uses PrintObject, PrintRegion, SlicingParameters and
+// Geometry, so it must follow the headers (pulled in via test_helpers.hpp) that define them.
+#include "libslic3r/Support/SupportParameters.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Print.hpp"
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
 
-TEST_CASE("SupportMaterial: Three raft layers created", "[SupportMaterial][.]")
+// Distinct layer Z heights carrying support interface extrusion.
+static size_t support_interface_layer_count(const std::string &gcode)
+{
+    return layers_with_role(gcode, "support material interface").size();
+}
+
+// Distinct layer Z heights carrying support base extrusion. The base G-code label "support material"
+// is a substring of "support material interface", so a base line is a support line that is not an
+// interface line.
+static size_t support_base_layer_count(const std::string &gcode)
+{
+    std::set<double> layers;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&layers](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (! line.extruding(self)) return;
+        const std::string_view comment = line.comment();
+        if (comment.find("support material") != std::string_view::npos &&
+            comment.find("interface") == std::string_view::npos)
+            layers.insert(self.z());
+    });
+    return layers.size();
+}
+
+// Dominant support-interface fill direction per interface layer, in radians [0, pi). Uses the
+// length-weighted axial mean (each segment angle doubled so a line and its reverse agree, then
+// halved): the parallel infill lines reinforce while the surrounding perimeter cancels.
+static std::map<double, double> interface_fill_angle_by_layer(const std::string &gcode)
+{
+    std::map<double, std::pair<double, double>> acc; // z -> summed length*(cos2a, sin2a)
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&acc](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (! line.extruding(self)) return;
+        if (line.comment().find("support material interface") == std::string_view::npos) return;
+        const double dx = line.dist_X(self), dy = line.dist_Y(self);
+        const double len = std::hypot(dx, dy);
+        if (len < 1e-6) return;
+        const double a2 = 2.0 * std::atan2(dy, dx);
+        auto &p = acc[self.z()];
+        p.first  += len * std::cos(a2);
+        p.second += len * std::sin(a2);
+    });
+    std::map<double, double> out;
+    for (const auto &kv : acc) {
+        double a = 0.5 * std::atan2(kv.second.second, kv.second.first);
+        if (a < 0) a += M_PI;
+        out[kv.first] = a;
+    }
+    return out;
+}
+
+// Acute angle (degrees) between two axial fill directions in [0, pi).
+static double axial_angle_diff_deg(double a, double b)
+{
+    const double d = std::fmod(std::fabs(a - b), M_PI);
+    return std::min(d, M_PI - d) * 180.0 / M_PI;
+}
+
+// Denser interface spacing yields more extruded length.
+static double support_interface_extrusion_length(const std::string &gcode)
+{
+    double len = 0;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&len](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (! line.extruding(self)) return;
+        if (line.comment().find("support material interface") == std::string_view::npos) return;
+        len += std::hypot(line.dist_X(self), line.dist_Y(self));
+    });
+    return len;
+}
+
+// A cap slab overhanging a base, joined by a central stem: the cap can only be supported by resting on the
+// base, forcing a genuine bottom contact. A horizontal tunnel does not work here -- tree/organic can arch a
+// branch in from the opening and avoid the floor entirely.
+static TriangleMesh support_capital()
+{
+    TriangleMesh model = make_cube(40, 40, 2);                              // base  [0,40]x[0,40]x[0,2]
+    TriangleMesh stem  = make_cube(8, 8, 12);   stem.translate(16, 16, 1);  // stem  centered, z 1..13
+    TriangleMesh cap   = make_cube(40, 40, 2);  cap.translate(0, 0, 12);    // cap   z 12..14
+    model.merge(stem);
+    model.merge(cap);
+    return model;
+}
+
+TEST_CASE("Top support interfaces cover an overhang with a synchronized variable layer gap", "[SupportMaterial][Regression]")
+{
+    const bool independent = GENERATE(false, true);
+    const bool variable = GENERATE(false, true);
+    const double top_gap = GENERATE(0.0, 0.2);
+    CAPTURE(independent, variable, top_gap);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support",                  1 },
+        { "support_type",                    "normal(auto)" },
+        { "layer_height",                    0.2 },
+        { "initial_layer_print_height",      0.2 },
+        { "independent_support_layer_height", independent },
+        { "support_on_build_plate_only",     0 },
+        { "support_top_z_distance",          top_gap },
+        { "support_bottom_z_distance",       0.2 },
+        { "support_object_xy_distance",      0.35 },
+        { "support_interface_spacing",       0.0 },
+        { "support_interface_top_layers",    2 },
+        { "support_interface_bottom_layers", 0 },
+        { "gcode_comments",                  true },
+    });
+    Print print;
+    Model model;
+    init_print({ support_capital() }, print, model, config);
+    if (variable) {
+        // Below the overhang at Z=12, 0.16 mm layers round the nominal 0.2 mm
+        // synchronized gap down. No material painting is involved.
+        model.objects.front()->layer_height_profile.set(std::vector<coordf_t>{
+            0.0, 0.2, 1.6, 0.2, 1.6, 0.16, 14.0, 0.16,
+        });
+        print.apply(model, config);
+    }
+    print.process();
+    const PrintObject &object = *print.objects().front();
+    REQUIRE(!object.support_layers().empty());
+    const SupportLayer &contact = *object.support_layers().back();
+    REQUIRE(contact.print_z <= 12.0 + EPSILON);
+    REQUIRE(contact.print_z > 11.5);
+    Polygons coverage;
+    Polygons footprint;
+    const ExtrusionEntityCollection fills = contact.support_fills.flatten();
+    for (const ExtrusionEntity *entity : fills.entities)
+        if (entity->role() == erSupportMaterialInterface) {
+            entity->polygons_covered_by_spacing(coverage, 0.f);
+            entity->polygons_covered_by_width(footprint, 0.f);
+        }
+    const auto &layers = object.layers();
+    const auto wall_layer = std::find_if(layers.begin(), layers.end(), [&contact](const Layer *layer) {
+        return layer->bottom_z() < contact.print_z - EPSILON && layer->print_z >= contact.print_z - EPSILON;
+    });
+    REQUIRE(wall_layer != layers.end());
+    REQUIRE(intersection(footprint, to_polygons((*wall_layer)->lslices)).empty());
+    if (top_gap > 0.0) {
+        const auto next_layer = std::find_if(layers.begin(), layers.end(), [&contact](const Layer *layer) {
+            return layer->bottom_z() >= contact.print_z - EPSILON;
+        });
+        REQUIRE(next_layer != layers.end());
+        REQUIRE(intersection(footprint, to_polygons((*next_layer)->lslices)).empty());
+    }
+    // Check interior areas on both sides of the stem, away from the XY gap.
+    const BoundingBox bounds = get_extents(object.layers().back()->lslices);
+    const Point center = bounds.center();
+    for (double x : {-10.0, 10.0}) {
+        const Point lower = center + Point::new_scale(x - 2.0, -2.0);
+        const Point upper = center + Point::new_scale(x + 2.0, 2.0);
+        const Polygon target({lower, Point(upper.x(), lower.y()), upper, Point(lower.x(), upper.y())});
+        CAPTURE(x, contact.print_z);
+        REQUIRE(area(intersection(Polygons{target}, coverage)) > 0.9 * target.area());
+    }
+}
+
+TEST_CASE("Top support interfaces keep clearance below expanding overhang walls", "[SupportMaterial][Regression]")
+{
+    const bool independent = GENERATE(false, true);
+    const bool variable = GENERATE(false, true);
+    const double top_gap = 0.2;
+    const double object_height = variable ? 0.16 : 0.2;
+    const double effective_gap = independent ? top_gap : std::round(top_gap / object_height) * object_height;
+    TriangleMesh mesh = make_cube(40, 40, 2);
+    TriangleMesh overhang = make_pyramid(30, 6);
+    overhang.rotate_x(float(M_PI));
+    overhang.translate(20, 20, 7);
+    mesh.merge(overhang);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support",                  1 },
+        { "support_type",                    "normal(auto)" },
+        { "layer_height",                    0.2 },
+        { "initial_layer_print_height",      0.2 },
+        { "independent_support_layer_height", independent },
+        { "support_on_build_plate_only",     0 },
+        { "support_top_z_distance",          top_gap },
+        { "support_bottom_z_distance",       0.2 },
+        { "support_object_xy_distance",      0.35 },
+        { "support_interface_top_layers",    2 },
+        { "support_interface_bottom_layers", 0 },
+        { "thick_bridges",                   false },
+    });
+    Print print;
+    Model model;
+    init_print({ mesh }, print, model, config);
+    if (variable) {
+        model.objects.front()->layer_height_profile.set(std::vector<coordf_t>{
+            0.0, 0.2, 1.6, 0.2, 1.6, object_height, 7.0, object_height,
+        });
+        print.apply(model, config);
+    }
+    print.process();
+    const PrintObject &object = *print.objects().front();
+    size_t checked_layers = 0;
+    for (const SupportLayer *support : object.support_layers()) {
+        if (support->print_z <= 3.0 || support->print_z >= 6.5)
+            continue;
+        Polygons footprint;
+        const ExtrusionEntityCollection fills = support->support_fills.flatten();
+        for (const ExtrusionEntity *entity : fills.entities)
+            if (entity->role() == erSupportMaterialInterface)
+                entity->polygons_covered_by_width(footprint, 0.f);
+        if (footprint.empty())
+            continue;
+        for (const Layer *layer : object.layers()) {
+            if (layer->bottom_z() >= support->print_z - EPSILON &&
+                layer->bottom_z() < support->print_z + effective_gap - EPSILON) {
+                ++checked_layers;
+                CAPTURE(independent, variable, support->print_z, layer->bottom_z(), effective_gap);
+                REQUIRE(intersection(footprint, to_polygons(layer->lslices)).empty());
+            }
+        }
+    }
+    REQUIRE(checked_layers > 0);
+}
+
+TEST_CASE("Top support interfaces keep clearance when clamped to the first layer", "[SupportMaterial][Regression]")
+{
+    TriangleMesh mesh = make_pyramid(30, 6);
+    mesh.rotate_x(float(M_PI));
+    mesh.translate(15, 15, 6);
+    Print print;
+    init_and_process_print({ mesh }, print, {
+        { "enable_support",                  1 },
+        { "support_type",                    "normal(auto)" },
+        { "layer_height",                    0.28 },
+        { "initial_layer_print_height",      0.2 },
+        { "independent_support_layer_height", false },
+        { "support_top_z_distance",          0.2 },
+        { "support_object_xy_distance",      0.35 },
+        { "support_interface_top_layers",    2 },
+        { "support_interface_bottom_layers", 0 },
+        { "thick_bridges",                   false },
+    });
+    const PrintObject &object = *print.objects().front();
+    REQUIRE(!object.support_layers().empty());
+    const SupportLayer &first = *object.support_layers().front();
+    REQUIRE_THAT(first.print_z, Catch::Matchers::WithinAbs(0.2, EPSILON));
+    REQUIRE(object.layers().size() > 1);
+    Polygons footprint;
+    const ExtrusionEntityCollection fills = first.support_fills.flatten();
+    for (const ExtrusionEntity *entity : fills.entities)
+        if (entity->role() == erSupportMaterialInterface)
+            entity->polygons_covered_by_width(footprint, 0.f);
+    REQUIRE(intersection(footprint, to_polygons(object.layers()[1]->lslices)).empty());
+}
+
+TEST_CASE("Three raft layers are created", "[SupportMaterial]")
 {
 	Slic3r::Print print;
-	Slic3r::Test::init_and_process_print({ TestMesh::cube_20x20x20 }, print, {
-		{ "support_material", 1 },
-		{ "raft_layers",      3 }
+	Slic3r::Test::init_and_process_print({ cube(20) }, print, {
+        { "enable_support", 1 },
+        { "raft_layers",    3 }
 		});
     REQUIRE(print.objects().front()->support_layers().size() == 3);
 }
 
-SCENARIO("SupportMaterial: support_layers_z and contact_distance", "[SupportMaterial][.]")
+TEST_CASE("Enforced support layers are generated", "[SupportMaterial]")
+{
+    // enforce_support_layers forces support on the first N layers even with support off.
+    Slic3r::Print baseline;
+    Slic3r::Test::init_and_process_print({ TestMesh::overhang }, baseline, {
+        { "enable_support",         0 },
+        { "enforce_support_layers", 0 }
+    });
+    REQUIRE(baseline.objects().front()->support_layers().empty());
+
+    Slic3r::Print enforced;
+    Slic3r::Test::init_and_process_print({ TestMesh::overhang }, enforced, {
+        { "enable_support",         0 },
+        { "enforce_support_layers", 100 }
+    });
+    REQUIRE(enforced.objects().front()->support_layers().size() > 0);
+}
+
+// Support-needed statuses raised while slicing support_capital() with support off. The CLI lists these
+// in result.json and fails on them under --strict. Collected under a lock: generate_support_material()
+// runs on TBB workers.
+static std::vector<PrintBase::SlicingStatus> support_needed_statuses(bool no_check)
+{
+    Slic3r::Print print;
+    Slic3r::Model model;
+    Slic3r::Test::init_print({ support_capital() }, print, model, {
+        { "enable_support",         0 },
+        { "enforce_support_layers", 0 }
+    });
+    print.set_no_check_flag(no_check);
+
+    std::mutex mutex;
+    std::vector<PrintBase::SlicingStatus> statuses;
+    print.set_status_callback([&mutex, &statuses](const PrintBase::SlicingStatus &status) {
+        if (status.message_type != PrintStateBase::SlicingNeedSupportOn)
+            return;
+        std::lock_guard<std::mutex> lock(mutex);
+        statuses.push_back(status);
+    });
+    print.process();
+    return statuses;
+}
+
+TEST_CASE("An overhang sliced with support off reports that support is needed", "[SupportMaterial]")
+{
+    // The 40mm cap reaches ~22mm past its 8mm stem, beyond the 6mm cantilever limit of
+    // PrintObject::is_support_necessary().
+    const std::vector<PrintBase::SlicingStatus> statuses = support_needed_statuses(false);
+    REQUIRE(! statuses.empty());
+    for (const PrintBase::SlicingStatus &status : statuses) {
+        // The CLI only considers step warnings (warning_step != -1), and --strict only NON_CRITICAL ones.
+        CHECK(status.warning_level == PrintStateBase::WarningLevel::NON_CRITICAL);
+        CHECK(status.warning_step != -1);
+    }
+}
+
+TEST_CASE("The no-check flag skips the support-needed check", "[SupportMaterial]")
+{
+    CHECK(support_needed_statuses(true).empty());
+}
+
+SCENARIO("Support layer Z honors contact distance", "[SupportMaterial]")
 {
     // Box h = 20mm, hole bottom at 5mm, hole height 10mm (top edge at 15mm).
     TriangleMesh mesh = Slic3r::Test::mesh(Slic3r::Test::TestMesh::cube_with_hole);
     mesh.rotate_x(float(M_PI / 2));
-//    mesh.write_binary("d:\\temp\\cube_with_hole.stl");
 
-	auto check = [](Slic3r::Print &print, bool &first_support_layer_height_ok, bool &layer_height_minimum_ok, bool &layer_height_maximum_ok, bool &top_spacing_ok)
+	auto check = [](Slic3r::Print &print, bool &first_support_layer_height_ok, bool &layer_height_minimum_ok, bool &layer_height_maximum_ok)
 	{
         ConstSupportLayerPtrsAdaptor support_layers = print.objects().front()->support_layers();
 
@@ -43,196 +386,418 @@ SCENARIO("SupportMaterial: support_layers_z and contact_distance", "[SupportMate
 			if (support_layers[i]->print_z - support_layers[i - 1]->print_z > max_layer_height + EPSILON)
 				layer_height_maximum_ok = false;
 		}
-
-#if 0
-		double expected_top_spacing = print.default_object_config().layer_height + print.config().nozzle_diameter.get_at(0);
-		bool wrong_top_spacing = 0;
-        std::vector<coordf_t> top_z { 1.1 };
-		for (coordf_t top_z_el : top_z) {
-			// find layer index of this top surface.
-			size_t layer_id = -1;
-			for (size_t i = 0; i < support_z.size(); ++ i) {
-				if (abs(support_z[i] - top_z_el) < EPSILON) {
-					layer_id = i;
-					i = static_cast<int>(support_z.size());
-				}
-			}
-
-			// check that first support layer above this top surface (or the next one) is spaced with nozzle diameter
-			if (abs(support_z[layer_id + 1] - support_z[layer_id] - expected_top_spacing) > EPSILON && 
-				abs(support_z[layer_id + 2] - support_z[layer_id] - expected_top_spacing) > EPSILON) {
-				wrong_top_spacing = 1;
-			}
-		}
-		d = ! wrong_top_spacing;
-#else
-		top_spacing_ok = true;
-#endif
 	};
 
     GIVEN("A print object having one modelObject") {
-        WHEN("First layer height = 0.4") {
+        WHEN("Layer height = 0.2 and first layer height = 0.4") {
 			Slic3r::Print print;
 			Slic3r::Test::init_and_process_print({ mesh }, print, {
-				{ "support_material",	1 },
-				{ "layer_height",		0.2 },
-				{ "first_layer_height", 0.4 },
-                { "dont_support_bridges", false },
+                { "enable_support",             1 },
+                { "layer_height",               0.2 },
+                { "initial_layer_print_height", 0.4 },
+                { "dont_support_bridges",       false },
 			});
-			bool a, b, c, d;
-            check(print, a, b, c, d);
-            THEN("First layer height is honored")					{ REQUIRE(a == true); }
-            THEN("No null or negative support layers")				{ REQUIRE(b == true); }
-            THEN("No layers thicker than nozzle diameter")			{ REQUIRE(c == true); }
-//            THEN("Layers above top surfaces are spaced correctly")	{ REQUIRE(d == true); }
+			bool first_layer_ok, layer_min_ok, layer_max_ok;
+            check(print, first_layer_ok, layer_min_ok, layer_max_ok);
+            THEN("First layer height is honored")			{ REQUIRE(first_layer_ok == true); }
+            THEN("No null or negative support layers")		{ REQUIRE(layer_min_ok == true); }
+            THEN("No layers thicker than nozzle diameter")	{ REQUIRE(layer_max_ok == true); }
         }
-        WHEN("Layer height = 0.2 and, first layer height = 0.3") {
+        WHEN("Layer height = 0.2 and first layer height = 0.3") {
 			Slic3r::Print print;
 			Slic3r::Test::init_and_process_print({ mesh }, print, {
-				{ "support_material",	1 },
-				{ "layer_height",		0.2 },
-				{ "first_layer_height", 0.3 },
-                { "dont_support_bridges", false },
+                { "enable_support",             1 },
+                { "layer_height",               0.2 },
+                { "initial_layer_print_height", 0.3 },
+                { "dont_support_bridges",       false },
             });
-            bool a, b, c, d;
-            check(print, a, b, c, d);
-            THEN("First layer height is honored")					{ REQUIRE(a == true); }
-            THEN("No null or negative support layers")				{ REQUIRE(b == true); }
-            THEN("No layers thicker than nozzle diameter")			{ REQUIRE(c == true); }
-//            THEN("Layers above top surfaces are spaced correctly")	{ REQUIRE(d == true); }
-        }
-        WHEN("Layer height = nozzle_diameter[0]") {
-			Slic3r::Print print;
-			Slic3r::Test::init_and_process_print({ mesh }, print, {
-				{ "support_material",	1 },
-				{ "layer_height",		0.2 },
-				{ "first_layer_height", 0.3 },
-                { "dont_support_bridges", false },
-            });
-            bool a, b, c, d;
-            check(print, a, b, c, d);
-            THEN("First layer height is honored")					{ REQUIRE(a == true); }
-            THEN("No null or negative support layers")				{ REQUIRE(b == true); }
-            THEN("No layers thicker than nozzle diameter")			{ REQUIRE(c == true); }
-//            THEN("Layers above top surfaces are spaced correctly")	{ REQUIRE(d == true); }
+            bool first_layer_ok, layer_min_ok, layer_max_ok;
+            check(print, first_layer_ok, layer_min_ok, layer_max_ok);
+            THEN("First layer height is honored")			{ REQUIRE(first_layer_ok == true); }
+            THEN("No null or negative support layers")		{ REQUIRE(layer_min_ok == true); }
+            THEN("No layers thicker than nozzle diameter")	{ REQUIRE(layer_max_ok == true); }
         }
     }
 }
 
-#if 0
-// Test 8.
-TEST_CASE("SupportMaterial: forced support is generated", "[SupportMaterial]")
+// extrude_support once held a `static` lambda capturing `this`, so a second export in the
+// same process dereferenced a returned stack frame (ASan: stack-use-after-return).
+TEST_CASE("Support G-code emission survives a second slice in the same process", "[SupportMaterial][Regression]")
 {
-    // Create a mesh & modelObject.
-    TriangleMesh mesh = TriangleMesh::make_cube(20, 20, 20);
+    const std::string first = slice({ TestMesh::overhang }, { { "enable_support", 1 } });
+    REQUIRE(! layers_with_role(first, "support").empty());
 
-    Model model = Model();
-    ModelObject *object = model.add_object();
-    object->add_volume(mesh);
-    model.add_default_instances();
-    model.align_instances_to_origin();
+    const std::string second = slice({ TestMesh::overhang }, { { "enable_support", 1 } });
+    REQUIRE(! layers_with_role(second, "support").empty());
+}
 
-    Print print = Print();
+// The contact layer counts toward the configured interface layer count, so N configured top
+// interface layers produce exactly N interface layers, not N+1.
+TEST_CASE("Support top interface layer count matches the configured value", "[SupportMaterial]")
+{
+    const int top = GENERATE(1, 2, 3, 4, 6);
+    const std::string g = slice({ TestMesh::overhang }, {
+        { "enable_support",                  1 },
+        { "layer_height",                    0.2 },
+        { "support_on_build_plate_only",     1 },
+        { "support_interface_top_layers",    top },
+        { "support_interface_bottom_layers", 0 },
+    });
+    CAPTURE(top);
+    REQUIRE(support_base_layer_count(g)      > 0);          // support actually formed
+    REQUIRE(support_interface_layer_count(g) == size_t(top));
+}
 
-    std::vector<coordf_t> contact_z = {1.9};
-    std::vector<coordf_t> top_z = {1.1};
-    print.default_object_config.support_material_enforce_layers = 100;
-    print.default_object_config.support_material = 0;
-    print.default_object_config.layer_height = 0.2;
-    print.default_object_config.set_deserialize("first_layer_height", "0.3");
+// A rotated cube-with-hole is a horizontal tunnel whose ceiling and floor both receive support, so top
+// and bottom interfaces can be exercised independently (the floor is the bottom contact).
+static TriangleMesh support_tunnel()
+{
+    TriangleMesh tunnel = Slic3r::Test::mesh(TestMesh::cube_with_hole);
+    tunnel.rotate_x(float(M_PI / 2));
+    return tunnel;
+}
 
-    print.add_model_object(model.objects[0]);
-    print.objects.front()->_slice();
+static size_t tunnel_interface_layers(const TriangleMesh &tunnel, int top, int bottom)
+{
+    const std::string g = slice({ tunnel }, {
+        { "enable_support",                  1 },
+        { "layer_height",                    0.2 },
+        { "support_on_build_plate_only",     0 },
+        { "support_interface_top_layers",    top },
+        { "support_interface_bottom_layers", bottom },
+    });
+    REQUIRE(support_base_layer_count(g) > 0); // support actually formed
+    return support_interface_layer_count(g);
+}
 
-    SupportMaterial *support = print.objects.front()->_support_material();
-    auto support_z = support->support_layers_z(contact_z, top_z, print.default_object_config.layer_height);
+TEST_CASE("No support interface is generated when neither top nor bottom is configured", "[SupportMaterial]")
+{
+    REQUIRE(tunnel_interface_layers(support_tunnel(), 0, 0) == 0);
+}
 
-    bool check = true;
-    for (size_t i = 1; i < support_z.size(); i++) {
-        if (support_z[i] - support_z[i - 1] <= 0)
-            check = false;
+TEST_CASE("Bottom interface layer count matches its setting with top interface off", "[SupportMaterial]")
+{
+    const int bottom = GENERATE(1, 3, 6);
+    CAPTURE(bottom);
+    REQUIRE(tunnel_interface_layers(support_tunnel(), 0, bottom) == size_t(bottom));
+}
+
+TEST_CASE("Bottom support interfaces survive a zero contact gap", "[SupportMaterial][Regression]")
+{
+    const bool independent = GENERATE(false, true);
+    const double top_gap = GENERATE(0.0, 0.2);
+    CAPTURE(independent, top_gap);
+    const std::string g = slice({ support_tunnel() }, {
+        { "enable_support",                  1 },
+        { "support_type",                    "normal(auto)" },
+        { "layer_height",                    0.2 },
+        { "initial_layer_print_height",      0.2 },
+        { "independent_support_layer_height", independent },
+        { "support_on_build_plate_only",     0 },
+        { "support_top_z_distance",          top_gap },
+        { "support_bottom_z_distance",       0.0 },
+        { "support_interface_top_layers",    0 },
+        { "support_interface_bottom_layers", 2 },
+    });
+    REQUIRE(support_base_layer_count(g) > 0);
+    REQUIRE(support_interface_layer_count(g) == 2);
+}
+
+TEST_CASE("Synchronized bottom support interfaces survive a rounded variable layer gap", "[SupportMaterial][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support",                  1 },
+        { "support_type",                    "normal(auto)" },
+        { "layer_height",                    0.2 },
+        { "initial_layer_print_height",      0.2 },
+        { "independent_support_layer_height", false },
+        { "support_on_build_plate_only",     0 },
+        { "support_top_z_distance",          0.2 },
+        { "support_bottom_z_distance",       0.2 },
+        { "support_interface_top_layers",    0 },
+        { "support_interface_bottom_layers", 2 },
+        { "gcode_comments",                  true },
+    });
+    Print print;
+    Model model;
+    init_print({ support_capital() }, print, model, config);
+    // The first layer above the 2 mm base is 0.16 mm high, so a synchronized
+    // 0.2 mm gap rounds down and must still exclude the supporting surface.
+    model.objects.front()->layer_height_profile.set(std::vector<coordf_t>{
+        0.0, 0.2, 2.0, 0.2, 2.0, 0.16, 2.16, 0.16, 2.16, 0.2, 14.0, 0.2,
+    });
+    print.apply(model, config);
+    const std::string g = gcode(print);
+    const auto &layers = print.objects().front()->layers();
+    REQUIRE(std::any_of(layers.begin(), layers.end(), [](const Layer *layer) {
+        return std::abs(layer->print_z - 2.16) < EPSILON;
+    }));
+    REQUIRE(support_interface_layer_count(g) == 2);
+}
+
+TEST_CASE("Bottom support interfaces keep clearance from expanding overhang walls", "[SupportMaterial][Regression]")
+{
+    TriangleMesh mesh = make_cube(40, 40, 2);
+    TriangleMesh overhang = make_pyramid(30, 6);
+    overhang.rotate_x(float(M_PI));
+    overhang.translate(20, 20, 7);
+    mesh.merge(overhang);
+
+    Print print;
+    init_and_process_print({ mesh }, print, {
+        { "enable_support",                  1 },
+        { "support_type",                    "normal(auto)" },
+        { "layer_height",                    0.2 },
+        { "initial_layer_print_height",      0.2 },
+        { "independent_support_layer_height", true },
+        { "support_on_build_plate_only",     0 },
+        { "support_top_z_distance",          0.2 },
+        { "support_bottom_z_distance",       0.2 },
+        { "support_object_xy_distance",      0.35 },
+        { "support_interface_top_layers",    0 },
+        { "support_interface_bottom_layers", 2 },
+    });
+    const PrintObject &object = *print.objects().front();
+    size_t interface_layers = 0;
+    size_t checked_layers = 0;
+    for (const SupportLayer *support : object.support_layers()) {
+        if (support->print_z <= 2.0 || support->print_z > 3.0)
+            continue;
+        Polygons interface_polygons;
+        const ExtrusionEntityCollection fills = support->support_fills.flatten();
+        for (const ExtrusionEntity *entity : fills.entities)
+            if (entity->role() == erSupportMaterialInterface)
+                entity->polygons_covered_by_width(interface_polygons, 0.f);
+        if (interface_polygons.empty())
+            continue;
+        ++interface_layers;
+        for (const Layer *layer : object.layers()) {
+            if (layer->bottom_z() < support->print_z - EPSILON && layer->print_z >= support->print_z - EPSILON) {
+                ++checked_layers;
+                CAPTURE(support->print_z);
+                REQUIRE(intersection(interface_polygons, to_polygons(layer->lslices)).empty());
+            }
+        }
     }
-
-    REQUIRE(check == true);
+    REQUIRE(interface_layers > 0);
+    REQUIRE(checked_layers == interface_layers);
 }
 
-// TODO
-bool test_6_checks(Print& print)
+// support_interface_bottom_layers = -1 means "same as top".
+TEST_CASE("Support interface bottom layers default to the top layer count", "[SupportMaterial]")
 {
-	bool has_bridge_speed = true;
-
-	// Pre-Processing.
-	PrintObject* print_object = print.objects.front();
-	print_object->infill();
-	SupportMaterial* support_material = print.objects.front()->_support_material();
-	support_material->generate(print_object);
-	// TODO but not needed in test 6 (make brims and make skirts).
-
-	// Exporting gcode.
-	// TODO validation found in Simple.pm
-
-
-	return has_bridge_speed;
+    const TriangleMesh tunnel = support_tunnel();
+    REQUIRE(tunnel_interface_layers(tunnel, 0, -1) == tunnel_interface_layers(tunnel, 0, 0));
+    REQUIRE(tunnel_interface_layers(tunnel, 3, -1) == tunnel_interface_layers(tunnel, 3, 3));
 }
 
-// Test 6.
-SCENARIO("SupportMaterial: Checking bridge speed", "[SupportMaterial]")
+TEST_CASE("Default support still emits base and interface material", "[SupportMaterial][Regression]")
 {
-    GIVEN("Print object") {
-        // Create a mesh & modelObject.
-        TriangleMesh mesh = TriangleMesh::make_cube(20, 20, 20);
+    const std::string g = slice({ TestMesh::overhang }, { { "enable_support", 1 } });
+    REQUIRE(support_base_layer_count(g)      > 0);
+    REQUIRE(support_interface_layer_count(g) > 0);
+}
 
-        Model model = Model();
-        ModelObject *object = model.add_object();
-        object->add_volume(mesh);
-        model.add_default_instances();
-        model.align_instances_to_origin();
+// Organic runs TreeSupport3D + TreeModelVolumes, the others the classic TreeSupport.cpp path.
+TEST_CASE("Every tree support style produces base and interface material", "[SupportMaterial]")
+{
+    const char *style = GENERATE("organic", "tree_slim", "tree_strong", "tree_hybrid");
+    INFO("style=" << style);
+    const std::string g = slice({ TestMesh::overhang }, {
+        { "enable_support",               1 },
+        { "layer_height",                 0.2 },
+        { "support_type",                 "tree(auto)" },
+        { "support_style",                style },
+        { "support_interface_top_layers", 3 },
+    });
+    CHECK(support_base_layer_count(g)      > 0);
+    CHECK(support_interface_layer_count(g) > 0);
+}
 
-        Print print = Print();
-        print.config.brim_width = 0;
-        print.config.skirts = 0;
-        print.config.skirts = 0;
-        print.default_object_config.support_material = 1;
-        print.default_region_config.top_solid_layers = 0; // so that we don't have the internal bridge over infill.
-        print.default_region_config.bridge_speed = 99;
-        print.config.cooling = 0;
-        print.config.set_deserialize("first_layer_speed", "100%");
+TEST_CASE("Raft interface angle alternates by 45 degrees per interface id", "[SupportMaterial]")
+{
+    Slic3r::Print print;
+    Slic3r::Test::init_and_process_print({ TestMesh::overhang }, print, { { "enable_support", 1 } });
+    SupportParameters sp(*print.objects().front());
+    sp.raft_angle_interface = 0.5f;
+    REQUIRE_THAT(sp.raft_interface_angle(0), Catch::Matchers::WithinAbs(0.5 + M_PI / 4., 1e-6));
+    REQUIRE_THAT(sp.raft_interface_angle(1), Catch::Matchers::WithinAbs(0.5 - M_PI / 4., 1e-6));
+}
 
-        WHEN("support_material_contact_distance = 0.2") {
-            print.default_object_config.support_material_contact_distance = 0.2;
-            print.add_model_object(model.objects[0]);
+// The angle inputs are overwritten directly, so the pattern-to-angle mapping is checked
+// independently of the sliced object's configuration.
+TEST_CASE("Support interface fill angle follows the configured interface pattern", "[SupportMaterial]")
+{
+    Slic3r::Print print;
+    Slic3r::Test::init_and_process_print({ TestMesh::overhang }, print, { { "enable_support", 1 } });
+    SupportParameters sp(*print.objects().front());
+    sp.interface_angle = 0.3f;
+    sp.base_angle      = 1.1f;
+    const double tol   = 1e-6;
 
-            bool check = test_6_checks(print);
-            REQUIRE(check == true); // bridge speed is used.
-        }
-
-        WHEN("support_material_contact_distance = 0") {
-            print.default_object_config.support_material_contact_distance = 0;
-            print.add_model_object(model.objects[0]);
-
-            bool check = test_6_checks(print);
-            REQUIRE(check == true); // bridge speed is not used.
-        }
-
-        WHEN("support_material_contact_distance = 0.2 & raft_layers = 5") {
-            print.default_object_config.support_material_contact_distance = 0.2;
-            print.default_object_config.raft_layers = 5;
-            print.add_model_object(model.objects[0]);
-
-            bool check = test_6_checks(print);
-            REQUIRE(check == true); // bridge speed is used.
-        }
-
-        WHEN("support_material_contact_distance = 0 & raft_layers = 5") {
-            print.default_object_config.support_material_contact_distance = 0;
-            print.default_object_config.raft_layers = 5;
-            print.add_model_object(model.objects[0]);
-
-            bool check = test_6_checks(print);
-
-            REQUIRE(check == true); // bridge speed is not used.
-        }
+    SECTION("Rectilinear shifts the interface angle by -45deg for snug support") {
+        sp.support_interface_pattern = smipRectilinear;
+        sp.support_style             = smsSnug;
+        REQUIRE_THAT(sp.support_interface_angle(0), Catch::Matchers::WithinAbs(sp.interface_angle - M_PI_4, tol));
+        REQUIRE_THAT(sp.support_interface_angle(3), Catch::Matchers::WithinAbs(sp.interface_angle - M_PI_4, tol));
+    }
+    SECTION("Rectilinear leaves the interface angle alone for the other styles") {
+        sp.support_interface_pattern = smipRectilinear;
+        sp.support_style             = smsGrid;
+        REQUIRE_THAT(sp.support_interface_angle(0), Catch::Matchers::WithinAbs(sp.interface_angle, tol));
+    }
+    SECTION("Rectilinear interlaced alternates -/+45deg by interface id parity") {
+        sp.support_interface_pattern = smipRectilinearInterlaced;
+        REQUIRE_THAT(sp.support_interface_angle(0), Catch::Matchers::WithinAbs(sp.interface_angle - M_PI_4, tol));
+        REQUIRE_THAT(sp.support_interface_angle(1), Catch::Matchers::WithinAbs(sp.interface_angle + M_PI_4, tol));
+    }
+    SECTION("Grid uses the base angle") {
+        sp.support_interface_pattern = smipGrid;
+        REQUIRE_THAT(sp.support_interface_angle(0), Catch::Matchers::WithinAbs(sp.base_angle, tol));
+    }
+    SECTION("Auto and concentric use the interface angle unchanged") {
+        sp.support_interface_pattern = smipAuto;
+        REQUIRE_THAT(sp.support_interface_angle(0), Catch::Matchers::WithinAbs(sp.interface_angle, tol));
+        sp.support_interface_pattern = smipConcentric;
+        REQUIRE_THAT(sp.support_interface_angle(0), Catch::Matchers::WithinAbs(sp.interface_angle, tol));
     }
 }
 
-#endif
+// End-to-end that the pattern reaches the emitted fill, not just support_interface_angle().
+TEST_CASE("Interlaced support interface alternates fill angle while rectilinear does not", "[SupportMaterial]")
+{
+    auto interface_angles = [](const char *pattern) {
+        std::vector<double> a;
+        for (const auto &kv : interface_fill_angle_by_layer(slice({ TestMesh::overhang }, {
+                 { "enable_support",               1 },
+                 { "layer_height",                 0.2 },
+                 { "support_on_build_plate_only",  1 },
+                 { "support_interface_top_layers", 6 },
+                 { "support_interface_pattern",    pattern } })))
+            a.push_back(kv.second);
+        return a;
+    };
+
+    const std::vector<double> rectilinear = interface_angles("rectilinear");
+    const std::vector<double> interlaced  = interface_angles("rectilinear_interlaced");
+    REQUIRE(rectilinear.size() >= 3);
+    REQUIRE(interlaced.size()  >= 3);
+
+    for (size_t i = 1; i < rectilinear.size(); ++i)
+        REQUIRE(axial_angle_diff_deg(rectilinear[i], rectilinear[0]) < 15.0);
+
+    for (size_t i = 1; i < interlaced.size(); ++i)
+        REQUIRE(axial_angle_diff_deg(interlaced[i], interlaced[i - 1]) > 60.0);
+}
+
+// Normal and non-organic tree support share the same interface angle logic: with a rectilinear interface
+// pattern both emit their interface fill at the same angle (both go through support_interface_angle()).
+TEST_CASE("Normal and tree support use the same interface fill angle", "[SupportMaterial]")
+{
+    auto mean_interface_angle = [](const char *type, const char *style) {
+        const auto angles = interface_fill_angle_by_layer(slice({ TestMesh::overhang }, {
+            { "enable_support", 1 }, { "layer_height", 0.2 }, { "support_on_build_plate_only", 1 },
+            { "support_type", type }, { "support_style", style },
+            { "support_interface_top_layers", 6 }, { "support_interface_pattern", "rectilinear" } }));
+        REQUIRE(angles.size() >= 3);
+        // Axial mean, as in interface_fill_angle_by_layer: a plain mean would split angles either
+        // side of the [0, pi) wrap.
+        double x = 0, y = 0;
+        for (const auto &kv : angles) {
+            x += std::cos(2.0 * kv.second);
+            y += std::sin(2.0 * kv.second);
+        }
+        double mean = 0.5 * std::atan2(y, x);
+        if (mean < 0) mean += M_PI;
+        return mean;
+    };
+    REQUIRE(axial_angle_diff_deg(mean_interface_angle("normal(auto)", "default"),
+                                 mean_interface_angle("tree(auto)", "tree_slim")) < 10.0);
+}
+
+// Every style, because the non-organic tree styles once emitted one more top interface layer than the rest.
+TEST_CASE("Top interface layer count equals the configured value for every support style", "[SupportMaterial]")
+{
+    auto [type, style] = GENERATE(table<const char *, const char *>({
+        { "normal(auto)", "grid" },        { "normal(auto)", "snug" },
+        { "tree(auto)",   "organic" },     { "tree(auto)",   "tree_slim" },
+        { "tree(auto)",   "tree_strong" }, { "tree(auto)",   "tree_hybrid" },
+    }));
+    CAPTURE(style);
+    const std::string g = slice({ TestMesh::overhang }, {
+        { "enable_support",               1 },
+        { "layer_height",                 0.2 },
+        { "support_type",                 type },
+        { "support_style",                style },
+        { "support_interface_top_layers", 4 },
+    });
+    REQUIRE(support_interface_layer_count(g) == 4u);
+}
+
+// The bottom interface was dropped in earlier versions when support started on the model rather
+// than the plate.
+TEST_CASE("Non-organic tree support generates a bottom interface on internal geometry", "[SupportMaterial]")
+{
+    const std::string g = slice({ support_tunnel() }, {
+        { "enable_support",                  1 },
+        { "layer_height",                    0.2 },
+        { "support_on_build_plate_only",     0 },
+        { "support_type",                    "tree(auto)" },
+        { "support_style",                   "tree_slim" },
+        { "support_interface_top_layers",    0 },
+        { "support_interface_bottom_layers", 6 },
+    });
+    REQUIRE(support_base_layer_count(g)      > 0);
+    REQUIRE(support_interface_layer_count(g) > 0);
+}
+
+// The capital forces the model contact; on a horizontal tunnel organic can arch a branch in and make none.
+TEST_CASE("A bottom interface is produced for every support style on a forced model contact", "[SupportMaterial]")
+{
+    auto [type, style] = GENERATE(table<const char *, const char *>({
+        { "normal(auto)", "default" },     { "tree(auto)", "tree_slim" },
+        { "tree(auto)",   "tree_strong" }, { "tree(auto)", "tree_hybrid" },
+        { "tree(auto)",   "organic" },
+    }));
+    CAPTURE(style);
+    REQUIRE(support_interface_layer_count(slice({ support_capital() }, {
+        { "enable_support", 1 }, { "layer_height", 0.2 }, { "support_on_build_plate_only", 0 },
+        { "support_type", type }, { "support_style", style },
+        { "support_interface_top_layers", 0 }, { "support_interface_bottom_layers", 6 } })) > 0);
+}
+
+TEST_CASE("Bottom interface spacing controls bottom interface density for every support style", "[SupportMaterial]")
+{
+    auto [type, style] = GENERATE(table<const char *, const char *>({
+        { "normal(auto)", "default" },     { "tree(auto)", "tree_slim" },
+        { "tree(auto)",   "tree_strong" }, { "tree(auto)", "tree_hybrid" },
+        { "tree(auto)",   "organic" },
+    }));
+    CAPTURE(style);
+    const TriangleMesh model = support_capital();
+    auto len = [&model](const char *support_type, const char *support_style, double spacing) {
+        return support_interface_extrusion_length(slice({ model }, {
+            { "enable_support", 1 }, { "layer_height", 0.2 }, { "support_on_build_plate_only", 0 },
+            { "support_type", support_type }, { "support_style", support_style }, { "support_interface_top_layers", 0 },
+            { "support_interface_bottom_layers", 6 }, { "support_bottom_interface_spacing", spacing } }));
+    };
+    REQUIRE(len(type, style, 0.0) > len(type, style, 4.0) * 1.5);
+}
+
+// Interface and base flows are identical in width and rate unless a separate support-interface
+// filament is used, so density is the observable here, not flow.
+TEST_CASE("Bottom-only support interface keeps the dense interface density", "[SupportMaterial]")
+{
+    Slic3r::Print print;
+    Slic3r::Test::init_and_process_print({ TestMesh::overhang }, print, {
+        { "enable_support",                   1 },
+        { "support_interface_top_layers",     0 },
+        { "support_interface_bottom_layers",  6 },
+        { "support_bottom_interface_spacing", 0.0 },  // solid: density resolves to 1.0
+        { "support_base_pattern_spacing",     2.5 },  // sparse: density stays below 1.0
+    });
+    SupportParameters sp(*print.objects().front());
+    REQUIRE(sp.bottom_interface_density > sp.support_density);
+}
+

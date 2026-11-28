@@ -3,7 +3,7 @@
     "name": "Fiberon PA612-CF @base",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "filament_id": "GFL53",
+    "filament_id": "OFS2tn6G",
     "instantiation": "false",
     "fan_cooling_layer_time": [
         "5"
@@ -27,6 +27,9 @@
         "Polymaker"
     ],
     "full_fan_speed_layer": [
+        "2"
+    ],
+    "additional_fan_full_speed_layer": [
         "2"
     ],
     "overhang_fan_speed": [

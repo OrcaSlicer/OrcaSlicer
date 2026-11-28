@@ -3,12 +3,15 @@
     "name": "Generic EVA @base",
     "inherits": "fdm_filament_eva",
     "from": "system",
-    "filament_id": "GFR99",
+    "filament_id": "OFCD8qiU",
     "instantiation": "false",
     "additional_cooling_fan_speed": [
         "70"
     ],
     "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "close_additional_fan_first_x_layers": [
         "1"
     ],
     "cool_plate_temp": [

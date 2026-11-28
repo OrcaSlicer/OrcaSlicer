@@ -4,17 +4,14 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // FIND_EARS  Find all ears (faces with two boundary edges) in a given mesh
-  // 
-  // [ears,ear_opp] = find_ears(F)
-  //
-  // Inputs:
-  //   F  #F by 3 list of triangle mesh indices
-  // Outputs:
-  //   ears  #ears list of indices into F of ears
-  //   ear_opp  #ears list of indices indicating which edge is non-boundary
-  //     (connecting to flops)
-  // 
+  /// Find all ears (faces with two boundary edges) in a given mesh
+  /// 
+  ///
+  /// @param[in] F  #F by 3 list of triangle mesh indices
+  /// @param[out] ears  #ears list of indices into F of ears
+  /// @param[out] ear_opp  #ears list of indices indicating which edge is non-boundary
+  ///     (connecting to flops)
+  /// 
   template <
     typename DerivedF,
     typename Derivedear,

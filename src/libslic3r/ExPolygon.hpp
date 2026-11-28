@@ -1,10 +1,17 @@
 #ifndef slic3r_ExPolygon_hpp_
 #define slic3r_ExPolygon_hpp_
 
+#include "Line.hpp"
 #include "Point.hpp"
 #include "libslic3r.h"
 #include "Polygon.hpp"
 #include "Polyline.hpp"
+#include <utility>
+#include <initializer_list>
+#include <cstddef>
+#include <cstdint>
+#include <cassert>
+#include <iterator>
 #include <vector>
 
 namespace Slic3r {
@@ -192,6 +199,25 @@ inline Linesf to_unscaled_linesf(const ExPolygons &src)
     return lines;
 }
 
+inline Linesf3 to_unscaled_linesf3(const ExPolygons& src)
+{
+    Linesf3 lines;
+    lines.reserve(count_points(src));
+    for (ExPolygons::const_iterator it_expoly = src.begin(); it_expoly != src.end(); ++it_expoly) {
+        for (size_t i = 0; i <= it_expoly->holes.size(); ++i) {
+            const Points& points     = ((i == 0) ? it_expoly->contour : it_expoly->holes[i - 1]).points;
+            Vec2d         unscaled_a = unscaled(points.front());
+            Vec2d         unscaled_b = unscaled_a;
+            for (Points::const_iterator it = points.begin() + 1; it != points.end(); ++it) {
+                unscaled_b = unscaled(*(it));
+                lines.push_back(Linef3(unscaled_a, unscaled_b, 0));
+                unscaled_a = unscaled_b;
+            }
+            lines.push_back(Linef3(unscaled_a, unscaled(points.front()), 0));
+        }
+    }
+    return lines;
+}
 
 inline Points to_points(const ExPolygons &src)
 {
@@ -377,6 +403,11 @@ inline void translate(ExPolygons &expolys, const Point &p) {
         expoly.translate(p);
 }
 
+inline void translate(Polygons &polys, const Point &p) {
+    for (Polygon &poly : polys)
+        poly.translate(p);
+}
+
 inline void polygons_append(Polygons &dst, const ExPolygon &src) 
 { 
     dst.reserve(dst.size() + src.holes.size() + 1);
@@ -484,109 +515,5 @@ inline double      area(const ExPolygons &polys) { double s = 0.; for (auto &p :
 bool        remove_small_and_small_holes(ExPolygons &expolygons, double min_area);
 
 } // namespace Slic3r
-
-// start Boost
-#include <boost/polygon/polygon.hpp>
-namespace boost { namespace polygon {
-    template <>
-        struct polygon_traits<Slic3r::ExPolygon> {
-        typedef coord_t coordinate_type;
-        typedef Slic3r::Points::const_iterator iterator_type;
-        typedef Slic3r::Point point_type;
-
-        // Get the begin iterator
-        static inline iterator_type begin_points(const Slic3r::ExPolygon& t) {
-            return t.contour.points.begin();
-        }
-
-        // Get the end iterator
-        static inline iterator_type end_points(const Slic3r::ExPolygon& t) {
-            return t.contour.points.end();
-        }
-
-        // Get the number of sides of the polygon
-        static inline std::size_t size(const Slic3r::ExPolygon& t) {
-            return t.contour.points.size();
-        }
-
-        // Get the winding direction of the polygon
-        static inline winding_direction winding(const Slic3r::ExPolygon& /* t */) {
-            return unknown_winding;
-        }
-    };
-
-    template <>
-    struct polygon_mutable_traits<Slic3r::ExPolygon> {
-        //expects stl style iterators
-        template <typename iT>
-        static inline Slic3r::ExPolygon& set_points(Slic3r::ExPolygon& expolygon, iT input_begin, iT input_end) {
-            expolygon.contour.points.assign(input_begin, input_end);
-            // skip last point since Boost will set last point = first point
-            expolygon.contour.points.pop_back();
-            return expolygon;
-        }
-    };
-    
-    
-    template <>
-    struct geometry_concept<Slic3r::ExPolygon> { typedef polygon_with_holes_concept type; };
-
-    template <>
-    struct polygon_with_holes_traits<Slic3r::ExPolygon> {
-        typedef Slic3r::Polygons::const_iterator iterator_holes_type;
-        typedef Slic3r::Polygon hole_type;
-        static inline iterator_holes_type begin_holes(const Slic3r::ExPolygon& t) {
-            return t.holes.begin();
-        }
-        static inline iterator_holes_type end_holes(const Slic3r::ExPolygon& t) {
-            return t.holes.end();
-        }
-        static inline unsigned int size_holes(const Slic3r::ExPolygon& t) {
-            return (int)t.holes.size();
-        }
-    };
-
-    template <>
-    struct polygon_with_holes_mutable_traits<Slic3r::ExPolygon> {
-         template <typename iT>
-         static inline Slic3r::ExPolygon& set_holes(Slic3r::ExPolygon& t, iT inputBegin, iT inputEnd) {
-              t.holes.assign(inputBegin, inputEnd);
-              return t;
-         }
-    };
-    
-    //first we register CPolygonSet as a polygon set
-    template <>
-    struct geometry_concept<Slic3r::ExPolygons> { typedef polygon_set_concept type; };
-
-    //next we map to the concept through traits
-    template <>
-    struct polygon_set_traits<Slic3r::ExPolygons> {
-        typedef coord_t coordinate_type;
-        typedef Slic3r::ExPolygons::const_iterator iterator_type;
-        typedef Slic3r::ExPolygons operator_arg_type;
-
-        static inline iterator_type begin(const Slic3r::ExPolygons& polygon_set) {
-            return polygon_set.begin();
-        }
-
-        static inline iterator_type end(const Slic3r::ExPolygons& polygon_set) {
-            return polygon_set.end();
-        }
-
-        //don't worry about these, just return false from them
-        static inline bool clean(const Slic3r::ExPolygons& /* polygon_set */) { return false; }
-        static inline bool sorted(const Slic3r::ExPolygons& /* polygon_set */) { return false; }
-    };
-
-    template <>
-    struct polygon_set_mutable_traits<Slic3r::ExPolygons> {
-        template <typename input_iterator_type>
-        static inline void set(Slic3r::ExPolygons& expolygons, input_iterator_type input_begin, input_iterator_type input_end) {
-            expolygons.assign(input_begin, input_end);
-        }
-    };
-} }
-// end Boost
 
 #endif

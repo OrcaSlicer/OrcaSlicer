@@ -8,7 +8,21 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/CutUtils.hpp"
+#include "libslic3r/ObjectID.hpp"
 #include "imgui/imgui.h"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <map>
+#include <vector>
+#include <memory>
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <cstddef>
+#include <utility>
+#include <wx/string.h>
+#include <string>
+#include <wx/event.h>
+#include <functional>
+#include "libslic3r/Color.hpp"
 
 namespace Slic3r {
 
@@ -94,7 +108,6 @@ class GLGizmoCut3D : public GLGizmoBase
     GLModel m_reference_radius;
     GLModel m_angle_arc;
 
-    Vec3d   m_old_center;
     Vec3d   m_cut_normal;
 
     struct InvalidConnectorsStatistics
@@ -123,6 +136,12 @@ class GLGizmoCut3D : public GLGizmoBase
     bool m_groove_editing { false };
 
     bool m_is_slider_editing_done { false };
+
+    // Multiple Dovetail cuts
+    int m_groove_count_init { 1 };
+    int m_groove_count { 1 };
+    float m_groove_gap { 10.f }; // distance between multiple dovetail cuts
+    float m_groove_gap_init { 10.f }; 
 
     // Input params for cut with snaps
     float m_snap_bulge_proportion{ 0.15f };
@@ -174,7 +193,7 @@ class GLGizmoCut3D : public GLGizmoBase
         };
 
         void render(const Vec3d* normal, GLModel& sphere_model);
-        void toggle_selection(const Vec2d& mouse_pos);
+        bool toggle_selection(const Vec2d& mouse_pos);
         void turn_over_selection();
         ModelObject* model_object() { return m_model.objects.front(); }
         bool valid() const { return m_valid; }
@@ -200,7 +219,9 @@ class GLGizmoCut3D : public GLGizmoBase
 
     PartSelection m_part_selection;
 
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
     std::vector<std::pair<wxString, wxString>> m_shortcuts_cut;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
     std::vector<std::pair<wxString, wxString>> m_shortcuts_connector;
 
     enum class CutMode {
@@ -292,6 +313,7 @@ protected:
     void reset_cut_plane();
     void set_connectors_editing(bool connectors_editing);
     void flip_cut_plane();
+    bool is_mouse_over_selected_object(const Vec2d& mouse_pos) const;
     void process_contours();
     void reset_cut_by_contours();
     void render_flip_plane_button(bool disable_pred = false);
@@ -299,8 +321,10 @@ protected:
     void add_horizontal_scaled_interval(float interval);
     void add_horizontal_shift(float shift);
     void render_color_marker(float size, const ImU32& color);
-    void render_groove_float_input(const std::string &label, float &in_val, const float &init_val, float &in_tolerance);
+    void render_groove_two_float_input(const std::string &label, float &in_val, const float &init_val, float &in_tolerance);
+    void render_groove_float_input(const std::string &label, float &in_val, const float &init_val, const bool disabled);
     void render_groove_angle_input(const std::string &label, float &in_val, const float &init_val, float min_val, float max_val);
+    void render_groove_int_input(const std::string& label, int& in_val, const int& init_val, int min_val, int max_val);
     bool render_angle_input(const std::string& label, float& in_val, const float& init_val, float min_val, float max_val);
     void render_snap_specific_input(const std::string& label, const wxString& tooltip, float& in_val, const float& init_val, const float min_val, const float max_val);
     void render_cut_plane_input_window(CutConnectors &connectors, float x, float y, float bottom_limit);
@@ -321,7 +345,7 @@ protected:
     void update_plane_model();
 
     void on_render_input_window(float x, float y, float bottom_limit) override;
-    void show_tooltip_information(float x, float y);
+    void render_tooltip_button(float x, float y);
 
     bool wants_enter_leave_snapshots() const override       { return true; }
     std::string get_gizmo_entering_text() const override    { return _u8L("Entering Cut gizmo"); }
@@ -336,7 +360,8 @@ private:
     void switch_to_mode(size_t new_mode);
     bool render_cut_mode_combo();
     bool render_double_input(const std::string& label, double& value_in);
-    bool render_slider_double_input(const std::string& label, float& value_in, float& tolerance_in, float min_val = -0.1f, float max_tolerance = -0.1f);
+    bool render_slider_two_input(const std::string& label, float& value_in, float& tolerance_in, float min_val = -0.1f, float max_tolerance = -0.1f);
+    bool render_slider_input(const std::string& label, float& value_in, float min_val = -0.1f, float max_val = 100.f);
     void render_move_center_input(int axis);
     void render_connect_mode_radio_button(CutConnectorMode mode);
     bool render_reset_button(const std::string& label_id, const std::string& tooltip) const;
@@ -376,11 +401,17 @@ private:
 
     void toggle_model_objects_visibility();
 
+    std::vector<Vec3i32> offset_indices(const std::vector<Vec3i32>& base_indices, size_t vo);
     indexed_triangle_set its_make_groove_plane();
 
     indexed_triangle_set get_connector_mesh(CutConnectorAttributes connector_attributes);
     void apply_cut_connectors(ModelObject* mo, const std::string& connector_name);
 };
+
+// What Perform cut does to the cut object's cut id before it cuts, and to the model's other pieces of the same cut after
+// it, which a cut made from arguments (Ops::cut_object()) does as well.
+void update_object_cut_id(CutObjectBase& cut_id, ModelObjectCutAttributes attributes, const int dowels_count);
+void synchronize_model_after_cut(Model& model, const CutObjectBase& cut_id);
 
 } // namespace GUI
 } // namespace Slic3r

@@ -3,6 +3,9 @@
 
 #include "Job.hpp"
 #include "libslic3r/Point.hpp"
+#include <string>
+#include <memory>
+#include <exception>
 
 namespace Slic3r { namespace GUI {
 

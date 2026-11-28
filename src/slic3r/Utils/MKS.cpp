@@ -4,32 +4,29 @@
 #include <ctime>
 #include <chrono>
 #include <thread>
-#include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <utility>
 #include <wx/frame.h>
 #include <wx/event.h>
 #include <wx/progdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 
+#include "TCPConsole.hpp"
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/MsgDialog.hpp"
 #include "Http.hpp"
 #include "SerialMessage.hpp"
 #include "SerialMessageType.hpp"
-
-namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace Slic3r {
 
@@ -84,7 +81,7 @@ bool MKS::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn er
 		int err_code = get_err_code_from_body(body);
 		if (err_code != 0) {
 			BOOST_LOG_TRIVIAL(error) << boost::format("MKS: Request completed but error code was received: %1%") % err_code;
-			error_fn(format_error(body, L("Unknown error occurred"), 0));
+			error_fn(format_error(body, _u8L("Unknown error occurred"), 0));
 			res = false;
 		}
 		else if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
@@ -139,15 +136,6 @@ bool MKS::start_print(wxString& msg, const std::string& filename) const
 		msg = wxString::FromUTF8(console.error_message().c_str());
 
 	return ret;
-}
-
-int MKS::get_err_code_from_body(const std::string& body) const
-{
-	pt::ptree root;
-	std::istringstream iss(body); // wrap returned json to istringstream
-	pt::read_json(iss, root);
-
-	return root.get<int>("err", 0);
 }
 
 } // Slic3r

@@ -1,4 +1,13 @@
 #include "SupportTreeMesher.hpp"
+#include "libslic3r/libslic3r.h"
+#include <cmath>
+#include <vector>
+#include <cstddef>
+#include <cstdlib>
+#include "libslic3r/Point.hpp"
+#include <Eigen/Geometry>
+#include <cassert>
+#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r { namespace sla {
 

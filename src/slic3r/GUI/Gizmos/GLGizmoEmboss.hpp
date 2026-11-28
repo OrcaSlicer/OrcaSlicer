@@ -10,6 +10,8 @@
 #include "slic3r/Utils/RaycastManager.hpp"
 #include "slic3r/Utils/EmbossStyleManager.hpp"
 
+#include <cstddef>
+#include "libslic3r/ObjectID.hpp"
 #include <optional>
 #include <memory>
 #include <atomic>
@@ -19,7 +21,12 @@
 #include "libslic3r/TextConfiguration.hpp"
 
 #include <imgui/imgui.h>
-#include <GL/glew.h>
+#include <glad/gl.h>
+#include <string>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <vector>
+#include <utility>
 
 class wxFont;
 namespace Slic3r{
@@ -50,7 +57,8 @@ public:
     /// <summary>
     /// Handle pressing of shortcut
     /// </summary>
-    void on_shortcut_key();
+    /// <returns>True when it started creating a text part, whose job opens the gizmo when it ends</returns>
+    bool on_shortcut_key();
 
     /// <summary>
     /// Mirroring from object manipulation panel
@@ -109,10 +117,13 @@ private:
     void set_volume_by_selection();
     void reset_volume();
 
+    bool is_changed_from_default_style();
+    void reset_to_default_style();
+
     // create volume from text - main functionality
     bool process(bool make_snapshot = true);
     void close();
-    void draw_window();
+    void draw_window(float x, float y);
     void draw_text_input();
     void draw_model_type();
     void draw_style_list();
@@ -229,6 +240,9 @@ private:
 
     // only temporary solution
     static const std::string M_ICON_FILENAME;
+
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts;
 };
 
 } // namespace Slic3r::GUI

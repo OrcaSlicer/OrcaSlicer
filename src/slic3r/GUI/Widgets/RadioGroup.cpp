@@ -1,6 +1,22 @@
 #include "RadioGroup.hpp"
 #include "Label.hpp"
 #include "StateColor.hpp"
+#include <vector>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <utility>
+#include <wx/colour.h>
+#include <wx/sizer.h>
+#include <wx/anybutton.h>
+#include <wx/event.h>
+#include <wx/utils.h>
+#include <wx/window.h>
+#include <cstddef>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 RadioGroup::RadioGroup(
     wxWindow* parent,

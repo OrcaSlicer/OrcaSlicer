@@ -11,9 +11,28 @@
 
 #include "../libslic3r.h"
 #include "../Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Support/SupportParameters.hpp"
+#include "libslic3r/Support/SupportLayer.hpp"
 #include "SupportCommon.hpp"
+#include "libslic3r/Utils.hpp"
 
+#include <algorithm>
+#include <cstddef>
+#include <math.h>
+#include <cmath>
+#include <limits>
+#include <cassert>
+#include <cstdio>
+#include <iterator>
+#include <mutex>
 #include <string_view>
+#include <vector>
+#include <utility>
 
 namespace Slic3r
 {
@@ -60,12 +79,10 @@ struct TreeSupportMeshGroupSettings {
         this->support_angle             = 0.5 * M_PI - std::clamp<double>((config.support_threshold_angle + 1) * M_PI / 180., 0., 0.5 * M_PI);
         this->support_line_width        = support_material_flow(&print_object, config.layer_height).scaled_width();
         this->support_roof_line_width   = support_material_interface_flow(&print_object, config.layer_height).scaled_width();
-        //FIXME add it to SlicingParameters and reuse in both tree and normal supports?
-        this->support_bottom_enable     = config.support_interface_top_layers.value > 0 && config.support_interface_bottom_layers.value != 0;
+        const int bottom_interface_layers = number_of_support_interface_bottom_layers(config);
+        this->support_bottom_enable     = bottom_interface_layers > 0;
         this->support_bottom_height     = this->support_bottom_enable ?
-            (config.support_interface_bottom_layers.value > 0 ?
-                config.support_interface_bottom_layers.value :
-                config.support_interface_top_layers.value) * this->layer_height :
+            bottom_interface_layers * this->layer_height :
             0;
         this->support_material_buildplate_only = config.support_on_build_plate_only;
         this->support_xy_distance       = scaled<coord_t>(config.support_object_xy_distance.value);
@@ -76,8 +93,8 @@ struct TreeSupportMeshGroupSettings {
         this->support_bottom_distance   = scaled<coord_t>(slicing_params.gap_object_support);
         this->support_roof_enable       = config.support_interface_top_layers.value > 0;
         this->support_roof_layers       = config.support_interface_top_layers.value;
-        this->support_floor_enable      = config.support_interface_bottom_layers.value > 0;
-        this->support_floor_layers      = config.support_interface_bottom_layers.value;
+        this->support_floor_enable      = bottom_interface_layers > 0;
+        this->support_floor_layers      = bottom_interface_layers;
         this->support_roof_pattern      = config.support_interface_pattern;
         this->support_pattern           = config.support_base_pattern;
         this->support_line_spacing      = scaled<coord_t>(config.support_base_pattern_spacing.value);
@@ -306,7 +323,7 @@ public:
     
         layer_start_bp_radius = (bp_radius - branch_radius) / bp_radius_increase_per_layer;
     
-        if (TreeSupportSettings::soluble) {
+        if (TreeSupportSettings::zero_top_z_gap) {
             // safeOffsetInc can only work in steps of the size xy_min_distance in the worst case => xy_min_distance has to be a bit larger than 0 in this worst case and should be large enough for performance to not suffer extremely
             // When for all meshes the z bottom and top distance is more than one layer though the worst case is xy_min_distance + min_feature_size
             // This is not the best solution, but the only one to ensure areas can not lag though walls at high maximum_move_distance.
@@ -343,7 +360,8 @@ public:
             }
             if (double dist_to_go = slicing_params.object_print_z_min - z; dist_to_go > EPSILON) {
                 // Layers between the raft contacts and bottom of the object.
-                auto nsteps = int(ceil(dist_to_go / slicing_params.max_suport_layer_height));
+                // ORCA: Bias by EPSILON so near-equal gaps do not get an extra split from FP noise.
+                auto nsteps = int(ceil((dist_to_go - EPSILON) / slicing_params.max_suport_layer_height));
                 double step = dist_to_go / nsteps;
                 for (int i = 0; i < nsteps; ++ i) {
                     z += step;
@@ -355,7 +373,7 @@ public:
 
     // some static variables dependent on other meshes that are not currently processed.
     // Has to be static because TreeSupportConfig will be used in TreeModelVolumes as this reduces redundancy.
-    inline static bool soluble = false;
+    inline static bool zero_top_z_gap = false;
     /*!
      * \brief Width of a single line of support.
      */
@@ -588,8 +606,6 @@ private:
 //    std::vector<coord_t> known_z;
 };
 
-static constexpr const bool polygons_strictly_simple = false;
-
 inline double tiny_area_threshold() { return sqr(scaled<double>(0.001)); }
 
 inline void tree_supports_show_error(std::string_view message, bool critical)
@@ -613,19 +629,35 @@ inline double layer_z(const SlicingParameters &slicing_params, const TreeSupport
         slicing_params.object_print_z_min + slicing_params.first_object_layer_height + (layer_idx - config.raft_layers.size()) * slicing_params.layer_height :
         config.raft_layers[layer_idx];
 }
+
+inline double first_object_support_layer_z(const SlicingParameters &slicing_params)
+{
+    return slicing_params.object_print_z_min + slicing_params.first_object_layer_height;
+}
+
+// Orca: Reverse layer_z() for support layers below the first object layer.
+// config.raft_layers may include raft/contact/intermediate support Zs, so do not collapse them to the first object support layer.
 // Lowest collision layer
 inline LayerIndex layer_idx_ceil(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const double z)
 {
-    return 
-        LayerIndex(config.raft_layers.size()) +
-        std::max<LayerIndex>(0, ceil((z - slicing_params.object_print_z_min - slicing_params.first_object_layer_height) / slicing_params.layer_height));
+    const double first_object_z = first_object_support_layer_z(slicing_params);
+    if (!config.raft_layers.empty() && z < first_object_z - EPSILON) {
+        auto it = std::lower_bound(config.raft_layers.begin(), config.raft_layers.end(), z - EPSILON);
+        return LayerIndex(it == config.raft_layers.end() ? config.raft_layers.size() : std::distance(config.raft_layers.begin(), it));
+    }
+    return LayerIndex(config.raft_layers.size()) +
+        std::max<LayerIndex>(0, LayerIndex(std::ceil((z - first_object_z) / slicing_params.layer_height)));
 }
 // Highest collision layer
 inline LayerIndex layer_idx_floor(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const double z)
 {
-    return 
-        LayerIndex(config.raft_layers.size()) + 
-        std::max<LayerIndex>(0, floor((z - slicing_params.object_print_z_min - slicing_params.first_object_layer_height) / slicing_params.layer_height));
+    const double first_object_z = first_object_support_layer_z(slicing_params);
+    if (!config.raft_layers.empty() && z < first_object_z - EPSILON) {
+        auto it = std::upper_bound(config.raft_layers.begin(), config.raft_layers.end(), z + EPSILON);
+        return LayerIndex(it == config.raft_layers.begin() ? 0 : std::distance(config.raft_layers.begin(), it) - 1);
+    }
+    return LayerIndex(config.raft_layers.size()) +
+        std::max<LayerIndex>(0, LayerIndex(std::floor((z - first_object_z) / slicing_params.layer_height)));
 }
 
 inline SupportGeneratorLayer& layer_initialize(
@@ -635,7 +667,22 @@ inline SupportGeneratorLayer& layer_initialize(
     const size_t               layer_idx)
 {
     layer_new.print_z  = layer_z(slicing_params, config, layer_idx);
-    layer_new.bottom_z = layer_idx > 0 ? layer_z(slicing_params, config, layer_idx - 1) : 0;
+    // Layer 0 has no layer below it, so its bottom is the build plate at z = 0 --
+    // true for a flat bed, false for a belt, whose virtual support layers extend
+    // below zero. Taking 0 there made the bottom-most belt layer's height come out
+    // as its own (negative) print_z, which reached Flow::with_height() and threw
+    // FlowErrorNegativeFlow, so tree support could not slice any belt model whose
+    // branches reached down that far.
+    //
+    // Only the negative case is corrected. An earlier version used
+    // min(0, print_z - layer_height), which also fires whenever the initial layer
+    // is THINNER than the regular layer height -- e.g. 0.2 over 0.3, both
+    // independently configurable -- and silently changed flat-bed support layer
+    // heights. Keying on the sign leaves every non-negative print_z on exactly
+    // the previous value of 0.
+    layer_new.bottom_z = layer_idx > 0 ? layer_z(slicing_params, config, layer_idx - 1) : 0.;
+    if (layer_idx == 0 && layer_new.print_z < 0.)
+        layer_new.bottom_z = layer_new.print_z - slicing_params.layer_height;
     layer_new.height   = layer_new.print_z - layer_new.bottom_z;
     return layer_new;
 }
@@ -663,7 +710,8 @@ inline SupportGeneratorLayer& layer_allocate(
     return layer_initialize(layer, slicing_params, config, layer_idx);
 }
 
-// Used by generate_initial_areas() in parallel by multiple layers.
+// Adds top contact and interface areas to the support layers. add_roof() may be called from several threads,
+// add_roof_unguarded() only while no other thread is adding roofs.
 class InterfacePlacer {
 public:
     InterfacePlacer(
@@ -689,37 +737,25 @@ public:
     SupportGeneratorLayersPtr&  top_contacts_mutable() { return this->top_contacts; }
 
 public:
-    // Insert the contact layer and some of the inteface and base interface layers below.
-    void add_roofs(std::vector<Polygons> &&new_roofs, const size_t insert_layer_idx)
-    {
-        if (! new_roofs.empty()) {
-            std::lock_guard<std::mutex> lock(m_mutex_layer_storage);
-            for (size_t idx = 0; idx < new_roofs.size(); ++ idx)
-                if (! new_roofs[idx].empty())
-                    add_roof_unguarded(std::move(new_roofs[idx]), insert_layer_idx - idx, idx);
-        }
-    }
-
     void add_roof(Polygons &&new_roof, const size_t insert_layer_idx, const size_t dtt_tip)
     {
         std::lock_guard<std::mutex> lock(m_mutex_layer_storage);
         add_roof_unguarded(std::move(new_roof), insert_layer_idx, dtt_tip);
     }
 
-    // called by sample_overhang_area()
-    void add_roof_build_plate(Polygons &&overhang_areas, size_t dtt_roof)
-    {
-        std::lock_guard<std::mutex> lock(m_mutex_layer_storage);
-        this->add_roof_unguarded(std::move(overhang_areas), 0, std::min(dtt_roof, this->support_parameters.num_top_interface_layers));
-    }
-
     void add_roof_unguarded(Polygons &&new_roofs, const size_t insert_layer_idx, const size_t dtt_roof)
     {
         assert(support_parameters.has_top_contacts);
         assert(dtt_roof <= support_parameters.num_top_interface_layers);
+        // ORCA: Reserve one top interface layer but only when top base-interface layers exist.
+        // This prevents all interface layers from being classified as base-interface layers
+        // and preserves correct top contact and interface behavior.
+        size_t interface_threshold = support_parameters.num_top_interface_layers_only();
+        if (interface_threshold > 0 && support_parameters.num_top_base_interface_layers > 0)
+            --interface_threshold;
         SupportGeneratorLayersPtr &layers =
             dtt_roof == 0 ? this->top_contacts :
-            dtt_roof <= support_parameters.num_top_interface_layers_only() ? this->top_interfaces : this->top_base_interfaces;
+            dtt_roof <= interface_threshold ? this->top_interfaces : this->top_base_interfaces;
         SupportGeneratorLayer*& l = layers[insert_layer_idx];
         if (l == nullptr)
             l = &layer_allocate_unguarded(layer_storage, dtt_roof == 0 ? SupporLayerType::TopContact : SupporLayerType::TopInterface, 

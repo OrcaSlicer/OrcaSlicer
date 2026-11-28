@@ -14,16 +14,16 @@ namespace igl
 {
   namespace opengl
   {
-    // Properly destroy a shader program. Detach and delete each of its shaders
-    // and delete it
-    // Inputs:
-    //   id  index id of created shader, set to 0 on error
-    // Returns true on success, false on error
-    // 
-    // Note: caller is responsible for making sure he doesn't foolishly continue
-    // to use id as if it still contains a program
-    // 
-    // See also: create_shader_program
+    /// Properly destroy a shader program. Detach and delete each of its shaders
+    /// and delete it
+    ///
+    /// @param[in] id  index id of created shader, set to 0 on error
+    /// @return true on success, false on error
+    /// 
+    /// \note caller is responsible for making sure he doesn't foolishly continue
+    /// to use id as if it still contains a program
+    /// 
+    /// \see create_shader_program
     IGL_INLINE bool destroy_shader_program(const GLuint id);
   }
 }

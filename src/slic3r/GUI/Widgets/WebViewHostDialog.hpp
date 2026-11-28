@@ -1,0 +1,146 @@
+#ifndef slic3r_GUI_Widgets_WebViewHostDialog_hpp_
+#define slic3r_GUI_Widgets_WebViewHostDialog_hpp_
+
+#include <boost/filesystem/path.hpp>
+#include <nlohmann/json.hpp>
+#include <slic3r/GUI/GUI_Utils.hpp>
+
+#include <atomic>
+#include <exception>
+#include <functional>
+#include <memory>
+#include <string>
+
+#include <wx/event.h>
+#include <wx/chartype.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/webview.h>
+
+class wxCommandEvent;
+class wxFileName;
+class wxWebView;
+class wxWebViewEvent;
+class wxWindow;
+
+namespace Slic3r { namespace GUI {
+
+// Shared shell for local HTML dialogs that communicate through window.wx.postMessage().
+class WebViewHostDialog : public Slic3r::GUI::DPIDialog
+{
+public:
+    WebViewHostDialog(wxWindow* parent,
+                      wxWindowID id         = wxID_ANY,
+                      const wxString& title = wxT(""),
+                      const wxPoint& pos    = wxDefaultPosition,
+                      const wxSize& size    = wxDefaultSize,
+                      // wxRESIZE_BORDER is required for a resizable frame on MSW/GTK; macOS derives
+                      // one from wxMAXIMIZE_BOX alone, which is why these dialogs used to resize only there.
+                      long style            = wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxMAXIMIZE_BOX | wxRESIZE_BORDER);
+    ~WebViewHostDialog() override;
+
+    bool create_webview(const std::string& resource_path,
+                        const wxString& title,
+                        const wxSize& dialog_size = wxSize(820, 660),
+                        const wxSize& min_size    = wxSize(640, 640));
+
+    void load_url(const wxString& url);
+    bool run_script(const wxString& script);
+    void call_web_handler(const nlohmann::json& payload, const wxString& handler = wxT("HandleStudio"));
+
+    // Wraps `markup` (an HTML fragment, usually a <style> block) in a document-start user
+    // script that inserts it once — guarded by element id `dom_id`, at `position` (an
+    // insertAdjacentHTML target such as "afterbegin"/"beforeend") — retrying via a
+    // MutationObserver until a root node exists. On WebView2 a document-start script can run
+    // before <html> exists (document.head and document.documentElement both null), so a bare
+    // insert would throw and silently never apply. `prelude` is emitted once before the
+    // injector (extra var/flag declarations); `on_inject` runs inside inject() after each
+    // successful insert. Both default to empty.
+    static std::string document_start_injector(const std::string& markup,
+                                               const char*        dom_id,
+                                               const char*        position,
+                                               const std::string& prelude   = {},
+                                               const std::string& on_inject = {});
+
+    // Shared by WebPanel hosts and WebDialog.
+    static std::string theme_user_script();
+    static std::string element_defaults_user_script();
+    // Re-themes an already-loaded page in place, for web views hosted outside a dialog.
+    static std::string theme_apply_script();
+    // Document-start user script that hands a bundled page its translated strings as
+    // window.ORCA_UI_STRINGS, keyed by the ids its T() lookups and data-i18n attributes use
+    // (resources/web/include/i18n.js). The strings come from _u8L, so they go through the same .po
+    // pipeline as the rest of the UI. They are in place before any page script runs; the page's
+    // static markup shows its English until the page's init calls TranslatePage(). A host builds them
+    // when it creates its web view; a language switch rebuilds the GUI and with it the host.
+    static std::string localized_strings_script(const nlohmann::json& strings);
+    // The translated text of the code editor (resources/web/dialog/js/code_editor.js, Ace): its search box, suggestion
+    // list, read-only note, folding and ARIA labels, keyed by Ace's message keys, with %s for each of a message's
+    // placeholders. A page with an editor puts it under "code_editor" in its strings.
+    static nlohmann::json code_editor_strings();
+    // Whether a web view showing the bundled page `page` may navigate to `url`: the page's own loads (its file, with any
+    // query) and about:blank. Such a page never goes anywhere else, so its host vetoes every other navigation, which
+    // would hand the page's message handler to a page that isn't the app's: a link or a file dropped on it.
+    static bool own_page_navigation(const wxString& url, const wxFileName& page);
+    // The file a file: URL names: a web view navigates to a file dropped on it. Empty for any other URL.
+    static boost::filesystem::path dropped_file(const wxString& url);
+    // A web view filling the dock pane `pane`, on the bundled page `page`, as every dock pane's page wants it: with the
+    // theme and `strings` in before it loads, the browser's reload and zoom keys off, a theme toggle applied in place
+    // and the UI's language in the URL. A message from the page reaches `on_message` after the web view's callback,
+    // while `alive`; every navigation reaches `on_navigating`, which vetoes what isn't the page's own. Null when no web
+    // view can be made.
+    static wxWebView* create_pane_web_view(wxWindow* pane, const boost::filesystem::path& page, const nlohmann::json& strings,
+                                           std::shared_ptr<std::atomic<bool>>              alive,
+                                           std::function<void(const nlohmann::json&)>      on_message,
+                                           std::function<void(wxWebViewEvent&)>            on_navigating);
+
+protected:
+    wxWebView* browser() const { return m_browser; }
+
+    wxString build_resource_url(const std::string& resource_path) const;
+    bool handle_common_script_command(const nlohmann::json& payload, int close_return_code = wxID_CANCEL);
+    // Re-raises this dialog after a transient modal it opened (file dialog, message box,
+    // progress dialog). Native macOS panels end by re-activating the app's main window
+    // (the mainframe) instead of this webview-hosting dialog, burying it; wx only
+    // compensates for generic wxDialog modals (wxDialog::EndModal raises the parent).
+    void restore_z_order();
+
+    void on_dpi_changed(const wxRect& suggested_rect) override;
+
+    virtual void on_script_message(const nlohmann::json& payload) = 0;
+    virtual void on_script_message_parse_error(const wxString& payload, const std::exception& error);
+    virtual bool append_language_to_url() const { return true; }
+
+    // Registers all document-start user scripts: the shared host theme contract first,
+    // then subclass scripts from add_user_scripts(). Called ONCE, at creation. Live
+    // re-theme goes through apply_theme_live() (RunScript), not a re-registration —
+    // calling this again would append duplicate scripts.
+    void register_theme_user_scripts();
+
+    // Subclasses override to add page-specific document-start user scripts (e.g. the
+    // plugin bridge / unstyled-content defaults). Called AFTER the theme contract is
+    // added, by register_theme_user_scripts(). Default: none.
+    virtual void add_user_scripts() {}
+
+    // The page's translated strings, injected through localized_strings_script() when the
+    // dialog is created. Default: none.
+    virtual nlohmann::json localized_strings() const { return nullptr; }
+
+    // Pushes the current app theme into the already-loaded document without a reload
+    // (updates the injected :root variables and the data-orca-theme attribute).
+    void apply_theme_live();
+
+private:
+    void on_script_message_event(wxWebViewEvent& event);
+    void on_webview_recreated(wxCommandEvent& event);
+
+    wxWebView* m_browser{nullptr};
+    // False once the dialog is destroyed: call_web_handler() delivers its script later, from the event
+    // loop, and must not reach a dialog that is gone by then.
+    std::shared_ptr<std::atomic<bool>> m_host_alive{std::make_shared<std::atomic<bool>>(true)};
+};
+
+}} // namespace Slic3r::GUI
+
+#endif

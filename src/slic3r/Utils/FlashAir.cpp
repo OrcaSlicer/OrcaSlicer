@@ -2,27 +2,25 @@
 
 #include <algorithm>
 #include <ctime>
-#include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
+#include <utility>
 #include <wx/frame.h>
 #include <wx/event.h>
 #include <wx/progdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/MsgDialog.hpp"
 #include "Http.hpp"
-
-namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace Slic3r {
 
@@ -119,7 +117,7 @@ bool FlashAir::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Error
 			res = boost::icontains(body, "SUCCESS");
 			if (! res) {
 				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Request completed but no SUCCESS message was received.") % name;
-				error_fn(format_error(body, L("Unknown error occurred"), 0));
+				error_fn(format_error(body, _u8L("Unknown error occurred"), 0));
 			}
 		})
 		.perform_sync();
@@ -140,7 +138,7 @@ bool FlashAir::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Error
             res = boost::icontains(body, "SUCCESS");
             if (! res) {
                 BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Request completed but no SUCCESS message was received.") % name;
-                error_fn(format_error(body, L("Unknown error occurred"), 0));
+                error_fn(format_error(body, _u8L("Unknown error occurred"), 0));
             }
         })
         .perform_sync();
@@ -156,7 +154,7 @@ bool FlashAir::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Error
 			res = boost::icontains(body, "SUCCESS");
 			if (! res) {
 				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Request completed but no SUCCESS message was received.") % name;
-				error_fn(format_error(body, L("Unknown error occurred"), 0));
+				error_fn(format_error(body, _u8L("Unknown error occurred"), 0));
 			}
 		})
 		.on_error([&](std::string body, std::string error, unsigned status) {

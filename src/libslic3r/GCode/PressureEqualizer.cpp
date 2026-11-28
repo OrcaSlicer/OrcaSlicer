@@ -1,17 +1,27 @@
+#include <cassert>
+#include <cstdlib>
+#include <boost/algorithm/string/predicate.hpp>
+#include <cctype>
+#include <cmath>
+#include <array>
 #include <iostream>
+#include <math.h>
+#include <limits>
 #include <memory.h>
 #include <cstring>
 #include <cfloat>
 #include <algorithm>
+#include <string>
 
-#include "../libslic3r.h"
 #include "../PrintConfig.hpp"
-#include "../LocalesUtils.hpp"
 #include "../GCode.hpp"
 
 #include "PressureEqualizer.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Exception.hpp"
 #include "fast_float/fast_float.h"
 #include "GCodeWriter.hpp"
+#include "libslic3r/Config.hpp"
 
 namespace Slic3r {
 
@@ -31,7 +41,9 @@ static constexpr int max_look_back_limit = 128;
 // lines where some extruder pressure will remain (so we should equalize between these small travels)
 static constexpr long max_ignored_gap_between_extruding_segments = 3;
 
-PressureEqualizer::PressureEqualizer(const Slic3r::GCodeConfig &config) : m_use_relative_e_distances(config.use_relative_e_distances.value)
+PressureEqualizer::PressureEqualizer(const Slic3r::GCodeConfig &config)
+    : m_use_relative_e_distances(config.use_relative_e_distances.value),
+      m_high_precision(config.high_precision_gcode.value)
 {
     // Preallocate some data, so that output_buffer.data() will return an empty string.
     output_buffer.assign(32, 0);
@@ -541,10 +553,17 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                 // We don't have enough time to accel to max possible extrusion rate
                 // now we calculate the actual possible value
                 target_max_extrusion_rate = std::sqrt((2 * max_sloped_extrusion * sp * sn + sn * e0_2 + sp * e1_2) / (sp + sn));
+
+                // Worst case: we don't have enough time to do an accl-steady-decel movement at all, fallback to the old fashion
+                // single slope mode
+                if (target_max_extrusion_rate <= line.volumetric_extrusion_rate_start ||
+                    target_max_extrusion_rate <= line.volumetric_extrusion_rate_end) {
+                    goto single_slope_fallback;  // TODO: FIXIT: better way than a goto?
+                }
             }
             assert(target_max_extrusion_rate > line.volumetric_extrusion_rate_start);
             assert(target_max_extrusion_rate > line.volumetric_extrusion_rate_end);
-            assert(target_max_extrusion_rate >= line.volumetric_extrusion_rate);
+            assert(target_max_extrusion_rate <= line.volumetric_extrusion_rate);
 
             // if the extrusion rate change is trivial, then ignore this algorithm and use the single sloped version instead
             delta_volumetric_rate = std::round(std::min({ // important! it's MIN here not max!
@@ -626,7 +645,7 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                 return;
             }
         }
-
+single_slope_fallback:
         bool accelerating = line.volumetric_extrusion_rate_start < line.volumetric_extrusion_rate_end;
         float feed_avg = 0.5f * (line.pos_start[4] + line.pos_end[4]);
         // Limiting volumetric extrusion rate slope for this segment.
@@ -926,18 +945,20 @@ void PressureEqualizer::push_line_to_output(const size_t line_idx, float new_fee
     } else
         push_to_output(EXTRUDE_END_TAG.data(), EXTRUDE_END_TAG.length(), true);
 
-    GCodeG1Formatter feedrate_formatter;
+    // Supports keep the standard precision, see GCode::extrude_support().
+    const bool high_precision = m_high_precision && !is_support(line.extrusion_role);
+    GCodeG1Formatter feedrate_formatter(high_precision);
     feedrate_formatter.emit_f(new_feedrate);
     feedrate_formatter.emit_string(std::string(EXTRUDE_SET_SPEED_TAG.data(), EXTRUDE_SET_SPEED_TAG.length()));
     if (line.extrusion_role == ExtrusionRole::erExternalPerimeter)
         feedrate_formatter.emit_string(std::string(EXTERNAL_PERIMETER_TAG.data(), EXTERNAL_PERIMETER_TAG.length()));
     push_to_output(feedrate_formatter);
 
-    GCodeG1Formatter extrusion_formatter;
+    GCodeG1Formatter extrusion_formatter(high_precision);
     for (size_t axis_idx = 0; axis_idx < 3; ++axis_idx)
         if (line.pos_provided[axis_idx])
-            extrusion_formatter.emit_axis(char('X' + axis_idx), line.pos_end[axis_idx], GCodeFormatter::XYZF_EXPORT_DIGITS);
-    extrusion_formatter.emit_axis('E', m_use_relative_e_distances ? (line.pos_end[3] - line.pos_start[3]) : line.pos_end[3], GCodeFormatter::E_EXPORT_DIGITS);
+            extrusion_formatter.emit_axis(char('X' + axis_idx), line.pos_end[axis_idx], GCodeFormatter::xyz_digits(high_precision));
+    extrusion_formatter.emit_e(m_use_relative_e_distances ? (line.pos_end[3] - line.pos_start[3]) : line.pos_end[3]);
 
     if (comment != nullptr)
         extrusion_formatter.emit_string(std::string(comment));

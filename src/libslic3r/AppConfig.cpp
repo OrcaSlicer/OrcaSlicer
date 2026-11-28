@@ -1,14 +1,32 @@
+#include "Technologies.hpp"
+#include "Config.hpp"
+#include "PrintConfig.hpp"
+#include "calib.hpp"
+#include "Semver.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Format/DRC.hpp"
 #include "AppConfig.hpp"
 //BBS
 #include "Preset.hpp"
 #include "Exception.hpp"
+#include "InstanceLock.hpp"
 #include "LocalesUtils.hpp"
 #include "Thread.hpp"
 #include "format.hpp"
+#include "libslic3r_version.h"
 #include "nlohmann/json.hpp"
 
+#include <algorithm>
+#include <initializer_list>
+#include <string>
+#include <exception>
+#include <boost/none.hpp>
+#include <cstddef>
+#include <system_error>
+#include <chrono>
+#include <map>
+#include <cstring>
 #include <utility>
 #include <vector>
 #include <stdexcept>
@@ -25,6 +43,9 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <cassert>
+#include <iterator>
+#include <string_view>
 
 #ifdef WIN32
 //FIXME replace the two following includes with <boost/md5.hpp> after it becomes mainstream.
@@ -39,7 +60,10 @@ using namespace nlohmann;
 namespace Slic3r {
 
 static const std::string VERSION_CHECK_URL = "https://check-version.orcaslicer.com/latest";
-static const std::string PROFILE_UPDATE_URL = "https://api.github.com/repos/OrcaSlicer/orcaslicer-profiles/releases/tags";
+static const std::string PROFILE_UPDATE_URL = "https://check-version.orcaslicer.com/profile";
+
+constexpr const char* CONFIG_ORCA_UPDATER_URL = "orca_updater_url";
+
 static const std::string MODELS_STR = "models";
 
 const std::string AppConfig::SECTION_FILAMENTS = "filaments";
@@ -91,6 +115,11 @@ bool AppConfig::get_stealth_mode()
     return get_bool("stealth_mode");
 }
 
+bool AppConfig::get_hide_login_side_panel()
+{
+    return get_bool("hide_login_side_panel");
+}
+
 void AppConfig::reset()
 {
     m_storage.clear();
@@ -124,6 +153,8 @@ void AppConfig::set_defaults()
 #ifdef _WIN32
         if (get("associate_3mf").empty())
             set_bool("associate_3mf", false);
+        if (get("associate_drc").empty())
+            set_bool("associate_drc", false);
         if (get("associate_stl").empty())
             set_bool("associate_stl", false);
         if (get("associate_step").empty())
@@ -193,6 +224,49 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    // what the preview draws while the user drags it
+    {
+        const std::string mode = get("preview_reduced_detail_mode");
+        if (mode != "off" && mode != "solid" && mode != "shell")
+            set("preview_reduced_detail_mode", "off");
+    }
+
+    // ORCA: darken the layers the preview layer slider is not scrubbed to
+    if (get("preview_dim_previous_layers").empty())
+        set_bool("preview_dim_previous_layers", false);
+
+    // ORCA: brightness of those dimmed layers, in percent. 0 = black, capped at 99 because
+    // 100 would render them unchanged, which is what disabling the option already does
+    if (get("preview_dim_previous_layers_brightness").empty())
+        set("preview_dim_previous_layers_brightness", "40");
+    else {
+        int brightness = 40;
+        try {
+            brightness = std::stoi(get("preview_dim_previous_layers_brightness"));
+        }
+        catch (...) {
+            brightness = 40;
+        }
+        set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
+    }
+
+    // ORCA: whether the G-code preview keeps the opacity of the filament colors
+    if (get("preview_translucent_filaments").empty())
+        set_bool("preview_translucent_filaments", true);
+
+    // ORCA: whether realistic view gives the opaque toolpaths a glossy highlight
+    if (get(SETTING_OPENGL_REALISTIC_GLOSS).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_GLOSS, true);
+
+    // ORCA: view type the G-code preview opens with. "auto" keeps the automatic choice (Filament for
+    // multi material prints, Line Type for single material ones), "last" restores the view type the user
+    // picked last, any other value is a fixed view type name, see GCodeViewer::view_type_to_config_name().
+    if (get("preview_default_view_type").empty())
+        set("preview_default_view_type", "auto");
+
+    if (get("filaments_area_preferred_count").empty())
+        set("filaments_area_preferred_count", "10");
+
     if (get("use_perspective_camera").empty())
         set_bool("use_perspective_camera", true);
 
@@ -205,8 +279,14 @@ void AppConfig::set_defaults()
     if (get("camera_navigation_style").empty())
         set("camera_navigation_style", "0");
 
-    if (get("swap_mouse_buttons").empty())
-        set_bool("swap_mouse_buttons", false);
+    if (get("left_mouse_drag_action").empty())
+        set("left_mouse_drag_action", "2");
+
+    if (get("middle_mouse_drag_action").empty())
+        set("middle_mouse_drag_action", "1");
+
+    if (get("right_mouse_drag_action").empty())
+        set("right_mouse_drag_action", "1");
 
     if (get("reverse_mouse_wheel_zoom").empty())
         set_bool("reverse_mouse_wheel_zoom", false);
@@ -217,15 +297,100 @@ void AppConfig::set_defaults()
         set_bool("enable_merge_color_by_sync_ams", false);
     if (get("ams_sync_match_full_use_color_dist").empty())
         set_bool("ams_sync_match_full_use_color_dist", false);
+    if (get("sync_ams_filament_mode").empty())
+        set("sync_ams_filament_mode", "0"); // 0: filament+color, 1: color only
 
     if (get("camera_orbit_mult").empty())
         set("camera_orbit_mult", "1.0");
+
+    if (get(SETTING_OPENGL_AA_SAMPLES).empty())
+        set(SETTING_OPENGL_AA_SAMPLES, "4");
+
+    if (get(SETTING_OPENGL_FXAA_ENABLED).empty())
+        set_bool(SETTING_OPENGL_FXAA_ENABLED, false);
+
+    if (get(SETTING_OPENGL_FPS_CAP).empty())
+        set(SETTING_OPENGL_FPS_CAP, "0");
+    else {
+        int fps_cap = 0;
+        try {
+            fps_cap = std::stoi(get(SETTING_OPENGL_FPS_CAP));
+        }
+        catch (...) {
+            fps_cap = 0;
+        }
+        fps_cap = std::max(0, std::min(fps_cap, 240));
+        set(SETTING_OPENGL_FPS_CAP, std::to_string(fps_cap));
+    }
+
+    if (get(SETTING_OPENGL_SCENE_CACHE).empty())
+        set_bool(SETTING_OPENGL_SCENE_CACHE, true);
+
+    if (get(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES).empty())
+        set_bool(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, true);
+
+    // The getter already defaults, parses and clamps; write back what it resolves to.
+    set(SETTING_PLUGIN_PAGES_VISIBLE_COUNT, std::to_string(get_plugin_pages_visible_count()));
+
+    set(SETTING_SPEED_DIAL_RECENT_COUNT, std::to_string(get_speed_dial_recent_count()));
+
+    if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
+        set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
+
+    if (get(SETTING_OPENGL_SHOW_RENDER_TIMINGS).empty())
+        set_bool(SETTING_OPENGL_SHOW_RENDER_TIMINGS, false);
+
+    if (get(SETTING_OPENGL_REALISTIC_MODE).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
+
+    if (get(SETTING_OPENGL_REALISTIC_PHONG).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_PHONG, true);
+
+    if (get(SETTING_OPENGL_REALISTIC_PREVIEW).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_PREVIEW, false);
+
+    if (get(SETTING_OPENGL_SHADING_MODEL).empty())
+        set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
+
+    // Replaces the on/off setting, whose shadows turned with the camera.
+    if (get(SETTING_OPENGL_REALISTIC_SHADOWS).empty())
+        set(SETTING_OPENGL_REALISTIC_SHADOWS, get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS) ? "orbit" : "off");
+
+    if (get(SETTING_OPENGL_PHONG_SMOOTH_NORMALS).empty())
+        set_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS, false);
+
+    if (get(SETTING_OPENGL_PHONG_SSAO).empty())
+        set_bool(SETTING_OPENGL_PHONG_SSAO, false);
 
     if (get("export_sources_full_pathnames").empty())
         set_bool("export_sources_full_pathnames", false);
 
     if (get("zoom_to_mouse").empty())
         set_bool("zoom_to_mouse", false);
+
+#ifdef SLIC3R_CAD
+    // Experimental parametric Design tab. Off by default: the tab is not created at all
+    // until this is turned on, so nothing it builds reaches an unsuspecting user.
+    if (get("enable_cad_feature").empty())
+        set_bool("enable_cad_feature", false);
+
+    // Auto-weld sketch endpoints within kSketchJoinTol when building closed loops.
+    // Default ON: it is what the ~90% case wants; OFF makes the kernel demand an exact
+    // joint. The GUI pushes it into SketchEngine via set_sketch_auto_close().
+    if (get("auto_close_sketch_loops").empty())
+        set_bool("auto_close_sketch_loops", true);
+
+    // Design tab: draw a mate connector as a face rather than as the abstract disc + roll
+    // quadrant. Defaults ON — face orientation is hardwired perception, so the roll and the
+    // verse read without being learned, which no abstract glyph achieves. Turning it off
+    // restores the conventional CAD representation for users who expect it (x0kd).
+    if (get("design_connector_face_glyph").empty())
+        set_bool("design_connector_face_glyph", true);
+
+    // Design tab: draw the printer bed and its plate grid (the Feature tree's Bed row).
+    if (get("design_show_bed").empty())
+        set_bool("design_show_bed", true);
+#endif
 
 //#ifdef SUPPORT_SHOW_HINTS
     if (get("show_hints").empty())
@@ -234,17 +399,48 @@ void AppConfig::set_defaults()
     if (get("enable_multi_machine").empty())
         set_bool("enable_multi_machine", false);
 
+    if (get("drc_bits").empty())
+        set("drc_bits", DRC_BITS_DEFAULT_STR);
+
     if (get("show_gcode_window").empty())
         set_bool("show_gcode_window", true);
 
     if (get("show_3d_navigator").empty())
         set_bool("show_3d_navigator", true);
 
+    // Show the one-time "Filament Track Switch is ready" tip until it has been seen once.
+    if (get("show_fila_switch_tips").empty())
+        set_bool("show_fila_switch_tips", true);
+
+    if (get("show_plate_gridlines").empty())
+        set_bool("show_plate_gridlines", true);
+
+    if (get("focus_mode").empty())
+        set_bool("focus_mode", false);
+
     if (get("show_outline").empty())
         set_bool("show_outline", false);
+
+    if (get(SETTING_OPENGL_OUTLINE_PERSISTENT).empty())
+        set_bool(SETTING_OPENGL_OUTLINE_PERSISTENT, false);
+    if (get(SETTING_OPENGL_OUTLINE_COLOR).empty())
+        set(SETTING_OPENGL_OUTLINE_COLOR, "#FFFFFF");
+    if (get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR).empty())
+        set(SETTING_OPENGL_SELECTION_OUTLINE_COLOR, "#FFFFFF");
     
     if (get("show_axes").empty())
         set_bool("show_axes", true);
+
+    if (get("show_labels").empty())
+        set_bool("show_labels", false);
+    if (get("show_collision_volumes").empty())
+        set_bool("show_collision_volumes", false);
+
+    if (get("show_overhang").empty())
+        set_bool("show_overhang", false);
+
+    if (get("show_center_of_mass").empty())
+        set_bool("show_center_of_mass", false);
 
 #ifdef _WIN32
 
@@ -271,6 +467,9 @@ void AppConfig::set_defaults()
     if (get("developer_mode").empty())
         set_bool("developer_mode", false);
 
+    if (get("show_unsupported_presets").empty())
+        set_bool("show_unsupported_presets", false);
+
     if (get("enable_ssl_for_mqtt").empty())
         set_bool("enable_ssl_for_mqtt", true);
 
@@ -278,7 +477,7 @@ void AppConfig::set_defaults()
         set_bool("enable_ssl_for_ftp", true);
 
     if (get("log_severity_level").empty())
-        set("log_severity_level", "warning");
+        set("log_severity_level", "info");
 
     if (get("internal_developer_mode").empty())
         set_bool("internal_developer_mode", false);
@@ -297,9 +496,24 @@ void AppConfig::set_defaults()
     if (get("stealth_mode").empty()) {
         set_bool("stealth_mode", false);
     }
+    if (get("hide_login_side_panel").empty()) {
+        set_bool("hide_login_side_panel", false);
+    }
     if (get("allow_abnormal_storage").empty()) {
         set_bool("allow_abnormal_storage", false);
     }
+
+    if (get("preset_bundle_auto_update").empty()) {
+        set_bool("preset_bundle_auto_update", false);
+    }
+
+#ifdef __linux__
+    if (get(SETTING_USE_ENCRYPTED_TOKEN_FILE).empty())
+        set_bool(SETTING_USE_ENCRYPTED_TOKEN_FILE, true);
+#else
+    if (get(SETTING_USE_ENCRYPTED_TOKEN_FILE).empty())
+        set_bool(SETTING_USE_ENCRYPTED_TOKEN_FILE, false);
+#endif
 
     if(get("check_stable_update_only").empty()) {
         set_bool("check_stable_update_only", false);
@@ -332,7 +546,11 @@ void AppConfig::set_defaults()
 
     // ORCA: Add dynamic nozzle color feature
     if (get("dynamic_nozzle_color").empty()) {
-        set_bool("dynamic_nozzle_color", true);
+        set_bool("dynamic_nozzle_color", false);
+    }
+
+    if (get("show_shared_profiles_notification").empty()) {
+        set_bool("show_shared_profiles_notification", true);
     }
 
     if (get("auto_calculate_flush").empty()){
@@ -353,6 +571,10 @@ void AppConfig::set_defaults()
 
     if (get("enable_high_low_temp_mixed_printing").empty()){
         set_bool("enable_high_low_temp_mixed_printing", false);
+    }
+
+    if (get("remember_print_action").empty()) {
+        set_bool("remember_print_action", false);
     }
 
     if (get("ignore_ext_filament_in_filament_map").empty()){
@@ -489,12 +711,61 @@ void AppConfig::set_defaults()
     if (get("enable_step_mesh_setting").empty()) {
         set_bool("enable_step_mesh_setting", true);
     }
-    if (get("linear_defletion", "angle_defletion").empty()) {
-        set("linear_defletion", "0.003");
-        set("angle_defletion", "0.5");
+    // Migrate legacy misspelled keys (linear_defletion/angle_defletion) to the corrected spelling.
+    if (get("linear_deflection").empty() && !get("linear_defletion").empty())
+        set("linear_deflection", get("linear_defletion"));
+    if (get("angle_deflection").empty() && !get("angle_defletion").empty())
+        set("angle_deflection", get("angle_defletion"));
+    if (get("linear_deflection").empty()) {
+        set("linear_deflection", "0.003");
+    }
+    if (get("angle_deflection").empty()) {
+        set("angle_deflection", "0.5");
     }
     if (get("is_split_compound").empty()) {
-        set_bool("is_split_compound", false);
+        // Splitting keeps the bodies of a multi-body part, and with them their original names.
+        set_bool("is_split_compound", true);
+    }
+    // Geometry-import choices are editor preferences, never project print settings.
+    for (const std::string format : {"step", "amf", "3mf"}) {
+        const std::string prefix = "import_names_" + format + "_";
+        if (get(prefix + "keep").empty())
+            set_bool(prefix + "keep", true);
+        if (get(prefix + "sort").empty())
+            set_bool(prefix + "sort", false);
+        if (format != "3mf" && get(prefix + "assembly").empty())
+            set_bool(prefix + "assembly", true);
+        if (format == "amf" && get(prefix + "separate").empty())
+            set_bool(prefix + "separate", true);
+        if (format != "step" && get(prefix + "show_dialog").empty())
+            set_bool(prefix + "show_dialog", true);
+    }
+    if (get("import_names_cleanup_show_dialog").empty())
+        set_bool("import_names_cleanup_show_dialog", true);
+    if (get("import_names_cleanup_remove").empty())
+        set_bool("import_names_cleanup_remove", false);
+    if (get("import_names_cleanup_replacement").empty())
+        set("import_names_cleanup_replacement", "_");
+    if (get("enable_primitive_size_dialog").empty()) {
+        set_bool("enable_primitive_size_dialog", true);
+    }
+
+    if(get("installed_networking").empty()) {
+        set_bool("installed_networking", false);
+    }
+
+#ifdef __linux__
+    if (get("window_buttons_on_left").empty())
+        set_bool("window_buttons_on_left", false);
+
+    if (get("prefer_discrete_gpu").empty())
+        set_bool("prefer_discrete_gpu", false);
+#endif
+
+    if (get("use_printer_agents").empty())
+    {
+        // false = legacy behavior using print hosts
+        set_bool("use_printer_agents", false);
     }
 
     // Remove legacy window positions/sizes
@@ -528,6 +799,22 @@ static std::string appconfig_md5_hash_line(const std::string_view data)
     return "# MD5 checksum " + md5_digest_str + "\n";
 }
 
+// write_config_file() saves the JSON configuration followed by a newline and the MD5 checksum line of the JSON.
+// Returns the JSON part of the file text and whether that checksum line follows it and matches. A person or a tool
+// editing the file may drop the checksum line, and the newline after the closing brace with it.
+static std::pair<std::string, bool> split_json_config_checksum(const std::string &file_text)
+{
+    const size_t json_end = file_text.find_last_of('}');
+    // Without a closing brace there is no JSON object, and parsing the empty text fails.
+    if (json_end == std::string::npos)
+        return {};
+    std::string json_text = file_text.substr(0, json_end + 1);
+    // Skip the newline after the closing brace.
+    const size_t checksum_pos = std::min(json_end + 2, file_text.size());
+    const bool   checksum_ok  = file_text.compare(checksum_pos, std::string::npos, appconfig_md5_hash_line(json_text)) == 0;
+    return { std::move(json_text), checksum_ok };
+}
+
 // Assume that the last line with the comment inside the config file contains a checksum and that the user didn't modify the config file.
 static bool verify_config_file_checksum(boost::nowide::ifstream &ifs)
 {
@@ -556,9 +843,12 @@ static bool verify_config_file_checksum(boost::nowide::ifstream &ifs)
 
 
 #ifdef USE_JSON_CONFIG
-std::string AppConfig::load()
+std::string AppConfig::load(bool read_only)
 {
     json j;
+
+    // Keep another instance from replacing or restoring the file mid-read.
+    InstanceLock instance_lock(read_only ? std::string() : lock_path());
 
     // 1) Read the complete config file into a boost::property_tree.
     namespace pt = boost::property_tree;
@@ -573,18 +863,12 @@ std::string AppConfig::load()
 #ifdef WIN32
         std::stringstream input_stream;
         input_stream << ifs.rdbuf();
-        std::string total_string = input_stream.str();
-        size_t last_pos = total_string.find_last_of('}');
-        std::string left_string = total_string.substr(0, last_pos+1);
-        //skip the "\n"
-        std::string right_string = total_string.substr(last_pos+2);
-
-        std::string md5_str = appconfig_md5_hash_line({left_string.data()});
+        const auto [json_text, checksum_ok] = split_json_config_checksum(input_stream.str());
         // Verify the checksum of the config file without taking just for debugging purpose.
-        if (md5_str != right_string)
+        if (!checksum_ok)
             BOOST_LOG_TRIVIAL(info) << "The configuration file " << AppConfig::loading_path() <<
             " has a wrong MD5 checksum or the checksum is missing. This may indicate a file corruption or a harmless user edit.";
-        j = json::parse(left_string);
+        j = json::parse(json_text);
 #else
         ifs >> j;
 #endif
@@ -599,14 +883,8 @@ std::string AppConfig::load()
             boost::nowide::ifstream backup_ifs(backup_path);
             std::stringstream back_input_stream;
             back_input_stream << backup_ifs.rdbuf();
-            std::string back_total_string = back_input_stream.str();
-            size_t back_last_pos = back_total_string.find_last_of('}');
-            std::string back_left_string = back_total_string.substr(0, back_last_pos+1);
-            std::string back_right_string = back_total_string.substr(back_last_pos+2);
-
-            std::string back_md5_str = appconfig_md5_hash_line({back_left_string.data()});
-            // Verify the checksum of the config file without taking just for debugging purpose.
-            if (back_md5_str != back_right_string) {
+            const auto [back_json_text, back_checksum_ok] = split_json_config_checksum(back_input_stream.str());
+            if (!back_checksum_ok) {
                 BOOST_LOG_TRIVIAL(error) << format("Both \"%1%\" and \"%2%\" are corrupted. It isn't possible to restore configuration from the backup.", AppConfig::loading_path(), backup_path);
                 backup_ifs.close();
                 boost::filesystem::remove(backup_path);
@@ -619,7 +897,7 @@ std::string AppConfig::load()
             else {
                 BOOST_LOG_TRIVIAL(info) << format("Configuration file \"%1%\" was corrupted. It has been succesfully restored from the backup \"%2%\".", AppConfig::loading_path(), backup_path);
                 // Try parse configuration file after restore from backup.
-                j = json::parse(back_left_string);
+                j = json::parse(back_json_text);
                 recovered = true;
             }
         }
@@ -694,6 +972,10 @@ std::string AppConfig::load()
                                 preset_info.nozzle_volume_type  = NozzleVolumeType(cali_it.value()["nozzle_volume_type"].get<int>());
                             if (cali_it.value().contains("bed_type"))
                                 preset_info.bed_type = BedType(cali_it.value()["bed_type"].get<int>());
+                            if (cali_it.value().contains("nozzle_pos_id"))
+                                preset_info.nozzle_pos_id = cali_it.value()["nozzle_pos_id"].get<int>();
+                            if (cali_it.value().contains("nozzle_sn"))
+                                preset_info.nozzle_sn = cali_it.value()["nozzle_sn"].get<std::string>();
                             cali_info.selected_presets.push_back(preset_info);
                         }
                     }
@@ -701,7 +983,10 @@ std::string AppConfig::load()
                 }
             } else if (it.key() == "orca_presets") {
                 for (auto& j_model : it.value()) {
-                    m_printer_settings[j_model["machine"].get<std::string>()] = j_model;
+                    auto& settings = m_printer_settings[j_model["machine"].get<std::string>()];
+                    settings.clear();
+                    for (auto item = j_model.begin(); item != j_model.end(); ++item)
+                        settings[item.key()] = item.value().is_string() ? item.value().get<std::string>() : item.value().dump();
                 }
             } else if (it.key() == "local_machines") {
                 for (auto m = it.value().begin(); m != it.value().end(); ++m) {
@@ -714,6 +999,17 @@ std::string AppConfig::load()
                         local_machine.dev_ip = p["dev_ip"].get<std::string>();
                     if (p.contains("printer_type"))
                         local_machine.printer_type = p["printer_type"].get<std::string>();
+                    if (p.contains("printer_agent_id"))
+                        local_machine.printer_agent_id = p["printer_agent_id"].get<std::string>();
+                    // Entries saved before agents were recorded have none. Bambu printers are keyed by
+                    // serial number; the other agents used the address, which is the IP or has a '.' or ':'.
+                    if (local_machine.printer_agent_id.empty() && local_machine.dev_id != local_machine.dev_ip &&
+                        local_machine.dev_id.find_first_of(".:") == std::string::npos)
+                        local_machine.printer_agent_id = "bbl";
+                    if (p.contains("access_code"))
+                        local_machine.access_code = p["access_code"].get<std::string>();
+                    if (p.contains("ca_file"))
+                        local_machine.ca_file = p["ca_file"].get<std::string>();
                     m_local_machines[local_machine.dev_id] = local_machine;
                 }
             } else {
@@ -744,7 +1040,7 @@ std::string AppConfig::load()
                 }
             }
         }
-    } catch(std::exception err) {
+    } catch(const std::exception &err) {
         BOOST_LOG_TRIVIAL(info) << format("parse app config \"%1%\", error: %2%", AppConfig::loading_path(), err.what());
 
         return err.what();
@@ -771,6 +1067,18 @@ std::string AppConfig::load()
             if (it_section->second.empty())
                 m_storage.erase(it_section);
         }
+
+        // Default for new installs
+        if (get(SETTING_CLOUD_PROVIDERS).empty()) {
+            // Migrate add bbl cloud if installed_networking is true
+            bool enable_bbl_cloud = get_bool("installed_networking");
+            if (enable_bbl_cloud) {
+                // Legacy Bambu-only user: give them both providers
+                set(SETTING_CLOUD_PROVIDERS, "orca;bbl");
+            } else {
+                set(SETTING_CLOUD_PROVIDERS, "orca");
+            }
+        }
     }
 
     // Override missing or keys with their defaults.
@@ -781,13 +1089,14 @@ std::string AppConfig::load()
 
 void AppConfig::save()
 {
-    if (! is_main_thread_active())
+    if (!is_main_thread_active()) {
+        BOOST_LOG_TRIVIAL(fatal) << "Calling AppConfig::save() from a worker thread!";
         throw CriticalException("Calling AppConfig::save() from a worker thread!");
+    }
 
     // The config is first written to a file with a PID suffix and then moved
     // to avoid race conditions with multiple instances of Slic3r
     const auto path = config_path();
-    std::string path_pid = (boost::format("%1%.%2%") % path % get_current_pid()).str();
 
     json j;
 
@@ -837,6 +1146,8 @@ void AppConfig::save()
             preset_json["extruder_id"]      = filament_preset.extruder_id;
             preset_json["nozzle_volume_type"]  = int(filament_preset.nozzle_volume_type);
             preset_json["bed_type"] = int(filament_preset.bed_type);
+            preset_json["nozzle_pos_id"]    = filament_preset.nozzle_pos_id;
+            preset_json["nozzle_sn"]        = filament_preset.nozzle_sn;
             preset_json["nozzle_diameter"]  = filament_preset.nozzle_diameter;
             preset_json["filament_id"]      = filament_preset.filament_id;
             preset_json["setting_id"]       = filament_preset.setting_id;
@@ -910,46 +1221,25 @@ void AppConfig::save()
         m_json["dev_name"]         = local_machine.second.dev_name;
         m_json["dev_ip"]           = local_machine.second.dev_ip;
         m_json["printer_type"]     = local_machine.second.printer_type;
+        m_json["printer_agent_id"] = local_machine.second.printer_agent_id;
+        m_json["access_code"]      = local_machine.second.access_code;
+        if (!local_machine.second.ca_file.empty())
+            m_json["ca_file"] = local_machine.second.ca_file;
 
         j["local_machines"][local_machine.first] = m_json;
     }
-    boost::nowide::ofstream c;
-    c.open(path_pid, std::ios::out | std::ios::trunc);
-    c << std::setw(4) << j << std::endl;
-
-#ifdef WIN32
-    // WIN32 specific: The final "rename_file()" call is not safe in case of an application crash, there is no atomic "rename file" API
-    // provided by Windows (sic!). Therefore we save a MD5 checksum to be able to verify file corruption. In addition,
-    // we save the config file into a backup first before moving it to the final destination.
-    c << appconfig_md5_hash_line(j.dump(4));
-#endif
-
-    c.close();
-    if (c.fail()) {
-      BOOST_LOG_TRIVIAL(error) << "Failed to write new configuration to " << path_pid << "; aborting attempt to overwrite original configuration";
-      return;
-    }
-
-#ifdef WIN32
-    // Make a backup of the configuration file before copying it to the final destination.
-    std::string error_message;
-    std::string backup_path = (boost::format("%1%.bak") % path).str();
-    // Copy configuration file with PID suffix into the configuration file with "bak" suffix.
-    if (copy_file(path_pid, backup_path, error_message, false) != SUCCESS)
-        BOOST_LOG_TRIVIAL(error) << "Copying from " << path_pid << " to " << backup_path << " failed. Failed to create a backup configuration.";
-#endif
-
-    // Rename the config atomically.
-    // On Windows, the rename is likely NOT atomic, thus it may fail if PrusaSlicer crashes on another thread in the meanwhile.
-    // To cope with that, we already made a backup of the config on Windows.
-    rename_file(path_pid, path);
-    m_dirty = false;
+    const std::string config_str = j.dump(1, '\t');
+    if (write_config_file(path, config_str + "\n", config_str))
+        m_dirty = false;
 }
 
 #else
 
-std::string AppConfig::load()
+std::string AppConfig::load(bool read_only)
 {
+    // Keep another instance from replacing or restoring the file mid-read.
+    InstanceLock instance_lock(read_only ? std::string() : lock_path());
+
     // 1) Read the complete config file into a boost::property_tree.
     namespace pt = boost::property_tree;
     pt::ptree tree;
@@ -1087,7 +1377,6 @@ void AppConfig::save()
     // The config is first written to a file with a PID suffix and then moved
     // to avoid race conditions with multiple instances of Slic3r
     const auto path = config_path();
-    std::string path_pid = (boost::format("%1%.%2%") % path % get_current_pid()).str();
 
     std::stringstream config_ss;
     if (m_mode == EAppMode::Editor)
@@ -1123,38 +1412,58 @@ void AppConfig::save()
     // One empty line before the MD5 sum.
     config_ss << std::endl;
 
-    std::string config_str = config_ss.str();
-    boost::nowide::ofstream c;
-    c.open(path_pid, std::ios::out | std::ios::trunc);
-    c << config_str;
-#ifdef WIN32
-    // WIN32 specific: The final "rename_file()" call is not safe in case of an application crash, there is no atomic "rename file" API
-    // provided by Windows (sic!). Therefore we save a MD5 checksum to be able to verify file corruption. In addition,
-    // we save the config file into a backup first before moving it to the final destination.
-    c << appconfig_md5_hash_line(config_str);
-#endif
-    c.close();
-    if (c.fail()) {
-      BOOST_LOG_TRIVIAL(error) << "Failed to write new configuration to " << path_pid << "; aborting attempt to overwrite original configuration";
-      return;
-    }
-
-#ifdef WIN32
-    // Make a backup of the configuration file before copying it to the final destination.
-    std::string error_message;
-    std::string backup_path = (boost::format("%1%.bak") % path).str();
-    // Copy configuration file with PID suffix into the configuration file with "bak" suffix.
-    if (copy_file(path_pid, backup_path, error_message, false) != SUCCESS)
-        BOOST_LOG_TRIVIAL(error) << "Copying from " << path_pid << " to " << backup_path << " failed. Failed to create a backup configuration.";
-#endif
-
-    // Rename the config atomically.
-    // On Windows, the rename is likely NOT atomic, thus it may fail if PrusaSlicer crashes on another thread in the meanwhile.
-    // To cope with that, we already made a backup of the config on Windows.
-    rename_file(path_pid, path);
-    m_dirty = false;
+    const std::string config_str = config_ss.str();
+    if (write_config_file(path, config_str, config_str))
+        m_dirty = false;
 }
 #endif
+
+bool AppConfig::write_config_file(const std::string &path, std::string body, const std::string &checksum_source)
+{
+    // Everything before this is assembly; only the writes need the other instances kept out.
+    InstanceLock instance_lock(lock_path());
+#ifdef WIN32
+    // WIN32 specific: the final replace is not safe in case of an application crash, there is no atomic "rename file" API
+    // provided by Windows (sic!). Therefore we save a MD5 checksum to be able to verify file corruption. In addition,
+    // we save the config file into a backup first before moving it to the final destination.
+    body += appconfig_md5_hash_line(checksum_source);
+#endif
+    // Not flushed to the device: the idle handler saves on the GUI thread after
+    // any change, and the rename already gives a complete old or new file.
+    if (const std::error_code ec = write_file_atomically(path, body)) {
+        BOOST_LOG_TRIVIAL(error) << "Failed to write the configuration " << path << ": " << ec.message() << "; trying again in 10 s";
+        m_retry_save_at = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        return false;
+    }
+    m_retry_save_at = {};
+#ifdef WIN32
+    // Written after the config, so the backup never holds a state that was not confirmed written.
+    const std::string backup_path = (boost::format("%1%.bak") % path).str();
+    if (const std::error_code ec = write_file_atomically(backup_path, body))
+        BOOST_LOG_TRIVIAL(error) << "Failed to write the backup configuration " << backup_path << ": " << ec.message();
+#endif
+    return true;
+}
+
+void AppConfig::clear_local_machine_access_code(const std::string& dev_id, const std::string& agent_id)
+{
+    // Unscoped credentials predate printer agents and belong to the legacy BBL agent.
+    const bool is_bbl_agent = agent_id.empty() || agent_id == "bbl";
+    auto it = m_local_machines.find(dev_id);
+    if (it != m_local_machines.end()) {
+        const std::string& stored_agent = it->second.printer_agent_id;
+        if (stored_agent == agent_id || (is_bbl_agent && (stored_agent.empty() || stored_agent == "bbl"))) {
+            if (!it->second.access_code.empty()) {
+                it->second.access_code.clear();
+                m_dirty = true;
+            }
+        }
+    }
+    if (is_bbl_agent) {
+        erase("access_code", dev_id);
+        erase("user_access_code", dev_id);
+    }
+}
 
 bool AppConfig::get_variant(const std::string &vendor, const std::string &model, const std::string &variant) const
 {
@@ -1276,6 +1585,7 @@ void AppConfig::set_mouse_device(const std::string& name, double translation_spe
     it->second["invert_yaw"] = invert_yaw ? "1" : "0";
     it->second["invert_pitch"] = invert_pitch ? "1" : "0";
     it->second["invert_roll"] = invert_roll ? "1" : "0";
+    m_dirty = true;
 }
 
 std::vector<std::string> AppConfig::get_mouse_device_names() const
@@ -1475,6 +1785,38 @@ void AppConfig::set_network_plugin_version(const std::string& version)
     set(SETTING_NETWORK_PLUGIN_VERSION, version);
 }
 
+int AppConfig::get_plugin_pages_visible_count() const
+{
+    std::string value = get(SETTING_PLUGIN_PAGES_VISIBLE_COUNT);
+    if (value.empty())
+        return PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT;
+
+    int visible_count = PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT;
+    try {
+        visible_count = std::stoi(value);
+    }
+    catch (...) {
+        return PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT;
+    }
+    return std::clamp(visible_count, PLUGIN_PAGES_VISIBLE_COUNT_MIN, PLUGIN_PAGES_VISIBLE_COUNT_MAX);
+}
+
+int AppConfig::get_speed_dial_recent_count() const
+{
+    std::string value = get(SETTING_SPEED_DIAL_RECENT_COUNT);
+    if (value.empty())
+        return SPEED_DIAL_RECENT_COUNT_DEFAULT;
+
+    int recent_count = SPEED_DIAL_RECENT_COUNT_DEFAULT;
+    try {
+        recent_count = std::stoi(value);
+    }
+    catch (...) {
+        return SPEED_DIAL_RECENT_COUNT_DEFAULT;
+    }
+    return std::clamp(recent_count, SPEED_DIAL_RECENT_COUNT_MIN, SPEED_DIAL_RECENT_COUNT_MAX);
+}
+
 std::vector<std::string> AppConfig::get_skipped_network_versions() const
 {
     std::vector<std::string> result;
@@ -1541,6 +1883,62 @@ void AppConfig::clear_remind_network_update_later()
     set_bool(SETTING_NETWORK_PLUGIN_REMIND_LATER, false);
 }
 
+std::vector<std::string> AppConfig::get_cloud_providers() const
+{
+    std::vector<std::string> result;
+    std::string providers = get(SETTING_CLOUD_PROVIDERS);
+    if (providers.empty()) {
+        result.push_back("orca");
+        return result;
+    }
+
+    std::stringstream ss(providers);
+    std::string provider;
+    while (std::getline(ss, provider, ';')) {
+        if (!provider.empty())
+            result.push_back(provider);
+    }
+    // Ensure "orca" is always present
+    if (std::find(result.begin(), result.end(), "orca") == result.end()) {
+        result.insert(result.begin(), "orca");
+    }
+    return result;
+}
+
+void AppConfig::set_cloud_providers(const std::vector<std::string>& providers)
+{
+    std::string joined;
+    for (size_t i = 0; i < providers.size(); ++i) {
+        if (i > 0) joined += ";";
+        joined += providers[i];
+    }
+    set(SETTING_CLOUD_PROVIDERS, joined);
+}
+
+bool AppConfig::has_cloud_provider(const std::string& provider) const
+{
+    auto providers = get_cloud_providers();
+    return std::find(providers.begin(), providers.end(), provider) != providers.end();
+}
+
+void AppConfig::add_cloud_provider(const std::string& provider)
+{
+    auto providers = get_cloud_providers();
+    if (std::find(providers.begin(), providers.end(), provider) == providers.end()) {
+        providers.push_back(provider);
+        set_cloud_providers(providers);
+    }
+}
+
+void AppConfig::remove_cloud_provider(const std::string& provider)
+{
+    if (provider == "orca")
+        return; // Cannot remove orca
+    auto providers = get_cloud_providers();
+    providers.erase(std::remove(providers.begin(), providers.end(), provider), providers.end());
+    set_cloud_providers(providers);
+}
+
 void AppConfig::reset_selections()
 {
     auto it = m_storage.find("presets");
@@ -1555,19 +1953,48 @@ void AppConfig::reset_selections()
     }
 }
 
-std::string AppConfig::config_path()
+std::string AppConfig::lock_path()
+{
+    return Slic3r::data_dir().empty() ? std::string() : config_path() + ".lock";
+}
+
+std::string AppConfig::config_path(const std::string &data_dir, EAppMode mode)
 {
 #ifdef USE_JSON_CONFIG
-    std::string path = (m_mode == EAppMode::Editor) ?
-        (boost::filesystem::path(Slic3r::data_dir()) / (SLIC3R_APP_KEY ".conf")).make_preferred().string() :
-        (boost::filesystem::path(Slic3r::data_dir()) / (GCODEVIEWER_APP_KEY ".conf")).make_preferred().string();
+    const char *extension = ".conf";
 #else
-    std::string path = (m_mode == EAppMode::Editor) ?
-        (boost::filesystem::path(Slic3r::data_dir()) / (SLIC3R_APP_KEY ".ini")).make_preferred().string() :
-        (boost::filesystem::path(Slic3r::data_dir()) / (GCODEVIEWER_APP_KEY ".ini")).make_preferred().string();
+    const char *extension = ".ini";
 #endif
+    const char *name = (mode == EAppMode::Editor) ? SLIC3R_APP_KEY : GCODEVIEWER_APP_KEY;
+    return (boost::filesystem::path(data_dir) / (std::string(name) + extension)).make_preferred().string();
+}
 
-    return path;
+std::string AppConfig::config_path()
+{
+    return config_path(Slic3r::data_dir(), m_mode);
+}
+
+bool AppConfig::peek_bool(const std::string &data_dir, const std::string &key)
+{
+    try {
+        boost::nowide::ifstream ifs(config_path(data_dir, EAppMode::Editor));
+        if (!ifs.is_open())
+            return false;
+        // Parses the leading JSON value only, so the checksum line Windows appends is ignored.
+        json j;
+        ifs >> j;
+        const auto app = j.find("app");
+        if (app == j.end() || !app->is_object())
+            return false;
+        const auto it = app->find(key);
+        if (it == app->end())
+            return false;
+        if (it->is_boolean())
+            return it->get<bool>();
+        return it->is_string() && is_true(it->get<std::string>());
+    } catch (const std::exception &) {
+        return false;
+    }
 }
 
 std::string AppConfig::version_check_url() const
@@ -1578,12 +2005,20 @@ std::string AppConfig::version_check_url() const
 
 std::string AppConfig::profile_update_url() const
 {
-    return PROFILE_UPDATE_URL;
+    std::string orca_updater_url = get(CONFIG_ORCA_UPDATER_URL);
+    if (orca_updater_url.empty())
+        return PROFILE_UPDATE_URL;
+    return orca_updater_url;
 }
 
 bool AppConfig::exists()
 {
     return boost::filesystem::exists(config_path());
+}
+
+std::string AppConfig::load_if_exists()
+{
+    return boost::filesystem::exists(loading_path()) ? load(/*read_only=*/true) : std::string();
 }
 
 }; // namespace Slic3r

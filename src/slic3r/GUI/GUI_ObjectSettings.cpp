@@ -1,22 +1,34 @@
 #include "GUI_ObjectSettings.hpp"
 #include "GUI_ObjectList.hpp"
-#include "GUI_Factories.hpp"
 #include "Tab.hpp"
 #include "MainFrame.hpp"
 
 #include "OptionsGroup.hpp"
 #include "GUI_App.hpp"
-#include "wxExtensions.hpp"
 #include "Plater.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
 
 #include <boost/algorithm/string.hpp>
 
-#include "I18N.hpp"
 #include "ConfigManipulation.hpp"
 
+#include <memory>
+#include <cstddef>
+#include <wx/dataview.h>
+#include <map>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <cassert>
+#include "slic3r/GUI/GUI_ObjectLayers.hpp"
+#include "libslic3r/Config.hpp"
+#include <string>
 #include <wx/wupdlock.h>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+
+namespace Slic3r { class ObjectBase; }
 
 namespace Slic3r
 {
@@ -86,6 +98,9 @@ bool ObjectSettings::update_settings_list()
     m_settings_list_sizer->Clear(true);
     m_og_settings.resize(0);
 
+    if (wxGetApp().is_closing())
+        return false;
+
     auto objects_ctrl   = wxGetApp().obj_list();
     auto objects_model  = wxGetApp().obj_list()->GetModel();
     auto config         = wxGetApp().obj_list()->config();
@@ -136,7 +151,7 @@ bool ObjectSettings::update_settings_list()
             optgroup->sidetext_width = 5;
 
             optgroup->m_on_change = [this, config](const t_config_option_key& opt_id, const boost::any& value) {
-                                    this->update_config_values(config);
+                                    this->update_config_values(config, opt_id);
                                     wxGetApp().obj_list()->changed_object(); };
 
             // call back for rescaling of the extracolumn control
@@ -155,7 +170,7 @@ bool ObjectSettings::update_settings_list()
                 Option option = optgroup->get_option(opt);
                 option.opt.width = 12;
                 if (is_extruders_cat)
-                    option.opt.max = wxGetApp().extruders_edited_cnt();
+                    option.opt.max = wxGetApp().filaments_cnt();
                 optgroup->append_single_option_line(option);
             }
             optgroup->activate();
@@ -322,7 +337,7 @@ bool ObjectSettings::add_missed_options(ModelConfig* config_to, const DynamicPri
     return is_added;
 }
 
-void ObjectSettings::update_config_values(ModelConfig* config)
+void ObjectSettings::update_config_values(ModelConfig* config, const std::string& changed_opt_key)
 {
     const auto objects_model        = wxGetApp().obj_list()->GetModel();
     const auto item                 = wxGetApp().obj_list()->GetSelection();
@@ -367,7 +382,7 @@ void ObjectSettings::update_config_values(ModelConfig* config)
     };
 
 #if !NEW_OBJECT_SETTING
-    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index)
+    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index, const wxString&)
     {
         Field* field = nullptr;
         for (auto og : m_og_settings) {
@@ -379,9 +394,9 @@ void ObjectSettings::update_config_values(ModelConfig* config)
             field->toggle(toggle);
     };
 #else
-    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index)
+    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index, const wxString& reason)
     {
-        m_tab_active->toggle_option(opt_key, toggle, opt_index);
+        m_tab_active->toggle_option(opt_key, toggle, opt_index, reason);
     };
 #endif
 
@@ -400,10 +415,14 @@ void ObjectSettings::update_config_values(ModelConfig* config)
     }
 
     main_config.apply(config->get(), true);
+
+    if (printer_technology == ptFFF && changed_opt_key == "layer_height")
+        config_manipulation.check_layer_height(&main_config);
+
     printer_technology == ptFFF  ?  config_manipulation.update_print_fff_config(&main_config) :
                                     config_manipulation.update_print_sla_config(&main_config) ;
 
-    printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&main_config) :
+    printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&main_config, 0) :
                                     config_manipulation.toggle_print_sla_options(&main_config) ;
 }
 

@@ -17,6 +17,9 @@
     "filament_retraction_distances_when_cut": [
         "18"
     ],
+    "filament_retraction_length": [
+        "0.4"
+    ],
     "hot_plate_temp": [
         "100"
     ],

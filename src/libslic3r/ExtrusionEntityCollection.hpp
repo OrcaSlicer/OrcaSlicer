@@ -1,9 +1,16 @@
 #ifndef slic3r_ExtrusionEntityCollection_hpp_
 #define slic3r_ExtrusionEntityCollection_hpp_
 
+#include "Point.hpp"
+#include "Polygon.hpp"
+#include "Polyline.hpp"
 #include "libslic3r.h"
 #include "Exception.hpp"
 #include "ExtrusionEntity.hpp"
+#include <utility>
+#include <algorithm>
+#include <iterator>
+#include <cstddef>
 
 namespace Slic3r {
 
@@ -118,8 +125,11 @@ public:
     ExtrusionEntityCollection chained_path_from(const Point &start_near, ExtrusionRole role = erMixed) const 
     	{ return this->no_sort ? *this : chained_path_from(this->entities, start_near, role); }
     void reverse() override;
-    const Point& first_point() const override { return this->entities.front()->first_point(); }
-    const Point& last_point() const override { return this->entities.back()->last_point(); }
+    Point first_point() const override { return this->entities.front()->first_point(); }
+    const Point3& first_point3() const override { return this->entities.front()->first_point3(); }
+    Point last_point() const override { return this->entities.back()->last_point(); }
+    const Point3& last_point3() const override { return this->entities.back()->last_point3(); }
+
     // Produce a list of 2D polygons covered by the extruded paths, offsetted by the extrusion width.
     // Increase the offset by scaled_epsilon to achieve an overlap, so a union will produce no gaps.
     void polygons_covered_by_width(Polygons &out, const float scaled_epsilon) const override;
@@ -164,6 +174,23 @@ public:
 private:
     bool is_reverse{true};
 };
+
+// Calls `f` for every ExtrusionPath in `entity`, descending into collections, loops and multi-paths.
+template<typename F> void for_each_extrusion_path(const ExtrusionEntity &entity, F &&f)
+{
+    if (auto *collection = dynamic_cast<const ExtrusionEntityCollection *>(&entity)) {
+        for (const ExtrusionEntity *child : collection->entities)
+            for_each_extrusion_path(*child, f);
+    } else if (auto *loop = dynamic_cast<const ExtrusionLoop *>(&entity)) {
+        for (const ExtrusionPath &path : loop->paths)
+            f(path);
+    } else if (auto *multi_path = dynamic_cast<const ExtrusionMultiPath *>(&entity)) {
+        for (const ExtrusionPath &path : multi_path->paths)
+            f(path);
+    } else if (auto *path = dynamic_cast<const ExtrusionPath *>(&entity)) {
+        f(*path);
+    }
+}
 
 } // namespace Slic3r
 

@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "QIDI ABS Rapido @Qidi Q2C 0.6 nozzle",
+	"inherits": "QIDI ABS Rapido@Q2C-Series",
+	"from": "system",
+	"setting_id": "hjWAIr9vj3lifTuF",
+	"instantiation": "true",
+	"nozzle_temperature": [
+		"250"
+	],
+	"pressure_advance": [
+		"0.014"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.6 nozzle"
+	]
+}

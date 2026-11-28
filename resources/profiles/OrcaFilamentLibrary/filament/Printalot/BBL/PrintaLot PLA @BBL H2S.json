@@ -1,0 +1,52 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PLA @BBL H2S",
+	"inherits": "PrintaLot PLA @base",
+	"from": "system",
+	"setting_id": "Tbo9VHZM8maUhwz2",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"75",
+		"75",
+		"75"
+	],
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive E3D High Flow"
+	],
+	"filament_retraction_length": [
+		"0.4",
+		"0.4",
+		"0.4"
+	],
+	"filament_wipe": [
+		"1",
+		"1",
+		"1"
+	],
+	"filament_wipe_distance": [
+		"1",
+		"1",
+		"1"
+	],
+	"filament_z_hop_types": [
+		"Spiral Lift",
+		"Spiral Lift",
+		"Spiral Lift"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2S 0.4 nozzle",
+		"Bambu Lab H2S 0.6 nozzle",
+		"Bambu Lab H2S 0.8 nozzle"
+	]
+}

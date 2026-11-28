@@ -1,13 +1,27 @@
 #ifndef slic3r_GUI_SpinInput_hpp_
 #define slic3r_GUI_SpinInput_hpp_
 
+#include <wx/containr.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dc.h>
 #include <wx/dcclient.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/textctrl.h>
 #include <wx/valtext.h>
 #include "StaticBox.hpp"
 
+class wxDC;
+class wxTextCtrl;
+class wxWindow;
+
 class Button;
+
+// Fired on every keystroke that leaves a parseable integer in the field, so callers can
+// react live rather than only on commit (wxEVT_SPINCTRL) or Enter. Ported from BambuStudio.
+wxDECLARE_EVENT(EVT_SPINCTRL_TEXT, wxCommandEvent);
 
 class SpinInput : public wxNavigationEnabled<StaticBox>
 {
@@ -50,8 +64,6 @@ public:
               int            initial = 0,
               int            step    = 1);
 
-    void SetCornerRadius(double radius);
-
     void SetLabel(const wxString &label) wxOVERRIDE;
 
     void SetLabelColor(StateColor const &color);
@@ -78,6 +90,9 @@ public:
 
     void SetRange(int min, int max);
 
+    int GetMin() const { return this->min; }
+    int GetMax() const { return this->max; }
+
 protected:
     void DoSetToolTipText(wxString const &tip) override;
 
@@ -95,6 +110,7 @@ private:
     void keyPressed(wxKeyEvent& event);
     void onTimer(wxTimerEvent &evnet);
     void onTextLostFocus(wxEvent &event);
+    void onTextChanged(wxCommandEvent &event);
     void onTextEnter(wxCommandEvent &event);
 
     void sendSpinEvent();

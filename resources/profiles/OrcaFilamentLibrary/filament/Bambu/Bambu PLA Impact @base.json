@@ -1,17 +1,30 @@
 {
-    "type": "filament",
-    "name": "Bambu PLA Impact @base",
-    "inherits": "fdm_filament_pla",
-    "from": "system",
-    "filament_id": "OGFA03",
-    "instantiation": "false",
-    "filament_cost": [
-        "25.4"
-    ],
-    "filament_flow_ratio": [
-        "0.95"
-    ],
-    "filament_vendor": [
-        "Bambu Lab"
-    ]
+	"type": "filament",
+	"name": "Bambu PLA Impact @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OFTGHyNC",
+	"instantiation": "false",
+	"filament_cost": [
+		"25.4"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
+	"filament_flow_ratio": [
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95"
+	],
+	"filament_vendor": [
+		"Bambu Lab"
+	]
 }

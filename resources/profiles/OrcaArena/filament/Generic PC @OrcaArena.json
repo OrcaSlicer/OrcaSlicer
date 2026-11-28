@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Generic PC @OrcaArena",
+	"renamed_from": "OrcaArena Generic PC",
+	"inherits": "Generic PC @OrcaArena base",
+	"from": "system",
+	"setting_id": "He4O4h8oEFsySDIJ",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Orca Arena X1 Carbon 0.4 nozzle",
+		"Orca Arena X1 Carbon 0.6 nozzle",
+		"Orca Arena X1 Carbon 0.8 nozzle"
+	]
+}

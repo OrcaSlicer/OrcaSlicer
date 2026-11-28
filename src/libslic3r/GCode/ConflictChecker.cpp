@@ -1,11 +1,30 @@
 #include "ConflictChecker.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 
+#include <cstdint>
+#include <cstdlib>
+#include <cfloat>
+#include <cassert>
+#include <optional>
+#include <cstddef>
+#include <algorithm>
 #include <tbb/parallel_for.h>
 #include <tbb/concurrent_vector.h>
 
-#include <map>
 #include <functional>
+#include <iterator>
+#include <unordered_map>
 #include <atomic>
+#include <utility>
+#include <vector>
+#include "libslic3r/Model.hpp"
 
 namespace Slic3r {
 
@@ -22,9 +41,10 @@ inline IndexPair point_map_grid_index(const Point &pt, int64_t xdist, int64_t yd
 
 inline bool nearly_equal(const Point &p1, const Point &p2) { return std::abs(p1.x() - p2.x()) < SCALED_EPSILON && std::abs(p1.y() - p2.y()) < SCALED_EPSILON; }
 
-inline Grids line_rasterization(const Line &line, int64_t xdist = scale_(1), int64_t ydist = scale_(1))
+// The grid cells the line passes through, in order, into res.
+inline void line_rasterization(const Line &line, Grids &res, int64_t xdist = scale_(1), int64_t ydist = scale_(1))
 {
-    Grids     res;
+    res.clear();
     Point     rayStart     = line.a;
     Point     rayEnd       = line.b;
     IndexPair currentVoxel = point_map_grid_index(rayStart, xdist, ydist);
@@ -81,9 +101,12 @@ inline Grids line_rasterization(const Line &line, int64_t xdist = scale_(1), int
             assert(0);
         }
     }
-
-    return res;
 }
+
+struct IndexPairHash
+{
+    size_t operator()(const IndexPair &p) const { return std::hash<int64_t>()(p.first) ^ (std::hash<int64_t>()(p.second) * 0x9e3779b97f4a7c15ull); }
+};
 } // namespace RasterizationImpl
 
 void LinesBucketQueue::emplace_back_bucket(ExtrusionLayers &&els, const void *objPtr, Point offset)
@@ -189,7 +212,7 @@ ObjectExtrusions getAllLayersExtrusionPathsFromObject(PrintObject *obj)
 
     for (auto layerPtr : obj->layers()) {
         auto perimeters = getExtrusionPathsFromLayer(layerPtr->regions());
-        oe.perimeters.insert(oe.perimeters.end(), perimeters.begin(), perimeters.end());
+        oe.perimeters.insert(oe.perimeters.end(), std::make_move_iterator(perimeters.begin()), std::make_move_iterator(perimeters.end()));
     }
 
     for (auto supportLayerPtr : obj->support_layers()) { oe.support.push_back(getExtrusionPathsFromSupportLayer(supportLayerPtr)); }
@@ -200,18 +223,20 @@ ObjectExtrusions getAllLayersExtrusionPathsFromObject(PrintObject *obj)
 ConflictComputeOpt ConflictChecker::find_inter_of_lines(const LineWithIDs &lines)
 {
     using namespace RasterizationImpl;
-    std::map<IndexPair, std::vector<int>> indexToLine;
+    // Only looked up, never iterated, so the order of the cells does not matter.
+    std::unordered_map<IndexPair, std::vector<int>, IndexPairHash> indexToLine;
+    Grids indexes;
 
     for (int i = 0; i < lines.size(); ++i) {
-        const LineWithID &l1      = lines[i];
-        auto              indexes = line_rasterization(l1._line);
+        const LineWithID &l1 = lines[i];
+        line_rasterization(l1._line, indexes);
         for (auto index : indexes) {
-            const auto &possibleIntersectIdxs = indexToLine[index];
+            auto &possibleIntersectIdxs = indexToLine[index];
             for (auto possibleIntersectIdx : possibleIntersectIdxs) {
                 const LineWithID &l2 = lines[possibleIntersectIdx];
                 if (auto interRes = line_intersect(l1, l2); interRes.has_value()) { return interRes; }
             }
-            indexToLine[index].push_back(i);
+            possibleIntersectIdxs.push_back(i);
         }
     }
     return {};
@@ -220,7 +245,13 @@ ConflictComputeOpt ConflictChecker::find_inter_of_lines(const LineWithIDs &lines
 ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(PrintObjectPtrs                      objs,
                                                                     std::optional<const FakeWipeTower *> wtdptr) // find the first intersection point of lines in different objects
 {
-    if (objs.size() <= 1 && !wtdptr) { return {}; }
+    if (objs.empty() && !wtdptr) { return {}; }
+    
+    // Orca: check if we have enough items to potentially conflict (instances count)
+    size_t total_instances = 0;
+    for (auto obj : objs) total_instances += obj->instances().size();
+    if (total_instances <= 1 && !wtdptr) return {};
+
     LinesBucketQueue conflictQueue;
 
     if (wtdptr.has_value()) { // wipe tower at 0 by default
@@ -238,8 +269,19 @@ ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(PrintObjectP
     }
     for (PrintObject *obj : objs) {
         auto layers = getAllLayersExtrusionPathsFromObject(obj);
-        conflictQueue.emplace_back_bucket(std::move(layers.perimeters), obj, obj->instances().front().shift);
-        conflictQueue.emplace_back_bucket(std::move(layers.support), obj, obj->instances().front().shift);
+        // Orca: check for collisions between all instances
+        const auto& instances = obj->instances();
+        for (size_t inst_idx = 0; inst_idx < instances.size(); ++inst_idx) {
+            const PrintInstance& inst = instances[inst_idx];
+            const bool is_last_instance = inst_idx + 1 == instances.size();
+            if (is_last_instance) {
+                conflictQueue.emplace_back_bucket(std::move(layers.perimeters), &inst, inst.shift);
+                conflictQueue.emplace_back_bucket(std::move(layers.support), &inst, inst.shift);
+            } else {
+                conflictQueue.emplace_back_bucket(ExtrusionLayers(layers.perimeters), &inst, inst.shift);
+                conflictQueue.emplace_back_bucket(ExtrusionLayers(layers.support), &inst, inst.shift);
+            }
+        }
     }
 
     std::vector<LineWithIDs> layersLines;
@@ -272,13 +314,18 @@ ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(PrintObjectP
             const FakeWipeTower *wtdp = wtdptr.value();
             if (ptr1 == wtdp || ptr2 == wtdp) {
                 if (ptr2 == wtdp) { std::swap(ptr1, ptr2); }
-                const PrintObject *obj2 = reinterpret_cast<const PrintObject *>(ptr2);
-                return std::make_optional<ConflictResult>("WipeTower", obj2->model_object()->name, conflictPrintZ, nullptr, ptr2);
+                // ptr1 is now wipe tower, ptr2 is PrintInstance*
+                const PrintInstance *inst2 = reinterpret_cast<const PrintInstance *>(ptr2);
+                const PrintObject *obj2 = inst2->print_object;
+                return std::make_optional<ConflictResult>("WipeTower", obj2->model_object()->name, conflictPrintZ, nullptr, inst2);
             }
         }
-        const PrintObject *obj1 = reinterpret_cast<const PrintObject *>(ptr1);
-        const PrintObject *obj2 = reinterpret_cast<const PrintObject *>(ptr2);
-        return std::make_optional<ConflictResult>(obj1->model_object()->name, obj2->model_object()->name, conflictPrintZ, ptr1, ptr2);
+        
+        const PrintInstance *inst1 = reinterpret_cast<const PrintInstance *>(ptr1);
+        const PrintInstance *inst2 = reinterpret_cast<const PrintInstance *>(ptr2);
+        const PrintObject *obj1 = inst1->print_object;
+        const PrintObject *obj2 = inst2->print_object;
+        return std::make_optional<ConflictResult>(obj1->model_object()->name, obj2->model_object()->name, conflictPrintZ, inst1, inst2);
     } else
         return {};
 }

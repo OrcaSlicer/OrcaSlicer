@@ -1,0 +1,78 @@
+#include "PluginHost.hpp"
+#include "PluginHostBindings.hpp"
+#include "PluginHostUi.hpp"
+#include <pybind11/pybind11.h>
+#include <slic3r/plugin/PluginAuditManager.hpp>
+#include <slic3r/plugin/PluginManager.hpp>
+#include <slic3r/plugin/PythonRunScope.hpp>
+
+#include <boost/filesystem/path.hpp>
+#include <boost/nowide/convert.hpp>
+
+#include <stdexcept>
+#include <string>
+#include <pybind11/detail/descr.h>
+
+namespace Slic3r {
+
+namespace host_bindings {
+namespace {
+
+// A native path as UTF-8: narrowed from wide on Windows, where boost's narrow form uses the ANSI code page.
+std::string path_utf8(const boost::filesystem::path& path)
+{
+#ifdef _WIN32
+    return boost::nowide::narrow(path.wstring());
+#else
+    return path.string();
+#endif
+}
+
+} // namespace
+
+void register_plugin(pybind11::module_& host)
+{
+    auto plugin_host = host.def_submodule("plugin", "Plugin host API");
+
+    plugin_host.def(
+        "storage",
+        []() -> std::string {
+            const std::string plugin_key = PluginAuditManager::instance().current_plugin();
+            // A script's own folder is its storage, as a plugin's installed folder is the plugin's.
+            if (is_script_identity(plugin_key)) {
+                const PythonRunBinding& binding = current_python_run();
+                if (!binding.run || binding.run->file().empty())
+                    throw std::runtime_error("orca.host.plugin.storage() is the folder of a script's file; code sent as text has no folder");
+                return path_utf8(binding.run->file().parent_path());
+            }
+            if (plugin_key.empty())
+                throw std::runtime_error("plugin.storage() must be called from a plugin callback");
+
+            return PluginManager::instance().get_storage_dir(plugin_key);
+        },
+        "Return the installed folder of the current plugin; for a script, the folder of its file.");
+}
+} // namespace host_bindings
+
+void PluginHost::RegisterBindings(pybind11::module_& module)
+{
+    auto host = module.def_submodule("host", "Host application API");
+
+    // Value types first so the docstring signatures of later registrars
+    // resolve to the bound Python names.
+    host_bindings::register_geometry(host);
+    host_bindings::register_mesh(host);
+    host_bindings::register_presets(host);
+    host_bindings::register_model(host);
+    host_bindings::register_app(host);
+    host_bindings::register_plugin(host);
+    host_bindings::register_tools(host);
+
+    // UI: native dialogs and interactive HTML windows for plugins.
+    PluginHostUi::RegisterBindings(host);
+
+    // Slicing print-graph data model (Print, Layer, Surface, ...).
+    host_bindings::register_slicing(host);
+}
+
+} // namespace Slic3r

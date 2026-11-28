@@ -1,11 +1,24 @@
+#include "Config.hpp"
 #include "Exception.hpp"
 #include "PrintBase.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
+#include <cstddef>
+#include <string>
+#include <vector>
+#include <stdexcept>
+#include <mutex>
+#include <functional>
 
 #include "I18N.hpp"
+#include "Model.hpp"
+#include "libslic3r.h"
+#include "libslic3r_version.h"
+#include "PlaceholderParser.hpp"
 
 //! macro used to mark string used at localization,
 //! return same string
@@ -21,11 +34,12 @@ void PrintTryCancel::operator()()
 
 size_t PrintStateBase::g_last_timestamp = 0;
 
-// Update "scale", "input_filename", "input_filename_base" placeholders from the current m_objects.
+// Update "scale", "input_filename", "input_filename_base", "first_object_name" placeholders from the current m_objects.
 void PrintBase::update_object_placeholders(DynamicConfig &config, const std::string &default_ext) const
 {
     // get the first input file name
     std::string input_file;
+    std::string first_object_name;
     std::vector<std::string> v_scale;
     int num_objects = 0;
     int num_instances = 0;
@@ -38,6 +52,8 @@ void PrintBase::update_object_placeholders(DynamicConfig &config, const std::str
 			}
 		if (printable) {
             ++ num_objects;
+	        if (num_objects == 1)
+	            first_object_name = model_object->name;
 	        // CHECK_ME -> Is the following correct ?
 			v_scale.push_back("x:" + boost::lexical_cast<std::string>(printable->get_scaling_factor(X) * 100) +
 				"% y:" + boost::lexical_cast<std::string>(printable->get_scaling_factor(Y) * 100) +
@@ -51,6 +67,7 @@ void PrintBase::update_object_placeholders(DynamicConfig &config, const std::str
     config.set_key_value("num_instances", new ConfigOptionInt(num_instances));
 
     config.set_key_value("scale", new ConfigOptionStrings(v_scale));
+    config.set_key_value("first_object_name", new ConfigOptionString(first_object_name));
     if (! input_file.empty()) {
         // get basename with and without suffix
         const std::string input_filename = boost::filesystem::path(input_file).filename().string();
@@ -83,7 +100,7 @@ std::string PrintBase::output_filename(const std::string &format, const std::str
             filename.replace_extension(default_ext);
         return filename.string();
     } catch (std::runtime_error &err) {
-        throw Slic3r::PlaceholderParserError(L("Failed processing of the filename_format template.") + "\n" + err.what());
+        throw Slic3r::PlaceholderParserError(L("Processing of the filename_format template failed.") + "\n" + err.what());
     }
 }
 
@@ -106,6 +123,7 @@ std::string PrintBase::output_filepath(const std::string &path, const std::strin
 //BBS: move set_status from hpp to cpp
 void  PrintBase::set_status(int percent, const std::string &message, unsigned int flags, int warning_step) const
 {
+    std::scoped_lock<std::mutex> lock(m_status_callback_mutex);
 	if (m_status_callback)
         m_status_callback(SlicingStatus(percent, message, flags, warning_step));
     else
@@ -115,6 +133,7 @@ void  PrintBase::set_status(int percent, const std::string &message, unsigned in
 void PrintBase::status_update_warnings(int step, PrintStateBase::WarningLevel  warning_level,
     const std::string &message, const PrintObjectBase* print_object, PrintStateBase::SlicingNotificationType message_id)
 {
+    std::scoped_lock<std::mutex> lock(m_status_callback_mutex);
     if (this->m_status_callback) {
         auto status = print_object ? SlicingStatus(*print_object, step, message, message_id, warning_level) : SlicingStatus(*this, step, message, message_id, warning_level);
         m_status_callback(status);
@@ -128,9 +147,9 @@ void PrintBase::status_update_warnings(int step, PrintStateBase::WarningLevel wa
     const std::string& message, PrintObjectBase &object, PrintStateBase::SlicingNotificationType message_id)
 {
     //BBS: add object it into slicing status
-    if (this->m_status_callback) {
+    std::scoped_lock<std::mutex> lock(m_status_callback_mutex);
+    if (this->m_status_callback)
         m_status_callback(SlicingStatus(object, step, message, message_id, warning_level));
-    }
     else if (!message.empty())
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", PrintObject warning: %1%\n")% message.c_str();
 }

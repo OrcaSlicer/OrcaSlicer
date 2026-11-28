@@ -1,32 +1,55 @@
 get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 add_executable(${_TEST_NAME}_tests 
 	${_TEST_NAME}_tests.cpp
-	test_data.cpp
-	test_data.hpp
+	test_helpers.cpp
+	test_helpers.hpp
+	test_adaptive_pressure_advance.cpp
+	test_bridge.cpp
+	test_calib.cpp
+	test_conflict_checker.cpp
+	test_cooling.cpp
 	test_extrusion_entity.cpp
+	test_extrusion_processor.cpp
+	test_exclusion_volumes.cpp
+	test_fan_mover.cpp
 	test_fill.cpp
 	test_flow.cpp
+	test_gcode_processor.cpp
+	test_gcode_statistics.cpp
+	test_gcode_timing.cpp
 	test_gcode.cpp
+	test_gcodeprocessor.cpp
 	test_gcodewriter.cpp
+	test_imex_mode_gcode.cpp
+	test_imex_slice_offset.cpp
 	test_model.cpp
+	test_multifilament.cpp
+	test_multimaterial_segmentation.cpp
+	test_painted_modifier.cpp
+	test_perimeters.cpp
+	# Seam geometry and pipeline regressions share the existing Print fixtures.
+	test_precise_seam.cpp
 	test_print.cpp
-	test_printgcode.cpp
 	test_printobject.cpp
+	test_mixed_filament.cpp
+	test_seam_placer.cpp
 	test_skirt_brim.cpp
+	test_slicing_pipeline_hook.cpp
+	test_spiral_vase.cpp
 	test_support_material.cpp
+	test_texture_displacement.cpp
+	test_tree_support.cpp
 	test_trianglemesh.cpp
+	test_wipe.cpp
+	test_wipe_tower.cpp
 	)
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)
+if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
+    add_precompiled_header(${_TEST_NAME}_tests ${CMAKE_SOURCE_DIR}/src/libslic3r/pchheader.hpp FORCEINCLUDE)
+endif ()
+
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
-if (WIN32)
-	if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-		orcaslicer_copy_dlls(COPY_DLLS "Debug" "d" output_dlls_Debug)
-	elseif("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-		orcaslicer_copy_dlls(COPY_DLLS "RelWithDebInfo" "" output_dlls_Release)
-	else()
-		orcaslicer_copy_dlls(COPY_DLLS "Release" "" output_dlls_Release)
-	endif()
-endif()
+orcaslicer_copy_test_dlls()
 
-catch_discover_tests(${_TEST_NAME}_tests)
+orcaslicer_discover_tests(${_TEST_NAME}_tests)

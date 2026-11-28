@@ -1,9 +1,9 @@
 // This file is part of libigl, a simple c++ geometry processing library.
-// 
+//
 // Copyright (C) 2015 Alec Jacobson <alecjacobson@gmail.com>
-// 
-// This Source Code Form is subject to the terms of the Mozilla Public License 
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can 
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License
+// v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "order_facets_around_edges.h"
 #include "order_facets_around_edge.h"
@@ -24,10 +24,10 @@ IGL_INLINE
 typename std::enable_if<!std::is_same<typename DerivedV::Scalar,
 typename CGAL::Exact_predicates_exact_constructions_kernel::FT>::value, void>::type
 igl::copyleft::cgal::order_facets_around_edges(
-        const Eigen::PlainObjectBase<DerivedV>& V,
-        const Eigen::PlainObjectBase<DerivedF>& F,
-        const Eigen::PlainObjectBase<DerivedN>& N,
-        const Eigen::PlainObjectBase<DeriveduE>& uE,
+        const Eigen::MatrixBase<DerivedV>& V,
+        const Eigen::MatrixBase<DerivedF>& F,
+        const Eigen::MatrixBase<DerivedN>& N,
+        const Eigen::MatrixBase<DeriveduE>& uE,
         const std::vector<std::vector<uE2EType> >& uE2E,
         std::vector<std::vector<uE2oEType> >& uE2oE,
         std::vector<std::vector<uE2CType > >& uE2C ) {
@@ -95,21 +95,21 @@ igl::copyleft::cgal::order_facets_around_edges(
                     edge *= -1;
                 }
 
-                if (edge.norm() < EPS) {
-                    std::cerr << "=====================================" << std::endl;
-                    std::cerr << "  ui: " << ui << std::endl;
-                    std::cerr << "edge: " << ref_edge << std::endl;
-                    std::cerr << "face: " << ref_face << std::endl;
-                    std::cerr << "  vs: " << V.row(s) << std::endl;
-                    std::cerr << "  vd: " << V.row(d) << std::endl;
-                    std::cerr << "adj face normals: " << std::endl;
-                    std::cerr << normals << std::endl;
-                    std::cerr << "Very degenerated case detected:" << std::endl;
-                    std::cerr << "Near zero edge surrounded by "
-                        << edge_valance << " neearly colinear faces" <<
-                        std::endl;
-                    std::cerr << "=====================================" << std::endl;
-                }
+                //if (edge.norm() < EPS) {
+                //    std::cerr << "=====================================" << std::endl;
+                //    std::cerr << "  ui: " << ui << std::endl;
+                //    std::cerr << "edge: " << ref_edge << std::endl;
+                //    std::cerr << "face: " << ref_face << std::endl;
+                //    std::cerr << "  vs: " << V.row(s) << std::endl;
+                //    std::cerr << "  vd: " << V.row(d) << std::endl;
+                //    std::cerr << "adj face normals: " << std::endl;
+                //    std::cerr << normals << std::endl;
+                //    std::cerr << "Very degenerated case detected:" << std::endl;
+                //    std::cerr << "Near zero edge surrounded by "
+                //        << edge_valance << " neearly colinear faces" <<
+                //        std::endl;
+                //    std::cerr << "=====================================" << std::endl;
+                //}
             }
         } else {
             edge.normalize();
@@ -160,14 +160,14 @@ template<
     typename uE2EType,
     typename uE2oEType,
     typename uE2CType >
-IGL_INLINE 
+IGL_INLINE
 typename std::enable_if<std::is_same<typename DerivedV::Scalar,
 typename CGAL::Exact_predicates_exact_constructions_kernel::FT>::value, void>::type
 igl::copyleft::cgal::order_facets_around_edges(
-        const Eigen::PlainObjectBase<DerivedV>& V,
-        const Eigen::PlainObjectBase<DerivedF>& F,
-        const Eigen::PlainObjectBase<DerivedN>& N,
-        const Eigen::PlainObjectBase<DeriveduE>& uE,
+        const Eigen::MatrixBase<DerivedV>& V,
+        const Eigen::MatrixBase<DerivedF>& F,
+        const Eigen::MatrixBase<DerivedN>& N,
+        const Eigen::MatrixBase<DeriveduE>& uE,
         const std::vector<std::vector<uE2EType> >& uE2E,
         std::vector<std::vector<uE2oEType> >& uE2oE,
         std::vector<std::vector<uE2CType > >& uE2C ) {
@@ -255,9 +255,9 @@ template<
     typename uE2oEType,
     typename uE2CType >
 IGL_INLINE void igl::copyleft::cgal::order_facets_around_edges(
-        const Eigen::PlainObjectBase<DerivedV>& V,
-        const Eigen::PlainObjectBase<DerivedF>& F,
-        const Eigen::PlainObjectBase<DeriveduE>& uE,
+        const Eigen::MatrixBase<DerivedV>& V,
+        const Eigen::MatrixBase<DerivedF>& F,
+        const Eigen::MatrixBase<DeriveduE>& uE,
         const std::vector<std::vector<uE2EType> >& uE2E,
         std::vector<std::vector<uE2oEType> >& uE2oE,
         std::vector<std::vector<uE2CType > >& uE2C ) {
@@ -321,12 +321,13 @@ IGL_INLINE void igl::copyleft::cgal::order_facets_around_edges(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-// generated by autoexplicit.sh
-template void igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, int, int, bool>(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
-// generated by autoexplicit.sh
-template std::enable_if<!(std::is_same<Eigen::Matrix<double, -1, -1, 0, -1, -1>::Scalar, CGAL::Lazy_exact_nt<CGAL::Gmpq> >::value), void>::type igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, int, int, bool>(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
-template void igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<CGAL::Lazy_exact_nt<CGAL::Gmpq>, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 2, 0, -1, 2>, long, long, bool>(Eigen::PlainObjectBase<Eigen::Matrix<CGAL::Lazy_exact_nt<CGAL::Gmpq>, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 2, 0, -1, 2> > const&, std::vector<std::vector<long, std::allocator<long> >, std::allocator<std::vector<long, std::allocator<long> > > > const&, std::vector<std::vector<long, std::allocator<long> >, std::allocator<std::vector<long, std::allocator<long> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
-template void igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 2, 0, -1, 2>, long, long, bool>(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 2, 0, -1, 2> > const&, std::vector<std::vector<long, std::allocator<long> >, std::allocator<std::vector<long, std::allocator<long> > > > const&, std::vector<std::vector<long, std::allocator<long> >, std::allocator<std::vector<long, std::allocator<long> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
-template void igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 2, 0, -1, 2>, long, long, bool>(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 2, 0, -1, 2> > const&, std::vector<std::vector<long, std::allocator<long> >, std::allocator<std::vector<long, std::allocator<long> > > > const&, std::vector<std::vector<long, std::allocator<long> >, std::allocator<std::vector<long, std::allocator<long> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
-template void igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<CGAL::Lazy_exact_nt<CGAL::Gmpq>, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 2, 0, -1, 2>, long, long, bool>(Eigen::PlainObjectBase<Eigen::Matrix<CGAL::Lazy_exact_nt<CGAL::Gmpq>, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 2, 0, -1, 2> > const&, std::vector<std::vector<long, std::allocator<long> >, std::allocator<std::vector<long, std::allocator<long> > > > const&, std::vector<std::vector<long, std::allocator<long> >, std::allocator<std::vector<long, std::allocator<long> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
+#include <cstdint>
+template std::enable_if<!(std::is_same<Eigen::Matrix<double, -1, -1, 0, -1, -1>::Scalar, CGAL::Epeck::FT >::value), void>::type igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, int, int, bool>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
+template void igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<CGAL::Epeck::FT, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 2, 0, -1, 2>, std::ptrdiff_t, std::ptrdiff_t, bool>(Eigen::MatrixBase<Eigen::Matrix<CGAL::Epeck::FT, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 2, 0, -1, 2> > const&, std::vector<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> >, std::allocator<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> > > > const&, std::vector<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> >, std::allocator<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
+template void igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<CGAL::Epeck::FT, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 2, 0, -1, 2>, std::ptrdiff_t, std::ptrdiff_t, bool>(Eigen::MatrixBase<Eigen::Matrix<CGAL::Epeck::FT, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 2, 0, -1, 2> > const&, std::vector<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> >, std::allocator<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> > > > const&, std::vector<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> >, std::allocator<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
+template void igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, int, int, bool>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
+template void igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 2, 0, -1, 2>, std::ptrdiff_t, std::ptrdiff_t, bool>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 2, 0, -1, 2> > const&, std::vector<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> >, std::allocator<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> > > > const&, std::vector<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> >, std::allocator<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
+template void igl::copyleft::cgal::order_facets_around_edges<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 2, 0, -1, 2>, std::ptrdiff_t, std::ptrdiff_t, bool>(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 2, 0, -1, 2> > const&, std::vector<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> >, std::allocator<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> > > > const&, std::vector<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> >, std::allocator<std::vector<std::ptrdiff_t, std::allocator<std::ptrdiff_t> > > >&, std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > >&);
+#ifdef WIN32
+#endif
 #endif

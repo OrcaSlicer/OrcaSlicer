@@ -2,7 +2,16 @@
 #define slic3r_PresetComboBoxes_hpp_
 
 //#include <wx/bmpcbox.h>
-#include <wx/colourdata.h>
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include <functional>
+#include <string>
+#include <wx/colour.h>
+#include <vector>
+#include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <utility>
+#include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/clrpicker.h>
 
@@ -27,6 +36,17 @@ namespace GUI {
 
 class BitmapCache;
 
+// A selector's row as a pick of a preset by name sees it.
+struct PresetRow
+{
+    std::string stored;         // the preset name the row stores; empty for a row that stores none, as an AMS filament's
+    std::string label;          // what the row shows
+    bool        marker = false; // a group header or another row that is not a preset
+};
+// The index of the row a pick of preset `name` selects: the row that stores `name`, else the first
+// that stores no name and is labelled `name`; never a marker. -1 when there is none.
+int row_for_preset(const std::vector<PresetRow>& rows, const std::string& name);
+
 // ---------------------------------
 // ***  PresetComboBox  ***
 // ---------------------------------
@@ -39,7 +59,7 @@ public:
     PresetComboBox(wxWindow* parent, Preset::Type preset_type, const wxSize& size = wxDefaultSize, PresetBundle* preset_bundle = nullptr);
     ~PresetComboBox();
 
-	enum LabelItemType {
+	enum LabelItemType : std::size_t {
 		LABEL_ITEM_PHYSICAL_PRINTER = 0xffffff01,
         LABEL_ITEM_PRINTER_MODELS,
 		LABEL_ITEM_DISABLED,
@@ -60,6 +80,27 @@ public:
 
     void set_label_marker(int item, LabelItemType label_item_type = LABEL_ITEM_MARKER);
     bool set_printer_technology(PrinterTechnology pt);
+
+    // True for a row that is a group header, a marker or disabled: not a selectable preset.
+    bool is_marker_item(int item);
+    // How a caller-supplied preset name resolved against this combo's items.
+    struct NameMatch
+    {
+        int         item      = -1;    // first matching item, or -1
+        bool        ambiguous = false; // two distinct items carry this name
+        std::string internal_name;     // internal preset name of the match (empty when none)
+    };
+    // Resolves `requested` by the name each item shows: its display label, or its stored item alias
+    // (the internal preset name, or the printer model for a system printer preset). Names are
+    // compared with the modified-dirty suffix removed, i.e. exactly what the dropdown shows, so this
+    // respects the combo's real selectable model (visibility, show-incompatible state, and for a
+    // filament slot combo that slot's compatibility). A name two distinct items carry is reported
+    // ambiguous instead of being resolved by position. Used by scripts and automation.
+    NameMatch find_by_name(const std::string& requested);
+    // The item a pick of `preset_name` selects (row_for_preset()), or -1. `preset_name` is a name as
+    // find_by_name() resolves one (internal_name): a preset's name, or the label of a row that stores
+    // none.
+    int item_for_preset(const std::string& preset_name);
 
     void set_selection_changed_function(std::function<void(int)> sel_changed) { on_selection_changed = sel_changed; }
 
@@ -191,11 +232,11 @@ public:
 
     // BBS
     wxButton* clr_picker { nullptr };
-    wxColourData m_clrData;
 
     wxColor get_color() { return m_color; }
 
-    bool switch_to_tab();
+    // Opens this slot's preset in its tab; `show_tab` false only loads it, without showing the tab.
+    bool switch_to_tab(bool show_tab = true);
     void change_extruder_color();
     void show_add_menu();
     void show_edit_menu();
@@ -204,7 +245,11 @@ public:
     void update() override;
     void msw_rescale() override;
     void OnSelect(wxCommandEvent& evt) override;
+    // The selector's own part of a pick of `item`, which OnSelect() runs before the plater's: the item
+    // becomes the last selection and, for a filament, the slot's colour follows the preset.
+    void item_picked(int item);
     void update_badge_according_flag();
+    void set_sync_badge(bool show);
 
     FilamentColor get_cur_color_info();
     void show_default_color_picker();
@@ -214,6 +259,7 @@ public:
 private:
     // BBS
     wxColor m_color;
+    bool    m_sync_badge{false};
 };
 
 

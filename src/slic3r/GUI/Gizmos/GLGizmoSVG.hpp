@@ -10,6 +10,8 @@
 #include "slic3r/Utils/RaycastManager.hpp"
 #include "slic3r/GUI/IconManager.hpp"
 
+#include "libslic3r/EmbossShape.hpp"
+#include "libslic3r/ObjectID.hpp"
 #include <optional>
 #include <memory>
 #include <atomic>
@@ -19,7 +21,11 @@
 #include "libslic3r/Model.hpp"
 
 #include <imgui/imgui.h>
-#include <GL/glew.h>
+#include <glad/gl.h>
+#include <string_view>
+#include <string>
+#include <wx/event.h>
+#include <vector>
 
 namespace Slic3r{
 class ModelVolume;
@@ -78,6 +84,12 @@ public:
     /// <returns>True when constain emboss data otherwise False</returns>
     static bool is_svg(const ModelVolume &volume);
 
+    // What the file menu's "Change file" and "Save as" do after their dialogs, for the part being
+    // edited; change_file() also shows the new file's name, which the menu's own path leaves as it
+    // was. change_file() returns whether the file gave shapes; save_svg_as() whether it wrote.
+    bool change_file(const std::string &path);
+    bool save_svg_as(const std::string &path);
+
 protected:
     bool on_init() override;
     std::string on_get_name() const override;
@@ -117,6 +129,8 @@ private:
     void draw_window();
     void draw_preview();
     void draw_filename();
+    // Reads the SVG file m_volume_shape names into its shapes and preview, and re-creates the part.
+    void load_svg_file();
     void draw_depth();
     void draw_size();
     void draw_use_surface();

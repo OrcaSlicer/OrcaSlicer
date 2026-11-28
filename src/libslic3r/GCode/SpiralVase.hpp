@@ -1,8 +1,12 @@
 #ifndef slic3r_SpiralVase_hpp_
 #define slic3r_SpiralVase_hpp_
 
-#include "../libslic3r.h"
 #include "../GCodeReader.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include <string>
+#include <vector>
+#include "libslic3r/Config.hpp"
 
 namespace Slic3r {
 

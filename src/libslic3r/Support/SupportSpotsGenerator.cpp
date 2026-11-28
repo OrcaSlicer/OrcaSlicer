@@ -1,25 +1,19 @@
 #include "SupportSpotsGenerator.hpp"
 
-#include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
 #include "ExtrusionEntity.hpp"
 #include "ExtrusionEntityCollection.hpp"
+#include "libslic3r/Flow.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
 #include "Line.hpp"
 #include "Point.hpp"
-#include "Polygon.hpp"
-#include "PrincipalComponents2D.hpp"
-#include "Print.hpp"
-#include "PrintBase.hpp"
-#include "PrintConfig.hpp"
-#include "Tesselate.hpp"
-#include "libslic3r.h"
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
 #include "tbb/blocked_range2d.h"
 #include "tbb/parallel_reduce.h"
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
@@ -32,10 +26,7 @@
 #include <vector>
 
 #include "AABBTreeLines.hpp"
-#include "KDTreeIndirect.hpp"
 #include "libslic3r/Layer.hpp"
-#include "libslic3r/ClipperUtils.hpp"
-#include "Geometry/ConvexHull.hpp"
 
 // #define DETAILED_DEBUG_LOGS
 // #define DEBUG_FILES
@@ -165,8 +156,8 @@ void estimate_malformations(LayerPtrs &layers, const Params &params)
                                                                                                                  flow_width,
                                                                                                                  params.bridge_distance);
                 for (size_t i = 0; i < annotated_points.size(); ++i) {
-                    const ExtendedPoint &a = i > 0 ? annotated_points[i - 1] : annotated_points[i];
-                    const ExtendedPoint &b = annotated_points[i];
+                    const ExtendedPoint<2>& a = i > 0 ? annotated_points[i - 1] : annotated_points[i];
+                    const ExtendedPoint<2>& b = annotated_points[i];
                     ExtrusionLine line_out{a.position.cast<float>(), b.position.cast<float>(), float((a.position - b.position).norm()),
                                            extrusion};
 
@@ -761,7 +752,9 @@ std::tuple<ObjectPart, float> build_object_part_from_slice(const size_t &slice_i
         //  thus has lower adhesion. For now this effect will be neglected.
         ExPolygon  slice_poly = layer->lslices[slice_idx];
         ExPolygons brim;
-        if (params.brim_type == BrimType::btOuterAndInner || params.brim_type == BrimType::btOuterOnly) {
+        // btLeadingEdgeOnly degrades to an outer brim off belt printers (see Brim.cpp).
+        if (params.brim_type == BrimType::btOuterAndInner || params.brim_type == BrimType::btOuterOnly
+            || params.brim_type == BrimType::btLeadingEdgeOnly) {
             Polygon brim_hole = slice_poly.contour;
             brim_hole.reverse();
             Polygons c = expand(slice_poly.contour, scale_(params.brim_width)); // For very small polygons, the expand may result in empty vector, even thought the input is correct.

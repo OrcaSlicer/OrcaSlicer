@@ -1,9 +1,14 @@
 #import "MacDarkMode.hpp"
 #include "../GUI/Widgets/Label.hpp"
 
+#include "wx/graphics.h"
 #include "wx/osx/core/cfstring.h"
+#include "wx/osx/private.h"
 
 #import <algorithm>
+#include <functional>
+#include <memory>
+#include <string>
 
 #import <Cocoa/Cocoa.h>
 #import <Foundation/Foundation.h>
@@ -57,7 +62,7 @@ void set_miniaturizable(void * window)
     while(viewObject = (NSView *)[viewEnum nextObject]) {
         if([viewObject class] == [NSTextField self]) {
             //[(NSTextField*)viewObject setTextColor :  NSColor.whiteColor];
-            mainframe_text_field = viewObject;
+            mainframe_text_field = (NSTextField*)viewObject;
         }
     }
 }
@@ -74,13 +79,48 @@ void set_title_colour_after_set_title(void * window)
   while(viewObject = (NSView *)[viewEnum nextObject]) {
     if([viewObject class] == [NSTextField self]) {
       [(NSTextField*)viewObject setTextColor : NSColor.whiteColor];
-      mainframe_text_field = viewObject;
+      mainframe_text_field = (NSTextField*)viewObject;
     }
   }
 
   if (mainframe_text_field) {
     [(NSTextField*)mainframe_text_field setTextColor : NSColor.whiteColor];
   }
+}
+
+void keep_window_above(void * window, void * parent, bool keep)
+{
+    NSWindow* child = [(NSView*) window window];
+    NSWindow* owner = [(NSView*) parent window];
+    if (child == nil || owner == nil)
+        return;
+    if (keep)
+        [owner addChildWindow:child ordered:NSWindowAbove];
+    else if ([child parentWindow] == owner)
+        [owner removeChildWindow:child];
+}
+
+// AppKit animates a window as it opens and closes, on a dispatch worker paced by the screen's
+// display link. A sleeping screen never fires that link, and the link stays silent after the
+// screen wakes, so each window shown or hidden while the screens sleep blocks a worker for good.
+// The app driven unattended (over MCP, say) with the display off opens and closes dialogs by the
+// hundred; once about 80 workers are blocked, libdispatch starts no more at that priority, and the
+// OpenGL driver's texture uploads, which wait on that pool, hang the UI thread. The animations are
+// therefore off while the screens sleep, and on otherwise, so the windows look as they always do.
+void pause_window_animations_while_screens_sleep()
+{
+    // The registration domain lives in memory: nothing is written to the user's defaults.
+    auto set_animations = [](bool on) {
+        [[NSUserDefaults standardUserDefaults] registerDefaults:@{@"NSAutomaticWindowAnimationsEnabled": @(on)}];
+    };
+    // The app may start with the display already off.
+    set_animations(!CGDisplayIsAsleep(CGMainDisplayID()));
+    NSNotificationCenter* center = [[NSWorkspace sharedWorkspace] notificationCenter];
+    NSOperationQueue*     main   = [NSOperationQueue mainQueue];
+    [center addObserverForName:NSWorkspaceScreensDidSleepNotification object:nil queue:main
+                    usingBlock:^(NSNotification*) { set_animations(false); }];
+    [center addObserverForName:NSWorkspaceScreensDidWakeNotification object:nil queue:main
+                    usingBlock:^(NSNotification*) { set_animations(true); }];
 }
 
 void WKWebView_evaluateJavaScript(void * web, wxString const & script, void (*callback)(wxString const &))
@@ -93,11 +133,40 @@ void WKWebView_evaluateJavaScript(void * web, wxString const & script, void (*ca
     }];
 }
     
+void WKWebView_evaluateJavaScriptForResult(void * web, wxString const & script, std::function<void(bool, const std::string&)> done)
+{
+    // Held by the block alone: WebKit calls a completion handler even after the view is gone.
+    auto callback = std::make_shared<std::function<void(bool, const std::string&)>>(std::move(done));
+    [(WKWebView*)web evaluateJavaScript:wxCFStringRef(script).AsNSString() completionHandler: ^(id result, NSError *error) {
+        if (error != nil) {
+            NSString* why = error.localizedDescription;
+            (*callback)(false, why != nil ? std::string([why UTF8String]) : std::string("The script failed"));
+        } else if ([result isKindOfClass:[NSString class]])
+            (*callback)(true, std::string([(NSString*)result UTF8String]));
+        else
+            (*callback)(false, "The script's value is not text");
+    }];
+}
+
 void WKWebView_setTransparentBackground(void * web)
 {
     WKWebView * webView = (WKWebView*)web;
     [webView layer].backgroundColor = [NSColor clearColor].CGColor;
     [webView registerForDraggedTypes: @[NSFilenamesPboardType]];
+}
+
+// Force a WKWebView to re-lay-out and repaint. Needed for chrome-less popups: the window is
+// transparent, so a WKWebView whose layer has no pending frame leaves the whole window invisible
+// until the user generates input (scroll/arrow). setNeedsDisplay alone does not always reach the
+// web-content layer, so flag layout and both the view and its layer.
+void WKWebView_force_display(void * web)
+{
+    WKWebView * webView = (WKWebView*)web;
+    if (!webView)
+        return;
+    [webView setNeedsLayout:YES];
+    [webView setNeedsDisplay:YES];
+    [[webView layer] setNeedsDisplay];
 }
 
 void openFolderForFile(wxString const & file)
@@ -334,10 +403,27 @@ bool addObserver = false;
 }
 @end
 
+// Orca: A Shift-trackpad pan belongs to one GL view; sharing its lifecycle across views
+// could make a gesture reuse another canvas's world-space anchor.
+static char scroll_pan_active_key;
+static char gesture_handler_key;
+
+static wxEvtHandler* get_gesture_handler(NSView* view)
+{
+    return static_cast<wxEvtHandler*>([objc_getAssociatedObject(view, &gesture_handler_key) pointerValue]);
+}
+
+static bool is_scroll_pan_active(NSView* view)
+{
+    return [objc_getAssociatedObject(view, &scroll_pan_active_key) boolValue];
+}
+
+static void set_scroll_pan_active(NSView* view, bool active)
+{
+    objc_setAssociatedObject(view, &scroll_pan_active_key, active ? @YES : nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
 
 @implementation wxNSCustomOpenGLView (Gesture)
-
-wxEvtHandler * _gestureHandler = nullptr;
 
 - (void) onGestureMove: (NSPanGestureRecognizer*) gesture
 {
@@ -364,22 +450,43 @@ wxEvtHandler * _gestureHandler = nullptr;
 - (void) postEvent: (wxGestureEvent &) evt withGesture: (NSGestureRecognizer* ) gesture
 {
     NSPoint pos = [gesture locationInView: self];
-    evt.SetPosition({(int) pos.x, (int) pos.y});
+    evt.SetPosition(wxFromNSPoint(self, pos));
     if (gesture.state == NSGestureRecognizerStateBegan)
         evt.SetGestureStart();
     else if (gesture.state == NSGestureRecognizerStateEnded)
         evt.SetGestureEnd();
-    _gestureHandler->ProcessEvent(evt);
+    if (wxEvtHandler* handler = get_gesture_handler(self))
+        handler->ProcessEvent(evt);
 }
 
 - (void) scrollWheel2:(NSEvent *)event
 {
     bool shiftDown = [event modifierFlags] & NSShiftKeyMask;
-    if (_gestureHandler && shiftDown && event.hasPreciseScrollingDeltas) {
+    wxEvtHandler* handler = get_gesture_handler(self);
+    if (handler && shiftDown && event.hasPreciseScrollingDeltas) {
         wxPanGestureEvent evt;
-        evt.SetDelta({-(int)[event scrollingDeltaX], -	(int)[event scrollingDeltaY]});
-        _gestureHandler->ProcessEvent(evt);
+        // NSOpenGLView uses bottom-left coordinates; wx gestures use top-left coordinates.
+        const wxPoint pos = wxFromNSPoint(self, [self convertPoint:[event locationInWindow] fromView:nil]);
+        const wxPoint delta(-(int)[event scrollingDeltaX], -(int)[event scrollingDeltaY]);
+        // Orca: GLCanvas3D derives the anchor position as position - delta, so synthesize
+        // the post-delta position from the native cursor coordinate.
+        evt.SetPosition(pos + delta);
+        evt.SetDelta(delta);
+        // Orca: Preserve the anchor throughout a trackpad scroll, including its momentum events.
+        // Keep it after phase Ended: momentum may follow. The next Began replaces it.
+        const NSEventPhase phase = event.phase;
+        const NSEventPhase momentum_phase = event.momentumPhase;
+        const bool unphased = phase == NSEventPhaseNone && momentum_phase == NSEventPhaseNone;
+        if (!is_scroll_pan_active(self) || unphased || (phase & (NSEventPhaseMayBegin | NSEventPhaseBegan)))
+            evt.SetGestureStart();
+        if (unphased || (phase & NSEventPhaseCancelled) ||
+            (momentum_phase & (NSEventPhaseEnded | NSEventPhaseCancelled)))
+            evt.SetGestureEnd();
+        set_scroll_pan_active(self, !evt.IsGestureEnd());
+        handler->ProcessEvent(evt);
     } else {
+        // Orca: Switching away from Shift-pan must not reuse its depth when Shift is pressed again.
+        set_scroll_pan_active(self, false);
         [self scrollWheel2: event];
     }
 }
@@ -401,7 +508,9 @@ wxEvtHandler * _gestureHandler = nullptr;
 //    [self addGestureRecognizer:pan];
 //    [self addGestureRecognizer:magnification];
 //    [self addGestureRecognizer:rotation];
-    _gestureHandler = handler;
+    objc_setAssociatedObject(self, &gesture_handler_key, handler ? [NSValue valueWithPointer:handler] : nil,
+        OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    set_scroll_pan_active(self, false);
 }
 
 @end

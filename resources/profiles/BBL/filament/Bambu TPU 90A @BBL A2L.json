@@ -1,0 +1,38 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU 90A @BBL A2L",
+    "inherits": "Bambu TPU 90A @base",
+    "from": "system",
+    "setting_id": "GFSU03_12",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "35"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "35"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_retraction_length": [
+        "1"
+    ],
+    "impact_strength_z": [
+        "88.7"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "pre_start_fan_time": [
+        "0"
+    ],
+    "slow_down_min_speed": [
+        "35"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A2L 0.4 nozzle"
+    ],
+    "filament_start_gcode": [
+        ""
+    ]
+}
