@@ -139,8 +139,11 @@ protected:
     void          on_select_printer_model(wxCommandEvent &e);
     void          set_current_visible_printer();
     void          select_curr_radiobox(std::vector<std::pair<RadioBox *, wxString>> &radiobox_list, int btn_idx);
-    void          select_all_preset_template(std::vector<std::pair<::CheckBox *, Preset *>> &preset_templates);
-    void          deselect_all_preset_template(std::vector<std::pair<::CheckBox *, Preset *>> &preset_templates);
+    void          select_preset_template_subset(std::vector<std::pair<::CheckBox *, Preset *>> &preset_templates, bool value, bool system);
+    void          add_template_subsection(wxWindow *parent, wxBoxSizer *sizer, const wxString &label, bool system,
+                                          std::vector<std::pair<::CheckBox *, Preset *>> &preset_templates,
+                                          wxPanel *&out_section, wxPanel *&out_panel, wxGridSizer *&out_grid);
+    void          update_template_section_visibility();
     void          update_presets_list(bool jast_template = false);
     void          on_preset_model_value_change(wxCommandEvent &e);
     void          clear_preset_combobox();
@@ -193,6 +196,7 @@ private:
     wxBoxSizer *                                       m_scrooled_preset_sizer          = nullptr;
     ComboBox *                                         m_select_vendor                  = nullptr;
     ComboBox *                                         m_select_model                   = nullptr;
+    VendorMap                                          m_page1_vendors;
     ComboBox *                                         m_select_printer                 = nullptr;
     ::CheckBox *                                       m_can_not_find_vendor_combox     = nullptr;
     ::CheckBox *                                       m_can_not_find_nozzle_checkbox   = nullptr;
@@ -208,10 +212,20 @@ private:
     TextInput *                                        m_bed_origin_x_input             = nullptr;
     TextInput *                                        m_bed_origin_y_input             = nullptr;
     TextInput *                                        m_print_height_input             = nullptr;
-    wxGridSizer *                                      m_filament_preset_template_sizer = nullptr;
-    wxGridSizer *                                      m_process_preset_template_sizer  = nullptr;
-    wxPanel *                                          m_filament_preset_panel          = nullptr;
-    wxPanel *                                          m_process_preset_panel           = nullptr;
+    // Filament/process templates are split into System and User sub-sections.
+    wxPanel *                                          m_filament_system_section        = nullptr;
+    wxPanel *                                          m_filament_system_panel          = nullptr;
+    wxGridSizer *                                      m_filament_system_grid           = nullptr;
+    wxPanel *                                          m_filament_user_section          = nullptr;
+    wxPanel *                                          m_filament_user_panel            = nullptr;
+    wxGridSizer *                                      m_filament_user_grid             = nullptr;
+    wxPanel *                                          m_process_system_section         = nullptr;
+    wxPanel *                                          m_process_system_panel           = nullptr;
+    wxGridSizer *                                      m_process_system_grid            = nullptr;
+    wxPanel *                                          m_process_user_section           = nullptr;
+    wxPanel *                                          m_process_user_panel             = nullptr;
+    wxGridSizer *                                      m_process_user_grid              = nullptr;
+    wxStaticText *                                     m_no_filament_template_text      = nullptr;
     wxPanel *                                          m_preset_template_panel          = nullptr;
     wxBoxSizer *                                       m_filament_sizer                 = nullptr;
     wxPanel *                                          m_printer_info_panel             = nullptr;
