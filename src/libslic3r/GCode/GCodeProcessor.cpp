@@ -2683,6 +2683,19 @@ void GCodeProcessor::UsedFilaments::process_caches(GCodeProcessor* processor)
     process_total_volume_cache(processor);
 }
 
+CustomGCode::LayerAddress GCodeProcessorResult::instance_layer(unsigned int layer_id) const
+{
+    auto it = std::upper_bound(instance_layer_ranges.begin(), instance_layer_ranges.end(), layer_id,
+        [](unsigned int id, const InstanceLayerRange &range) { return id < range.first_layer_id; });
+    if (it == instance_layer_ranges.begin())
+        return {};
+    --it;
+    const unsigned int local = layer_id - it->first_layer_id;
+    if (local >= it->print_zs.size())
+        return {};
+    return {it->instance_id, it->print_zs[local], it->first_local_layer + local};
+}
+
 void GCodeProcessorResult::reset() {
     //BBS: add mutex for protection of gcode result
     lock();
@@ -2728,6 +2741,9 @@ void GCodeProcessorResult::reset() {
     filament_densities = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_DENSITY);
     filament_costs = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_COST);
     custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
+    custom_gcode_layer_ids.clear();
+    instance_layer_ranges.clear();
+    print_by_object = false;
     spiral_vase_mode = false;
     layer_filaments.clear();
     filament_change_sequence.clear();
@@ -3141,6 +3157,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
 void GCodeProcessor::apply_config(const PrintConfig& config)
 {
     m_parser.apply_config(config);
+    m_result.print_by_object = config.print_sequence.value == PrintSequence::ByObject;
 
     m_flavor = config.gcode_flavor;
     m_printer_model = config.printer_model.value;
@@ -3309,6 +3326,8 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
 void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
 {
     m_parser.apply_config(config);
+    if (const auto *sequence = config.option<ConfigOptionEnum<PrintSequence>>("print_sequence"))
+        m_result.print_by_object = sequence->value == PrintSequence::ByObject;
 
     // Belt printer: remember the file's belt keys for export_config_for_render(). The
     // config block lists belt_printer for every printer, so a non-belt file loaded while
@@ -4683,6 +4702,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
             store_move_vertex(EMoveType::Color_change);
             CustomGCode::Item item = { static_cast<double>(m_end_position[2]), CustomGCode::ColorChange, filament_id + 1, color, "" };
             m_result.custom_gcode_per_print_z.emplace_back(item);
+            m_result.custom_gcode_layer_ids.emplace_back(std::max(1u, m_layer_id) - 1);
             m_options_z_corrector.set();
             process_custom_gcode_time(CustomGCode::ColorChange);
             process_filaments(CustomGCode::ColorChange);
@@ -4696,6 +4716,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         store_move_vertex(EMoveType::Pause_Print);
         CustomGCode::Item item = { static_cast<double>(m_end_position[2]), CustomGCode::PausePrint, get_filament_id() + 1, "", ""};
         m_result.custom_gcode_per_print_z.emplace_back(item);
+        m_result.custom_gcode_layer_ids.emplace_back(std::max(1u, m_layer_id) - 1);
         m_options_z_corrector.set();
         process_custom_gcode_time(CustomGCode::PausePrint);
         return;
@@ -4706,6 +4727,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         store_move_vertex(EMoveType::Custom_GCode);
         CustomGCode::Item item = { static_cast<double>(m_end_position[2]), CustomGCode::Custom, get_filament_id() + 1, "", ""};
         m_result.custom_gcode_per_print_z.emplace_back(item);
+        m_result.custom_gcode_layer_ids.emplace_back(std::max(1u, m_layer_id) - 1);
         m_options_z_corrector.set();
         return;
     }

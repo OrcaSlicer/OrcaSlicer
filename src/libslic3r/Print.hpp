@@ -522,7 +522,7 @@ public:
 
     // returns 0-based indices of extruders used to print the object (without brim, support and other helper extrusions)
     std::vector<unsigned int>   object_extruders() const;
-    std::vector<unsigned int>   printing_extruders() const;
+    std::vector<unsigned int>   printing_extruders(const ModelInstance *instance = nullptr) const;
 
     // Called by make_perimeters()
     void slice();
@@ -1255,11 +1255,11 @@ public:
     // output) is the only one taken unless the user enables the selector.
     bool is_dynamic_group_reorder() const;
 
-    // Per-object tool orderings planned by the sequential (by-object) selector regroup with
+    // Per-instance tool orderings planned by the sequential (by-object) selector regroup with
     // cross-object nozzle-status threading. GCode export must consume these exact plans: a fresh
     // per-object construction would re-plan from a different seed and diverge from the published
     // stitched result. Empty on the static path.
-    const std::map<const PrintObject*, ToolOrdering>& sequential_dynamic_orderings() const { return m_sequential_dynamic_orderings; }
+    const std::map<ObjectID, ToolOrdering>& sequential_dynamic_orderings() const { return m_sequential_dynamic_orderings; }
 
     const std::vector<std::vector<DynamicPrintConfig>>& get_extruder_filament_info() const { return m_extruder_filament_info; }
     // Two-phase: the setter only stashes the payload, so Print::apply() can invalidate the grouping
@@ -1348,7 +1348,8 @@ public:
     void export_gcode_from_previous_file(const std::string& file, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
     // Re-reads the moves and line offsets of `result` from its G-code file after the file was rewritten in
     // place (post-processing scripts or plugins), so the preview and its G-code window follow the file on
-    // disk. Everything else in `result` was computed while slicing and is kept. If the file cannot be
+    // disk. In sequential mode this also updates file events and aligns the sliced instances with the
+    // rewritten layers when their extrusion paths still correspond. If the file cannot be
     // re-read, the moves are kept and the line offsets are cleared, which hides the G-code window.
     void reload_gcode_moves(GCodeProcessorResult* result) const;
     //BBS: add modify_count logic
@@ -1578,9 +1579,9 @@ private:
     // either.
     std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> m_layered_nozzle_group_result;
 
-    // Sequential (by-object) selector plans, keyed by object; see sequential_dynamic_orderings().
+    // Sequential selector plans, keyed by ModelInstance ID; see sequential_dynamic_orderings().
     // Rebuilt (or cleared) on every process().
-    std::map<const PrintObject*, ToolOrdering> m_sequential_dynamic_orderings;
+    std::map<ObjectID, ToolOrdering> m_sequential_dynamic_orderings;
 
     // Used to cache filament parameter information
     FilamentIndexMap m_filament_index_map;

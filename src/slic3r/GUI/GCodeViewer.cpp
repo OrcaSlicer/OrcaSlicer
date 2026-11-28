@@ -232,7 +232,7 @@ static std::optional<libvgcode::EViewType> calibration_view_type(CalibMode mode)
 
 // Find an index of a value in a sorted vector, which is in <z-eps, z+eps>.
 // Returns -1 if there is no such member.
-static int find_close_layer_idx(const std::vector<double> &zs, double &z, double eps)
+static int find_close_layer_idx(const std::vector<double> &zs, double z, double eps)
 {
     if (zs.empty()) return -1;
     auto it_h = std::lower_bound(zs.begin(), zs.end(), z);
@@ -1434,6 +1434,18 @@ std::vector<int> GCodeViewer::get_plater_extruder()
     return m_plater_extruder;
 }
 
+std::vector<CustomGCode::Item> GCodeViewer::displayed_layer_events() const
+{
+    if (m_layers_slider->is_sequential()) {
+        std::vector<CustomGCode::Item> events;
+        for (const auto &entry : m_layers_slider->instance_events())
+            events.push_back(entry.second);
+        return events;
+    }
+    return wxGetApp().is_editor() && !wxGetApp().plater()->only_gcode_mode() && !wxGetApp().plater()->using_exported_file() ?
+        wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_custom_gcode_per_print_z;
+}
+
 //BBS: always load shell at preview
 void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const Print& print, const std::vector<std::string>& str_tool_colors,
                 const std::vector<std::string>& str_color_print_colors, const BuildVolume& build_volume,
@@ -1721,18 +1733,23 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // increases.  Give it the layers' print Z instead (the slicer's layer Z, which
     // increases along the belt), numbered the way libvgcode::convert() numbers the
     // layers: consecutively over the moves that exist.
+    m_source_layer_ids.clear();
     m_belt_layer_zs.clear();
-    if (is_belt) {
+    if (is_belt || gcode_result.print_by_object) {
         unsigned int src_layer_id = std::numeric_limits<unsigned int>::max();
         for (size_t i = 1; i < gcode_result.moves.size(); ++ i) {
-            const GCodeProcessorResult::MoveVertex &mv = gcode_result.moves[i];
-            if (mv.layer_id != src_layer_id) {
-                src_layer_id = mv.layer_id;
-                m_belt_layer_zs.emplace_back(double(mv.print_z));
+            const auto &move = gcode_result.moves[i];
+            if (move.layer_id != src_layer_id) {
+                src_layer_id = move.layer_id;
+                m_source_layer_ids.push_back(src_layer_id);
+                if (is_belt)
+                    m_belt_layer_zs.emplace_back(move.print_z);
             }
         }
-        if (m_belt_layer_zs.size() != m_viewer.get_layers_count())
+        if (m_source_layer_ids.size() != m_viewer.get_layers_count()) {
             m_belt_layer_zs.clear();
+            m_source_layer_ids.clear();
+        }
     }
 
     // The solid model is cut at the heights of the layer range's ends, which bound the range only
@@ -2031,6 +2048,7 @@ void GCodeViewer::reset()
     //BBS: should also reset the result id
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": current result id %1% ")%m_last_result_id;
     m_last_result_id = -1;
+    m_source_layer_ids.clear();
     m_belt_layer_zs.clear();
     //BBS: add only gcode mode
     m_only_gcode_in_preview = false;
@@ -5598,14 +5616,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         break;
     }
     case libvgcode::EViewType::ColorPrint: {
-        //BBS: replace model custom gcode with current plate custom gcode
-        const std::vector<CustomGCode::Item>& custom_gcode_per_print_z = wxGetApp().is_editor() ? wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_custom_gcode_per_print_z;
         size_t total_items = 1;
-        // BBS: no ColorChange type, use ToolChange
-        //const std::vector<uint8_t>& used_extruders_ids = m_viewer.get_used_extruders_ids();
-        //for (uint8_t extruder_id : used_extruders_ids) {
-        //    total_items += color_print_ranges(extruder_id, custom_gcode_per_print_z).size();
-        //}
 
         const bool need_scrollable = static_cast<float>(total_items) * (icon_size + ImGui::GetStyle().ItemSpacing.y) > child_height;
 
@@ -5769,7 +5780,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             PartialTimes items;
 
             //BBS: replace model custom gcode with current plate custom gcode
-            std::vector<CustomGCode::Item> custom_gcode_per_print_z = wxGetApp().is_editor() ? wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_custom_gcode_per_print_z;
+            std::vector<CustomGCode::Item> custom_gcode_per_print_z = displayed_layer_events();
             const size_t extruders_count = get_extruders_count();
             std::vector<ColorRGBA> last_color(extruders_count);
             for (size_t i = 0; i < extruders_count; ++i) {
@@ -6047,9 +6058,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         }
     }
     // Custom G-code overview
-    std::vector<CustomGCode::Item> custom_gcode_per_print_z = wxGetApp().is_editor() ?
-                                                                  wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes :
-                                                                  m_custom_gcode_per_print_z;
+    const auto custom_gcode_per_print_z = displayed_layer_events();
     if (custom_gcode_per_print_z.size() != 0) {
         float max_len = window_padding + 2 * ImGui::GetStyle().ItemSpacing.x;
         ImGui::Spacing();
@@ -6088,7 +6097,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         // loop invariant, same reason as the layer Zs above
         const std::vector<float> layer_times = m_viewer.get_layers_estimated_times();
 
-        for (Slic3r::CustomGCode::Item custom_gcode : custom_gcode_per_print_z) {
+        auto instance_event = m_layers_slider->instance_events().begin();
+        for (const auto &custom_gcode : custom_gcode_per_print_z) {
             ImGui::Dummy({window_padding, window_padding});
             ImGui::SameLine();
 
@@ -6101,7 +6111,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             }
             ImGui::SameLine(max_len);
             char buf[64];
-            int layer = find_close_layer_idx(layer_zs, custom_gcode.print_z, epsilon()); // ORCA: find layer index by Z
+            int layer = m_layers_slider->is_sequential() ? (instance_event++)->first : find_close_layer_idx(layer_zs, custom_gcode.print_z, epsilon());
             ::sprintf(buf, "%d", layer + 1); // +1 because layer 0 is the first layer
             imgui.text(buf);
             ImGui::SameLine(max_len * 1.5);
@@ -6109,7 +6119,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             float custom_gcode_time = 0;
             if (layer > 0)
             {
-                for (int i = 0; i < layer; i++) { // sum all previous layers time
+                for (int i = 0; i < layer && size_t(i) < layer_times.size(); i++) { // sum all previous layers time
                     custom_gcode_time += layer_times[i];
                 }
             }

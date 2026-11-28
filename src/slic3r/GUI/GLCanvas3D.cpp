@@ -2088,7 +2088,7 @@ wxDEFINE_EVENT(EVT_GLCANVAS_RENDER_TIMER, wxTimerEvent/*RenderTimerEvent*/);
 wxDEFINE_EVENT(EVT_GLCANVAS_TOOLBAR_HIGHLIGHTER_TIMER, wxTimerEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_GIZMO_HIGHLIGHTER_TIMER, wxTimerEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_UPDATE, SimpleEvent);
-wxDEFINE_EVENT(EVT_CUSTOMEVT_TICKSCHANGED, wxCommandEvent);
+wxDEFINE_EVENT(EVT_CUSTOMEVT_TICKSCHANGED, LayerTickEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_RESET_LAYER_HEIGHT_PROFILE, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_ADAPTIVE_LAYER_HEIGHT_PROFILE, Event<float>);
 wxDEFINE_EVENT(EVT_GLCANVAS_SMOOTH_LAYER_HEIGHT_PROFILE, HeightProfileSmoothEvent);
@@ -10959,9 +10959,7 @@ void GLCanvas3D::send_layer_ticks_changes()
 {
     IMSlider* layers_slider = m_gcode_viewer.get_layers_slider();
     if (layers_slider->is_need_post_tick_event()) {
-        wxCommandEvent evt(EVT_CUSTOMEVT_TICKSCHANGED, m_canvas->GetId());
-        evt.SetInt((int)layers_slider->get_post_tick_event_type());
-        wxPostEvent(m_canvas, evt);
+        wxPostEvent(m_canvas, LayerTickEvent(EVT_CUSTOMEVT_TICKSCHANGED, layers_slider->tick_change(), m_canvas));
         layers_slider->reset_post_tick_event();
     }
 }

@@ -3629,11 +3629,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         first_has_extrude_print_object          = print_object_instance_sequential_active;
         bool find_fist_non_support_filament = false;
         for (; print_object_instance_sequential_active != print_object_instances_ordering.end(); ++ print_object_instance_sequential_active) {
-            auto cached_ordering = use_seq_dynamic_cache ? seq_dynamic_orderings.find((*print_object_instance_sequential_active)->print_object) : seq_dynamic_orderings.end();
+            auto cached_ordering = use_seq_dynamic_cache ? seq_dynamic_orderings.find((*print_object_instance_sequential_active)->model_instance->id()) : seq_dynamic_orderings.end();
             if (cached_ordering != seq_dynamic_orderings.end()) {
                 tool_ordering = cached_ordering->second;
             } else {
-                tool_ordering = ToolOrdering(*(*print_object_instance_sequential_active)->print_object, initial_extruder_id);
+                tool_ordering = ToolOrdering(**print_object_instance_sequential_active, initial_extruder_id);
                 tool_ordering.sort_and_build_data(*(*print_object_instance_sequential_active)->print_object,initial_extruder_id);
             }
             float temp_max_additional_fan = tool_ordering.cal_max_additional_fan(print.config());
@@ -3652,9 +3652,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         if (initial_extruder_id == static_cast<unsigned int>(-1))
             // No object to print was found, cancel the G-code export.
             throw Slic3r::SlicingError(_(L("No object can be printed. It may be too small.")));
-        // We don't allow switching of extruders per layer by Model::custom_gcode_per_print_z in sequential mode.
-        // Use the extruder IDs collected from Regions.
-        this->set_extruders(print.extruders());
+        this->set_extruders(print.extruders(/*conside_custom_gcode=*/true));
 
         has_wipe_tower = print.has_wipe_tower() && tool_ordering.has_wipe_tower();
     } else {
@@ -4672,17 +4670,20 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         if (print.config().print_sequence == PrintSequence::ByObject && !has_wipe_tower) {
             size_t finished_objects = 0;
             print_object_instance_sequential_active = first_has_extrude_print_object;
-            const PrintObject *prev_object = (*print_object_instance_sequential_active)->print_object;
+            const PrintInstance *previous = nullptr;
             for (; print_object_instance_sequential_active != print_object_instances_ordering.end(); ++ print_object_instance_sequential_active) {
-                const PrintObject &object = *(*print_object_instance_sequential_active)->print_object;
-                if (&object != prev_object || tool_ordering.first_extruder() != final_extruder_id) {
-                    auto cached_ordering = use_seq_dynamic_cache ? seq_dynamic_orderings.find(&object) : seq_dynamic_orderings.end();
+                const PrintInstance &instance = **print_object_instance_sequential_active;
+                const PrintObject &object = *instance.print_object;
+                if (use_seq_dynamic_cache || !previous || previous->print_object != &object ||
+                    previous->model_instance->layer_events != instance.model_instance->layer_events ||
+                    tool_ordering.first_extruder() != final_extruder_id) {
+                    auto cached_ordering = use_seq_dynamic_cache ? seq_dynamic_orderings.find(instance.model_instance->id()) : seq_dynamic_orderings.end();
                     if (cached_ordering != seq_dynamic_orderings.end()) {
                         // Never re-plan a selector object mid-export: the cached plan is what the
                         // published stitched result was built from.
                         tool_ordering = cached_ordering->second;
                     } else {
-                        tool_ordering = ToolOrdering(object, final_extruder_id);
+                        tool_ordering = ToolOrdering(instance, final_extruder_id);
                         tool_ordering.sort_and_build_data(object, final_extruder_id);
                     }
                     unsigned int new_extruder_id = tool_ordering.first_extruder();
@@ -4745,7 +4746,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // and export G-code into file.
                 tool_ordering.cal_most_used_extruder(print.config());
                 m_printed_objects.emplace_back(&object);
-                this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value), *print_object_instance_sequential_active - object.instances().data(), file,
+                this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value), **print_object_instance_sequential_active, file,
                                      prime_extruder);
                 {
                     // save the flush statitics stored in tool ordering by object
@@ -4769,7 +4770,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // Flag indicating whether the nozzle temperature changes from 1st to 2nd layer were performed.
                 // Reset it when starting another object from 1st layer.
                 m_second_layer_things_done = false;
-                prev_object = &object;
+                previous = &instance;
             }
         } else {
             // Sort layers by Z.
@@ -5188,6 +5189,37 @@ static bool overhang_fan_enabled(const PrintConfig &config, bool cooling_markers
     return cooling_markers && any_enabled(config.enable_overhang_bridge_fan);
 }
 
+// Resolve against the exported layers. A coarser reslice can bring several events
+// onto one layer, or leave one above the part. Only marked layers need storage.
+template<class Layers, class GetZ>
+static auto instance_events_by_layer(const ModelInstance *instance, const Layers &layers, GetZ get_z)
+{
+    using Events = std::vector<const CustomGCode::Item *>;
+    std::map<size_t, Events> events;
+    if (instance)
+        for (const auto &event : instance->layer_events.gcodes) {
+            if (event.type != CustomGCode::Custom && event.type != CustomGCode::PausePrint && event.type != CustomGCode::Template)
+                continue;
+            auto layer = std::lower_bound(layers.begin(), layers.end(), event.print_z - EPSILON,
+                [&](const auto &layer, double z) { return get_z(layer) < z; });
+            if (layer != layers.end())
+                events[layer - layers.begin()].push_back(&event);
+        }
+    return [events = std::move(events)](size_t layer) -> const Events & {
+        static const Events empty;
+        auto it = events.find(layer);
+        return it == events.end() ? empty : it->second;
+    };
+}
+
+static void store_instance_layers(GCodeProcessor &processor, GCodeProcessorResult::InstanceLayerRange &&range)
+{
+    // Custom G-code may contain its own layer-change markers. A mismatch makes this
+    // instance ambiguous; the next instance starts at the processor's actual layer count.
+    if (!range.print_zs.empty() && range.print_zs.size() == processor.layer_count() - range.first_layer_id)
+        processor.result().instance_layer_ranges.emplace_back(std::move(range));
+}
+
 // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
 // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
 // and export G-code into file.
@@ -5198,13 +5230,18 @@ void GCode::process_layers(
     const std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>>   &layers_to_print,
     GCodeOutputStream                                                   &output_stream)
 {
+    // A single sequential instance with an active tower uses the tower-aware pipeline.
+    const auto *instance = print.config().print_sequence == PrintSequence::ByObject && print_object_instances_ordering.size() == 1 ?
+                           print_object_instances_ordering.front()->model_instance : nullptr;
+    GCodeProcessorResult::InstanceLayerRange range{instance ? instance->id().id : 0, m_processor.layer_count(), 1, {}};
+    const auto events_at = instance_events_by_layer(instance, layers_to_print, [](const auto &layer) { return layer.first; });
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
     const auto source = precomputed_layers_source(layer_to_print_idx, layers_to_print.size(), m_pressure_equalizer != nullptr,
         overhang_fan_enabled(print.config(), m_enable_cooling_markers),
         [&layers_to_print](size_t index) -> const std::vector<LayerToPrint> & { return layers_to_print[index].second; });
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print](PrecomputedLayer precomputed) -> LayerResult {
+        [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print, &events_at, &range](PrecomputedLayer precomputed) -> LayerResult {
             if (precomputed.index == size_t(-1))
                 return LayerResult::make_nop_layer_result();
             const std::pair<coordf_t, std::vector<LayerToPrint>>& layer = layers_to_print[precomputed.index];
@@ -5221,7 +5258,10 @@ void GCode::process_layers(
             check_placeholder_parser_failed();
             print.throw_if_canceled();
             m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
-            return this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1));
+            auto result = this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1), false, events_at(precomputed.index));
+            if (range.instance_id && !result.gcode.empty())
+                range.print_zs.push_back(layer.first);
+            return result;
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -5288,7 +5328,7 @@ void GCode::process_layers(
     	tbb::parallel_pipeline(12, source & generator & cooling & fan_mover & pa_processor_filter & output);
     // The estimator's precomputed data points into this print's layers.
     m_extrusion_quality_estimator.set_precomputed_layers({});
-
+    store_instance_layers(m_processor, std::move(range));
 }
 
 // Process all layers of a single object instance (sequential mode) with a parallel pipeline:
@@ -5298,18 +5338,22 @@ void GCode::process_layers(
     const Print                             &print,
     const ToolOrdering                      &tool_ordering,
     std::vector<LayerToPrint>                layers_to_print,
-    const size_t                             single_object_idx,
+    const PrintInstance                     &instance,
     GCodeOutputStream                       &output_stream,
     // BBS
     const bool                               prime_extruder)
 {
+    const size_t single_object_idx = &instance - instance.print_object->instances().data();
+    GCodeProcessorResult::InstanceLayerRange range{instance.model_instance->id().id, m_processor.layer_count(), 1, {}};
+    const auto events_at = instance_events_by_layer(instance.model_instance, layers_to_print,
+        [](const LayerToPrint &layer) { return layer.print_z(); });
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
     const auto source = precomputed_layers_source(layer_to_print_idx, layers_to_print.size(), m_pressure_equalizer != nullptr,
         overhang_fan_enabled(print.config(), m_enable_cooling_markers),
         [&layers_to_print](size_t index) { return std::vector<LayerToPrint>{layers_to_print[index]}; });
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &print, &tool_ordering, &layers_to_print, single_object_idx, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
+        [this, &print, &tool_ordering, &layers_to_print, &events_at, &range, single_object_idx, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
             if (precomputed.index == size_t(-1))
                 return LayerResult::make_nop_layer_result();
             LayerToPrint &layer = layers_to_print[precomputed.index];
@@ -5318,7 +5362,11 @@ void GCode::process_layers(
             check_placeholder_parser_failed();
             print.throw_if_canceled();
             m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
-            return this->process_layer(print, { std::move(layer) }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
+            const double print_z = layer.print_z();
+            auto result = this->process_layer(print, { layer }, tool_ordering.tools_for_layer(print_z), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder, events_at(precomputed.index));
+            if (!result.gcode.empty())
+                range.print_zs.push_back(print_z);
+            return result;
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -5382,6 +5430,7 @@ void GCode::process_layers(
     	tbb::parallel_pipeline(12, source & generator & cooling & fan_mover & pa_processor_filter & output);
     // The estimator's precomputed data points into this print's layers.
     m_extrusion_quality_estimator.set_precomputed_layers({});
+    store_instance_layers(m_processor, std::move(range));
 }
 
 std::string GCode::placeholder_parser_process(const std::string &name, const std::string &templ, unsigned int current_filament_id, const DynamicConfig *config_override)
@@ -6199,7 +6248,8 @@ LayerResult GCode::process_belt_brim_layer(
     const LayerTools                &layer_tools,
     const bool                       last_layer,
     const size_t                     single_object_instance_idx,
-    const int                        most_used_extruder)
+    const int                        most_used_extruder,
+    const LayerEvents               &instance_events)
 {
     // layer_id 0 is deliberate, not a placeholder.  CoolingBuffer reads it for the
     // initial_layer_fan_speed override and the close_fan_the_first_x_layers gate
@@ -6273,6 +6323,9 @@ LayerResult GCode::process_belt_brim_layer(
 
     if (! m_config.layer_change_gcode.value.empty())
         gcode += this->process_layer_change_gcode(print, print_z, most_used_extruder, layer_tools.has_wipe_tower && m_wipe_tower);
+
+    for (const auto *event : instance_events)
+        gcode += ProcessLayer::emit_custom_gcode_per_print_z(*this, event, m_writer.filament()->id(), extruder_id, print.config());
 
     // Objects sharing this apron Z may use different brim filaments; print each in its own tool.
     for (const unsigned int brim_extruder : layer_tools.extruders) {
@@ -6637,7 +6690,8 @@ LayerResult GCode::process_layer(
     // Otherwise print a single copy of a single object.
     const size_t                     		 single_object_instance_idx,
     // BBS
-    const bool                               prime_extruder)
+    const bool                               prime_extruder,
+    const LayerEvents                       &instance_events)
 {
     assert(! layers.empty());
     // Either printing all copies of all objects, or just a single copy of a single object.
@@ -6663,7 +6717,7 @@ LayerResult GCode::process_layer(
     if (object_layer == nullptr && support_layer == nullptr &&
         std::any_of(layers.begin(), layers.end(),
                     [](const LayerToPrint &l) { return l.belt_brim_band != nullptr; }))
-        return this->process_belt_brim_layer(print, layers, layer_tools, last_layer, single_object_instance_idx, most_used_extruder);
+        return this->process_belt_brim_layer(print, layers, layer_tools, last_layer, single_object_instance_idx, most_used_extruder, instance_events);
 
     const Layer* layer_ptr = nullptr;
     if (object_layer != nullptr)
@@ -7007,9 +7061,12 @@ LayerResult GCode::process_layer(
         m_second_layer_things_done = true;
     }
 
-    if (single_object_instance_idx == size_t(-1)) {
+    if (print.config().print_sequence == PrintSequence::ByLayer) {
         // Normal (non-sequential) print.
         gcode += ProcessLayer::emit_custom_gcode_per_print_z(*this, layer_tools.custom_gcode, m_writer.filament()->id(), first_extruder_id, print.config());
+    } else {
+        for (const auto *event : instance_events)
+            gcode += ProcessLayer::emit_custom_gcode_per_print_z(*this, event, m_writer.filament()->id(), first_extruder_id, print.config());
     }
 
     // BBS: get next extruder according to flush and soluble
@@ -7062,6 +7119,17 @@ LayerResult GCode::process_layer(
                 unsigned int    interface_extruder = object.config().support_interface_filament.value - 1;
                 // Shall the support interface be printed with the active extruder, preferably with non-soluble, to avoid tool changes?
                 bool            interface_dontcare = object.config().support_interface_filament.value == 0;
+
+                if (print.config().print_sequence == PrintSequence::ByObject && layer_tools.extruder_override > 0) {
+                    if (support_dontcare) {
+                        support_extruder = layer_tools.extruder_override - 1;
+                        support_dontcare = false;
+                    }
+                    if (interface_dontcare) {
+                        interface_extruder = layer_tools.extruder_override - 1;
+                        interface_dontcare = false;
+                    }
+                }
 
                 // BBS: apply wiping overridden extruders
                 WipingExtrusions& wiping_extrusions = const_cast<LayerTools&>(layer_tools).wiping_extrusions();

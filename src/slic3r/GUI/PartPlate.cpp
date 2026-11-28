@@ -3040,6 +3040,27 @@ static void append_volume_and_layer_range_filaments(const ModelObject& object, i
     }
 }
 
+void PartPlate::append_layer_event_filaments(std::vector<int> &filaments, int count, const DynamicPrintConfig &global_config) const
+{
+    auto append = [&](const CustomGCode::Info &events) {
+        for (const auto &item : events.gcodes)
+            if (item.type == CustomGCode::ToolChange && item.extruder > 0 && item.extruder <= count)
+                filaments.push_back(item.extruder);
+    };
+    PrintSequence sequence = get_print_seq();
+    if (sequence == PrintSequence::ByDefault && global_config.has("print_sequence"))
+        sequence = global_config.opt_enum<PrintSequence>("print_sequence");
+    if (sequence == PrintSequence::ByObject) {
+        for (const auto &[obj, copy] : obj_to_instance_set)
+            if (valid_instance(obj, copy)) {
+                const auto *instance = m_model->objects[obj]->instances[copy];
+                if (instance->printable && instance->layer_events.mode == CustomGCode::MultiAsSingle)
+                    append(instance->layer_events);
+            }
+    } else if (auto plate = m_model->plates_custom_gcodes.find(m_plate_index); plate != m_model->plates_custom_gcodes.end())
+        append(plate->second);
+}
+
 std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, bool expand_mixed_slots) const
 {
 	std::vector<int> plate_extruders;
@@ -3190,17 +3211,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	}
 
 	if (conside_custom_gcode) {
-		//BBS
-        int nums_extruders = 0;
-        if (const ConfigOptionStrings *color_option = dynamic_cast<const ConfigOptionStrings *>(project_config.option("filament_colour"))) {
-            nums_extruders = color_option->values.size();
-			if (m_model->plates_custom_gcodes.find(m_plate_index) != m_model->plates_custom_gcodes.end()) {
-				for (auto item : m_model->plates_custom_gcodes.at(m_plate_index).gcodes) {
-					if (item.type == CustomGCode::Type::ToolChange && item.extruder <= nums_extruders)
-						plate_extruders.push_back(item.extruder);
-				}
-			}
-		}
+		append_layer_event_filaments(plate_extruders, filament_count, glb_config);
 	}
 
 	std::sort(plate_extruders.begin(), plate_extruders.end());
@@ -3364,17 +3375,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     }
 
     if (conside_custom_gcode) {
-        //BBS
-        int nums_extruders = 0;
-        if (const ConfigOptionStrings *color_option = dynamic_cast<const ConfigOptionStrings *>(full_config.option("filament_colour"))) {
-            nums_extruders = color_option->values.size();
-            if (m_model->plates_custom_gcodes.find(m_plate_index) != m_model->plates_custom_gcodes.end()) {
-                for (auto item : m_model->plates_custom_gcodes.at(m_plate_index).gcodes) {
-                    if (item.type == CustomGCode::Type::ToolChange && item.extruder <= nums_extruders)
-                        plate_extruders.push_back(item.extruder);
-                }
-            }
-        }
+        append_layer_event_filaments(plate_extruders, filament_count, full_config);
     }
 
     std::sort(plate_extruders.begin(), plate_extruders.end());
@@ -3435,17 +3436,7 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 	}
 
 	if (conside_custom_gcode) {
-		//BBS
-		int nums_extruders = 0;
-		if (const ConfigOptionStrings* color_option = dynamic_cast<const ConfigOptionStrings*>(wxGetApp().preset_bundle->project_config.option("filament_colour"))) {
-			nums_extruders = color_option->values.size();
-			if (m_model->plates_custom_gcodes.find(m_plate_index) != m_model->plates_custom_gcodes.end()) {
-				for (auto item : m_model->plates_custom_gcodes.at(m_plate_index).gcodes) {
-					if (item.type == CustomGCode::Type::ToolChange && item.extruder <= nums_extruders)
-						plate_extruders.push_back(item.extruder);
-				}
-			}
-		}
+		append_layer_event_filaments(plate_extruders, filament_slot_count(wxGetApp().preset_bundle->project_config), glb_config);
 	}
 
 	std::sort(plate_extruders.begin(), plate_extruders.end());

@@ -803,12 +803,10 @@ int gcode_plate(Plater& plater, const json& args)
         throw ToolFailure(no_such_plate(index, plates.get_plate_count()));
     PartPlate&        plate = *plates.get_plate(index);
     const std::string name  = "plate " + std::to_string(index);
-    // The slider's menus offer no codes on a plate printed by object, and it erases them all when it
-    // shows one; a sliced G-code shown without its objects (.gcode.3mf) has no menus either.
     if (!plate.has_printable_instances())
         throw ToolFailure(name + " has nothing to print, so no layers to place codes on");
     if (plate.get_real_print_seq() == PrintSequence::ByObject)
-        throw ToolFailure(name + " prints by object (print_sequence), which takes no layer G-codes");
+        throw ToolFailure(name + " prints by object (print_sequence). Edit each instance's layer G-codes in the Preview.");
     // A slice would replace the layers under the edit.
     if (plater.is_slicing_any())
         throw ToolFailure("Slicing is in progress; app_wait {for: \"idle\"} first");

@@ -12,6 +12,7 @@
 #include <wx/event.h>
 #include <wx/slider.h>
 
+#include <map>
 #include <set>
 
 class wxMouseEvent;
@@ -21,6 +22,9 @@ struct IMGUI_API ImRect;
 namespace Slic3r {
 
 class PrintObject;
+class Model;
+class Print;
+struct GCodeProcessorResult;
 class Layer;
 
 namespace GUI {
@@ -97,6 +101,13 @@ public:
     // The codes by layer index (tick), as the menus show them.
     const std::set<TickCode>& GetTicks() const { return m_ticks.ticks; }
     void SetTicksValues(const CustomGCode::Info &custom_gcode_per_print_z);
+    void SetTickProject(size_t model_id, int plate) { m_model_id = model_id; m_plate = plate; }
+    void SetSequentialTicks(const Model &model, const Print &print, const GCodeProcessorResult &result,
+                            const std::vector<unsigned int> &source_layers, bool editor);
+    CustomGCode::LayerAddress instance_layer(int tick) const;
+    int find_instance_layer(const CustomGCode::LayerAddress &layer) const;
+    bool is_sequential() const { return m_draw_mode == dmSequentialFffPrint; }
+    const std::multimap<int, CustomGCode::Item> &instance_events() const { return m_instance_events; }
     void SetLayersTimes(const std::vector<float> &layers_times, float total_time);
     void SetLayersTimes(const std::vector<double> &layers_times);
 
@@ -128,7 +139,7 @@ public:
     void UseDefaultColors(bool def_colors_on) { m_ticks.set_default_colors(def_colors_on); }
 
     void on_mouse_wheel(wxMouseEvent& evt);
-    void post_ticks_changed_event(CustomGCode::Type type = CustomGCode::Unknown);
+    void post_ticks_changed_event(CustomGCode::Type type = CustomGCode::Unknown, int tick = -1);
     bool check_ticks_changed_event(CustomGCode::Type type);
     bool switch_one_layer_mode();
     void show_go_to_layer(bool show) { m_show_go_to_layer_dialog = show; }
@@ -144,9 +155,9 @@ public:
     bool is_need_post_tick_event() { return m_is_need_post_tick_changed_event; }
     void reset_post_tick_event(bool val = false) {
         m_is_need_post_tick_changed_event = val;
-        m_tick_change_event_type = CustomGCode::Type::Unknown;
+        m_tick_change = {};
     }
-    CustomGCode::Type get_post_tick_event_type() { return m_tick_change_event_type; }
+    const LayerTickChange &tick_change() const { return m_tick_change; }
 
     float m_scale = 1.0;
     void set_scale(float scale = 1.0);
@@ -248,10 +259,18 @@ private:
     std::vector<double>      m_layers_times;
     std::vector<double>      m_layers_values;
     std::vector<std::string> m_extruder_colors;
-    bool                     m_can_change_color;
+    bool                     m_can_change_color = false;
     std::string              m_print_obj_idxs;
     bool                     m_is_need_post_tick_changed_event { false };
-    CustomGCode::Type        m_tick_change_event_type;
+    LayerTickChange m_tick_change;
+    size_t m_model_id = 0;
+    int m_plate = 0;
+    struct InstanceInfo { std::string label; int filament; std::vector<int> ticks; };
+    std::map<size_t, InstanceInfo> m_instances;
+    std::vector<CustomGCode::LayerAddress> m_instance_layers;
+    std::multimap<int, CustomGCode::Item> m_instance_events;
+    bool can_change_filament(int tick) const;
+    std::string instance_layer_label(int tick) const;
 
     std::vector<double> m_alternate_values;
 

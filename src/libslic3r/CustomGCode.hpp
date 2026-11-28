@@ -14,6 +14,12 @@ class DynamicPrintConfig;
 
 namespace CustomGCode {
 
+struct LayerAddress {
+    size_t instance_id = 0; // ModelInstance::id() in the sliced project
+    double print_z = 0.;
+    unsigned int local_layer = 0; // 1-based, including support and apron layers
+};
+
 enum Type
 {
     ColorChange,
@@ -48,6 +54,8 @@ struct Item
                             // - G-code text for the Type::Custom 
                             // - message text for the Type::PausePrint
     void from_json(const nlohmann::json& j);
+
+    template<class Archive> void serialize(Archive &ar) { ar(print_z, type, extruder, color, extra); }
 };
 
 enum Mode
@@ -78,6 +86,8 @@ struct Info
     bool operator!=(const Info& rhs) const { return !(*this == rhs); }
 
     void from_json(const nlohmann::json& j);
+
+    template<class Archive> void serialize(Archive &ar) { ar(mode, gcodes); }
 };
 
 // If loaded configuration has a "colorprint_heights" option (if it was imported from older Slicer), 

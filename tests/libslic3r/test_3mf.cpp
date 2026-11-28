@@ -7,6 +7,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "catch2/generators/catch_generators_range.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Format/3mf.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Format/ProjectStrategy.hpp"
@@ -606,6 +607,33 @@ static bool load_project(const std::string& path, Model& model, const ScopedTemp
                                      &is_orca_3mf, &file_version, nullptr, LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
     release_PlateData_list(plates);
     return loaded;
+}
+
+TEST_CASE("Layer events stay with individual copies across project reorder and reload", "[3mf][InstanceLayerEvents]")
+{
+    ScopedSlic3rTemporaryDir temporary_dir("orca_instance_events");
+    ScopedTemporaryDir backup_dir("orca_instance_events_reload");
+    ScopedTemporaryFile file(".3mf");
+    Model model;
+    ModelObject *object = model.add_object();
+    object->add_volume(make_cube(5., 5., 5.));
+    ModelInstance *first = object->add_instance();
+    first->layer_events = {CustomGCode::SingleExtruder, {{1., CustomGCode::Custom, 1, "", "M117 A & B\nG4 P1"}}};
+    ModelInstance *second = object->add_instance(*first);
+    REQUIRE(second->layer_events == first->layer_events);
+    second->layer_events = {CustomGCode::MultiAsSingle, {{1., CustomGCode::ToolChange, 2, "#ff8000", ""}}};
+    std::swap(object->instances[0], object->instances[1]);
+    model.plates_custom_gcodes[0] = {CustomGCode::SingleExtruder, {{1., CustomGCode::PausePrint, 1, "", ""}}};
+    store_project(model, file.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+
+    Model loaded;
+    REQUIRE(load_project(file.string(), loaded, backup_dir));
+    REQUIRE(loaded.objects.size() == 1);
+    const auto &copies = loaded.objects.front()->instances;
+    REQUIRE(copies.size() == 2);
+    CHECK(copies[0]->layer_events == second->layer_events);
+    CHECK(copies[1]->layer_events == first->layer_events);
+    CHECK(loaded.plates_custom_gcodes == model.plates_custom_gcodes);
 }
 
 TEST_CASE("A single imported object retains hidden named bodies through cloning and project reload", "[3mf][OriginalNames]")

@@ -1739,13 +1739,14 @@ TEST_CASE("layer G-codes are edited on the layer slider as its menus edit them",
     slider.SetManipulationMode(CustomGCode::MultiAsSingle);
     // The plater's handler: the plate takes the slider's codes.
     Model      model;
+    slider.SetTickProject(model.id().id, 0);
     const auto hand_over = [&] {
         CHECK(slider.is_need_post_tick_event());
         // The handler invalidates the plate's slice on these types only.
-        const CustomGCode::Type type = slider.get_post_tick_event_type();
+        const CustomGCode::Type type = slider.tick_change().type;
         CHECK((type == CustomGCode::PausePrint || type == CustomGCode::Custom || type == CustomGCode::Template || type == CustomGCode::ToolChange));
+        model.plates_custom_gcodes[0] = slider.tick_change().plate_events;
         slider.reset_post_tick_event();
-        model.plates_custom_gcodes[0] = slider.GetTicksValues();
         return model.plates_custom_gcodes[0].gcodes;
     };
     const auto edit = [&](const json& args, int filaments = 2, bool has_template = false, const std::string& no_change = {}) {

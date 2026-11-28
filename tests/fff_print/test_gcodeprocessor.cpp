@@ -11,10 +11,12 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/ObjectID.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -411,6 +413,60 @@ TEST_CASE("Reloaded moves name their lines in G-code a script rewrote in place",
                                           });
     INFO("first difference at move " << difference.first - exported_moves.begin());
     CHECK(difference.first == exported_moves.end());
+}
+
+TEST_CASE("Sequential preview keeps slice ownership after a script edits the G-code", "[GCodeProcessor][InstanceLayerEvents]")
+{
+    Print print;
+    Model model;
+    const bool bbl = GENERATE(false, true);
+    CAPTURE(bbl);
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"print_sequence", "by object"}, {"layer_height", 0.2}, {"initial_layer_print_height", 0.2},
+                                   {"gcode_label_objects", false}, {"exclude_object", false}, {"printer_model", bbl ? "Bambu Lab P1S" : "Generic"}});
+    Test::init_print({Test::cube(2)}, print, model, config);
+    auto *a = model.objects.front()->instances.front();
+    auto *b = model.objects.front()->add_instance();
+    a->set_offset(Vec3d(50, 50, 0));
+    b->set_offset(Vec3d(150, 50, 0));
+    b->layer_events.gcodes = {{0.4, CustomGCode::Custom, 1, {}, "M117 B"}};
+    print.apply(model, config);
+    print.is_BBL_printer() = bbl;
+    GCodeProcessorResult result;
+    std::string gcode = Test::gcode(print, &result);
+    REQUIRE(result.custom_gcode_layer_ids == std::vector<unsigned int>{11});
+    const double b_z = result.instance_layer(11).print_z;
+
+    const auto marker = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
+    const auto first = gcode.find(marker);
+    REQUIRE(first != std::string::npos);
+    const auto second = gcode.find(marker, first + marker.size());
+    REQUIRE(second != std::string::npos);
+    const std::string pause = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Pause_Print) + "\n";
+    const bool add_extrusion = GENERATE(false, true);
+    CAPTURE(add_extrusion);
+    gcode.insert(second, marker + "G1 Z0.3 F6000\n" + pause + (add_extrusion ? "G1 X60 E1\n" : ""));
+    ScopedTemporaryFile temp(".gcode");
+    save_string_file(temp.path(), gcode);
+    result.filename = temp.string();
+    print.reload_gcode_moves(&result);
+
+    REQUIRE(result.custom_gcode_layer_ids == std::vector<unsigned int>{1, 12});
+    REQUIRE(result.custom_gcode_per_print_z.size() == 2);
+    CHECK(result.custom_gcode_per_print_z[0].type == CustomGCode::PausePrint);
+    CHECK(result.custom_gcode_per_print_z[1].type == CustomGCode::Custom);
+    CHECK(result.instance_layer(1).instance_id == 0);
+    if (add_extrusion) {
+        CHECK(result.instance_layer_ranges.empty());
+    } else {
+        CHECK(result.instance_layer(0).instance_id == a->id().id);
+        CHECK(result.instance_layer(2).instance_id == a->id().id);
+        CHECK(result.instance_layer(2).local_layer == 2);
+        CHECK(result.instance_layer(11).instance_id == b->id().id);
+        CHECK(result.instance_layer(11).local_layer == 1);
+        CHECK(result.instance_layer(12).print_z == b_z);
+        CHECK(result.instance_layer(12).local_layer == 2);
+    }
 }
 
 TEST_CASE("Rewritten G-code that cannot be re-read keeps the moves and hides the G-code window", "[GCodeProcessor]")

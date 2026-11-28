@@ -44,6 +44,7 @@
 #include <map>
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -1396,6 +1397,85 @@ TEST_CASE("Sequential printing follows model order", "[Print]")
     REQUIRE_THAT(first_object_peak_z(gcode), Catch::Matchers::WithinAbs(20.0, 0.3));
 }
 
+TEST_CASE("Sequential layer commands follow their copy when reordered", "[Print][InstanceLayerEvents]")
+{
+    Print print;
+    Model model;
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"print_sequence", "by object"}, {"initial_layer_print_height", 0.2}, {"layer_height", 0.2},
+        {"machine_pause_gcode", "M117 paused"}, {"template_custom_gcode", "M117 template {current_object_idx}"},
+        {"layer_change_gcode", ";AT {current_object_idx} {layer_z}\n;Z:999\nG92 E0"},
+        {"gcode_label_objects", false}, {"exclude_object", false},
+        {"gcode_comments", true}
+    });
+    Test::init_print({cube(3)}, print, model, config);
+    auto &copies = model.objects.front()->instances;
+    copies.front()->set_offset(Vec3d(50, 50, 0));
+    ModelInstance *second = model.objects.front()->add_instance();
+    second->set_offset(Vec3d(150, 50, 0));
+    copies.front()->layer_events.gcodes = {{0.4, CustomGCode::PausePrint, 1, {}, {}}};
+    second->layer_events.gcodes = {{0.39, CustomGCode::Custom, 1, {}, "M117 second"},
+                                   {0.4, CustomGCode::Template, 1, {}, {}},
+                                   {12., CustomGCode::Custom, 1, {}, "M117 above part"}};
+    model.plates_custom_gcodes[0] = {CustomGCode::SingleExtruder, {{0.4, CustomGCode::Custom, 1, {}, "M117 plate"}}};
+
+    for (int pass = 0; pass < 2; ++pass) {
+        if (pass == 1)
+            std::swap(copies.front(), copies.back());
+        print.apply(model, config);
+        REQUIRE(print.validate().string.empty());
+        GCodeProcessorResult preview;
+        const std::string gcode = Test::gcode(print, &preview);
+        REQUIRE(preview.print_by_object);
+        CHECK(gcode.find("; ORCA_INSTANCE_ID:") == std::string::npos);
+        REQUIRE(preview.instance_layer_ranges.size() == copies.size());
+        for (size_t copy = 0; copy < copies.size(); ++copy) {
+            const auto &range = preview.instance_layer_ranges[copy];
+            CHECK(range.first_layer_id == copy * 15);
+            REQUIRE(range.print_zs.size() == 15);
+            const auto layer = preview.instance_layer(range.first_layer_id + 1);
+            CHECK(layer.instance_id == copies[copy]->id().id);
+            CHECK(layer.local_layer == 2);
+            CHECK_THAT(layer.print_z, Catch::Matchers::WithinAbs(print.objects().front()->get_layer(1)->print_z, 1e-12));
+        }
+        CHECK(std::none_of(preview.moves.begin(), preview.moves.end(), [](const auto &move) { return move.print_z == 999.f; }));
+        REQUIRE(preview.custom_gcode_layer_ids.size() == preview.custom_gcode_per_print_z.size());
+        REQUIRE(preview.custom_gcode_layer_ids.size() == 3);
+        for (size_t i = 0; i < preview.custom_gcode_layer_ids.size(); ++i) {
+            const auto layer = preview.instance_layer(preview.custom_gcode_layer_ids[i]);
+            CHECK(layer.local_layer == 2);
+            CHECK(layer.instance_id == (preview.custom_gcode_per_print_z[i].type == CustomGCode::PausePrint ?
+                                       copies[pass]->id().id : second->id().id));
+        }
+        auto check_command = [&](const std::string &command, int copy) {
+            const auto pos = gcode.find("\n" + command + "\n");
+            REQUIRE(pos != std::string::npos);
+            CHECK(gcode.find("\n" + command + "\n", pos + 1) == std::string::npos);
+            const auto layer = gcode.rfind(";AT ", pos);
+            REQUIRE(layer != std::string::npos);
+            CHECK(gcode.substr(layer, gcode.find('\n', layer) - layer) == ";AT " + std::to_string(copy) + " 0.4");
+        };
+        check_command("M117 paused", pass);
+        check_command("M117 second", 1 - pass);
+        check_command("M117 template " + std::to_string(1 - pass), 1 - pass);
+        CHECK(gcode.find("\nM117 above part\n") == std::string::npos);
+        CHECK(gcode.find("\nM117 plate\n") == std::string::npos);
+    }
+    // Edit the existing instance without touching its geometry, then change print modes.
+    second->layer_events.gcodes.clear();
+    print.apply(model, config);
+    CHECK(Test::gcode(print).find("\nM117 second\n") == std::string::npos);
+    config.set_deserialize_strict("print_sequence", "by layer");
+    print.apply(model, config);
+    GCodeProcessorResult preview;
+    const std::string by_layer = Test::gcode(print, &preview);
+    CHECK_FALSE(preview.print_by_object);
+    CHECK(preview.instance_layer_ranges.empty());
+    CHECK(by_layer.find("\nM117 paused\n") == std::string::npos);
+    CHECK(by_layer.find("\nM117 plate\n") != std::string::npos);
+}
+
 // 20 mm boxes of the given heights, in list order, 60 mm apart in X at the same Y, so they share a
 // Y band but are far enough apart for the toolhead radius rule. The rod is lowered to 25 mm, so a
 // 30 mm box reaches above it and a 10 mm one does not.
@@ -1453,6 +1533,36 @@ TEST_CASE("Sequential printing prints the shorter object first when the taller o
     place_boxes_in_one_y_band({ 30, 10 }, print, model);
 
     REQUIRE_THAT(first_object_peak_z(Test::gcode(print)), Catch::Matchers::WithinAbs(10.0, 0.3));
+}
+
+TEST_CASE("Preview identifies the same instance when clearance changes its print order", "[Print][InstanceLayerEvents]")
+{
+    Print print;
+    Model model;
+    place_boxes_in_one_y_band({30, 10}, print, model);
+    ModelInstance *tall = model.objects.front()->instances.front();
+    ModelInstance *short_copy = model.objects.back()->instances.front();
+    tall->layer_events.gcodes = {{0.4, CustomGCode::Custom, 1, {}, "M117 tall only"}};
+    const DynamicPrintConfig config = print.full_print_config();
+    print.apply(model, config);
+    REQUIRE(print.validate().string.empty());
+
+    GCodeProcessorResult live;
+    const std::string gcode = Test::gcode(print, &live);
+    ScopedTemporaryFile file(".gcode");
+    std::ofstream(file.string(), std::ios::binary) << gcode;
+    GCodeProcessor reader;
+    reader.process_file(file.string());
+    REQUIRE(live.instance_layer_ranges.size() == 2);
+    CHECK(live.instance_layer(0).instance_id == short_copy->id().id);
+    CHECK(live.instance_layer(51).instance_id == tall->id().id);
+    CHECK(live.instance_layer(51).local_layer == 2);
+    CHECK(reader.get_result().instance_layer_ranges.empty());
+    for (const GCodeProcessorResult *preview : {&std::as_const(live), &reader.get_result()}) {
+        CHECK(preview->print_by_object);
+        REQUIRE(preview->custom_gcode_layer_ids.size() == 1);
+        CHECK(preview->custom_gcode_layer_ids.front() == 51);
+    }
 }
 
 TEST_CASE("Sequential printing keeps a list order that already clears the rod", "[Print]")

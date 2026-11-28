@@ -393,6 +393,16 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         std::vector<uint64_t> limit_filament_maps;
         PrintEstimatedStatistics print_statistics;
         std::vector<CustomGCode::Item> custom_gcode_per_print_z;
+        std::vector<unsigned int> custom_gcode_layer_ids;
+        struct InstanceLayerRange {
+            size_t instance_id;          // ModelInstance::id() in the sliced project
+            unsigned int first_layer_id; // zero-based MoveVertex::layer_id
+            unsigned int first_local_layer; // one-based within the sliced instance
+            std::vector<double> print_zs;
+        };
+        std::vector<InstanceLayerRange> instance_layer_ranges; // in actual print order
+        CustomGCode::LayerAddress instance_layer(unsigned int layer_id) const;
+        bool print_by_object = false;
         bool spiral_vase_mode;
         //BBS
         std::vector<SliceWarning> warnings;
@@ -468,6 +478,9 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             filament_costs = std::forward<Other>(other).filament_costs;
             print_statistics = std::forward<Other>(other).print_statistics;
             custom_gcode_per_print_z = std::forward<Other>(other).custom_gcode_per_print_z;
+            custom_gcode_layer_ids = std::forward<Other>(other).custom_gcode_layer_ids;
+            instance_layer_ranges = std::forward<Other>(other).instance_layer_ranges;
+            print_by_object = other.print_by_object;
             spiral_vase_mode = std::forward<Other>(other).spiral_vase_mode;
             warnings = std::forward<Other>(other).warnings;
             bed_type = std::forward<Other>(other).bed_type;
@@ -1475,6 +1488,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         void reset();
 
         const GCodeProcessorResult& get_result() const { return m_result; }
+        unsigned int layer_count() const { return m_layer_id; }
         GCodeProcessorResult& result() { return m_result; }
         GCodeProcessorResult&& extract_result() { return std::move(m_result); }
         PositionState get_current_position() const;

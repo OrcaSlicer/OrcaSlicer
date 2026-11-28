@@ -2000,6 +2000,18 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                     (*old_instance)->printable 		    = (*new_instance)->printable;
   				}
 	        }
+            for (size_t i = 0; i < model_object.instances.size(); ++i) {
+                auto &events = model_object.instances[i]->layer_events;
+                const auto &new_events = model_object_new.instances[i]->layer_events;
+                if (events != new_events) {
+                    if (m_config.print_sequence == PrintSequence::ByObject &&
+                        (events.mode != new_events.mode || custom_per_printz_gcodes_tool_changes_differ(events.gcodes, new_events.gcodes)))
+                        update_apply_status(this->invalidate_steps({psWipeTower, psSkirtBrim, psGCodeExport}));
+                    else
+                        update_apply_status(this->invalidate_step(psGCodeExport));
+                    events = new_events;
+                }
+            }
         }
     }
 

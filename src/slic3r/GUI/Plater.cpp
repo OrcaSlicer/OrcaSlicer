@@ -8382,11 +8382,32 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     if (wxGetApp().is_editor()) {
         preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_TAB, [this](SimpleEvent&) { select_next_view_3D(); });
         preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_COLLAPSE_SIDEBAR, [this](SimpleEvent&) { this->q->collapse_sidebar(!this->q->is_sidebar_collapsed());  });
-        preview->get_wxglcanvas()->Bind(EVT_CUSTOMEVT_TICKSCHANGED, [this](wxCommandEvent& event) {
-            CustomGCode::Type tick_event_type = (CustomGCode::Type)event.GetInt();
-            Model& model = wxGetApp().plater()->model();
-            //BBS: replace model custom gcode with current plate custom gcode
-            model.plates_custom_gcodes[model.curr_plate_index] = preview->get_canvas3d()->get_gcode_viewer().get_layers_slider()->GetTicksValues();
+        preview->get_wxglcanvas()->Bind(EVT_CUSTOMEVT_TICKSCHANGED, [this](LayerTickEvent& event) {
+            const auto &change = event.data;
+            const CustomGCode::Type tick_event_type = change.type;
+            Model& model = this->q->model();
+            const PartPlate *plate = this->q->get_partplate_list().get_curr_plate();
+            if (model.id().id != change.model_id || model.curr_plate_index != change.plate || !plate ||
+                (plate->get_real_print_seq() == PrintSequence::ByObject) != (change.instance_id != 0))
+                return;
+            if (change.instance_id) {
+                ModelInstance *owner = nullptr;
+                for (ModelObject *object : model.objects)
+                    for (ModelInstance *instance : object->instances)
+                        if (instance->id().id == change.instance_id)
+                            owner = instance;
+                if (!owner)
+                    return;
+                auto events = owner->layer_events;
+                if (!change.apply_to_instance(events))
+                    return;
+                this->q->take_snapshot(_u8L("Edit instance layer event"));
+                owner->layer_events = std::move(events);
+            } else {
+                if (change.plate_events == model.get_curr_plate_custom_gcodes())
+                    return;
+                model.plates_custom_gcodes[change.plate] = change.plate_events;
+            }
 
             // BBS set to invalid state only
             if (tick_event_type == CustomGCode::Type::ToolChange || tick_event_type == CustomGCode::Type::Custom || tick_event_type == CustomGCode::Type::Template || tick_event_type == CustomGCode::Type::PausePrint) {
@@ -22421,22 +22442,27 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
     // update UI — runs after remap so update_mixed_filament_list() won't clip remapped extruder IDs
     sidebar().on_filaments_delete(filament_id);
 
-    // update customize gcode
-    for (auto item = p->model.plates_custom_gcodes.begin(); item != p->model.plates_custom_gcodes.end(); ++item) {
-        auto iter = std::remove_if(item->second.gcodes.begin(), item->second.gcodes.end(), [filament_id](const CustomGCode::Item& gcode_item) {
-            return (gcode_item.type == CustomGCode::Type::ToolChange && gcode_item.extruder == filament_id + 1);
-        });
-        if (replace_filament_id == -1)
-            item->second.gcodes.erase(iter, item->second.gcodes.end());
-        else if(iter != item->second.gcodes.end()) {
-            iter->extruder = replace_filament_id + 1;
+    // The replacement is already numbered in the palette after removal.
+    auto remap_events = [removed = int(filament_id) + 1, replace_filament_id](CustomGCode::Info &events) {
+        for (auto it = events.gcodes.begin(); it != events.gcodes.end();) {
+            if (it->type == CustomGCode::ToolChange) {
+                if (it->extruder == removed && replace_filament_id < 0) {
+                    it = events.gcodes.erase(it);
+                    continue;
+                }
+                if (it->extruder == removed)
+                    it->extruder = replace_filament_id + 1;
+                else if (it->extruder > removed)
+                    --it->extruder;
+            }
+            ++it;
         }
-
-        for (auto& item : item->second.gcodes) {
-            if (item.type == CustomGCode::Type::ToolChange && item.extruder > filament_id)
-                item.extruder--;
-        }
-    }
+    };
+    for (auto& plate : p->model.plates_custom_gcodes)
+        remap_events(plate.second);
+    for (ModelObject *object : p->model.objects)
+        for (ModelInstance *instance : object->instances)
+            remap_events(instance->layer_events);
 }
 
 std::vector<Slic3r::ColorRGBA> Plater::get_extruders_colors()

@@ -4201,21 +4201,21 @@ int CLI::run(int argc, char **argv)
 
     if (skip_modified_gcodes)
     {
-        std::map<int, CustomGCode::Info>::iterator gcodes_iter;
-        for (gcodes_iter = m_models[0].plates_custom_gcodes.begin(); gcodes_iter != m_models[0].plates_custom_gcodes.end(); gcodes_iter++)
-        {
-            CustomGCode::Info &gcode_info = gcodes_iter->second;
-            std::vector<CustomGCode::Item>::iterator item_iter = gcode_info.gcodes.begin();
-
-            while ( item_iter != gcode_info.gcodes.end() )
-            {
-                if (item_iter->type == CustomGCode::Custom) {
-                    BOOST_LOG_TRIVIAL(warning) << boost::format("skip_modified_gcodes: remove custom gcodes %1% in plate %2%") %item_iter->extra %gcodes_iter->first;
-                    item_iter = gcode_info.gcodes.erase(item_iter);
-                }
-                else
-                    item_iter++;
-            }
+        auto remove_custom = [](CustomGCode::Info &events) {
+            auto end = std::remove_if(events.gcodes.begin(), events.gcodes.end(), [](const CustomGCode::Item &event) {
+                if (event.type != CustomGCode::Custom)
+                    return false;
+                BOOST_LOG_TRIVIAL(warning) << "skip_modified_gcodes: remove custom gcode " << event.extra;
+                return true;
+            });
+            events.gcodes.erase(end, events.gcodes.end());
+        };
+        for (auto &model : m_models) {
+            for (auto &plate : model.plates_custom_gcodes)
+                remove_custom(plate.second);
+            for (ModelObject *object : model.objects)
+                for (ModelInstance *instance : object->instances)
+                    remove_custom(instance->layer_events);
         }
     }
 
