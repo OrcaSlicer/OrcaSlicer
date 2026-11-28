@@ -2,6 +2,7 @@
 #include <sys/sysctl.h>
 #import <Cocoa/Cocoa.h>
 #import <wx/osx/cocoa/dataview.h>
+#import <wx/textctrl.h>
 #import "GUI_Utils.hpp"
 #include "libslic3r/Color.hpp"
 #include <dispatch/dispatch.h>
@@ -25,6 +26,12 @@ void staticbox_remove_margin(wxStaticBox* sb) {
     NSBox* nativeBox = (NSBox*)sb->GetHandle();
     [nativeBox setBoxType:NSBoxCustom];
     [nativeBox setBorderWidth:0];
+}
+
+void textctrl_disable_text_replacement(wxTextCtrl* ctrl) {
+    NSScrollView* scrollview = (NSScrollView*) ctrl->GetHandle();
+    if ([scrollview isKindOfClass:[NSScrollView class]])
+        [(NSTextView*) scrollview.documentView setAutomaticTextReplacementEnabled:NO];
 }
 
 // wxOSX SetShape only clears the window background; it cannot clip to a region. Clipping the

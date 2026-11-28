@@ -138,10 +138,10 @@ std::optional<ColorSelection> normalize_color_selection(const ColorSelection& se
         if (!normalize_color(*solid, options.allow_alpha))
             return std::nullopt;
     } else {
-        auto& gradient = std::get<ColorGradient>(normalized);
-        if (!options.supports_gradient(gradient.size()))
+        auto& multi = std::get<ColorMulti>(normalized);
+        if (!options.supports_gradient(multi.colors.size()))
             return std::nullopt;
-        for (ColorRGBA& color : gradient)
+        for (ColorRGBA& color : multi.colors)
             if (!normalize_color(color, options.allow_alpha))
                 return std::nullopt;
     }
@@ -160,30 +160,33 @@ std::optional<ColorSelection> color_selection_from_json(const nlohmann::json& va
         ColorRGBA solid;
         if (parse_color((*colors)[0], solid))
             return normalize_color_selection(solid, options);
-    } else if (*type == "gradient" && options.supports_gradient(colors->size())) {
-        ColorGradient gradient(colors->size());
-        for (std::size_t i = 0; i < gradient.size(); ++i)
-            if (!parse_color((*colors)[i], gradient[i]))
+    } else if ((*type == "gradient" || *type == "coextruded") && options.supports_gradient(colors->size())) {
+        ColorMulti multi{std::vector<ColorRGBA>(colors->size()), *type == "gradient"};
+        for (std::size_t i = 0; i < multi.colors.size(); ++i)
+            if (!parse_color((*colors)[i], multi.colors[i]))
                 return std::nullopt;
-        return normalize_color_selection(gradient, options);
+        return normalize_color_selection(multi, options);
     }
     return std::nullopt;
 }
 
 nlohmann::json color_selection_to_json(const ColorSelection& selection)
 {
-    const auto normalized = normalize_color_selection(selection, {true, true});
+    const auto normalized = normalize_color_selection(selection, COLOR_PICKER_ALL_CAPABILITIES);
     if (!normalized)
         throw std::invalid_argument("Invalid color selection channels");
     if (const auto* solid = std::get_if<ColorRGBA>(&*normalized))
         return {{"type", "solid"}, {"colors", {rgba_hex(*solid)}}};
+    const auto& multi = std::get<ColorMulti>(*normalized);
     nlohmann::json colors = nlohmann::json::array();
-    for (const ColorRGBA& color : std::get<ColorGradient>(*normalized))
+    for (const ColorRGBA& color : multi.colors)
         colors.push_back(rgba_hex(color));
-    return {{"type", "gradient"}, {"colors", std::move(colors)}};
+    return {{"type", multi.gradient ? "gradient" : "coextruded"}, {"colors", std::move(colors)}};
 }
 
-std::optional<std::vector<ColorSelection>> color_favorites_from_json(const nlohmann::json& values)
+// Saving rejects the whole list on an invalid entry; loading (skip_invalid) drops just that entry so one
+// bad or unknown stored color does not discard the user's other favorites.
+std::optional<std::vector<ColorSelection>> color_favorites_from_json(const nlohmann::json& values, bool skip_invalid = false)
 {
     if (!values.is_array() || values.size() > 24)
         return std::nullopt;
@@ -191,9 +194,12 @@ std::optional<std::vector<ColorSelection>> color_favorites_from_json(const nlohm
     favorites.reserve(values.size());
     std::set<std::string> seen;
     for (const auto& value : values) {
-        const auto selection = color_selection_from_json(value, {true, true});
-        if (!selection)
+        const auto selection = color_selection_from_json(value, COLOR_PICKER_ALL_CAPABILITIES);
+        if (!selection) {
+            if (skip_invalid)
+                continue;
             return std::nullopt;
+        }
         if (seen.insert(color_selection_to_json(*selection).dump()).second)
             favorites.push_back(*selection);
     }
@@ -245,7 +251,7 @@ ColorPickerFavoritesState load_color_picker_favorites(AppConfig& config)
         if (config.get("color_picker", "version") != "1")
             return {{}, false};
         const auto values = nlohmann::json::parse(config.get("color_picker", "favorites"), nullptr, false);
-        const auto favorites = color_favorites_from_json(values);
+        const auto favorites = color_favorites_from_json(values, true);
         return {favorites ? *favorites : std::vector<ColorSelection>{}, true};
     }
 
@@ -275,7 +281,8 @@ ColorPickerFavoritesState load_color_picker_favorites(AppConfig& config)
 
 std::optional<ColorSelection> filament_color_picker_selection(const FilamentColorPickerValue& value)
 {
-    return color_selection_from_json({{"type", value.gradient ? "gradient" : "solid"}, {"colors", value.colors}}, {true, true});
+    const char* type = value.gradient ? "gradient" : value.colors.size() > 1 ? "coextruded" : "solid";
+    return color_selection_from_json({{"type", type}, {"colors", value.colors}}, COLOR_PICKER_ALL_CAPABILITIES);
 }
 
 ColorSelection filament_color_picker_initial(const FilamentColorPickerValue& value)
@@ -348,6 +355,9 @@ nlohmann::json color_picker_ui_strings()
         {"Gradient start", _u8L("Gradient start")},
         {"Gradient end", _u8L("Gradient end")},
         {"Gradient color", _u8L("Gradient color")},
+        // TRN: Co-extruded filament has two or more solid colors side by side along its length (e.g. dual color silk).
+        {"Add co-extruded color", _u8L("Add co-extruded color")},
+        {"Co-extruded color", _u8L("Co-extruded color")},
         {"Add color", _u8L("Add color")},
         {"Remove color", _u8L("Remove color")},
         {"Saturation", _u8L("Saturation")},
@@ -890,7 +900,9 @@ void ColorPickerDialog::position_panel()
         return;
     m_positioning = true;
     // Both dimensions come from the page: width changes when the palette sidebar opens or closes.
-    wxSize size = FromDIP(wxSize(m_content_width, m_content_height));
+    // m_content_* are CSS pixels as reported by the page; m_page_zoom converts them to DIPs.
+    wxSize size = FromDIP(wxSize(static_cast<int>(std::ceil(m_content_width * m_page_zoom)),
+                                 static_cast<int>(std::ceil(m_content_height * m_page_zoom))));
     // The work-area limit includes the native title bar and fixed frame.
     const wxSize frame = GetSize() - GetClientSize();
     size.x = std::min(size.x, std::max(1, m_work_area.width - frame.x));
@@ -1050,6 +1062,21 @@ void ColorPickerDialog::handle_web_command(const nlohmann::json& payload)
             if (!std::isfinite(width_value) || width_value < 300 || width_value > 1200)
                 return;
             m_content_width = static_cast<int>(std::ceil(width_value));
+        }
+        // The viewport width the page sees (CSS px) against the WebView's real width (DIP) is the
+        // page zoom. Optional, so an older page keeps the current factor.
+        const auto viewport = payload.find("viewport");
+        if (viewport != payload.end() && viewport->is_number()) {
+            const double css_width = viewport->get<double>();
+            const int    dip_width = ToDIP(browser()->GetClientSize().x);
+            if (std::isfinite(css_width) && css_width >= 1 && dip_width > 0) {
+                double zoom = dip_width / css_width;
+                if (std::abs(zoom - 1.0) < 0.03)
+                    zoom = 1.0; // integer rounding of either width, not a real zoom
+                // Ignore re-measurements that only differ by rounding, so the size stays stable.
+                if (zoom >= 0.5 && zoom <= 4.0 && std::abs(zoom - m_page_zoom) > 0.02 * m_page_zoom)
+                    m_page_zoom = zoom;
+            }
         }
         resize_to_content(static_cast<int>(std::ceil(value)));
         return;

@@ -369,8 +369,12 @@ function HandleStudio(value) {
       delete draft.additions[request.category];
     if (payload.success === true && draft && (request.operation === "replace" || request.operation === "remove"))
       delete draft.edits[request.category]?.[request.old_value];
-    // The host sends the updated list before this result. Re-read it instead of dropping the
-    // draft: edits the user made while this request was in flight must survive the reply.
+    if (payload.success === true && draft && (request.category === "fs_create" || request.category === "fs_delete")) {
+      if (request.operation === "set_mode")
+        (draft.partialModes ||= {})[request.category] = request.value === "partial";
+      else if (request.operation === "remove")
+        (draft.partialModes ||= {})[request.category] = true;
+    }
     if (draft)
       ApplyLatestPermissionSource(request.pluginKey);
     renderedPermissionsSignature = null;
@@ -985,6 +989,9 @@ function PrunePermissionDraftBookkeeping(draft) {
       delete draft.additions[category];
 }
 
+// The permissions that are a yes/no switch rather than a list of targets.
+const BOOLEAN_PERMISSIONS = new Set(["threading", "tools"]);
+
 // A permission grant can arrive while the tab is open. Merge the latest stored list into the
 // rows on screen, but keep every unsaved value the user typed and let the draft win a conflict.
 // Edits are keyed by the original source value, so a grant that adds or reorders rows does not
@@ -995,7 +1002,7 @@ function MergePermissionSource(draft, sourcePermissions) {
   const nextPending = {};
 
   for (const [category, entries] of Object.entries(sourcePermissions || {})) {
-    if (category === "threading" && typeof entries === "boolean") {
+    if (BOOLEAN_PERMISSIONS.has(category) && typeof entries === "boolean") {
       nextValues[category] = entries;
       continue;
     }
@@ -1104,15 +1111,17 @@ function RenderPermissions(plugin) {
     ["network_socket", "permissions_network_socket", "Network sockets"],
     ["process", "permissions_process", "Processes"],
     ["threading", "permissions_threading", "Threading"],
+    ["tools", "permissions_tools", "OrcaSlicer tools"],
     ["events", "permissions_events", "Events"]
   ];
   const categoryGuidance = {
-    fs_read: [T("permissions_filesystem_help", "Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
-    fs_readwrite: [T("permissions_filesystem_help", "Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
+    fs_read: [T("permissions_filesystem_help", "Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but does not cover create or delete events such as os.mkdir and os.remove."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
+    fs_readwrite: [null, ""],
     network_http: [null, "https://example.com"],
     network_socket: [null, "https://example.com"],
-    process: [T("permissions_process_help", "Enter the exact value recorded by the audit. It may be a Python representation of the command."), T("permissions_process_placeholder", "Exact audited value")],
+    process: [T("permissions_process_help", "Executable grants cover all arguments. CommandLine: entries cover only the exact command line."), T("permissions_process_placeholder", "Executable or command name")],
     threading: [T("permissions_threading_help_short", "Allow this plugin to create threads."), ""],
+    tools: [T("permissions_tools_help_short", "Allow this plugin to call OrcaSlicer's tools, as AI agents do: change your project, presets and files, run post-processing scripts, and answer dialogs, permission requests included."), ""],
     events: [T("permissions_events_help", "Enter a category and event separated by a colon, such as Socket:socket.__new__."), T("permissions_events_placeholder", "Socket:socket.__new__")]
   };
   const placeholder = document.createElement("label");
@@ -1192,7 +1201,7 @@ function RenderPermissions(plugin) {
     { keys: ["fs_read", "fs_readwrite"], title: T("permissions_group_filesystem", "File system") },
     { keys: ["network_http", "network_socket"], title: T("permissions_network_access_title", "Network access"),
       guidance: T("permissions_network_access_guidance", "Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.") },
-    { keys: ["process", "threading"], title: T("permissions_group_execution", "Execution") },
+    { keys: ["process", "threading", "tools"], title: T("permissions_group_execution", "Execution") },
     { keys: ["events"], title: T("permissions_group_events", "Audit events") }
   ];
   const groupBodies = new Map();
@@ -1233,6 +1242,7 @@ function RenderPermissions(plugin) {
   for (const [key, translation, fallback] of categories) {
     if (key === "fs_read") {
       groupBodies.get(key).appendChild(RenderFilesystemSection(plugin, pluginKey, draft, installed, categoryGuidance.fs_read));
+      groupBodies.get(key).appendChild(RenderFolderModes(plugin, pluginKey, draft, installed));
       continue;
     }
     if (key === "fs_readwrite")
@@ -1259,7 +1269,7 @@ function RenderPermissions(plugin) {
       description.appendChild(guidance);
     }
     const entries = draft.values[key];
-    const available = key === "threading" ? typeof entries === "boolean" : Array.isArray(entries);
+    const available = BOOLEAN_PERMISSIONS.has(key) ? typeof entries === "boolean" : Array.isArray(entries);
     if (!available) {
       const unavailable = document.createElement("p");
       unavailable.className = "permission-notice";
@@ -1269,16 +1279,16 @@ function RenderPermissions(plugin) {
       continue;
     }
 
-    const categoryEnabled = installed && (key === "threading"
+    const categoryEnabled = installed && (BOOLEAN_PERMISSIONS.has(key)
       ? typeof plugin.permissions?.[key] === "boolean"
       : Array.isArray(plugin.permissions?.[key]));
-    if (key === "threading") {
+    if (BOOLEAN_PERMISSIONS.has(key)) {
       const threadLabel = document.createElement("label");
       threadLabel.className = "permission-thread-toggle";
       const threadCheckbox = document.createElement("input");
       threadCheckbox.type = "checkbox";
       threadCheckbox.setAttribute("role", "switch");
-      threadCheckbox.id = "permission-thread-toggle";
+      threadCheckbox.id = `permission-${key}-toggle`;
       threadCheckbox.checked = entries;
       threadCheckbox.disabled = !categoryEnabled;
       threadCheckbox.setAttribute("aria-labelledby", heading.id);
@@ -1329,6 +1339,102 @@ function RenderPermissions(plugin) {
     element.scrollLeft = left;
     element.scrollTop = top;
   }
+}
+
+function RenderFolderModes(plugin, pluginKey, draft, editable) {
+  const section = document.createElement("section");
+  section.className = "permission-section permission-filesystem";
+  const description = document.createElement("div");
+  description.className = "permission-description";
+  const guidance = document.createElement("p");
+  guidance.className = "permission-guidance";
+  guidance.id = "permission-guidance-folder-modes";
+  guidance.textContent = T("permissions_folder_modes_help", "Choose none, selected folders, or all folders. Enter an absolute folder path to allow operations directly inside it, or add /* to include all nested folders. No other wildcard is accepted. Delete access allows deleting files and folders inside the granted scope; deleting the granted folder itself requires access to its parent. Some folders are allowed automatically, while protected paths remain blocked. Other operations may require approval. A background operation needing approval is denied first; after approval, a retry may succeed.");
+  description.appendChild(guidance);
+  const controls = document.createElement("div");
+  controls.className = "permission-controls";
+  section.append(description, controls);
+  const types = [
+    { key: "fs_create", label: T("permissions_create", "Create"), name: T("permissions_create_name", "File system: Create") },
+    { key: "fs_delete", label: T("permissions_delete", "Delete"), name: T("permissions_delete_name", "File system: Delete") }
+  ];
+  for (const type of types) {
+    const bucket = document.createElement("section");
+    bucket.className = "permission-filesystem-bucket";
+    const entries = draft.values[type.key];
+    if (!Array.isArray(entries) || !Array.isArray(plugin.permissions?.[type.key])) {
+      const notice = document.createElement("p");
+      notice.className = "permission-notice";
+      notice.textContent = T("permissions_unavailable", "Permissions are unavailable.");
+      bucket.appendChild(notice);
+      controls.appendChild(bucket);
+      continue;
+    }
+    const savedEntries = plugin.permissions[type.key];
+    const mode = savedEntries.length === 1 && savedEntries[0] === "*" ? "full"
+      : savedEntries.length || draft.partialModes?.[type.key] ? "partial" : "none";
+    const fieldset = document.createElement("fieldset");
+    fieldset.className = "permission-mode";
+    fieldset.setAttribute("aria-describedby", guidance.id);
+    const legend = document.createElement("legend");
+    legend.className = "permission-heading";
+    legend.textContent = type.label;
+    fieldset.appendChild(legend);
+    for (const [value, label] of [["none", T("permissions_mode_none", "None")], ["partial", T("permissions_mode_partial", "Selected folders")], ["full", T("permissions_mode_full", "All folders")]]) {
+      const wrapper = document.createElement("label");
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.id = `permission-mode-${type.key}-${value}`;
+      radio.name = `permission-mode-${type.key}`;
+      radio.value = value;
+      radio.checked = mode === value;
+      radio.disabled = !editable;
+      radio.addEventListener("change", () => {
+        if (savedEntries.length === 0 && value !== "full") {
+          (draft.partialModes ||= {})[type.key] = value === "partial";
+          renderedPermissionsSignature = null;
+          RenderDetails();
+          document.getElementById(radio.id)?.focus();
+        } else {
+          CommitPermission(pluginKey, { operation: "set_mode", category: type.key, value });
+        }
+      });
+      wrapper.append(radio, document.createTextNode(label));
+      fieldset.appendChild(wrapper);
+    }
+    bucket.appendChild(fieldset);
+    if (mode !== "partial" && (draft.additions[type.key] || Object.keys(draft.edits[type.key] || {}).length)) {
+      const notice = document.createElement("p");
+      notice.className = "permission-notice";
+      notice.textContent = T("permissions_folder_drafts_retained", "Unsaved folder changes are kept. Choose Selected folders to review or discard them.");
+      bucket.appendChild(notice);
+    }
+    if (mode === "partial") {
+      if (savedEntries.includes("*")) {
+        const notice = document.createElement("p");
+        notice.className = "permission-notice";
+        notice.textContent = T("permissions_folder_invalid_wildcard", "The wildcard is ignored when combined with folder paths. Remove it or choose all folders.");
+        bucket.appendChild(notice);
+      }
+      if (savedEntries.length === 0) {
+        const notice = document.createElement("p");
+        notice.className = "permission-notice";
+        notice.textContent = T("permissions_folder_empty", "Add a folder to save selected-folder access. No selected folders are saved until you add one.");
+        bucket.appendChild(notice);
+      }
+      const list = document.createElement("ul");
+      list.className = "permission-list";
+      const placeholder = T("permissions_folder_placeholder", "Absolute folder path");
+      entries.forEach((entry, index) => {
+        const item = document.createElement("li");
+        item.appendChild(PermissionForm(pluginKey, type.key, type.name, index, editable, placeholder, guidance.id, draft));
+        list.appendChild(item);
+      });
+      bucket.append(list, PermissionForm(pluginKey, type.key, type.name, null, editable, placeholder, guidance.id, draft));
+    }
+    controls.appendChild(bucket);
+  }
+  return section;
 }
 
 function RenderFilesystemSection(plugin, pluginKey, draft, editable, guidanceText) {
@@ -1910,7 +2016,8 @@ function ApplyDetailUpdateButton(button, plugin) {
   const updateStatus = plugin ? GetUpdateStatus(plugin) : "normal";
   button.hidden = updateStatus !== "update_available";
   // Re-enable after each render; the click handler disables it until the catalog refreshes.
-  button.disabled = false;
+  // A loading plugin cannot be updated, so keep the button disabled until its status settles.
+  button.disabled = plugin ? IsPluginLoading(plugin) : false;
 }
 
 function UpdateSelectedPlugin() {

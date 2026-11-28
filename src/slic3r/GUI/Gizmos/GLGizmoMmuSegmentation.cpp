@@ -513,7 +513,8 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon, ImGui::TriangleButtonDarkIcon, ImGui::HeightRangeDarkIcon, ImGui::FillButtonDarkIcon, ImGui::GapFillDarkIcon };
     else
         icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::TriangleButtonIcon, ImGui::HeightRangeIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon };
-    std::array<wxString, 6> tool_tips = { _L("Circle"), _L("Sphere"), _L("Triangle"), _L("Height Range"), _L("Fill"), _L("Gap Fill") };
+    // English, as the tools are named for automation; the tooltips translate them.
+    std::array<const char*, 6> tool_names = { L("Circle"), L("Sphere"), L("Triangle"), L("Height Range"), L("Fill"), L("Gap Fill") };
     for (int i = 0; i < tool_ids.size(); i++) {
         //std::string  str_label = std::string("");
         //std::wstring btn_name  = icons[i] + boost::nowide::widen(str_label);
@@ -530,7 +531,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         ImGui::PushStyleColor(ImGuiCol_ButtonActive , is_active ? ImVec4(0.f, .59f, .53f, .30f) : ImVec4(0,0,0,0));         // ORCA
         ImGui::PushStyleColor(ImGuiCol_Border       , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA
         ImGui::PushStyleColor(ImGuiCol_BorderActive , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA matched color for fixing flicker on click
-        bool btn_clicked = m_imgui->glyph_button(icons[i], ImVec2(16.f  * scale, 16.f  * scale)); // ORCA glyph_button for fixing unequal paddings
+        bool btn_clicked = m_imgui->glyph_button(icons[i], ImVec2(16.f  * scale, 16.f  * scale), tool_names[i]); // ORCA glyph_button for fixing unequal paddings
         ImGui::PopStyleColor(6);
         ImGui::PopStyleVar(3);
 
@@ -543,7 +544,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         }
 
         if (ImGui::IsItemHovered()) {
-            m_imgui->tooltip(tool_tips[i], max_tooltip_width);
+            m_imgui->tooltip(_(tool_names[i]), max_tooltip_width);
         }
     }
 
@@ -568,31 +569,13 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
-        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
-            if (m_vertical_only) {
-                m_horizontal_only = false;
-            }
-        }
-        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
-            if (m_horizontal_only) {
-                m_vertical_only = false;
-            }
-        }
+        render_ortho_switch(scale);
     } 
     else if (m_current_tool == ImGui::TriangleButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type   = ToolType::BRUSH;
 
-        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
-            if (m_vertical_only) {
-                m_horizontal_only = false;
-            }
-        }
-        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
-            if (m_horizontal_only) {
-                m_vertical_only = false;
-            }
-        }
+        render_ortho_switch(scale);
     } 
     else if (m_current_tool == ImGui::FillButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;

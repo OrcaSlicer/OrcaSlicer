@@ -5,6 +5,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <boost/format.hpp>
 #include <cassert>
 #include <cstddef>
 #include <cstdio>

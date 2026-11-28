@@ -20,11 +20,17 @@ class wxWindow;
 namespace Slic3r::GUI {
 
 // Shared storage limit; individual picker callers may request a lower editing limit.
+// The same limit applies to gradients and co-extruded colors.
 inline constexpr std::size_t COLOR_PICKER_MAX_GRADIENT_COLORS = 7;
 
-// Gradient colors retain their order (2..COLOR_PICKER_MAX_GRADIENT_COLORS); a solid has exactly one color.
-using ColorGradient = std::vector<ColorRGBA>;
-using ColorSelection = std::variant<ColorRGBA, ColorGradient>;
+// Two or more ordered colors (2..COLOR_PICKER_MAX_GRADIENT_COLORS). A gradient blends from one to the
+// next; otherwise the colors are co-extruded, side by side along the filament and drawn as equal segments.
+struct ColorMulti {
+    std::vector<ColorRGBA> colors;
+    bool gradient;
+};
+// A solid has exactly one color.
+using ColorSelection = std::variant<ColorRGBA, ColorMulti>;
 
 struct ColorPickerOptions {
     bool allow_gradient = false;
@@ -36,14 +42,19 @@ struct ColorPickerOptions {
         return std::clamp(max_gradient_colors, std::size_t{2}, COLOR_PICKER_MAX_GRADIENT_COLORS);
     }
 
+    // Multi-color selections: gradients and co-extruded colors share this capability and the color limit.
     constexpr bool supports_gradient(std::size_t count) const
     {
         return allow_gradient && count >= 2 && count <= gradient_color_limit();
     }
 };
 
+// Every capability, for project colors and favorites that are stored whatever a caller can edit.
+inline constexpr ColorPickerOptions COLOR_PICKER_ALL_CAPABILITIES{true, true, COLOR_PICKER_MAX_GRADIENT_COLORS};
+
 // Project storage preserves direction; FilamentColor's set is only for the
 // official palette and cannot represent ordered custom gradients.
+// More than one color without `gradient` is stored as co-extruded (filament_colour_type "1").
 struct FilamentColorPickerValue {
     std::vector<std::string> colors;
     bool gradient = false;
@@ -99,6 +110,9 @@ private:
     wxRect m_work_area;
     int m_content_height = 360;
     int m_content_width = 330;
+    // Window pixels (DIP) per CSS pixel of the page. Not always 1: WebKitGTK zooms the whole
+    // page by the system font DPI / text scaling. Measured from the page's "resize" message.
+    double m_page_zoom = 1.0;
     bool m_positioning = false;
     std::shared_ptr<std::atomic<bool>> m_alive = std::make_shared<std::atomic<bool>>(true);
 };

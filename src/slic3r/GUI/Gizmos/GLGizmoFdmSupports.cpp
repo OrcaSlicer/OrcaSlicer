@@ -284,7 +284,8 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
     else
         icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon };
 
-    std::array<wxString, 4> tool_tips = { _L("Circle"), _L("Sphere"), _L("Fill"), _L("Gap Fill") };
+    // English, as the tools are named for automation; the tooltips translate them.
+    std::array<const char*, 4> tool_names = { L("Circle"), L("Sphere"), L("Fill"), L("Gap Fill") };
     for (int i = 0; i < tool_ids.size(); i++) {
         //std::string  str_label = std::string("##");
         //std::wstring btn_name = icons[i] + boost::nowide::widen(str_label);
@@ -301,7 +302,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::PushStyleColor(ImGuiCol_ButtonActive , is_active ? ImVec4(0.f, .59f, .53f, .30f) : ImVec4(0,0,0,0));         // ORCA
         ImGui::PushStyleColor(ImGuiCol_Border       , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA
         ImGui::PushStyleColor(ImGuiCol_BorderActive , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA matched color for fixing flicker on click
-        bool btn_clicked = m_imgui->glyph_button(icons[i], ImVec2(16.f  * scale, 16.f  * scale)); // ORCA glyph_button for fixing unequal paddings
+        bool btn_clicked = m_imgui->glyph_button(icons[i], ImVec2(16.f  * scale, 16.f  * scale), tool_names[i]); // ORCA glyph_button for fixing unequal paddings
         ImGui::PopStyleColor(6);
         ImGui::PopStyleVar(3);
 
@@ -314,7 +315,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         }
 
         if (ImGui::IsItemHovered()) {
-            m_imgui->tooltip(tool_tips[i], max_tooltip_width);
+            m_imgui->tooltip(_(tool_names[i]), max_tooltip_width);
         }
     }
 
@@ -336,16 +337,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
-        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
-            if (m_vertical_only) {
-                m_horizontal_only = false;
-            }
-        }
-        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
-            if (m_horizontal_only) {
-                m_vertical_only = false;
-            }
-        }
+        render_ortho_switch(scale);
     } else if (m_current_tool == ImGui::SphereButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::SPHERE;
         m_tool_type = ToolType::BRUSH;
@@ -359,16 +351,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
-        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
-            if (m_vertical_only) {
-                m_horizontal_only = false;
-            }
-        }
-        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
-            if (m_horizontal_only) {
-                m_vertical_only = false;
-            }
-        }
+        render_ortho_switch(scale);
     } else if (m_current_tool == ImGui::FillButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type = ToolType::SMART_FILL;
@@ -417,6 +400,8 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         }
     }
 
+    ImGui::Separator();
+
     if (m_current_tool != ImGui::GapFillIcon) {
         m_imgui->bbl_checkbox(m_desc["on_overhangs_only"], m_paint_on_overhangs_only);
         if (ImGui::IsItemHovered())
@@ -424,8 +409,6 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
                              max_tooltip_width);
     }
 
-
-    ImGui::Separator();
     float position_before_text_y = ImGui::GetCursorPos().y;
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["highlight_by_angle"]);

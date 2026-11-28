@@ -108,6 +108,14 @@ std::vector<size_t> GLGizmosManager::get_selectable_idxs() const
     return out;
 }
 
+bool GLGizmosManager::is_on_toolbar(EType type) const
+{
+    for (size_t idx : get_selectable_idxs())
+        if (m_gizmos[idx]->get_sprite_id() == (unsigned int) type)
+            return true;
+    return false;
+}
+
 //BBS: GUI refactor: GLToolbar&&Gizmo adjust
 GLGizmosManager::EType GLGizmosManager::get_gizmo_from_mouse(const Vec2d &mouse_pos) const
 {
@@ -481,6 +489,22 @@ bool GLGizmosManager::open_gizmo(EType type)
 }
 
 
+GLGizmosManager::ToolbarClick GLGizmosManager::click_toolbar_icon(EType type)
+{
+    if (m_gizmos.empty())
+        return ToolbarClick::Nothing;
+    const EType before = m_current;
+    if (type == Emboss) {
+        if (dynamic_cast<GLGizmoEmboss *>(m_gizmos[Emboss].get())->on_shortcut_key())
+            return ToolbarClick::CreationStarted;
+    } else {
+        open_gizmo(type);
+    }
+    if (m_current == type)
+        return ToolbarClick::Opened;
+    return before == type ? ToolbarClick::Closed : ToolbarClick::Nothing;
+}
+
 bool GLGizmosManager::check_gizmos_closed_except(EType type) const
 {
     if (get_current_type() != type && get_current_type() != Undefined) {
@@ -548,6 +572,11 @@ bool GLGizmosManager::is_running() const
     //GLGizmoBase* curr = get_current();
     //return (curr != nullptr) ? (curr->get_state() == GLGizmoBase::On) : false;
     return m_current != Undefined;
+}
+
+bool GLGizmosManager::is_busy() const
+{
+    return std::any_of(m_gizmos.begin(), m_gizmos.end(), [](const auto &g) { return g->is_busy(); });
 }
 
 bool GLGizmosManager::open_gizmo_by_shortcut(Shortcut shortcut)
@@ -740,17 +769,18 @@ bool GLGizmosManager::on_mouse_wheel(const wxMouseEvent &evt)
 {
     bool processed = false;
 
+    // Orca: only a vertical wheel event with a direction is a step. A macOS trackpad also sends horizontal
+    // events, and events with a rotation of 0 (see ImGuiWrapper::update_mouse_data()).
+    if (evt.GetWheelAxis() != wxMOUSE_WHEEL_VERTICAL || evt.GetWheelRotation() == 0)
+        return false;
+
     if (/*m_current == SlaSupports || m_current == Hollow ||*/ m_current == FdmSupports || m_current == Seam || m_current == MmSegmentation || m_current == FuzzySkin ||
-        m_current == PaintedModifier || m_current == BrimEars) {
+        m_current == PaintedModifier || m_current == TextureDisplacement || m_current == BrimEars) {
         float rot = (float)evt.GetWheelRotation() / (float)evt.GetWheelDelta();
-        if (gizmo_event((rot > 0.f ? SLAGizmoEventType::MouseWheelUp : SLAGizmoEventType::MouseWheelDown), Vec2d::Zero(), evt.ShiftDown(), evt.AltDown()
-            // BBS
-#ifdef __WXOSX_MAC__
-            , evt.RawControlDown()
-#else
-            , evt.ControlDown()
-#endif
-            ))
+        // Orca: on macOS take both Cmd, which the shortcut tooltips name, and Control, which was the only
+        // key taken before. Elsewhere both are the Ctrl key.
+        const bool control_down = evt.CmdDown() || evt.RawControlDown();
+        if (gizmo_event((rot > 0.f ? SLAGizmoEventType::MouseWheelUp : SLAGizmoEventType::MouseWheelDown), Vec2d::Zero(), evt.ShiftDown(), evt.AltDown(), control_down))
             processed = true;
     }
 
@@ -805,12 +835,7 @@ bool GLGizmosManager::gizmos_toolbar_on_mouse(const wxMouseEvent &mouse_event) {
         // mouse is above toolbar
         if (mouse_event.LeftDown() || mouse_event.LeftDClick()) {
             mc.left = true;
-            if (gizmo == Emboss) {
-                GLGizmoBase *gizmo_emboss = m_gizmos[Emboss].get();
-                dynamic_cast<GLGizmoEmboss *>(gizmo_emboss)->on_shortcut_key();
-            } else {
-                open_gizmo(gizmo);
-            }
+            click_toolbar_icon(gizmo);
             return true;
         }
         else if (mouse_event.RightDown()) {

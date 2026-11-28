@@ -13623,11 +13623,11 @@ msgid "%1% modifier \"%2%\" of \"%3%\" (%4% in total) covers an entire perimeter
 msgstr ""
 
 #, possible-boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam"
 msgstr ""
 
 #, possible-boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam"
 msgstr ""
 
 msgid "Seam placement may differ from expected."
@@ -14890,8 +14890,9 @@ msgid "Brim ear detection radius"
 msgstr ""
 
 msgid ""
-"The geometry will be decimated before detecting sharp angles. This parameter indicates the minimum length of the deviation for the decimation.\n"
-"0 to deactivate."
+"The direction change at a corner is measured over a window of this length along the outline.\n"
+"The window grows while the outline keeps curving, so a rounded corner counts as one corner once its whole turn is seen.\n"
+"0 to measure the angle at every vertex without smoothing."
 msgstr ""
 
 msgid "Brim ears outer only"

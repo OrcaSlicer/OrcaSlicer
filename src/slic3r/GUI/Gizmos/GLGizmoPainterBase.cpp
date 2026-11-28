@@ -10,6 +10,7 @@
 #include <cassert>
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <glad/gl.h>
 
 #include "slic3r/GUI/GUI_App.hpp"
@@ -47,8 +48,11 @@
 #include "slic3r/GUI/GLShader.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
 
-namespace Slic3r::GUI { class ImGuiWrapper; }
+#include <imgui.h>
+
 namespace cereal { class BinaryInputArchive; }
 
 namespace Slic3r::GUI {
@@ -219,6 +223,45 @@ bool GLGizmoPainterBase::render_follows_cursor() const
         return false;
     update_raycast_cache(m_parent.get_local_mouse_position(), wxGetApp().plater()->get_camera(), mesh_trafo_matrices());
     return m_rr.mesh_id != -1;
+}
+
+// ORCA: Free / Vertical / Horizontal switch constraining brush strokes, shared by the painter gizmos.
+// A gizmo can leave out the Vertical or the Horizontal option. A hidden option is also switched off,
+// so that a constraint the user cannot see in the switch never stays active.
+void GLGizmoPainterBase::render_ortho_switch(float scale, bool show_vertical, bool show_horizontal)
+{
+    m_vertical_only   = m_vertical_only   && show_vertical;
+    m_horizontal_only = m_horizontal_only && show_horizontal;
+    if (!show_vertical && !show_horizontal)
+        return; // only Free is left, so there is nothing to choose
+
+    // Free is first and Horizontal is last, which puts Vertical at 1 whenever it is shown.
+    std::vector<std::string> labels = { _u8L_CONTEXT("Free", "Paint stroke direction") };
+    if (show_vertical)   labels.emplace_back(_u8L("Vertical"));
+    if (show_horizontal) labels.emplace_back(_u8L("Horizontal"));
+
+    const int vertical_idx   = show_vertical ? 1 : -1;
+    const int horizontal_idx = show_horizontal ? int(labels.size()) - 1 : -1;
+
+    ImGui::PushStyleColor(ImGuiCol_FrameBg        , m_is_dark_mode ? ImVec4(.153f, .153f, .165f, 1.f)  : ImVec4(.851f, .851f, .851f, 1.f)); // #27272A : #D9D9D9
+    ImGui::PushStyleColor(ImGuiCol_Button         , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_DARK       : ImGuiWrapper::COL_ORCA);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered  , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_HOVER_DARK : ImGuiWrapper::COL_ORCA_HOVER);
+    ImGui::PushStyleColor(ImGuiCol_Text           , m_is_dark_mode ? ImVec4(1.f, 1.f, 1.f, .55f) : ImVec4(0.f, 0.f, 0.f, .55f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f * scale, 5.f * scale));
+
+    int ortho_mode = m_vertical_only ? vertical_idx : m_horizontal_only ? horizontal_idx : 0;
+    if (m_imgui->multi_switch("##ortho", labels, ortho_mode)) {
+        m_vertical_only   = ortho_mode == vertical_idx;
+        m_horizontal_only = ortho_mode == horizontal_idx;
+    }
+    if (ImGui::IsItemHovered()) {
+        std::string          tip =         _u8L("Free: paint in any direction.");
+        if (show_vertical)   tip += "\n" + _u8L("Vertical: keep the stroke on a vertical line.");
+        if (show_horizontal) tip += "\n" + _u8L("Horizontal: keep the stroke on a horizontal line.");
+        m_imgui->tooltip(tip, ImGui::GetFontSize() * 20.0f);
+    }
+    ImGui::PopStyleColor(4);
+    ImGui::PopStyleVar(1);
 }
 
 void GLGizmoPainterBase::render_cursor()

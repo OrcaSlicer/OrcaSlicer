@@ -81,6 +81,7 @@ set(lisbslic3r_sources
     Arrange.hpp
     BlacklistedLibraryCheck.cpp
     BlacklistedLibraryCheck.hpp
+    BoostPolygonTraits.hpp
     BoundingBox.cpp
     BoundingBox.hpp
     BridgeDetector.cpp
@@ -395,6 +396,7 @@ set(lisbslic3r_sources
     Optimize/Optimizer.hpp
     Orient.cpp
     Orient.hpp
+    ParallelForFirstError.hpp
     ParallelResolve.hpp
     ParameterUtils.cpp
     ParameterUtils.hpp
@@ -492,6 +494,8 @@ set(lisbslic3r_sources
     SlicingAdaptive.hpp
     Slicing.cpp
     Slicing.hpp
+    SourceDateEpoch.cpp
+    SourceDateEpoch.hpp
     Support/BeltFloorContext.cpp
     Support/BeltFloorContext.hpp
     Support/SupportCommon.cpp

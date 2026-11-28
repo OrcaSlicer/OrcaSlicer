@@ -318,6 +318,8 @@ protected:
     // Orca: paint behavior enchancement
     bool m_vertical_only = false;
     bool m_horizontal_only = false;
+    // Draws the switch that sets the two flags above. An option that is not shown is also switched off.
+    void render_ortho_switch(float scale, bool show_vertical = true, bool show_horizontal = true);
 
     // It stores the value of the previous mesh_id to which the seed fill was applied.
     // It is used to detect when the mouse has moved from one volume to another one.

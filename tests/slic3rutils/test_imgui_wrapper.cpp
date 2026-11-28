@@ -24,6 +24,11 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/KeyChord.hpp"
 
+#include <cstddef>
+#include <optional>
+#include <string>
+#include <vector>
+
 using Catch::Matchers::WithinAbs;
 using Slic3r::GUI::ImGuiWrapper;
 using Slic3r::GUI::KeyChord;
@@ -351,4 +356,429 @@ TEST_CASE("an active ImGui field claims every key, whether it edits text or not"
     f.frame([&] { f.draw_input(false); });
     CHECK(f.imgui.claim_key_event(key_event(wxEVT_KEY_DOWN, key, wxMOD_CONTROL)));
     CHECK(f.imgui.claim_key_event(key_event(wxEVT_KEY_UP, key, wxMOD_CONTROL)));
+}
+
+namespace {
+
+// ImGui frames whose items ImGuiWrapper records, as it does for the MCP server.
+struct RecordedFrames
+{
+    ImGuiWrapper imgui;
+    int          owner = 0;
+
+    RecordedFrames()
+    {
+        imgui.set_display_size(800.f, 600.f);
+        unsigned char* pixels = nullptr;
+        int            width = 0, height = 0;
+        ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+        imgui.set_item_recording(true);
+        imgui.set_frame_owner(&owner);
+    }
+
+    // One frame drawing `draw` inside a window; end_frame() publishes what it recorded.
+    template<class Draw> void frame(Draw draw)
+    {
+        ImGui::NewFrame();
+        ImGui::SetNextWindowPos(ImVec2(0.f, 0.f));
+        ImGui::SetNextWindowSize(ImVec2(400.f, 300.f));
+        ImGui::Begin("panel");
+        draw();
+        ImGui::End();
+        imgui.end_frame();
+    }
+
+    std::vector<ImGuiWrapper::RecordedItem> items() const { return imgui.recorded_items(&owner); }
+    // The items automation could list: those with a label or a name (the window's own title bar and
+    // resize grip are items too).
+    std::size_t listable() const
+    {
+        std::size_t n = 0;
+        for (const auto& item : items())
+            n += item.label.empty() && item.name.empty() ? 0 : 1;
+        return n;
+    }
+    std::vector<ImGuiWrapper::RecordedText> texts() const { return imgui.recorded_texts(&owner); }
+
+    std::vector<ImGuiWrapper::RecordedItem> named(const std::string& name) const
+    {
+        std::vector<ImGuiWrapper::RecordedItem> out;
+        for (const auto& item : items())
+            if (item.name == name)
+                out.push_back(item);
+        return out;
+    }
+
+    std::optional<ImGuiWrapper::RecordedItem> labelled(const std::string& label) const
+    {
+        for (const auto& item : items())
+            if (item.label == label)
+                return item;
+        return std::nullopt;
+    }
+};
+
+} // namespace
+
+TEST_CASE("a control drawn without an ImGui item is recorded under its name in each ID scope", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    f.frame([&] {
+        for (int row = 0; row < 2; ++row) {
+            ImGui::PushID(row);
+            ImGui::Dummy(ImVec2(20.f, 20.f));
+            f.imgui.record_named_item("Remove");
+            ImGui::PopID();
+        }
+    });
+    const auto removes = f.named("Remove");
+    REQUIRE(removes.size() == 2);
+    CHECK(removes[0].id != removes[1].id);
+    CHECK(removes[0].y < removes[1].y);
+    CHECK(removes[0].kind == "button");
+}
+
+TEST_CASE("naming a real ImGui item names its own record", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    f.frame([&] {
+        ImGui::Button("##reset");
+        f.imgui.record_named_item("Reset");
+    });
+    const auto resets = f.named("Reset");
+    REQUIRE(resets.size() == 1);
+    CHECK(resets[0].label == "##reset");
+    CHECK(f.listable() == 1);
+}
+
+TEST_CASE("a named toggle reports whether it is on", "[ImGuiWrapper]")
+{
+    const bool on = GENERATE(false, true);
+    RecordedFrames f;
+    f.frame([&] {
+        ImGui::Button("##brush");
+        f.imgui.record_named_item("Brush", "toggle", on ? 1 : 0);
+    });
+    const auto brush = f.named("Brush");
+    REQUIRE(brush.size() == 1);
+    CHECK((brush[0].flags & ImGuiItemStatusFlags_Checkable) != 0);
+    CHECK(((brush[0].flags & ImGuiItemStatusFlags_Checked) != 0) == on);
+}
+
+TEST_CASE("naming records nothing while recording is off", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    f.imgui.set_item_recording(false);
+    f.frame([&] {
+        ImGui::Dummy(ImVec2(20.f, 20.f));
+        f.imgui.record_named_item("Circle");
+    });
+    f.imgui.set_item_recording(true);
+    CHECK(f.listable() == 0);
+}
+
+TEST_CASE("fields report their kind, shown value and whether they take typing", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    float slider = 2.5f, locked = 1.f, drag = 3.f;
+    char  single[16] = "abc", multi[32] = "one\ntwo";
+    f.frame([&] {
+        ImGui::SliderFloat("##slider", &slider, 0.f, 10.f, "%.2f");
+        ImGui::SliderFloat("##locked", &locked, 0.f, 10.f, "%.1f", ImGuiSliderFlags_NoInput);
+        ImGui::DragFloat("##drag", &drag, 1.f, 0.f, 10.f, "%.3f");
+        ImGui::InputText("##single", single, sizeof(single));
+        ImGui::InputTextMultiline("##multi", multi, sizeof(multi));
+        if (ImGui::BeginCombo("##combo", "Local"))
+            ImGui::EndCombo();
+    });
+    const auto check = [&](const char* label, const char* kind, const char* value, bool inputable) {
+        const auto item = f.labelled(label);
+        REQUIRE(item.has_value());
+        CHECK(item->kind == kind);
+        CHECK(item->value == value);
+        CHECK(((item->flags & ImGuiItemStatusFlags_Inputable) != 0) == inputable);
+    };
+    check("##slider", "slider", "2.50", true);
+    check("##locked", "slider", "1.0", false);
+    check("##drag", "drag", "3.000", true);
+    check("##single", "input", "abc", true);
+    check("##multi", "multiline", "one\ntwo", true);
+    check("##combo", "combo", "Local", false);
+}
+
+TEST_CASE("a text field is recorded as focused from the frame it takes the keyboard", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    char       other[16] = "x", value[16] = "12.5";
+    const auto draw      = [&](bool ask) {
+        ImGui::InputText("##other", other, sizeof(other));
+        if (ask)
+            ImGui::SetKeyboardFocusHere();
+        ImGui::InputText("##value", value, sizeof(value));
+    };
+    f.frame([&] { draw(false); });
+    f.frame([&] { draw(true); });
+    REQUIRE(f.labelled("##value").has_value());
+    CHECK_FALSE(f.labelled("##value")->focused); // SetKeyboardFocusHere() applies in the next frame
+
+    f.frame([&] { draw(false); });
+    CHECK(f.labelled("##value")->focused);
+    CHECK_FALSE(f.labelled("##other")->focused);
+}
+
+TEST_CASE("a slider held by the mouse is not a focused text field, even once typed into", "[ImGuiWrapper][Regression]")
+{
+    RecordedFrames f;
+    float      value = 0.f;
+    ImVec2     centre;
+    const ImVec2 outside(600.f, 500.f); // past the 400 x 300 window
+    // Moves the mouse to pos with the left button down or up, and draws the slider in two frames.
+    const auto mouse = [&](const ImVec2& pos, bool down) {
+        ImGui::GetIO().MousePos     = pos;
+        ImGui::GetIO().MouseDown[0] = down;
+        for (int i = 0; i < 2; ++i)
+            f.frame([&] {
+                ImGui::SliderFloat("##slider", &value, 0.f, 1.f);
+                centre = ImVec2((ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) / 2,
+                                (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) / 2);
+            });
+    };
+    mouse(outside, false);
+    ImGui::GetIO().KeyCtrl = true; // Ctrl+click types a value
+    mouse(centre, true);
+    ImGui::GetIO().KeyCtrl = false;
+    mouse(centre, false);
+    REQUIRE(f.labelled("##slider").has_value());
+    CHECK(f.labelled("##slider")->focused);
+
+    mouse(outside, true); // a click elsewhere closes the field
+    mouse(outside, false);
+    mouse(centre, true);
+    REQUIRE(ImGui::GetInputTextState(ImGui::GetActiveID()) != nullptr);
+    CHECK_FALSE(f.labelled("##slider")->focused);
+}
+
+TEST_CASE("text is recorded apart from the items", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    f.frame([&] {
+        ImGui::Text("Brush size");
+        ImGui::SameLine();
+        ImGui::Button("Apply");
+    });
+    const auto texts = f.texts();
+    REQUIRE(texts.size() == 1);
+    CHECK(texts[0].text == "Brush size");
+    CHECK(texts[0].window == "panel");
+    CHECK(f.listable() == 1);
+    CHECK(f.labelled("Apply").has_value());
+}
+
+TEST_CASE("an item outside its window's visible part keeps its label and says it is clipped", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    f.frame([&] {
+        ImGui::BeginChild("##list", ImVec2(200.f, 60.f));
+        ImGui::Button("Top");
+        ImGui::Dummy(ImVec2(10.f, 400.f));
+        ImGui::Button("Bottom");
+        ImGui::EndChild();
+    });
+    const auto top    = f.labelled("Top");
+    const auto bottom = f.labelled("Bottom");
+    REQUIRE(top.has_value());
+    CHECK_FALSE(top->clipped);
+    REQUIRE(bottom.has_value());
+    CHECK(bottom->clipped);
+}
+
+TEST_CASE("same-named controls drawn in one ID scope get records of their own", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    const auto     draw = [&] {
+        for (int row = 0; row < 2; ++row) {
+            ImGui::Dummy(ImVec2(20.f, 20.f));
+            f.imgui.record_named_item("Revert");
+        }
+    };
+    f.frame(draw);
+    const auto first = f.named("Revert");
+    REQUIRE(first.size() == 2);
+    CHECK(first[0].id != first[1].id);
+    // The same ids frame after frame, so a ref to the second row keeps finding it.
+    f.frame(draw);
+    const auto again = f.named("Revert");
+    REQUIRE(again.size() == 2);
+    CHECK(again[1].id == first[1].id);
+}
+
+TEST_CASE("a combo with an empty label and its unlabelled options are named on their own records", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    // The pattern of GizmoObjectManipulation::render_combo(): "##" as the label, each option an
+    // empty Selectable followed by its text. The first frame opens the popup, the second draws it.
+    const auto draw = [&](bool open) {
+        const ImGuiID combo = ImGui::GetCurrentWindow()->GetIDNoKeepAlive("##");
+        if (open)
+            ImGui::OpenPopupEx(ImHashStr("##ComboPopup", 0, combo));
+        if (ImGui::BeginCombo("##", "World")) {
+            for (int i = 0; i < 2; ++i) {
+                ImGui::PushID(i);
+                ImGui::Selectable("", i == 0);
+                f.imgui.record_named_item(i == 0 ? "World" : "Object", "option");
+                ImGui::SameLine();
+                ImGui::Text("%s", i == 0 ? "World" : "Object");
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+        f.imgui.record_item_name(combo, "coordinates", "combo");
+    };
+    f.frame([&] { draw(true); });
+    f.frame([&] { draw(false); });
+    const auto combo = f.named("coordinates");
+    REQUIRE(combo.size() == 1);
+    CHECK(combo[0].kind == "combo");
+    CHECK(combo[0].value == "World"); // the value stays on the named record
+    const auto object = f.named("Object");
+    REQUIRE(object.size() == 1);
+    CHECK(object[0].kind == "option");
+    CHECK(object[0].label.empty()); // the Selectable's own record, so a click on it picks it
+}
+
+namespace {
+
+// The middle of a recorded item, where a click lands on it.
+ImVec2 center(const ImGuiWrapper::RecordedItem& item)
+{
+    return ImVec2(item.x + item.w / 2, item.y + item.h / 2);
+}
+
+// A left click at pos, over the frames it takes: the pointer arrives, presses, lets go, and one more
+// frame shows the result.
+template<class Draw> void click(RecordedFrames& f, const ImVec2& pos, Draw draw)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    io.MousePos = pos;
+    f.frame(draw);
+    io.MouseDown[0] = true;
+    f.frame(draw);
+    io.MouseDown[0] = false;
+    f.frame(draw);
+    f.frame(draw);
+}
+
+bool checked(const ImGuiWrapper::RecordedItem& item)
+{
+    return (item.flags & ImGuiItemStatusFlags_Checked) != 0;
+}
+
+const std::vector<std::string> switch_labels = {"Free", "Vertical", "Horizontal"};
+
+} // namespace
+
+TEST_CASE("a multi switch selects the segment that is clicked and reports the change once", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    int            selected = 0, changes = 0;
+    const auto     draw     = [&] { changes += f.imgui.multi_switch("##mode", switch_labels, selected) ? 1 : 0; };
+    f.frame(draw);
+    REQUIRE(f.named("Horizontal").size() == 1);
+    click(f, center(f.named("Horizontal")[0]), draw);
+    CHECK(selected == 2);
+    CHECK(changes == 1);
+}
+
+TEST_CASE("a click on the selected segment of a multi switch reports no change", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    int            selected = 1, changes = 0;
+    const auto     draw     = [&] { changes += f.imgui.multi_switch("##mode", switch_labels, selected) ? 1 : 0; };
+    f.frame(draw);
+    REQUIRE(f.named("Vertical").size() == 1);
+    click(f, center(f.named("Vertical")[0]), draw);
+    CHECK(selected == 1);
+    CHECK(changes == 0);
+}
+
+TEST_CASE("a window lying over a multi switch takes the click", "[ImGuiWrapper][Regression]")
+{
+    RecordedFrames f;
+    int            selected = 0;
+    // The cover stands for a dropdown that opens over the switch: a click on one of its entries is
+    // not a click on the segment under it.
+    const auto draw = [&] {
+        f.imgui.multi_switch("##mode", switch_labels, selected);
+        ImGui::SetNextWindowPos(ImVec2(0.f, 0.f));
+        ImGui::SetNextWindowSize(ImVec2(400.f, 300.f));
+        ImGui::SetNextWindowFocus();
+        ImGui::Begin("cover");
+        ImGui::End();
+    };
+    f.frame(draw);
+    REQUIRE(f.named("Vertical").size() == 1);
+    click(f, center(f.named("Vertical")[0]), draw);
+    CHECK(selected == 0);
+}
+
+TEST_CASE("a multi switch records each segment under its label, and only the selected one as on", "[ImGuiWrapper]")
+{
+    // The selection moves to a later segment, then to an earlier one: the segments are drawn in
+    // order, so one way a frame could show two of them on, the other way none.
+    const bool     to_later = GENERATE(true, false);
+    const int      from = to_later ? 0 : 2, to = to_later ? 2 : 0;
+    RecordedFrames f;
+    int            selected = from;
+    const auto     draw     = [&] { f.imgui.multi_switch("##mode", switch_labels, selected); };
+    const auto exactly_one_on = [&] {
+        int on = 0;
+        for (const std::string& label : switch_labels) {
+            const auto segment = f.named(label);
+            REQUIRE(segment.size() == 1);
+            CHECK(segment[0].kind == "toggle");
+            CHECK((segment[0].flags & ImGuiItemStatusFlags_Checkable) != 0);
+            on += checked(segment[0]) ? 1 : 0;
+        }
+        CHECK(on == 1);
+    };
+    f.frame(draw);
+    exactly_one_on();
+    CHECK(checked(f.named(switch_labels[from])[0]));
+    CHECK(f.listable() == 3);
+
+    ImGui::GetIO().MousePos = center(f.named(switch_labels[to])[0]);
+    const bool button_down[] = {false, true, false, false}; // arrive, press, let go, settle
+    for (const bool down : button_down) {
+        ImGui::GetIO().MouseDown[0] = down;
+        f.frame(draw);
+        exactly_one_on();
+    }
+    CHECK(selected == to);
+    CHECK(checked(f.named(switch_labels[to])[0]));
+}
+
+TEST_CASE("a multi switch is one item to the layout, as large as its track", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    int            selected = 0;
+    const float    gap      = 2.f; // the frame border size is the gap around and between the segments
+    ImVec2         item_min, item_max, next;
+    f.frame([&] {
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, gap);
+        f.imgui.multi_switch("##mode", switch_labels, selected);
+        ImGui::PopStyleVar();
+        item_min = ImGui::GetItemRectMin();
+        item_max = ImGui::GetItemRectMax();
+        next     = ImGui::GetCursorScreenPos();
+    });
+    const auto first = f.named("Free"), last = f.named("Horizontal");
+    REQUIRE(first.size() == 1);
+    REQUIRE(last.size() == 1);
+    // The track reaches a gap beyond the first and the last segment on every side, and the next
+    // item starts under it, so a tooltip or SameLine() after the switch applies to all of it.
+    CHECK_THAT(item_min.x, WithinAbs(first[0].x - gap, 0.01));
+    CHECK_THAT(item_min.y, WithinAbs(first[0].y - gap, 0.01));
+    CHECK_THAT(item_max.x, WithinAbs(last[0].x + last[0].w + gap, 0.01));
+    CHECK_THAT(item_max.y, WithinAbs(last[0].y + last[0].h + gap, 0.01));
+    CHECK(next.y >= item_max.y);
 }

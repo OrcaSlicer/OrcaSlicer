@@ -3779,6 +3779,7 @@ void GCodeProcessor::reset()
     m_travel_dist = 0.0f;
     m_fan_speed = 0.0f;
     m_z_offset = 0.0f;
+    m_pressure_advance = 0.0f;
 
     m_extrusion_role = erNone;
 
@@ -5466,6 +5467,13 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
         if (!is_extrusion_only_move(delta_pos))
             curr.enter_direction = curr.enter_direction / norm;
         curr.exit_direction = curr.enter_direction;
+        // Orca: a smooth arc meets the moves around it along its tangents, not along its end chords.
+        if (m_smooth_arc) {
+            if (m_smooth_arc->first_chord)
+                curr.enter_direction = m_smooth_arc->start_tangent;
+            if (m_smooth_arc->last_chord)
+                curr.exit_direction = m_smooth_arc->end_tangent;
+        }
         curr.jd_unit_vec = Vec4f(static_cast<float>(delta_pos[X]),
                                  static_cast<float>(delta_pos[Y]),
                                  static_cast<float>(delta_pos[Z]),
@@ -5488,7 +5496,11 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         //BBS: limite the cruise according to centripetal acceleration
         //Only need to handle when both prev and curr segment has movement in x-y plane
-        if (m_flavor != gcfKlipper && (prev.exit_direction(0) != 0.0f || prev.exit_direction(1) != 0.0f) &&
+        // Orca: a smooth arc takes its own radius. The estimate below would read the turn from the previous
+        // move into the arc's first chord as its curvature.
+        if (m_smooth_arc)
+            curr.feedrate = std::min(curr.feedrate, std::sqrt(get_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i)) * m_smooth_arc->radius));
+        else if (m_flavor != gcfKlipper && (prev.exit_direction(0) != 0.0f || prev.exit_direction(1) != 0.0f) &&
             (curr.enter_direction(0) != 0.0f || curr.enter_direction(1) != 0.0f)) {
             Vec3f v1 = prev.exit_direction;
             v1(2, 0) = 0.0f;
@@ -5609,7 +5621,10 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         // calculates block entry feedrate
         float vmax_junction = use_junction_deviation ? vmax_junction_jd : curr.safe_feedrate;
-        if (!use_junction_deviation && has_prev_move) {
+        // Orca: the chords of a smooth arc do not meet at jerk limited corners.
+        if (!use_junction_deviation && has_prev_move && m_smooth_arc && !m_smooth_arc->first_chord)
+            vmax_junction = std::min(prev.feedrate, block.feedrate_profile.cruise);
+        else if (!use_junction_deviation && has_prev_move) {
             bool prev_speed_larger = prev.feedrate > block.feedrate_profile.cruise;
             float smaller_speed_factor = prev_speed_larger ? (block.feedrate_profile.cruise / prev.feedrate) : (prev.feedrate / block.feedrate_profile.cruise);
             // Pick the smaller of the nominal speeds. Higher speed shall not be achieved at the junction during coasting.
@@ -6256,6 +6271,14 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
         return ret;
     };
 
+    // Orca: see m_smooth_arc. Other firmware splits an arc into segments it plans like any other moves.
+    if (s_IsBBLPrinter && m_flavor != gcfKlipper) {
+        const auto tangent = [clockwise](const Vec3d& radial) {
+            return Vec3f(clockwise ? Vec3f(radial.y(), -radial.x(), 0.0f) : Vec3f(-radial.y(), radial.x(), 0.0f)).normalized();
+        };
+        m_smooth_arc = SmoothArc{ float(arc.start_radius()), tangent(rel_arc_start), tangent(rel_arc_end), true, false };
+    }
+
     auto internal_only_g1_line = [this](const AxisCoords& target, bool has_z, const std::optional<float>& feedrate,
         const std::optional<float>& extrusion, const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt) {
           std::array<std::optional<double>, 4> g1_axes = { target[X], target[Y], std::nullopt, std::nullopt };
@@ -6266,7 +6289,11 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
               g1_axes[E] = target[E];
           if (feedrate.has_value())
               g1_feedrate = (double)*feedrate / MMMIN_TO_MMSEC;
+          if (m_smooth_arc)
+              m_smooth_arc->last_chord = !remaining_internal_g1_lines.has_value();
           process_G1(g1_axes, g1_feedrate, G1DiscretizationOrigin::G2G3, remaining_internal_g1_lines);
+          if (m_smooth_arc)
+              m_smooth_arc->first_chord = false;
     };
 
     if (m_flavor == gcfMarlinFirmware) {
@@ -6403,6 +6430,8 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
         m_start_position = m_end_position; // this is required because we are skipping the call to process_gcode_line()
         internal_only_g1_line(adjust_target(end_position, prev_target), arc.delta_z() != 0.0, (segments == 1) ? feedrate : std::nullopt, extrusion);
     }
+
+    m_smooth_arc.reset();
 
     // Internal linearized arc segments inherit the arc's starting certainty.
     // Only the original absolute command may establish a newly known endpoint.

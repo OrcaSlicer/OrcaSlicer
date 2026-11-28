@@ -1417,10 +1417,8 @@ void SurfaceFeature::translate(const Transform3d &tran)
     }
     case Measure::SurfaceFeatureType::Plane: {
         // m_pt1 is normal;
-        Vec3d temp_pt1 = m_pt2 + m_pt1;
-        temp_pt1       = tran * temp_pt1;
+        m_pt1          = (tran.linear().inverse().transpose() * m_pt1).normalized();
         m_pt2          = tran * m_pt2;
-        m_pt1          = (temp_pt1 - m_pt2).normalized();
         break;
     }
     case Measure::SurfaceFeatureType::Circle: {
