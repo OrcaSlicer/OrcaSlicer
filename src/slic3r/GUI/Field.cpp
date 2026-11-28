@@ -8,6 +8,7 @@
 #include "Plater.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
+#include "GUI_Utils.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
 
@@ -1039,6 +1040,7 @@ void TextCtrl::BUILD() {
 		temp->SetBackgroundStyle(wxBG_STYLE_PAINT);
 #ifdef __WXOSX__
     text_ctrl->OSXDisableAllSmartSubstitutions(); // BBS
+    textctrl_disable_text_replacement(text_ctrl);
 #endif // __WXOSX__
 
 	temp->SetToolTip(get_tooltip_text(text_value));
