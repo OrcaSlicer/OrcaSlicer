@@ -1,12 +1,16 @@
 #include "DevConfigUtil.h"
 
+#include <libslic3r/Preset.hpp>
 #include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
 
 #include <string>
 #include <algorithm>
 #include <map>
+#include <set>
+#include <mutex>
 #include <vector>
+#include "libslic3r/PresetBundle.hpp"
 #include <boost/nowide/fstream.hpp>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <cstddef>
@@ -57,17 +61,81 @@ static void _toolhead_translation_markers()
 
 std::string DevPrinterConfigUtil::m_resource_file_path = "";
 
+namespace {
+std::mutex                         s_installed_printer_models_mutex;
+std::map<std::string, std::string> s_installed_printer_model_aliases;
+
+void add_printer_model_alias(std::map<std::string, std::string>& aliases, std::set<std::string>& ambiguous,
+                             const std::string& alias, const std::string& canonical_id)
+{
+    if (alias.empty() || canonical_id.empty())
+        return;
+    auto inserted = aliases.emplace(alias, canonical_id);
+    if (!inserted.second && inserted.first->second != canonical_id)
+        ambiguous.insert(alias);
+}
+} // namespace
+
+void DevPrinterConfigUtil::set_installed_printer_models(std::vector<PrinterModelIdentity> models)
+{
+    std::map<std::string, std::string> aliases;
+    std::set<std::string>              ambiguous;
+    for (const PrinterModelIdentity& model : models) {
+        add_printer_model_alias(aliases, ambiguous, model.canonical_id, model.canonical_id);
+        for (const std::string& alias : model.aliases)
+            add_printer_model_alias(aliases, ambiguous, alias, model.canonical_id);
+    }
+    for (const std::string& alias : ambiguous)
+        aliases.erase(alias);
+
+    std::lock_guard<std::mutex> lock(s_installed_printer_models_mutex);
+    s_installed_printer_model_aliases = std::move(aliases);
+}
+
+void DevPrinterConfigUtil::set_installed_printer_models(const PresetBundle& preset_bundle)
+{
+    std::vector<PrinterModelIdentity> models;
+    for (const auto& vendor : preset_bundle.vendors) {
+        for (const VendorProfile::PrinterModel& model : vendor.second.models) {
+            if (model.model_id.empty())
+                continue;
+            models.push_back(PrinterModelIdentity{model.model_id, {model.model_id, model.name, model.id}});
+        }
+    }
+    set_installed_printer_models(std::move(models));
+}
+
+std::string DevPrinterConfigUtil::resolve_printer_model_id(const std::string& reported_id)
+{
+    if (reported_id.empty())
+        return {};
+
+    // Legacy names some agents use for two Bambu models. These are protocol aliases, not a
+    // vendor model registry.
+    if (reported_id == "3DPrinter-X1")
+        return "BL-P002";
+    if (reported_id == "3DPrinter-X1-Carbon")
+        return "BL-P001";
+
+    std::lock_guard<std::mutex> lock(s_installed_printer_models_mutex);
+    auto it = s_installed_printer_model_aliases.find(reported_id);
+    return it != s_installed_printer_model_aliases.end() ? it->second : std::string();
+}
+
 bool DevPrinterConfigUtil::is_printer_model_compatible(const std::string& source_model, MachineObject& machine)
 {
-    const std::string& target_model = machine.printer_type;
-    if (is_optional_printer_model_id(source_model) || is_optional_printer_model_id(target_model))
+    // Both sides are canonical before equality or compatible-machine lookup. An alias, model
+    // name or legacy agent name must compare like the installed model id it denotes.
+    const std::string normalized_source = resolve_printer_model_id(source_model);
+    const std::string normalized_target = resolve_printer_model_id(machine.printer_type);
+    if (normalized_source.empty() || normalized_target.empty() || !machine.has_advertised_printer_model())
         return true;
 
-    if (source_model == target_model)
+    if (normalized_source == normalized_target)
         return true;
 
     const auto compatible_machine = machine.get_compatible_machine();
-    return std::find(compatible_machine.begin(), compatible_machine.end(), source_model) != compatible_machine.end();
+    return std::find(compatible_machine.begin(), compatible_machine.end(), normalized_source) != compatible_machine.end();
 }
 
 

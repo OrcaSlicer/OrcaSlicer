@@ -1,5 +1,6 @@
 #include "BBLCloudServiceAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
+#include "PrinterCommLogger.hpp"
 
 #include <boost/log/trivial.hpp>
 #include "CloudProvider.hpp"
@@ -491,13 +492,32 @@ int BBLCloudServiceAgent::delete_setting(std::string setting_id)
 // Cloud User Services
 // ============================================================================
 
+#ifdef ORCA_PRINTER_COMM_LOG
+namespace {
+
+// The plugin hands back the raw REST status and body through out-params. Capture them: this is
+// genuine Bambu cloud JSON with no reverse-engineering.
+void comm_log_rest(const char* name, nlohmann::json args, int rc, const unsigned int* http_code, const std::string* http_body)
+{
+    args["rc"] = rc;
+    if (http_code)
+        args["http_code"] = *http_code;
+    if (http_body)
+        args["http_body"] = PrinterCommLogger::body_for_log(*http_body, 65536);
+    PrinterCommLogger::instance().log_event("cloud", name, args);
+}
+
+} // namespace
+#endif
+
 int BBLCloudServiceAgent::get_my_message(int type, int after, int limit, unsigned int* http_code, std::string* http_body)
 {
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_get_my_message();
     if (func && agent) {
-        return func(agent, type, after, limit, http_code, http_body);
+        return PRINTER_COMM_RESULT(func(agent, type, after, limit, http_code, http_body),
+                                   comm_log_rest("get_my_message", {{"type", type}, {"after", after}, {"limit", limit}}, rc, http_code, http_body));
     }
     return -1;
 }
@@ -519,7 +539,8 @@ int BBLCloudServiceAgent::get_user_print_info(unsigned int* http_code, std::stri
     auto agent = plugin.get_agent();
     auto func = plugin.get_get_user_print_info();
     if (func && agent) {
-        return func(agent, http_code, http_body);
+        return PRINTER_COMM_RESULT(func(agent, http_code, http_body),
+                                   comm_log_rest("get_user_print_info", nlohmann::json::object(), rc, http_code, http_body));
     }
     return -1;
 }
@@ -530,7 +551,10 @@ int BBLCloudServiceAgent::get_user_tasks(TaskQueryParams params, std::string* ht
     auto agent = plugin.get_agent();
     auto func = plugin.get_get_user_tasks();
     if (func && agent) {
-        return func(agent, params, http_body);
+        return PRINTER_COMM_RESULT(func(agent, params, http_body),
+                                   comm_log_rest("get_user_tasks",
+                                                 {{"dev_id", params.dev_id}, {"status", params.status}, {"offset", params.offset}, {"limit", params.limit}},
+                                                 rc, nullptr, http_body));
     }
     return -1;
 }
@@ -541,7 +565,8 @@ int BBLCloudServiceAgent::get_printer_firmware(std::string dev_id, unsigned* htt
     auto agent = plugin.get_agent();
     auto func = plugin.get_get_printer_firmware();
     if (func && agent) {
-        return func(agent, dev_id, http_code, http_body);
+        return PRINTER_COMM_RESULT(func(agent, dev_id, http_code, http_body),
+                                   comm_log_rest("get_printer_firmware", {{"dev_id", dev_id}}, rc, http_code, http_body));
     }
     return -1;
 }
@@ -574,7 +599,8 @@ int BBLCloudServiceAgent::get_subtask_info(std::string subtask_id, std::string* 
     auto agent = plugin.get_agent();
     auto func = plugin.get_get_subtask_info();
     if (func && agent) {
-        return func(agent, subtask_id, task_json, http_code, http_body);
+        return PRINTER_COMM_RESULT(func(agent, subtask_id, task_json, http_code, http_body),
+                                   comm_log_rest("get_subtask_info", {{"subtask_id", subtask_id}}, rc, http_code, http_body));
     }
     return -1;
 }
@@ -596,7 +622,8 @@ int BBLCloudServiceAgent::query_bind_status(std::vector<std::string> query_list,
     auto agent = plugin.get_agent();
     auto func = plugin.get_query_bind_status();
     if (func && agent) {
-        return func(agent, query_list, http_code, http_body);
+        return PRINTER_COMM_RESULT(func(agent, query_list, http_code, http_body),
+                                   comm_log_rest("query_bind_status", {{"query_list", query_list}}, rc, http_code, http_body));
     }
     return -1;
 }
@@ -622,6 +649,13 @@ int BBLCloudServiceAgent::get_camera_url(std::string dev_id, std::function<void(
     auto agent = plugin.get_agent();
     auto func = plugin.get_get_camera_url();
     if (func && agent) {
+        PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("video", "camera_url_request", {{"request", dev_id}});
+                         callback = [dev_id, callback](std::string url) {
+                             PrinterCommLogger::instance().log_event("video", "camera_url",
+                                                                     {{"request", dev_id}, {"url", PrinterCommLogger::redact_url(url)}});
+                             if (callback)
+                                 callback(url);
+                         };)
         return func(agent, dev_id, callback);
     }
     return -1;
@@ -699,7 +733,8 @@ int BBLCloudServiceAgent::get_my_profile(std::string token, unsigned int* http_c
     auto agent = plugin.get_agent();
     auto func = plugin.get_get_my_profile();
     if (func && agent) {
-        return func(agent, token, http_code, http_body);
+        return PRINTER_COMM_RESULT(func(agent, token, http_code, http_body),
+                                   comm_log_rest("get_my_profile", {{"token", token}}, rc, http_code, http_body));
     }
     return -1;
 }
@@ -710,7 +745,8 @@ int BBLCloudServiceAgent::get_my_token(std::string ticket, unsigned int* http_co
     auto agent = plugin.get_agent();
     auto func = plugin.get_get_my_token();
     if (func && agent) {
-        return func(agent, ticket, http_code, http_body);
+        return PRINTER_COMM_RESULT(func(agent, ticket, http_code, http_body),
+                                   comm_log_rest("get_my_token", {{"ticket", ticket}}, rc, http_code, http_body));
     }
     return -1;
 }

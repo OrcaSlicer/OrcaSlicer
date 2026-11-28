@@ -13,6 +13,7 @@
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "libslic3r/PrintConfig.hpp"
 #include <boost/log/trivial.hpp>
+#include <wx/app.h>
 #include <wx/string.h>
 #include <string>
 #include "libslic3r/CommonDefs.hpp"
@@ -27,6 +28,7 @@
 #include <unordered_map>
 #include <optional>
 #include <cmath>
+#include "slic3r/GUI/GUI_App.hpp"
 
 using json = nlohmann::json;
 
@@ -176,34 +178,52 @@ DevFirmwareVersionInfo DevNozzle::GetFirmwareInfo() const
 int DevNozzle::GetLogicExtruderId() const
 {
     int total_ext_count = GetTotalExtruderCount();
-    if (total_ext_count == 1) {
-        return LOGIC_UNIQUE_EXTRUDER_ID;
-    } else if (total_ext_count == 2) {
-        if (AtLeftExtruder()) {
-            return LOGIC_L_EXTRUDER_ID;
-        } else if (AtRightExtruder()) {
-            return LOGIC_R_EXTRUDER_ID;
+
+    const bool is_bbl_vendor = wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr &&
+                               GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+    if (is_bbl_vendor) {
+        if (total_ext_count == 1) {
+            return LOGIC_UNIQUE_EXTRUDER_ID;
+        } else if (total_ext_count == 2) {
+            if (AtLeftExtruder()) {
+                return LOGIC_L_EXTRUDER_ID;
+            } else if (AtRightExtruder()) {
+                return LOGIC_R_EXTRUDER_ID;
+            }
         }
+
+        assert(0);
+        return LOGIC_UNIQUE_EXTRUDER_ID;
     }
 
-    assert(0);
-    return LOGIC_UNIQUE_EXTRUDER_ID;
+    // For some reason, BBL's logical extruder ID is inverted:
+    // physical extruder id = 0 (MAIN_EXTRUDER_ID) vs logical extruder id = 1 (LOGIC_R_EXTRUDER_ID)
+    // Likely because logical id reads from left to right (left = 0, right = 1)
+    // For generic N extruders, this inversion does not apply.
+    if (IsOnRack()) return INVALID_EXTRUDER_ID;
+    return m_nozzle_id;
 }
 
 int DevNozzle::GetExtruderId() const
 {
-    int total_ext_count = GetTotalExtruderCount();
-    if (total_ext_count == 1) {
-        return MAIN_EXTRUDER_ID;
-    } else if (total_ext_count == 2) {
-        if (AtRightExtruder()) {
+    const bool is_bbl_vendor = wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr &&
+                               GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+    if (is_bbl_vendor) {
+        int total_ext_count = GetTotalExtruderCount();
+        if (total_ext_count == 1) {
             return MAIN_EXTRUDER_ID;
-        } else if (AtLeftExtruder()) {
-            return DEPUTY_EXTRUDER_ID;
+        } else if (total_ext_count == 2) {
+            if (AtRightExtruder()) {
+                return MAIN_EXTRUDER_ID;
+            } else if (AtLeftExtruder()) {
+                return DEPUTY_EXTRUDER_ID;
+            }
         }
+    
+        return MAIN_EXTRUDER_ID;
     }
 
-    return MAIN_EXTRUDER_ID;
+    return m_nozzle_id;
 }
 
 bool DevNozzle::AtLeftExtruder() const

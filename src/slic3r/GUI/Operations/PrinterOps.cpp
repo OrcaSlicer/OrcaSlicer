@@ -220,9 +220,10 @@ Outcome<JobCommandSent> send_job_command(MachineObject* printer, JobCommand comm
 
 std::string printer_model_name(const MachineObject& printer, const PresetBundle* bundle)
 {
-    // As MachineObject::get_printer_type_display_str() names it, without its translated "Unknown".
+    // As MachineObject::get_printer_type_display_str() names it, without its translated "Unknown". An empty
+    // printer_type is unknown, not a match for a vendor model whose model_id is also empty.
     std::string name = DevPrinterConfigUtil::get_printer_display_name(printer.printer_type);
-    if (name.empty() && bundle != nullptr)
+    if (name.empty() && bundle != nullptr && !printer.printer_type.empty())
         for (const auto& [vendor_id, vendor] : bundle->vendors)
             for (const auto& model : vendor.models)
                 if (model.model_id == printer.printer_type)

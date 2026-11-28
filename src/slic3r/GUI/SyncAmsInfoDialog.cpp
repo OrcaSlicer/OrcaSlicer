@@ -37,6 +37,7 @@
 #include <vector>
 #include <wx/anybutton.h>
 #include <wx/animate.h>
+#include <wx/app.h>
 #include <wx/busycursor.h>
 #include <wx/chartype.h>
 #include <wx/arrstr.h>
@@ -261,6 +262,37 @@ void SyncAmsInfoDialog::deal_ok()
         m_result.direct_sync = false;
         m_result.sync_maps   = ams_sync_maps(m_ams_mapping_result);
     }
+}
+
+bool SyncAmsInfoDialog::applies_mapping() const
+{
+    return !m_is_empty_project && m_map_mode != MapModeEnum::Override && m_result.is_same_printer;
+}
+
+bool SyncAmsInfoDialog::has_invalid_ams_binding() const
+{
+    DeviceManager* dev   = wxGetApp().getDeviceManager();
+    MachineObject* obj_  = dev ? dev->get_selected_machine() : nullptr;
+    if (!obj_)
+        return false;
+    // Use the same count fallback as the status vector: the live device tool count, or the
+    // preset nozzle count while an agent has not reported a tool count.
+    int status_count = obj_->GetExtderSystem()->GetTotalExtderCount();
+    if (status_count <= 0) {
+        if (PresetBundle* preset_bundle = wxGetApp().preset_bundle) {
+            const DynamicPrintConfig full_config = preset_bundle->full_config();
+            const auto* nozzle_option = full_config.option<ConfigOptionFloats>("nozzle_diameter");
+            status_count = nozzle_option ? (int) nozzle_option->values.size() : 0;
+        }
+    }
+    for (const FilamentInfo& item : m_ams_mapping_result) {
+        if (item.ams_id.empty())
+            continue;
+        const int extruder_id = obj_->get_extruder_id_by_ams_id(item.ams_id);
+        if (extruder_id < 0 || extruder_id >= status_count)
+            return true;
+    }
+    return false;
 }
 
 std::map<int, AMSMapInfo> ams_sync_maps(const std::vector<FilamentInfo> &result)
@@ -1083,6 +1115,12 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         m_button_ok = dlg_btns->GetOK();
         m_button_ok->SetLabel(_L("Synchronize now"));
         m_button_ok->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](wxCommandEvent &e) {
+            if (applies_mapping() && has_invalid_ams_binding()) {
+                // Re-check the current state on every click so a genuinely invalid AMS binding
+                // can never be applied, while a later valid state can still be synchronized.
+                show_status(PrintDialogStatus::PrintStatusAmsMappingInvalid);
+                return;
+            }
             deal_ok();
             EndModal(wxID_YES);
             SetFocusIgnoringChildren();
@@ -1259,12 +1297,13 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
                 wxString ams_id;
                 wxColour ams_col;
 
-                if (f->tray_id == VIRTUAL_TRAY_MAIN_ID || f->tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
+                if (devPrinterUtil::IsVirtualSlot(f->ams_id)) {
                     ams_id = _L("Ext");
                 }
 
                 else if (f->tray_id >= 0) {
-                    ams_id = wxGetApp().transition_tridid(f->tray_id);
+                    auto* dev = wxGetApp().getDeviceManager();
+                    ams_id = mapping_tray_label(dev ? dev->get_selected_machine() : nullptr, f->tray_id);
                     // ams_id = wxString::Format("%02d", f->tray_id + 1);
                 } else {
                     ams_id = "-";
@@ -1411,6 +1450,8 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
     if (m_ams_mapping_result.empty())
         return false;
 
+    const bool is_bbl_vendor = wxTheApp != nullptr && wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
+
     bool valid_mapping_result = true;
     int  invalid_count        = 0;
     for (int i = 0; i < m_ams_mapping_result.size(); i++) {
@@ -1443,6 +1484,12 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
             BOOST_LOG_TRIVIAL(error) << "get_ams_mapping_result, plater is nullptr";
         }
 
+        // mapping_v1_json is built one entry per filament preset, in preset order, so the
+        // array position is the logical filament index the generated G-code toolchange
+        // references (the identifier handed to the Klipper toolchange macro; see
+        // OrcaPrinterAgent::build_filament_mapping and the index-correlation test in
+        // tests/slic3rutils/test_orca_printer_agent.cpp). Never re-densify after dropping
+        // sentinel entries, or a used filament would be aimed at the wrong lane.
         for (int i = 0; i < wxGetApp().preset_bundle->filament_presets.size(); i++) {
             int  tray_id = -1;
             json mapping_item_v1;
@@ -1462,12 +1509,19 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
                         auto it = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
                         if (it != nullptr) { mapping_item["filamentId"] = it->filament_id; }
                     }
-                    /* nozzle id */
-                    if (i >= 0 && i < filament_maps.size()) { mapping_item["nozzleId"] = convert_filament_map_nozzle_id_to_task_nozzle_id(filament_maps[i]); }
+                    /* nozzle id; a generic printer's third and later toolheads have no BBL task id */
+                    if (i >= 0 && i < filament_maps.size()) {
+                        const int task_nozzle_id = convert_filament_map_nozzle_id_to_task_nozzle_id(filament_maps[i]);
+                        if (task_nozzle_id >= 0)
+                            mapping_item["nozzleId"] = task_nozzle_id;
+                    }
                     // convert #RRGGBB to RRGGBBAA
                     mapping_item["sourceColor"] = m_filaments[k].color;
                     mapping_item["targetColor"] = m_ams_mapping_result[k].color;
-                    if (tray_id == VIRTUAL_TRAY_MAIN_ID || tray_id == VIRTUAL_TRAY_DEPUTY_ID) { tray_id = -1; }
+                    // The legacy v0 mapping array encodes an external spool as -1, a BBL-firmware
+                    // contract. A generic printer keeps the virtual tray id (255 - extruder) so the
+                    // payload still says which extruder's external slot was mapped.
+                    if (is_bbl_vendor && (tray_id == VIRTUAL_TRAY_MAIN_ID || tray_id == VIRTUAL_TRAY_DEPUTY_ID)) { tray_id = -1; }
 
                     /*new ams mapping data*/
                     try {
@@ -1647,11 +1701,11 @@ int SyncAmsInfoDialog::convert_filament_map_nozzle_id_to_task_nozzle_id(int nozz
         return (int) CloudTaskNozzleId::NOZZLE_LEFT;
     } else if (nozzle_id == (int) FilamentMapNozzleId::NOZZLE_RIGHT) {
         return (int) CloudTaskNozzleId::NOZZLE_RIGHT;
-    } else {
-        /* unsupported nozzle id */
-        assert(false);
-        return nozzle_id;
     }
+    // A generic printer can map filaments to more than two toolheads, but the BBL task payload only
+    // names the left/right pair. Return a "no task nozzle id" sentinel and let the caller omit the
+    // field instead of asserting on a valid generic mapping.
+    return -1;
 }
 
 void SyncAmsInfoDialog::prepare(int print_plate_idx) { m_print_plate_idx = print_plate_idx; }
@@ -1819,7 +1873,7 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
     } else if (status == PrintDialogStatus::PrintStatusOptionalPrinterModel) {
         update_print_status_msg(PrePrintChecker::get_pre_state_msg(PrintDialogStatus::PrintStatusOptionalPrinterModel), true, true);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingInvalid) {
-        update_print_status_msg(wxEmptyString, true, false);
+        update_print_status_msg(PrePrintChecker::get_pre_state_msg(PrintDialogStatus::PrintStatusAmsMappingInvalid), true, false);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingMixInvalid) {
         wxString msg_text = _L("Please do not mix-use the Ext with AMS.");
         update_print_status_msg(msg_text, true, false);
@@ -1995,7 +2049,7 @@ bool SyncAmsInfoDialog::is_same_printer_model()
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
     const std::string source_model = preset_bundle ? preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) : std::string();
     if (DevPrinterConfigUtil::is_optional_printer_model_id(source_model) ||
-        DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type)) {
+        !obj_->has_advertised_printer_model()) {
         return true;
     }
 
@@ -2333,7 +2387,7 @@ void SyncAmsInfoDialog::update_show_status()
 
     reset_timeout();
 
-    bool has_optional_printer_model = DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type);
+    bool has_optional_printer_model = !obj_->has_advertised_printer_model();
     if (m_print_type == PrintFromType::FROM_NORMAL) {
         if (PresetBundle *preset_bundle = wxGetApp().preset_bundle) {
             has_optional_printer_model = has_optional_printer_model ||
@@ -2421,11 +2475,28 @@ void SyncAmsInfoDialog::update_show_status()
             bool has_ams{false};
             bool has_vt_slot{false};
         };
-        std::vector<ExtruderStatus> extruder_status(nozzle_nums);
+        // The ids resolved below are live device tool ids, so size by the device count. Keep the
+        // preset count as the legacy fallback when an agent has not reported a tool count.
+        const int device_tool_count = obj_->GetExtderSystem()->GetTotalExtderCount();
+        const int status_count      = device_tool_count > 0 ? device_tool_count : (int) nozzle_nums;
+        std::vector<ExtruderStatus> extruder_status((size_t) std::max(status_count, 0));
         for (const FilamentInfo &item : m_ams_mapping_result) {
             if (item.ams_id.empty()) continue;
 
-            int extruder_id = obj_->get_extruder_id_by_ams_id(item.ams_id);
+            const int extruder_id = obj_->get_extruder_id_by_ams_id(item.ams_id);
+            if (extruder_id < 0 || extruder_id >= (int) extruder_status.size()) {
+                // This is an AMS/tray binding outside the reported device, not nozzle data.
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << "diagnostic: AMS/tray '" << item.ams_id
+                                           << "' resolves to tool " << extruder_id << " outside the "
+                                           << status_count << " available tool(s)";
+                if (applies_mapping()) {
+                    // Only report an unusable binding when the action would actually apply the
+                    // mapping; otherwise the message would be misleading.
+                    show_status(PrintDialogStatus::PrintStatusAmsMappingInvalid);
+                    return;
+                }
+                continue;
+            }
             if (devPrinterUtil::IsVirtualSlot(item.ams_id))
                 extruder_status[extruder_id].has_vt_slot = true;
             else
@@ -2438,6 +2509,16 @@ void SyncAmsInfoDialog::update_show_status()
             }
         }
     }
+
+    // Clear a prior invalid-mapping message: always when the action no longer applies the
+    // mapping, otherwise only for a non-empty mapping that now validates. Do not report success
+    // for an empty/failed mapping or overwrite an unrelated status.
+    if (m_print_status == PrintDialogStatus::PrintStatusAmsMappingInvalid &&
+        (!applies_mapping() ||
+         (!m_ams_mapping_result.empty() &&
+          DevMappingUtil::is_valid_mapping_result(obj_, m_ams_mapping_result) &&
+          !has_invalid_ams_binding())))
+        show_status(PrintDialogStatus::PrintStatusAmsMappingSuccess);
 
     if (has_optional_printer_model)
         show_status(PrintDialogStatus::PrintStatusOptionalPrinterModel);

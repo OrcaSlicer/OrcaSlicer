@@ -114,6 +114,7 @@ option(SLIC3R_OPENVDB           "Compile OrcaSlicer with OpenVDB (used only by S
 option(SLIC3R_CAD               "Compile OrcaSlicer with the parametric Design/CAD tab (needs OCCT's TKFillet, TKOffset and TKBool)" 1)
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
 option(SLIC3R_PROFILE           "Compile OrcaSlicer with an invasive Shiny profiler" 0)
+option(ORCA_PRINTER_COMM_LOG    "Developer tool: record all printer and cloud traffic to <data_dir>/log/printer_comm" 1)
 option(SLIC3R_PCH               "Use precompiled headers" 1)
 option(SLIC3R_WARNINGS          "Emit compiler warnings for OrcaSlicer sources" 1)
 option(SLIC3R_BUNDLED_WARNINGS  "Emit compiler warnings for bundled third-party sources" 0)

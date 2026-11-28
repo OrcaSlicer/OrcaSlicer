@@ -10,6 +10,7 @@
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
 #include <boost/log/trivial.hpp>
+#include <slic3r/GUI/DeviceManager.hpp>
 #include <string>
 #include <vector>
 #include "libslic3r/calib.hpp"
@@ -745,9 +746,15 @@ wxArrayString NewCalibrationHistoryDialog::get_all_filaments(const MachineObject
     std::string nozzle_diameter_str = stream.str();
 
     if (preset_bundle) {
+        // OrcaSonar's model id is optional; the helper falls back to the selected profile
+        // so the list is never empty.
+        const std::string filament_printer_model = resolve_filament_printer_model(obj->printer_type, preset_bundle);
+        if (filament_printer_model.empty())
+            return filament_items;
+
         BOOST_LOG_TRIVIAL(trace) << "system_preset_bundle filament number=" << preset_bundle->filaments.size();
         for (Preset *filament_it : preset_bundle->get_filament_presets_for_machine(
-                 DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str, obj->is_support_user_preset)) {
+                 filament_printer_model, nozzle_diameter_str, obj->is_support_user_preset)) {
             if (!filament_id_set.insert(filament_it->filament_id).second)
                 continue;
             const std::string alias = preset_bundle->filaments.get_preset_alias(*filament_it, true);
@@ -904,10 +911,22 @@ NewCalibrationHistoryDialog::NewCalibrationHistoryDialog(wxWindow *parent, const
 
 int NewCalibrationHistoryDialog::get_extruder_id(int extruder_index)
 {
-    if ((extruder_index != -1) && curr_obj->is_multi_extruders()) {
-        return curr_obj->is_main_extruder_on_left() ? extruder_index : (1 - extruder_index);
+    if (!curr_obj)
+        return INVALID_EXTRUDER_ID;
+    if (!curr_obj->is_multi_extruders())
+        return MAIN_EXTRUDER_ID;
+    if (extruder_index < 0)
+        return INVALID_EXTRUDER_ID;
+    if (curr_obj->GetExtderSystem()->GetTotalExtderCount() == 2) {
+        const int device_tool = curr_obj->device_tool_for_display_index(extruder_index);
+        if (device_tool < 0) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " " << __LINE__
+                                       << " unresolved device tool for extruder display index " << extruder_index;
+            return INVALID_EXTRUDER_ID;
+        }
+        return device_tool;
     }
-    return 0;
+    return curr_obj->is_main_extruder_on_left() ? extruder_index : (1 - extruder_index);
 }
 
 int NewCalibrationHistoryDialog::get_nozzle_combo_id_code() const
@@ -975,6 +994,12 @@ void NewCalibrationHistoryDialog::on_ok(wxCommandEvent &event)
             return;
         }
         m_new_result.extruder_id        = get_extruder_id(m_comboBox_extruder->GetSelection());
+        if (m_new_result.extruder_id < 0) {
+            // TRN: Warning when the chosen extruder cannot be resolved to a device tool.
+            MessageDialog msg_dlg(nullptr, _L("The selected extruder is not available for this printer."), wxEmptyString, wxICON_WARNING | wxOK);
+            msg_dlg.ShowModal();
+            return;
+        }
     }
 
     if (support_nozzle_volume(curr_obj)) {

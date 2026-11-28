@@ -1,6 +1,8 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <string>
 
@@ -58,4 +60,91 @@ TEST_CASE("The print start of a 3MF names the plate to print", "[QidiPrinterAgen
     CHECK(QidiPrinterAgent::print_start_request(params, "Cube.gcode.3mf") ==
           nlohmann::json{{"filename", "Cube.gcode.3mf"}, {"plateindex", "2"}});
     CHECK(QidiPrinterAgent::print_start_request(params, "Cube.gcode") == nlohmann::json{{"filename", "Cube.gcode"}});
+}
+
+TEST_CASE("Qidi slot response rejects null variables without throwing", "[QidiPrinterAgent]")
+{
+    const std::string response = R"({
+        "result": {
+            "status": {
+                "save_variables": {
+                    "variables": null
+                }
+            }
+        }
+    })";
+    nlohmann::json status;
+    nlohmann::json variables;
+    std::string    error;
+    bool           parsed = true;
+
+    REQUIRE_NOTHROW(parsed = QidiPrinterAgent::parse_slot_response(response, status, variables, error));
+    CHECK_FALSE(parsed);
+    CHECK_THAT(error, Catch::Matchers::ContainsSubstring("variables"));
+    CHECK_THAT(error, Catch::Matchers::ContainsSubstring("object"));
+}
+
+TEST_CASE("Qidi slot response rejects missing and non-object fields without throwing", "[QidiPrinterAgent]")
+{
+    const std::string response = GENERATE(as<std::string>{},
+                                          R"({})",                                                // missing result
+                                          R"({"result":null})",                                   // non-object result
+                                          R"({"result":{}})",                                     // missing status
+                                          R"({"result":{"status":null}})",                        // non-object status
+                                          R"({"result":{"status":{}}})",                          // missing save_variables
+                                          R"({"result":{"status":{"save_variables":null}}})",     // non-object save_variables
+                                          R"({"result":{"status":{"save_variables":{}}}})",       // missing variables
+                                          R"({"result":{"status":{"save_variables":{"variables":42}}}})", // scalar
+                                          R"({"result":{"status":{"save_variables":{"variables":[]}}}})"); // array
+    CAPTURE(response);
+
+    nlohmann::json status;
+    nlohmann::json variables;
+    std::string    error;
+    bool           parsed = true;
+
+    REQUIRE_NOTHROW(parsed = QidiPrinterAgent::parse_slot_response(response, status, variables, error));
+    CHECK_FALSE(parsed);
+}
+
+TEST_CASE("Qidi slot response exposes valid status and variables", "[QidiPrinterAgent]")
+{
+    const std::string response = R"({
+        "result": {
+            "status": {
+                "save_variables": {
+                    "variables": {
+                        "box_count": 2,
+                        "color_slot0": 3
+                    }
+                },
+                "box_stepper slot0": {
+                    "runout_button": 0
+                }
+            }
+        }
+    })";
+    nlohmann::json status;
+    nlohmann::json variables;
+    std::string    error;
+    bool           parsed = false;
+
+    REQUIRE_NOTHROW(parsed = QidiPrinterAgent::parse_slot_response(response, status, variables, error));
+    REQUIRE(parsed);
+    CHECK(status.is_object());
+    CHECK(variables.is_object());
+    CHECK(variables.at("box_count") == 2);
+    CHECK(status.contains("box_stepper slot0"));
+}
+
+TEST_CASE("Qidi slot response rejects invalid JSON", "[QidiPrinterAgent]")
+{
+    nlohmann::json status;
+    nlohmann::json variables;
+    std::string    error;
+    bool           parsed = true;
+
+    REQUIRE_NOTHROW(parsed = QidiPrinterAgent::parse_slot_response("{not json", status, variables, error));
+    CHECK_FALSE(parsed);
+    CHECK(error == "Invalid JSON response");
 }

@@ -11,6 +11,7 @@
 #include <functional>
 #include <pybind11/cast.h>
 #include <pybind11/pytypes.h>
+#include <pybind11/stl.h>
 #include <boost/log/trivial.hpp>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include "slic3r/plugin/PluginManager.hpp"
@@ -25,6 +26,7 @@
 #include <string>
 #include <system_error>
 #include <thread>
+#include <vector>
 
 #include <type_traits>
 
@@ -65,6 +67,11 @@ public:
     AgentInfo get_agent_info() override
     {
         ORCA_PY_AGENT_OVERRIDE(AgentInfo, get_agent_info);
+    }
+
+    std::vector<int> tool_display_order(const std::string& dev_id, int tool_count) const override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(std::vector<int>, tool_display_order, dev_id, tool_count);
     }
 
     int connect_printer(const PrinterConnectionParams& params) override

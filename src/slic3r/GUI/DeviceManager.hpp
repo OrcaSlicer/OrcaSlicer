@@ -14,6 +14,7 @@
 #include <string>
 #include <memory>
 #include <chrono>
+#include <set>
 #include <unordered_set>
 #include <optional>
 #include <boost/thread.hpp>
@@ -43,6 +44,7 @@
 #define PUSHINFO_TIMEOUT        15000.f     // milliseconds
 #define TIMEOUT_FOR_STRAT       20000.f     // milliseconds
 #define TIMEOUT_FOR_KEEPALIVE   5* 60 * 1000.f     // milliseconds
+#define LIVENESS_PROBE_INTERVAL 20000.f     // milliseconds
 #define REQUEST_PUSH_MIN_TIME   3000.f     // milliseconds
 #define REQUEST_START_MIN_TIME  15000.f     // milliseconds
 #define EXTRUSION_OMIT_TIME     20000.f     // milliseconds
@@ -72,6 +74,7 @@ class DeviceErrorDialog; // Previous definitions
 
 class NetworkAgent;
 // Orca: ManualPaCaliMethod now provided by DeviceCore/DevCalib.h (enum class)
+class PresetBundle;
 
 #define UpgradeNoError          0
 #define UpgradeDownloadFailed   -1
@@ -106,6 +109,11 @@ struct DevPrintTaskRatingInfo;
 // Returns true when filament_id (e.g. "GFA11", "GFU00") is on the stringing-prone list for the
 // given nozzle diameter (mm), bucketed per nozzle size to mirror the printer firmware.
 bool is_stringing_prone_filament(const std::string& filament_id, float nozzle_diameter);
+
+// The printer model filament presets are matched against for a connected machine. OrcaSonar's
+// model id is optional, so a device with no installed vendor model falls back to the selected
+// printer profile rather than resolving to no filament list at all.
+std::string resolve_filament_printer_model(const std::string& printer_type, PresetBundle* preset_bundle);
 
 class MachineObject
 {
@@ -241,6 +249,10 @@ public:
 
     //PRINTER_TYPE printer_type = PRINTER_3DPrinter_UKNOWN;
     std::string printer_type;       /* model_id */
+    // Runtime provenance: true only when printer_type came from a model the printer itself
+    // advertised, not from a preset or a manual entry. Saved types load unverified.
+    bool printer_model_advertised = false;
+    bool has_advertised_printer_model() const { return printer_model_advertised && !printer_type.empty(); }
 
     // id of the IPrinterAgent that was used to discover or bind this device (IPrinterAgent::get_agent_info().id,
     // e.g. "bbl"), stamped at creation time — not derived from get_agent(), since m_agent is a single
@@ -287,6 +299,12 @@ public:
     time_t last_alive;
     bool m_is_online;
     bool m_lan_mode_connection_state{false};
+    // The selected LAN transport itself, not SSDP-discovered reachability. It is set when the
+    // local connect callback reports success and cleared on loss/deselect/disconnect, so a
+    // discovery broadcast cannot make a closed session look probeable.
+    bool m_lan_session_open{false};
+    void set_lan_session_open(bool open) { m_lan_session_open = open; }
+    bool is_lan_session_open() const { return m_lan_session_open; }
     bool m_set_ctt_dlg{ false };
     bool m_unsupported_dlg_shown{ false };
     void set_lan_mode_connection_state(bool state) {m_lan_mode_connection_state = state;};
@@ -296,11 +314,16 @@ public:
     int  parse_msg_count = 0;
     int  keep_alive_count = 0;
     std::chrono::system_clock::time_point   last_update_time;   /* last received print data from machine */
+    // Last successfully parsed, non-empty printer report that was not client.disconnected.
+    // Display freshness still uses last_update_time; liveness uses this so synthetic reloads,
+    // malformed payloads and empty objects do not postpone the idle probe.
+    std::chrono::system_clock::time_point   last_printer_message_time;
     std::chrono::system_clock::time_point   last_utc_time;   /* last received print data from machine */
     std::chrono::system_clock::time_point   last_keep_alive;    /* last received print data from machine */
     std::chrono::system_clock::time_point   last_push_time;     /* last received print push from machine */
     std::chrono::system_clock::time_point   last_request_push;  /* last received print push from machine */
     std::chrono::system_clock::time_point   last_request_start; /* last received print push from machine */
+    std::chrono::system_clock::time_point   last_liveness_probe; /* last automatic pushall liveness probe */
 
     bool device_cert_installed = false;
 
@@ -336,6 +359,9 @@ public:
     DevAms*     get_curr_Ams();
     DevAmsTray* get_curr_tray();
     DevAmsTray* get_ams_tray(std::string ams_id, std::string tray_id);;
+    /* External (virtual tray) slot carrying the given virtual tray id, or nullptr if none does.
+       Look up by id instead of a fixed pair index so any extruder count is supported. */
+    DevAmsTray* get_external_virtual_tray(const std::string& ams_id);
 
     std::string  get_filament_id(std::string ams_id, std::string tray_id) const;
     std::string  get_filament_type(const std::string& ams_id, const std::string& tray_id) const;
@@ -351,15 +377,23 @@ public:
 
     /*extruder*/
     bool is_main_extruder_on_left() const { return false;  } // only means the extruder is on the left hand when extruder id is 0
+    // Physical display order is distinct from the preset's logical-to-physical map.
+    int display_index_for_device_tool(int tool_id) const;
+    int device_tool_for_display_index(int display_index) const;
     bool is_multi_extruders() const;
     int  get_extruder_id_by_ams_id(const std::string& ams_id);
     // Orca: the printer preset's extruder index of device extruder extder_id
-    int  get_preset_extruder_index(int extder_id) const { return is_multi_extruders() ? (is_main_extruder_on_left() ? extder_id : 1 - extder_id) : 0; }
+    int  get_preset_extruder_index(int extder_id) const;
 
     /* E3D has extra nozzle flow type info */
     bool has_extra_flow_type{false};
 
-    [[nodiscard]] bool is_nozzle_flow_type_supported() const { return is_enable_np | has_extra_flow_type; };
+    // The device reported a nozzle type that names a flow variant (the "S"/"H" in
+    // HS00/HH00). The NP markers alone are not a capability: some agents fill
+    // cfg/fun/aux/stat as compatibility stubs.
+    bool has_nozzle_flow_type_info{false};
+
+    [[nodiscard]] bool is_nozzle_flow_type_supported() const;
     [[nodiscard]] wxString get_nozzle_replace_url() const;
 
     /*online*/
@@ -758,6 +792,11 @@ public:
     /* command commands */
     int command_get_version(bool with_retry = true);
     int command_request_push_all(bool request_now = false);
+    // Shared LAN/cloud liveness probe: after TIMEOUT_FOR_STRAT of silence on an open
+    // connection, send a quiet pushing.pushall, retried no faster than
+    // LIVENESS_PROBE_INTERVAL. Its full-status reply is an ordinary push_status, so
+    // parse_json() stamps last_update_time and resets the disconnect clock.
+    bool request_liveness_probe(std::chrono::system_clock::time_point now);
     int command_pushing(std::string cmd);
     int command_clean_print_error(std::string task_id, int print_error);
     int command_clean_print_error_uiop(int print_error);
@@ -805,6 +844,13 @@ public:
     // check_resume_condition()'s rule, which it tells the person in a dialog.
     bool resume_only_at_printer() const;
     int check_resume_condition();
+    bool printer_supports_command(const char* command) const;
+    bool printer_supports_feature(const char* feature) const;
+    bool printer_uses_filament_mapping() const;
+    // The per-tray flow-dynamics K/N records are a Bambu firmware feature. Other
+    // agents have no printer-side calibration to read or write, so the AMS UI must
+    // not offer K/N for them.
+    bool supports_extrusion_cali() const;
     // ams controls
     //int command_ams_switch(int tray_index, int old_temp = 210, int new_temp = 210);
     int command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp = 210, int new_temp = 210, std::optional<int> extruder_id = std::nullopt);
@@ -892,6 +938,9 @@ public:
     bool is_printing_finished();
     bool is_core_xy();
     void reset_update_time();
+    // Starts a fresh liveness window for a real selection/reset/reconnect. Ordinary view
+    // refreshes must call reset_update_time() only, which leaves this probe clock alone.
+    void reset_liveness_window();
     void reset();
     static bool is_in_printing_status(std::string status);
 
@@ -912,7 +961,7 @@ public:
 
     /* Msg for display MsgFn */
     typedef std::function<void(std::string topic, std::string payload)> MsgFn;
-    int publish_json(const nlohmann::json& json_item, int qos = 0, int flag = 0) ;
+    int publish_json(const nlohmann::json& json_item, int qos = 0, int flag = 0, bool report_unsupported = true) ;
     int publish_json(const std::string& json_str, int qos = 0, int flag = 0) = delete;
     int cloud_publish_json(std::string json_str, int qos = 0, int flag = 0);
     int local_publish_json(std::string json_str, int qos = 0, int flag = 0);
@@ -958,6 +1007,16 @@ public:
     std::vector<DevAmsTray> vt_slot;
     DevAmsTray parse_vt_tray(nlohmann::json vtray);
 
+    /**
+     * Give every live device extruder an external virtual tray slot (non-Bambu printers only).
+     *
+     * Slots are addressed by VIRTUAL_TRAY_MAIN_ID - extruder_id, so a slot already reported for an
+     * extruder keeps its tray metadata and sparse/out-of-order reports never shift the slot ->
+     * extruder association. Only missing topology slots are added, so the call is idempotent across
+     * refreshes. Bambu keeps its existing fixed pair reported through vir_slot/vt_tray.
+     */
+    void ensure_external_virtual_tray_slots();
+
     /*get ams slot info*/
     bool    contains_tray(const std::string &ams_id, const std::string &tray_id) const;
     DevAmsTray get_tray(const std::string &ams_id, const std::string &tray_id) const;/*use contains_tray() check first*/
@@ -996,6 +1055,12 @@ public:
 
 private:
     int command_with_dialog(int cmd_result);
+    // Forward a printer-reported capability to the owning agent. The shared contract stays
+    // OrcaSonar; an agent may need it to adapt its own transport (Bambu legacy firmware
+    // needs pushing.start to resume a status stream that went quiet).
+    void report_mqtt_alive_support(bool supported);
+    int request_push_all(bool request_now, bool report_unsupported,
+                         std::chrono::system_clock::time_point now = std::chrono::system_clock::now());
     /* xcam door open check*/
     bool is_support_door_open_check = false;
     DoorOpenCheckState xcam_door_open_check  = DoorOpenCheckState::DOOR_OPEN_CHECK_DISABLE;

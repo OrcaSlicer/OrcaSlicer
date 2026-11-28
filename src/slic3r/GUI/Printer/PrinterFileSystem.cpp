@@ -5,6 +5,7 @@
 #include "slic3r/GUI/I18N.hpp"
 
 #include "../../Utils/NetworkAgent.hpp"
+#include "../../Utils/PrinterCommLogger.hpp"
 #include "../BitmapCache.hpp"
 
 #include <algorithm>
@@ -1256,6 +1257,8 @@ void PrinterFileSystem::DumpLog(void * thiz, int, tchar const *msg)
 #if !BBL_RELEASE_TO_PUBLIC
     BOOST_LOG_TRIVIAL(info) << "PrinterFileSystem: " << wxString(msg).ToUTF8().data();
 #endif
+    PRINTER_COMM_LOG(Slic3r::PrinterCommLogger::instance().log_event("tunnel", "bambusource_log",
+                                            {{"msg", Slic3r::PrinterCommLogger::body_for_log(wxString(msg).ToUTF8().data(), 4096)}}));
 
     static_cast<PrinterFileSystem*>(thiz)->Bambu_FreeLogMsg(msg);
 }
@@ -1606,6 +1609,8 @@ void PrinterFileSystem::RecvMessageThread()
             // OutputDebugStringA(msg.c_str());
             // OutputDebugStringA("\n");
             wxLogInfo("PrinterFileSystem::SendRequest >>>: \n%s\n", wxString::FromUTF8(msg));
+            PRINTER_COMM_LOG(Slic3r::PrinterCommLogger::instance().log_event("tunnel", "request",
+                                                   Slic3r::PrinterCommLogger::body_for_log(msg, 65536)));
             l.unlock();
             int n = Bambu_SendMessage(m_session.tunnel, CTRL_TYPE, msg.c_str(), msg.length());
             l.lock();
@@ -1646,6 +1651,9 @@ void PrinterFileSystem::HandleResponse(boost::unique_lock<boost::mutex> &l, Bamb
     // OutputDebugStringA(msg.c_str());
     // OutputDebugStringA("\n");
     wxLogInfo("PrinterFileSystem::HandleResponse <<<: \n%s\n", wxString::FromUTF8(msg));
+    PRINTER_COMM_LOG(Slic3r::PrinterCommLogger::instance().log_event("tunnel", "response",
+                                            {{"header", Slic3r::PrinterCommLogger::body_for_log(msg, 65536)},
+                                             {"payload_bytes", int(end - json_end)}}));
     std::istringstream iss(msg);
     int                cmd    = 0;
     int                seq    = -1;
@@ -1762,10 +1770,13 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
             SendChangedEvent(EVT_STATUS_CHANGED, m_status);
             Bambu_Tunnel tunnel = nullptr;
             int ret = Bambu_Create(&tunnel, url.c_str());
+            PRINTER_COMM_LOG(Slic3r::PrinterCommLogger::instance().log_event(
+                "tunnel", "create", {{"url", Slic3r::PrinterCommLogger::redact_url(url)}, {"rc", ret}}));
             if (ret == 0) {
 
                 Bambu_SetLogger(tunnel, DumpLog, this);
                 ret = Bambu_Open(tunnel);
+                PRINTER_COMM_LOG(Slic3r::PrinterCommLogger::instance().log_event("tunnel", "open", {{"rc", ret}}));
             }
 
             if (ret == 0)

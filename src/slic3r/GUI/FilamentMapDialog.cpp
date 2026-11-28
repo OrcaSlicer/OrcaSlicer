@@ -10,6 +10,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <vector>
 #include <wx/panel.h>
@@ -132,12 +133,10 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
     if (nozzle_diameters->size() <= 1)
         return true;
 
-    // The filament-grouping dialog is specifically designed for BBL dual-nozzle printers
-    // (e.g. H2D) where filaments must be assigned to a left or right nozzle.
-    // For toolchangers (≥3 tools) and all non-BBL printers the dialog is irrelevant and
-    // confusing; skip it entirely so slicing proceeds without interruption. (#12390)
+    // Generic automatic grouping does not implement the modes described by this dialog.
+    // The dialog also has exactly two destinations.
     PresetBundle* preset = wxGetApp().preset_bundle;
-    if (!preset || !preset->is_bbl_vendor() || nozzle_diameters->size() != 2)
+    if (!preset || !preset->is_bbl_vendor() || preset->get_printer_extruder_count() != 2)
         return true;
 
     bool sync_plate = true;
@@ -147,11 +146,18 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
     FilamentMapMode applied_mode = get_applied_map_mode(full_config, plater_ref,partplate_ref, sync_plate);
     std::vector<int> applied_maps = get_applied_map(full_config, plater_ref, partplate_ref, sync_plate);
     std::vector<int> applied_volume_maps = get_applied_volume_map(full_config, plater_ref, partplate_ref, sync_plate);
-    applied_maps.resize(filament_colors.size(), 1);
-    applied_volume_maps.resize(filament_colors.size(), 0);
-
     if (!force_pop_up && applied_mode != fmmManual)
         return true;
+
+    if (std::any_of(applied_maps.begin(), applied_maps.end(), [](int tool) { return tool < 1 || tool > 2; })) {
+        MessageDialog dlg(plater_ref, _L("The saved filament grouping refers to an extruder that is not available on this printer. Select a compatible printer before editing the grouping."),
+                          _L("Filament grouping"), wxOK | wxICON_WARNING);
+        dlg.ShowModal();
+        return false;
+    }
+
+    applied_maps.resize(filament_colors.size(), 1);
+    applied_volume_maps.resize(filament_colors.size(), 0);
 
     std::vector<int> filament_lists;
     if (is_slice_all) {

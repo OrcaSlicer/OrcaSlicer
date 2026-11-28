@@ -79,6 +79,7 @@
 #include "DeviceCore/DevFilaSwitch.h"
 #include "DeviceCore/DevExtensionTool.h"
 #include "DeviceCore/DevExtruderSystem.h"
+#include "DeviceCore/ToolDisplayOrder.hpp"
 #include "DeviceCore/DevNozzleSystem.h"
 #include "DeviceCore/DevBed.h"
 #include "DeviceCore/DevLamp.h"
@@ -375,6 +376,59 @@ void sanitizeToUtf8(std::string& str) {
 
 namespace Slic3r {
 
+static ToolDisplayOrder device_tool_display_order(const MachineObject& obj)
+{
+    const int count = obj.GetExtderSystem() ? obj.GetExtderSystem()->GetTotalExtderCount() : 0;
+    if (count <= 0)
+        return {};
+
+    std::vector<int> order;
+    const auto agent = obj.get_agent() ? obj.get_agent()->get_printer_agent() : nullptr;
+    if (agent && (obj.printer_agent_id.empty() || agent->get_agent_info().id == obj.printer_agent_id))
+        order = agent->tool_display_order(obj.get_dev_id(), count);
+
+    if (order.empty()) {
+        order.reserve(count);
+        for (int i = 0; i < count; ++i)
+            order.push_back(i);
+        // Preserve the existing Bambu two-tool convention when its agent is unavailable.
+        if (count == 2 && obj.printer_agent_id == BBL_PRINTER_AGENT_ID)
+            std::swap(order[0], order[1]);
+    }
+    return ToolDisplayOrder(std::move(order), count);
+}
+
+int MachineObject::display_index_for_device_tool(int tool_id) const
+{
+    return device_tool_display_order(*this).display_index_of(tool_id);
+}
+
+int MachineObject::device_tool_for_display_index(int display_index) const
+{
+    return device_tool_display_order(*this).tool_at(display_index);
+}
+
+int MachineObject::get_preset_extruder_index(int extder_id) const
+{
+    if (!is_multi_extruders())
+        return 0;
+    auto* bundle = wxTheApp ? GUI::wxGetApp().preset_bundle : nullptr;
+    const auto* nozzles = bundle ? bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter") : nullptr;
+    if (m_extder_system && m_extder_system->GetTotalExtderCount() == 2 && nozzles && nozzles->values.size() == 2) {
+        const auto* physical_map = bundle->printers.get_edited_preset().config.option<ConfigOptionInts>("physical_extruder_map");
+        if (bundle->is_bbl_vendor() && (!physical_map || physical_map->values.size() != 2))
+            return display_index_for_device_tool(extder_id);
+        const auto effective_map = effective_physical_extruder_map(physical_map, 2);
+        for (int logical = 0; logical < 2; ++logical)
+            if (effective_map.values[logical] == extder_id)
+                return logical;
+        return INVALID_EXTRUDER_ID;
+    }
+    if (bundle && !bundle->is_bbl_vendor())
+        return extder_id;
+    return is_main_extruder_on_left() ? extder_id : 1 - extder_id;
+}
+
 /* Common Functions */
 void split_string(std::string s, std::vector<std::string>& v) {
 
@@ -434,16 +488,43 @@ NozzleVolumeType convert_to_nozzle_type(const std::string &str)
     return res;
 }
 
+std::string resolve_filament_printer_model(const std::string& printer_type, PresetBundle* preset_bundle)
+{
+    if (!preset_bundle)
+        return {};
+
+    // Devices with a shipped printer config (Bambu) resolve directly.
+    if (const std::string display_name = DevPrinterConfigUtil::get_printer_display_name(printer_type); !display_name.empty())
+        return display_name;
+
+    // A vendor model id the device reported (SSDP modelNumber, manual binding).
+    if (!printer_type.empty()) {
+        if (const std::string model_name = preset_bundle->get_printer_model_display_name(printer_type); !model_name.empty())
+            return model_name;
+    }
+
+    // OrcaSonar's model id is optional; a generic device resolves against the selected profile.
+    if (const ConfigOptionString* model = preset_bundle->printers.get_selected_preset().config.opt<ConfigOptionString>("printer_model");
+        model && !model->value.empty()) {
+        BOOST_LOG_TRIVIAL(info) << "resolve_filament_printer_model: device type \"" << printer_type
+                                << "\" has no installed model; using the selected profile \"" << model->value << "\"";
+        return model->value;
+    }
+
+    return {};
+}
+
 wxString MachineObject::get_printer_type_display_str() const
 {
     std::string display_name = DevPrinterConfigUtil::get_printer_display_name(printer_type);
 
     // Bambu printers use m_resource_file_path + "/printers/" + type_str + ".json", which is a semantic that only works for their profiles.
-    // For any other profile, we can simply consult preset bundle if the model_id exists. 
-    if (display_name.empty()) {
+    // For any other profile, we can simply consult preset bundle if the model_id exists. An empty
+    // printer_type is unknown, not a match for a vendor model whose model_id is also empty.
+    if (display_name.empty() && !printer_type.empty()) {
         for (const auto& [vendor_id, vendor] : GUI::wxGetApp().preset_bundle->vendors) {
             for (const auto& model : vendor.models) {
-                if (printer_type == model.model_id)
+                if (!model.model_id.empty() && printer_type == model.model_id)
                     display_name = model.name;
             }
         }
@@ -816,8 +897,12 @@ bool MachineObject::is_extrusion_cali_finished()
 DevAmsTray *MachineObject::get_curr_tray()
 {
     const std::string& cur_ams_id = m_extder_system->GetCurrentAmsId();
-    if (cur_ams_id.compare(std::to_string(VIRTUAL_TRAY_MAIN_ID)) == 0) {
-        return &vt_slot[0];
+    if (devPrinterUtil::IsVirtualSlot(cur_ams_id)) {
+        for (auto& tray : vt_slot) {
+            if (tray.id == cur_ams_id)
+                return &tray;
+        }
+        return nullptr;
     }
 
     DevAms* curr_ams = get_curr_Ams();
@@ -829,6 +914,15 @@ DevAmsTray *MachineObject::get_curr_tray()
         return it->second;
     }
 
+    return nullptr;
+}
+
+DevAmsTray *MachineObject::get_external_virtual_tray(const std::string &ams_id)
+{
+    for (auto &tray : vt_slot) {
+        if (tray.id == ams_id)
+            return &tray;
+    }
     return nullptr;
 }
 
@@ -1285,19 +1379,24 @@ int MachineObject::get_bed_temperature_limit()
 
 bool MachineObject::is_filament_installed()
 {
-    if (m_extder_system->GetTotalExtderCount() > 0) {
-        // right//or single
-        auto ext = m_extder_system->m_extders[MAIN_EXTRUDER_ID];
-        if (ext.m_ext_has_filament) {
+    // if (m_extder_system->GetTotalExtderCount() > 0) {
+    //     // right//or single
+    //     auto ext = m_extder_system->m_extders[MAIN_EXTRUDER_ID];
+    //     if (ext.m_ext_has_filament) {
+    //         return true;
+    //     }
+    // }
+    // /*left*/
+    // if (m_extder_system->GetTotalExtderCount() > 1) {
+    //     auto ext = m_extder_system->m_extders[DEPUTY_EXTRUDER_ID];
+    //     if (ext.m_ext_has_filament) {
+    //         return true;
+    //     }
+    // }
+
+    for (auto& ext : m_extder_system->m_extders) {
+        if (ext.m_ext_has_filament)
             return true;
-        }
-    }
-    /*left*/
-    if (m_extder_system->GetTotalExtderCount() > 1) {
-        auto ext = m_extder_system->m_extders[DEPUTY_EXTRUDER_ID];
-        if (ext.m_ext_has_filament) {
-            return true;
-        }
     }
     return false;
 }
@@ -1430,13 +1529,18 @@ int MachineObject::command_get_access_code() {
 
 int MachineObject::command_request_push_all(bool request_now)
 {
-    auto curr_time = std::chrono::system_clock::now();
-    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - last_request_push);
+    return request_push_all(request_now, true);
+}
+
+int MachineObject::request_push_all(bool request_now, bool report_unsupported,
+                                    std::chrono::system_clock::time_point now)
+{
+    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_request_push);
 
     if (diff.count() < REQUEST_PUSH_MIN_TIME) {
         if (request_now) {
             BOOST_LOG_TRIVIAL(trace) << "static: command_request_push_all, dev_id=" << dev_id;
-            last_request_push = std::chrono::system_clock::now();
+            last_request_push = now;
         }
         else {
             BOOST_LOG_TRIVIAL(trace) << "static: command_request_push_all: send request too fast, dev_id=" << dev_id;
@@ -1444,7 +1548,7 @@ int MachineObject::command_request_push_all(bool request_now)
         }
     } else {
         BOOST_LOG_TRIVIAL(trace) << "static: command_request_push_all, dev_id=" << dev_id;
-        last_request_push = std::chrono::system_clock::now();
+        last_request_push = now;
     }
 
     json j;
@@ -1452,7 +1556,45 @@ int MachineObject::command_request_push_all(bool request_now)
     j["pushing"]["command"]     = "pushall";
     j["pushing"]["version"]     =  1;
     j["pushing"]["push_target"] =  1;
-    return this->publish_json(j);
+    return this->publish_json(j, 0, 0, report_unsupported);
+}
+
+bool MachineObject::request_liveness_probe(std::chrono::system_clock::time_point now)
+{
+    // The transport is the selected LAN session, not SSDP discovery's m_is_online: discovery
+    // after a lost link must not reopen probing. The 30 s display timeout stays independent:
+    // sends below do not touch last_update_time or last_printer_message_time, so a silent
+    // printer still shows disconnected even while this keeps retrying an open transport.
+    if (is_lan_mode_printer()) {
+        if (!m_lan_session_open)
+            return false;
+    } else if (!m_is_online) {
+        return false;
+    }
+
+    const auto silent_for = now - last_printer_message_time;
+    if (silent_for < std::chrono::milliseconds(static_cast<int>(TIMEOUT_FOR_STRAT)))
+        return false;
+
+    // One probe per quiet interval. last_request_push also covers pushall requests started by
+    // the keep-alive, reconnects and user actions, so an automatic probe never overlaps one.
+    // On the very first automatic probe, the startup 5 s retries may have just stopped; allow
+    // the handoff there instead of postponing it by another full interval.
+    const auto probe_interval = std::chrono::milliseconds(static_cast<int>(LIVENESS_PROBE_INTERVAL));
+    if (now - last_liveness_probe < probe_interval)
+        return false;
+    const bool startup_handoff =
+        m_push_count == 0 && last_liveness_probe == std::chrono::system_clock::time_point{};
+    if (!startup_handoff && now - last_request_push < probe_interval)
+        return false;
+    // The pushall serialization itself rejects anything inside 3 s. Check that before
+    // recording the probe, so a rejected handoff is retried on the next tick instead of
+    // being postponed by a full probe interval.
+    if (now - last_request_push < std::chrono::milliseconds(static_cast<int>(REQUEST_PUSH_MIN_TIME)))
+        return false;
+
+    last_liveness_probe = now;
+    return request_push_all(false, false, now) == 0;
 }
 
 int MachineObject::command_pushing(std::string cmd)
@@ -1750,14 +1892,23 @@ int MachineObject::check_resume_condition()
 }
 int MachineObject::command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp, int new_temp, std::optional<int> extruder_id)
 {
+    if (!printer_supports_command("print.ams_change_filament")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_change_filament: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     json j;
     try {
         auto tray_id = 0;
         if (atoi(ams_id.c_str()) < 16) {
             tray_id = atoi(ams_id.c_str()) * 4 + atoi(slot_id.c_str());
         }
+
+        const std::string agent_id = !printer_agent_id.empty() ? printer_agent_id :
+                                     m_manager                 ? m_manager->get_current_printer_agent_id() :
+                                                                 std::string();
+        const bool is_bbl          = agent_id == BBL_PRINTER_AGENT_ID;
         // TODO: Orca hack
-        if (ams_id == "254")
+        if (is_bbl && ams_id == "254")
             ams_id = "255";
 
         j["print"]["command"]     = "ams_change_filament";
@@ -1793,6 +1944,10 @@ int MachineObject::command_ams_change_filament(bool load, std::string ams_id, st
 
 int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read_opt, bool remain_flag)
 {
+    if (!printer_supports_command("print.ams_user_setting")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_user_settings: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     json j;
     j["print"]["command"] = "ams_user_setting";
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
@@ -1801,23 +1956,66 @@ int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read
     j["print"]["tray_read_option"]      = tray_read_opt;
     j["print"]["calibrate_remain_flag"] = remain_flag;
 
-    m_fila_system->GetAmsSystemSetting().SetDetectOnInsertEnabled(tray_read_opt);
-    m_fila_system->GetAmsSystemSetting().SetDetectOnPowerupEnabled(start_read_opt);
-    m_fila_system->GetAmsSystemSetting().SetDetectRemainEnabled(remain_flag);
-    ams_user_setting_start = time(nullptr);
-
-    return this->publish_json(j);
+    const int rc = this->publish_json(j);
+    if (rc == 0) {
+        m_fila_system->GetAmsSystemSetting().SetDetectOnInsertEnabled(tray_read_opt);
+        m_fila_system->GetAmsSystemSetting().SetDetectOnPowerupEnabled(start_read_opt);
+        m_fila_system->GetAmsSystemSetting().SetDetectRemainEnabled(remain_flag);
+        ams_user_setting_start = time(nullptr);
+    }
+    return rc;
 }
 
 int MachineObject::command_ams_calibrate(int ams_id)
 {
     if (!m_agent) return -1;
+    if (!m_agent->owns_agent(printer_agent_id))
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
     return command_with_dialog(m_agent->command_ams_calibrate(get_dev_id(), ams_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
+}
+
+bool MachineObject::printer_supports_command(const char* command) const
+{
+    if (!command || !m_agent)
+        return false;
+    return m_agent->supports_command(printer_agent_id, get_dev_id(), command);
+}
+
+bool MachineObject::printer_uses_filament_mapping() const
+{
+    if (!m_agent)
+        return false;
+    // An unrecorded owner goes through owns_agent() like any other, because
+    // whichever agent is active is also the one formatting the payload. Only a
+    // recorded owner that differs from the active agent is a mismatch.
+    return m_agent->uses_filament_mapping(printer_agent_id);
+}
+
+bool MachineObject::printer_supports_feature(const char* feature) const
+{
+    return feature && m_agent && m_agent->supports_feature(printer_agent_id, get_dev_id(), feature);
+}
+
+void MachineObject::report_mqtt_alive_support(bool supported)
+{
+    if (m_agent)
+        m_agent->note_mqtt_alive_support(printer_agent_id, get_dev_id(), supported);
+}
+
+bool MachineObject::supports_extrusion_cali() const
+{
+    // Devices with no agent id predate the agent split and keep the Bambu path.
+    return printer_agent_id.empty() || printer_agent_id == BBL_PRINTER_AGENT_ID;
 }
 
 int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type,
                                                  int nozzle_temp_min, int nozzle_temp_max, const std::vector<std::string>& tray_colors, int tray_ctype)
 {
+    if (!printer_supports_command("print.ams_filament_setting")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_filament_settings: printer agent does not support slot metadata updates";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
+
     int tag_tray_id = 0;
     int tag_ams_id  = ams_id;
     int tag_slot_id = slot_id;
@@ -1856,6 +2054,10 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
 int MachineObject::command_ams_refresh_rfid(int ams_id, int slot_id)
 {
     if (!m_agent) return -1;
+    if (!printer_supports_command("print.ams_get_rfid")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_refresh_rfid: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     return command_with_dialog(m_agent->command_ams_refresh_rfid(get_dev_id(), ams_id, slot_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1869,11 +2071,19 @@ int MachineObject::command_start_camera()
 int MachineObject::command_ams_select_tray(std::string tray_id)
 {
     if (!m_agent) return -1;
+    if (!printer_supports_command("print.ams_change_filament")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_select_tray: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     return command_with_dialog(m_agent->command_ams_select_tray(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_ams_control(std::string action)
 {
+    if (!printer_supports_command("print.ams_control")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_control: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     if (action == "resume" && check_resume_condition()) return 0;
 
     //valid actions
@@ -1889,6 +2099,10 @@ int MachineObject::command_ams_control(std::string action)
 
 int MachineObject::command_ams_drying_stop()
 {
+    if (!printer_supports_command("print.auto_stop_ams_dry")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_drying_stop: printer agent does not support the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     json j;
     j["print"]["command"] = "auto_stop_ams_dry";
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
@@ -2618,13 +2832,21 @@ void MachineObject::reset_update_time()
     subscribe_counter = SUBSCRIBE_RETRY_COUNT;
 }
 
+void MachineObject::reset_liveness_window()
+{
+    last_printer_message_time = std::chrono::system_clock::now();
+    last_liveness_probe = {};
+}
+
 void MachineObject::reset()
 {
     BOOST_LOG_TRIVIAL(trace) << "reset dev_id=" << dev_id;
     last_update_time = std::chrono::system_clock::now();
+    reset_liveness_window();
     subscribe_counter = SUBSCRIBE_RETRY_COUNT;
     m_push_count = 0;
     m_full_msg_count = 0;
+    m_lan_session_open = false;
     is_220V_voltage = false;
     get_version_retry = 0;
     camera_recording = false;
@@ -2649,13 +2871,10 @@ void MachineObject::reset()
     json empty_j;
     print_json.diff2all_base_reset(empty_j);
 
-    for (auto i = 0; i < vt_slot.size(); i++) {
-        vt_slot[i].reset();
-
-        if (i == 1) {
-            vt_slot.erase(vt_slot.begin() + 1);
-        }
-    }
+    for (auto& tray : vt_slot)
+        tray.reset();
+    if (vt_slot.size() > 1)
+        vt_slot.erase(vt_slot.begin() + 1, vt_slot.end());
     // why: reset reuses MachineObject, so release its lazy subtask
     // before dropping the pointer to prevent reconnect leaks.
     if (subtask_) {
@@ -2663,6 +2882,7 @@ void MachineObject::reset()
         subtask_ = nullptr;
     }
     has_extra_flow_type = false;
+    has_nozzle_flow_type_info = false;
     m_partskip_ids.clear();
 }
 
@@ -2707,9 +2927,12 @@ static bool connects_through_moonraker_agent(const std::string& agent_id)
 
 int MachineObject::connect()
 {
+    m_lan_session_open = false;
     if (m_access_revoked || get_dev_ip().empty()) return -1;
+    reset_liveness_window();
     std::string username = m_agent ? m_agent->default_lan_username() : std::string();
-    std::string password = get_access_code();
+    // The stored access code may be the "no API key" sentinel; agents expect an empty credential.
+    std::string password = normalize_access_code(get_access_code());
 
     std::string port;
     std::string input = get_dev_ip();
@@ -2773,6 +2996,7 @@ int MachineObject::connect()
 int MachineObject::disconnect()
 {
     if (m_agent) {
+        m_lan_session_open = false;
         const int result = m_agent->disconnect_printer();
         if (result == 0)
             set_online_state(false);
@@ -2863,10 +3087,12 @@ bool MachineObject::is_camera_busy_off()
     return false;
 }
 
-int MachineObject::publish_json(const json& json_item, int qos, int flag)
+int MachineObject::publish_json(const json& json_item, int qos, int flag, bool report_unsupported)
 {
     int rtn = 0;
-    if (is_lan_mode_printer()) {
+    if (m_agent && !m_agent->owns_agent(printer_agent_id)) {
+        rtn = ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    } else if (is_lan_mode_printer()) {
         rtn = local_publish_json(json_item.dump(), qos, flag);
     } else {
         rtn = cloud_publish_json(json_item.dump(), qos, flag);
@@ -2874,15 +3100,19 @@ int MachineObject::publish_json(const json& json_item, int qos, int flag)
 
     if (rtn == 0) {
         BOOST_LOG_TRIVIAL(info) << "publish_json: " << json_item.dump() << " code: " << rtn;
-    } else {
+    } else if (report_unsupported) {
         BOOST_LOG_TRIVIAL(error) << "publish_json: " << json_item.dump() << " code: " << rtn;
+    } else {
+        // Automatic liveness probes retry on a timer; do not fill the log with a failure
+        // the user did not trigger and cannot act on.
+        BOOST_LOG_TRIVIAL(debug) << "publish_json(automatic): " << json_item.dump() << " code: " << rtn;
     }
 
     // why: the agent is the only thing that knows what it can translate, so it reports
     // not-supported in its return value and this - the single funnel every command_* builder
     // passes through - is the one place that turns it into something the user sees. No list of
     // unsupported commands is needed anywhere: an agent that has no case for a command says so.
-    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE) {
+    if (report_unsupported && (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)) {
         show_unsupported_dlg(rtn);
     }
 
@@ -2910,6 +3140,7 @@ int MachineObject::local_publish_json(std::string json_str, int qos, int flag)
 std::string MachineObject::setting_id_to_type(std::string setting_id, std::string tray_type)
 {
     std::string type;
+    if (wxTheApp == nullptr) return tray_type;
     PresetBundle* preset_bundle = GUI::wxGetApp().preset_bundle;
     if (preset_bundle) {
         for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
@@ -2936,6 +3167,58 @@ static ENUM enum_index_of(char const *key, char const **enum_names, int enum_cou
     for (int i = 0; i < enum_count; ++i)
         if (strcmp(enum_names[i], key) == 0) return static_cast<ENUM>(i);
     return defl;
+}
+
+// A flow-capable nozzle type names its flow variant in the second character:
+// "HS00" standard, "HH00" high flow, "HU00" TPU high flow, "HB00" E3D high
+// flow. Plain type names and "N/A" carry no flow information. Keep this in step
+// with DevNozzleSystemParser's _str2_nozzle_flow_type table.
+static bool nozzle_type_reports_flow_type(const json& nozzle_type)
+{
+    if (!nozzle_type.is_string())
+        return false;
+
+    const std::string type = nozzle_type.get<std::string>();
+    if (type.size() < 4)
+        return false;
+
+    switch (type[1]) {
+    case 'S':
+    case 'H':
+    case 'A':
+    case 'X':
+    case 'E':
+    case 'U':
+    case 'B': return true;
+    default: return false;
+    }
+}
+
+// device.nozzle.info[] is the new-protocol nozzle report. Its presence is not
+// enough by itself: entries may use "N/A" or another type without a flow
+// variant, and some agents send "device" for unrelated fields only.
+static bool device_reports_nozzle_flow_type(const json& device)
+{
+    if (!device.is_object())
+        return false;
+
+    const auto nozzle_it = device.find("nozzle");
+    if (nozzle_it == device.end() || !nozzle_it->is_object())
+        return false;
+
+    const auto info_it = nozzle_it->find("info");
+    if (info_it == nozzle_it->end() || !info_it->is_array())
+        return false;
+
+    for (const auto& nozzle : *info_it) {
+        if (!nozzle.is_object())
+            continue;
+        const auto type_it = nozzle.find("type");
+        if (type_it != nozzle.end() && nozzle_type_reports_flow_type(*type_it))
+            return true;
+    }
+
+    return false;
 }
 
 int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_field_only)
@@ -2975,6 +3258,16 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
         client_disconnected = j_pre["event"]["event"].get<std::string>() == "client.disconnected";
     }
 
+    // A LAN report proves the selected session is carrying bytes, including for agents that
+    // do not emit a loss callback. client.disconnected closes it even though it updates the
+    // generic last-message clock.
+    if (is_lan_mode_printer()) {
+        if (client_disconnected)
+            m_lan_session_open = false;
+        else if (tunnel == "lan")
+            m_lan_session_open = true;
+    }
+
     // A disconnect notification is a transport message too, but it must not first mark an
     // already-offline device as online through the generic message-received path.
     set_online_state(!client_disconnected);
@@ -2983,7 +3276,10 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
     auto diff1 = std::chrono::duration_cast<std::chrono::microseconds>(curr_time - last_update_time);
 
     /* update last received time */
-    last_update_time = std::chrono::system_clock::now();
+    const auto received = std::chrono::system_clock::now();
+    last_update_time = received;
+    if (parse_ok && !j_pre.empty() && !client_disconnected)
+        last_printer_message_time = received;
 
     try {
         bool restored_json = false;
@@ -3358,6 +3654,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 if (jj.contains("support_mqtt_alive")) {
                     if (jj["support_mqtt_alive"].is_boolean()) {
                         is_support_mqtt_alive = jj["support_mqtt_alive"].get<bool>();
+                        report_mqtt_alive_support(is_support_mqtt_alive);
                     }
                 }
 
@@ -3606,7 +3903,20 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                     if (!key_field_only) {
                         if (jj.contains("printer_type")) {
-                            printer_type = _parse_printer_type(jj["printer_type"].get<std::string>());
+                            const std::string reported_type = jj["printer_type"].get<std::string>();
+                            // An empty field is absent data and must not clear a reported model.
+                            // A nonempty report is resolved against installed vendor models; an
+                            // unrecognized one becomes unknown and therefore warns without blocking.
+                            if (!reported_type.empty()) {
+                                const std::string previous_type = printer_type;
+                                const std::string resolved_type = DevPrinterConfigUtil::resolve_printer_model_id(reported_type);
+                                // Warn only when the known identity changes to unknown, not on
+                                // every repeated status report for the same unrecognized model.
+                                if (resolved_type.empty() && previous_type != resolved_type)
+                                    BOOST_LOG_TRIVIAL(warning) << "Printer identity: status reported an unrecognized model: " << reported_type;
+                                printer_type             = resolved_type;
+                                printer_model_advertised = !resolved_type.empty();
+                            }
                         }
 
                         if (jj.contains("layer_num")) {
@@ -3832,6 +4142,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                         if (jj.contains("nozzle_diameter") && jj.contains("nozzle_type"))
                         {
+                            if (nozzle_type_reports_flow_type(jj["nozzle_type"]))
+                                has_nozzle_flow_type_info = true;
+
                             std::optional<int> flag_e3d;
                             if (jj.contains("flag3")) {
                                 int flag3           = jj["flag3"].get<int>();
@@ -4155,25 +4468,25 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             if (jj.contains("vir_slot") && jj["vir_slot"].is_array()) {
 
                                 for (auto it = jj["vir_slot"].begin(); it != jj["vir_slot"].end(); it++) {
-                                    auto vslot = parse_vt_tray(it.value().get<json>());
+                                    try {
+                                        const auto tray_json = it.value().get<json>();
+                                        if (!tray_json.is_object() || !tray_json.contains("id") || !tray_json["id"].is_string())
+                                            continue;
 
-                                    if (vslot.id == std::to_string(VIRTUAL_TRAY_MAIN_ID)) {
-                                        auto it = std::next(vt_slot.begin(), 0);
-                                        if (it != vt_slot.end()) {
-                                            vt_slot[0] = vslot;
-                                        }
-                                        else {
-                                            vt_slot.push_back(vslot);
-                                        }
+                                        const auto tray_id_str = tray_json["id"].get<std::string>();
+                                        int tray_id = 0;
+                                        const auto result = std::from_chars(tray_id_str.data(), tray_id_str.data() + tray_id_str.size(), tray_id);
+                                        if (result.ec != std::errc{} || result.ptr != tray_id_str.data() + tray_id_str.size()
+                                            || tray_id < 0 || tray_id > VIRTUAL_TRAY_MAIN_ID)
+                                            continue;
+
+                                        auto vslot = parse_vt_tray(tray_json);
+                                        grow_virtual_tray_slots(vt_slot, static_cast<std::size_t>(tray_id));
+                                        const auto index = static_cast<std::vector<DevAmsTray>::size_type>(VIRTUAL_TRAY_MAIN_ID - tray_id);
+                                        vt_slot[index] = vslot;
                                     }
-                                    else if (vslot.id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
-                                        auto it = std::next(vt_slot.begin(), 1);
-                                        if (it != vt_slot.end()) {
-                                            vt_slot[1] = vslot;
-                                        }
-                                        else {
-                                            vt_slot.push_back(vslot);
-                                        }
+                                    catch (...) {
+                                        continue;
                                     }
                                 }
 
@@ -4204,6 +4517,13 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                     try {
                         parse_new_info(jj);
                     } catch (...) {}
+
+                    // Give every live device extruder an external virtual tray even when the payload
+                    // carried no vir_slot/vt_tray data (non-Bambu), so the UI always has a slot per
+                    // extruder. Runs after parse_new_info(), which refreshes the extruder count, and
+                    // after the vir_slot/vt_tray handling above, which may have cleared the support
+                    // flag and would otherwise hide these synthetic slots.
+                    ensure_external_virtual_tray_slots();
 #pragma endregion
                 } else if (jj["command"].get<std::string>() == "gcode_line") {
                     //ack of gcode_line
@@ -4246,6 +4566,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             vt_slot[0].setting_id = jj["tray_info_idx"].get<std::string>();
                             //vt_tray.type = jj["tray_type"].get<std::string>();
                             vt_slot[0].m_fila_type = setting_id_to_type(vt_slot[0].setting_id, jj["tray_type"].get<std::string>());
+                            // The ack carries the whole slot; re-derive empty so the panel flips off
+                            // "Empty" without waiting out the hold.
+                            vt_slot[0].UpdateEmptyState(true, printer_agent_id == ORCA_PRINTER_AGENT_ID);
                             // delay update
                             vt_slot[0].set_hold_count();
                         } else {
@@ -4271,6 +4594,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                                     tray_it->second->setting_id = jj["tray_info_idx"].get<std::string>();
                                     tray_it->second->m_fila_type = setting_id_to_type(tray_it->second->setting_id, jj["tray_type"].get<std::string>());
+                                    // The ack carries the whole slot; re-derive empty so the panel flips off
+                                    // "Empty" without waiting out the hold.
+                                    tray_it->second->UpdateEmptyState(true, printer_agent_id == ORCA_PRINTER_AGENT_ID);
                                     // delay update
                                     tray_it->second->set_hold_count();
                                 } else {
@@ -5212,7 +5538,7 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
             //std::string type = vtray["tray_type"].get<std::string>();
             std::string type = setting_id_to_type(vt_tray.setting_id, vtray["tray_type"].get<std::string>());
             // vt_tray.setting_id is our OF id (translated on the way in); the two support ids below are the printer's own.
-            auto* agent = GUI::wxGetApp().getAgent();
+            auto* agent = wxTheApp != nullptr ? GUI::wxGetApp().getAgent() : nullptr;
             const std::string printer_filament_id = agent ? agent->from_orca_filament_id(vt_tray.setting_id) : vt_tray.setting_id;
             if (printer_filament_id == "GFS00") {
                 vt_tray.m_fila_type = "PLA-S";
@@ -5307,23 +5633,57 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
         else {
             vt_tray.remain = -1;
         }
+        vt_tray.UpdateEmptyState(vtray.contains("tray_info_idx") && vtray.contains("tray_type"),
+                                 printer_agent_id == ORCA_PRINTER_AGENT_ID);
     }
 
     return vt_tray;
 }
 
+void MachineObject::ensure_external_virtual_tray_slots()
+{
+    // Without a preset bundle the vendor layout is unknown, and Bambu owns its own fixed pair
+    // (255, 254) reported through vir_slot/vt_tray; in both cases leave vt_slot untouched.
+    if (wxTheApp == nullptr || GUI::wxGetApp().preset_bundle == nullptr ||
+        GUI::wxGetApp().preset_bundle->is_bbl_vendor()) {
+        return;
+    }
+
+    const int extruder_count = m_extder_system != nullptr ? m_extder_system->GetTotalExtderCount() : 0;
+    if (extruder_count <= 0) {
+        return;
+    }
+
+    // One slot per live extruder, addressed by VIRTUAL_TRAY_MAIN_ID - extruder_id. Grow with
+    // placeholders and only fill slots that do not exist yet, so a slot already populated from a
+    // reported tray keeps its metadata and the slot -> extruder mapping never shifts.
+    for (int extruder_id = 0; extruder_id < extruder_count; ++extruder_id) {
+        const int tray_id = VIRTUAL_TRAY_MAIN_ID - extruder_id;
+        grow_virtual_tray_slots(vt_slot, static_cast<std::vector<DevAmsTray>::size_type>(tray_id));
+        auto& tray = vt_slot[extruder_id];
+        // The constructor seeds id 255 without a placeholder flag. Mark any empty generic slot as
+        // synthetic, but leave a slot carrying reported filament data eligible for sync/mapping.
+        tray.is_slot_placeholder = !tray.is_exists && tray.setting_id.empty() && tray.m_fila_type.empty();
+    }
+
+    // A printer with an external-slot layout supports virtual trays even when the payload carried
+    // no vir_slot/vt_tray data, which would otherwise clear this flag and hide the synthetic slots.
+    ams_support_virtual_tray = true;
+}
+
 bool MachineObject::contains_tray(const std::string &ams_id, const std::string &tray_id) const
 {
-    if (ams_id != VIRTUAL_AMS_MAIN_ID_STR && ams_id != VIRTUAL_AMS_DEPUTY_ID_STR) {
-
+    const bool is_bbl_vendor = wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr && GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+    if (is_bbl_vendor && ams_id != VIRTUAL_AMS_MAIN_ID_STR && ams_id != VIRTUAL_AMS_DEPUTY_ID_STR)
         return m_fila_system->GetAmsTray(ams_id, tray_id) != nullptr;
-    } else {
+
+    if (!is_bbl_vendor || ams_id == VIRTUAL_AMS_MAIN_ID_STR || ams_id == VIRTUAL_AMS_DEPUTY_ID_STR) {
         for (const auto& tray : vt_slot) {
-            if (tray.id == ams_id) { return true; }
+            if (tray.id == ams_id) return true;
         }
     }
 
-    return false;
+    return !is_bbl_vendor && m_fila_system->GetAmsTray(ams_id, tray_id) != nullptr;
 }
 
 DevAmsTray MachineObject::get_tray(const std::string &ams_id, const std::string &tray_id) const
@@ -5333,18 +5693,42 @@ DevAmsTray MachineObject::get_tray(const std::string &ams_id, const std::string 
         return DevAmsTray(tray_id);
     }
 
-    if (ams_id != VIRTUAL_AMS_MAIN_ID_STR && ams_id != VIRTUAL_AMS_DEPUTY_ID_STR) {
+    const bool is_bbl_vendor = wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr && GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+    if (is_bbl_vendor && ams_id != VIRTUAL_AMS_MAIN_ID_STR && ams_id != VIRTUAL_AMS_DEPUTY_ID_STR) {
         auto tray = m_fila_system->GetAmsTray(ams_id, tray_id);
-        if (tray) { return *tray;};
+        if (tray) return *tray;
     }
-    else {
+    else if (!is_bbl_vendor || ams_id == VIRTUAL_AMS_MAIN_ID_STR || ams_id == VIRTUAL_AMS_DEPUTY_ID_STR) {
         for (const auto &tray : vt_slot) {
-            if (tray.id == ams_id) { return tray; }
+            if (tray.id == ams_id) return tray;
+        }
+
+        if (!is_bbl_vendor) {
+            auto tray = m_fila_system->GetAmsTray(ams_id, tray_id);
+            if (tray) return *tray;
         }
     }
 
     assert(0);/*use contains_tray() check first*/
     return DevAmsTray(tray_id);
+}
+
+bool MachineObject::is_nozzle_flow_type_supported() const
+{
+    if (has_extra_flow_type || has_nozzle_flow_type_info)
+        return true;
+
+    // Preserve the previous Bambu validation path: its pre-print check must still reject an invalid
+    // (NONE) nozzle report. Other agents also send cfg/fun/aux/stat so parse_new_info() can read
+    // the fields they do support, so those markers alone are not a flow-type capability there.
+    if (!is_enable_np)
+        return false;
+
+    const std::string agent_id = !printer_agent_id.empty() ? printer_agent_id :
+                                 m_manager ? m_manager->get_current_printer_agent_id() : std::string();
+    // Empty after both lookups means no agent identity is known (legacy object or no manager);
+    // keep the previous Bambu behavior for it.
+    return agent_id.empty() || agent_id == BBL_PRINTER_AGENT_ID;
 }
 
 bool MachineObject::check_enable_np(const json& print) const
@@ -5573,6 +5957,9 @@ void MachineObject::parse_new_info(json print)
 
         DevBed::ParseV2_0(device,m_bed);
 
+        if (device_reports_nozzle_flow_type(device))
+            has_nozzle_flow_type_info = true;
+
         // Pass the whole device json: ParseV2_0 reads ext/rack nozzles from device["nozzle"] and the
         // hotend-rack state from device["holder"] (rack data lives outside device["nozzle"]). It is a
         // no-op for devices that report neither key, so non-rack machines are unaffected.
@@ -5601,11 +5988,11 @@ void MachineObject::parse_new_info2(const json& info)
     if (capabilities_it == info.end() || !capabilities_it->is_object())
         return;
     const auto flags_it = capabilities_it->find("flags");
-    if (flags_it == capabilities_it->end() || !flags_it->is_object())
+    const bool has_flags = flags_it != capabilities_it->end() && flags_it->is_object();
+    if (!has_flags)
         return;
-
     const json& flags = *flags_it;
-    BOOST_LOG_TRIVIAL(info) << "parse_new_info2: OrcaSonar capability flags=" << flags.dump();
+    BOOST_LOG_TRIVIAL(info) << "parse_new_info2: capability flags=" << flags.dump();
 
     auto parse_bool = [&flags](const char* name, bool& target) {
         const auto it = flags.find(name);
@@ -5623,7 +6010,13 @@ void MachineObject::parse_new_info2(const json& info)
     parse_bool("support_1080dpi", is_support_1080dpi);
     parse_bool("support_cloud_print_only", is_support_cloud_print_only);
     parse_bool("support_command_ams_switch", is_support_command_ams_switch);
-    parse_bool("support_mqtt_alive", is_support_mqtt_alive);
+    {
+        const auto it = flags.find("support_mqtt_alive");
+        if (it != flags.end() && it->is_boolean()) {
+            is_support_mqtt_alive = it->get<bool>();
+            report_mqtt_alive_support(is_support_mqtt_alive);
+        }
+    }
     parse_bool("support_motor_noise_cali", is_support_motor_noise_cali);
     parse_bool("support_timelapse", is_support_timelapse);
     parse_bool("support_user_preset", is_support_user_preset);
@@ -5797,7 +6190,11 @@ int MachineObject::get_flag_bits(int num, int start, int count, int base) const
 
 void MachineObject::update_filament_list()
 {
+    if (!wxTheApp)
+        return;
     PresetBundle *preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
+    if (!preset_bundle)
+        return;
 
     // custom filament
     typedef std::map<std::string, std::pair<std::vector<int>, std::vector<int>>> map_pair;
@@ -5861,6 +6258,8 @@ void MachineObject::update_filament_list()
 void MachineObject::update_printer_preset_name()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << "start update preset_name";
+    if (!wxTheApp)
+        return;
     PresetBundle *     preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
     if (!preset_bundle) return;
     auto               printer_model = DevPrinterConfigUtil::get_printer_display_name(this->printer_type);
@@ -5955,11 +6354,18 @@ void MachineObject::check_ams_filament_valid()
                     try {
                         std::string preset_setting_id;
                         const int   extruder_id = ams->GetExtruderId();
+                        const int   preset_extruder_index = get_preset_extruder_index(extruder_id);
+                        if (preset_extruder_index < 0) {
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " " << __LINE__
+                                                       << " unmapped device extruder for AMS temp check, ams_id: " << ams_id
+                                                       << " tray_id" << slot_id << " extruder_id: " << extruder_id;
+                            continue;
+                        }
                         bool        is_equation = preset_bundle->check_filament_temp_equation_by_printer_type_and_nozzle_for_mas_tray(printer_model, nozzle_diameter_str,
                                                                                                                                curr_tray->setting_id, curr_tray->tag_uid,
                                                                                                                                curr_tray->nozzle_temp_min,
                                                                                                                                curr_tray->nozzle_temp_max, preset_setting_id,
-                                                                                                                               get_preset_extruder_index(extruder_id),
+                                                                                                                               preset_extruder_index,
                                                                                                                                DevNozzle::ToNozzleVolumeType(m_extder_system->GetNozzleFlowType(extruder_id)));
                         if (!is_equation) {
                             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " ams filament is not match min max temp and reset, ams_id: " << ams_id << " tray_id"
@@ -6021,12 +6427,19 @@ void MachineObject::check_ams_filament_valid()
                     std::ostringstream stream;
                     stream << std::fixed << std::setprecision(1) << m_extder_system->GetNozzleDiameter(MAIN_EXTRUDER_ID);
                     std::string nozzle_diameter_str = stream.str();
+                    const int preset_extruder_index = get_preset_extruder_index(index);
+                    if (preset_extruder_index < 0) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " " << __LINE__
+                                                   << " unmapped device extruder for vt tray temp check, vt_tray.id: " << vt_tray.id
+                                                   << " extruder_id: " << index;
+                        continue;
+                    }
                     bool        is_equation = preset_bundle->check_filament_temp_equation_by_printer_type_and_nozzle_for_mas_tray(DevPrinterConfigUtil::get_printer_display_name(
                                                                                                                                this->printer_type),
                                                                                                                            nozzle_diameter_str, vt_tray.setting_id,
                                                                                                                            vt_tray.tag_uid, vt_tray.nozzle_temp_min,
                                                                                                                            vt_tray.nozzle_temp_max, preset_setting_id,
-                                                                                                                           get_preset_extruder_index(index),
+                                                                                                                           preset_extruder_index,
                                                                                                                            DevNozzle::ToNozzleVolumeType(m_extder_system->GetNozzleFlowType(index)));
                     if (!is_equation) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__

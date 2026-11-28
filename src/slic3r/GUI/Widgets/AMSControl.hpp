@@ -47,6 +47,20 @@ public:
     void on_retry();
 
 protected:
+    struct NozzleAmsPane
+    {
+        wxPanel*          page{nullptr};
+        wxBoxSizer*       page_sizer{nullptr};
+        wxScrolledWindow* preview_panel{nullptr};
+        wxBoxSizer*       preview_sizer{nullptr};
+        wxSimplebook*     ams_book{nullptr};
+        wxBoxSizer*       ams_area{nullptr};
+        AMSPanelPos        panel_pos{AMSPanelPos::LEFT_PANEL};
+        std::vector<std::string> item_ids;
+        std::string current_ams;
+        int page_index{0};
+    };
+
     std::string  m_current_ams;
     std::string  m_current_slot_left;
     std::string  m_current_slot_right;
@@ -63,9 +77,15 @@ protected:
 
     std::string                      m_dev_id;
     std::vector<std::vector<std::string>> m_item_ids{ {}, {} };
+    std::vector<NozzleAmsPane>       m_nozzle_panes;
+    wxSimplebook*                    m_nozzle_book{nullptr};
+    int                              m_active_nozzle_id{0};
     std::vector<std::pair<std::string, std::string>> pair_id;
 
     int         m_total_ext_count = 1;
+    // Orca: device tool 0 is shown on the right on Bambu dual-nozzle printers, but on the left
+    // on generic two-tool printers. Cached from MachineObject::device_tool_for_display_index.
+    bool        m_two_tool_display_left_is_main{false};
     AMSextruder *m_extruder{nullptr};
     SwitcherImage *m_switcher{nullptr};       // Orca: filament-switch routing glyph (hidden unless a switch is installed)
     AMSRoadDownPart* m_down_road{ nullptr };
@@ -103,6 +123,7 @@ protected:
     wxSimplebook *m_simplebook_ams_left{nullptr};
     wxSimplebook *m_simplebook_ams_right{ nullptr };
     wxSimplebook *m_simplebook_bottom{nullptr};
+    wxSizerItem  *m_sizer_ams_gap{nullptr};
     wxPanel      *m_panel_down_road{ nullptr };
     int          m_left_page_index = 0;
     int          m_right_page_index = 0;
@@ -156,6 +177,7 @@ public:
     void createAms(wxSimplebook* parent, int& idx, AMSinfo info, AMSPanelPos pos);
     void createAmsPanel(wxSimplebook *parent, int &idx, std::vector<AMSinfo> infos, const std::string &series_name, const std::string &printer_type, AMSPanelPos pos, int total_ext_num);
     AMSRoadShowMode findFirstMode(AMSPanelPos pos);
+    void restore_legacy_ams_layout();
 
     AMSModel m_ams_model{AMSModel::EXT_AMS};
     AMSModel m_ext_model{AMSModel::EXT_AMS};
@@ -183,6 +205,7 @@ public:
 
     void UpdatePassRoad(std::string ams_id, AMSPassRoadType type, AMSPassRoadSTEP step);
     void CreateAms();
+    void CreateAmsMultiNozzle(const std::string& series_name, const std::string& printer_type);
     void CreateAmsDoubleNozzle(const std::string &series_name, const std::string& printer_type);
     void CreateAmsSingleNozzle(const std::string &series_name, const std::string &printer_type);
     void ClearAms();
@@ -210,6 +233,8 @@ public:
     void SetExtruder(bool on_off, int nozzle_id, std::string ams_id, std::string slot_id);
     void SetAmsStep(std::string ams_id, std::string canid, AMSPassRoadType type, AMSPassRoadSTEP step);
     void SwitchAms(std::string ams_id);
+    void SelectNozzle(int nozzle_id);
+    int  GetActiveNozzleId() const { return m_active_nozzle_id; }
 
     void msw_rescale();
     void on_filament_load(wxCommandEvent &event);
@@ -232,7 +257,16 @@ public:
     void parse_object(MachineObject* obj);
 
 private:
+    // Orca: presentation-only helpers. Device tool ids keep their meaning for commands, lookups
+    // and loading events; only the left/right side shown in the Device tab is mapped.
+    bool ams_belongs_to_right_panel(const AMSinfo& info) const;
+    int  visual_extruder_side(int device_tool_id) const;
     std::string get_filament_id(const std::string& ams_id, const std::string& can_id);
+
+    // True when AMS units are laid out on the generic multi-nozzle book. Bambu
+    // printers keep the legacy count-based single/double-nozzle layout at any
+    // extruder count; other vendors use the book created for them.
+    bool use_multi_nozzle_layout() const;
 
 public:
     std::string m_current_select;

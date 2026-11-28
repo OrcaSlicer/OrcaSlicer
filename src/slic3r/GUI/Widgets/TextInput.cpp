@@ -155,6 +155,14 @@ void TextInput::SetIcon_1(const wxBitmap &icon) {
     Rescale();
 }
 
+void TextInput::ShowCornerBadge(bool show)
+{
+    if (show == corner_badge.bmp().IsOk())
+        return;
+    corner_badge = show ? ScalableBitmap(this, "badge", 10) : ScalableBitmap();
+    Refresh();
+}
+
 void TextInput::SetLabelColor(StateColor const &color)
 {
     label_color = color;
@@ -173,6 +181,8 @@ void TextInput::Rescale()
         this->icon.msw_rescale();
     if (!this->icon_1.name().empty())
         this->icon_1.msw_rescale();
+    if (!corner_badge.name().empty())
+        corner_badge.msw_rescale();
     apply_input_corner_radius();
     messureSize();
     Refresh();
@@ -252,6 +262,7 @@ void TextInput::render(wxDC& dc)
     StaticBox::render(dc);
     int states = state_handler.states();
     wxSize size = GetSize();
+    const int badge_space = corner_badge.bmp().IsOk() ? corner_badge.bmp().GetScaledSize().x + FromDIP(3) : 0;
     bool   align_center = GetWindowStyle() & wxALIGN_CENTER_HORIZONTAL;
     bool   align_right = GetWindowStyle() & wxALIGN_RIGHT;
     // start draw
@@ -283,8 +294,8 @@ void TextInput::render(wxDC& dc)
             wxSize textSize = text_ctrl->GetSize();
             if (align_right || align_center)
             {
-                if (pt.x + labelSize.x + 5 > size.x)
-                    text = wxControl::Ellipsize(text, dc, wxELLIPSIZE_END, size.x - pt.x - 5);
+                if (pt.x + labelSize.x + 5 + badge_space > size.x)
+                    text = wxControl::Ellipsize(text, dc, wxELLIPSIZE_END, std::max(0, size.x - pt.x - 5 - badge_space));
                 pt.y = (size.y - labelSize.y) / 2;
             }
             else
@@ -301,8 +312,8 @@ void TextInput::render(wxDC& dc)
         } else {
             wxSize textSize = text_ctrl->GetSize();
             if (align_right || align_center) {
-                if (pt.x + labelSize.x + 5 > size.x)
-                    text = wxControl::Ellipsize(text, dc, wxELLIPSIZE_END, size.x - pt.x - 5);
+                if (pt.x + labelSize.x + 5 + badge_space > size.x)
+                    text = wxControl::Ellipsize(text, dc, wxELLIPSIZE_END, std::max(0, size.x - pt.x - 5 - badge_space));
                 pt.y = (size.y - labelSize.y - static_tips_size.y - 8) / 2;
             } else {
                 pt.x += textSize.x;
@@ -316,8 +327,8 @@ void TextInput::render(wxDC& dc)
             dc.DrawText(text, pt);
 
             if (align_right || align_center) {
-                if (pt.x + static_tips_size.x + 5 > size.x) {
-                    text = wxControl::Ellipsize(static_tips, dc, wxELLIPSIZE_END, size.x - pt.x - 5);
+                if (pt.x + static_tips_size.x + 5 + badge_space > size.x) {
+                    text = wxControl::Ellipsize(static_tips, dc, wxELLIPSIZE_END, std::max(0, size.x - pt.x - 5 - badge_space));
                 }
 
                 pt.y += (labelSize.y + 8);
@@ -333,6 +344,10 @@ void TextInput::render(wxDC& dc)
             dc.SetFont(font);
             dc.DrawText(static_tips, pt);
         }
+    }
+    if (corner_badge.bmp().IsOk()) {
+        const wxSize badge_size = corner_badge.bmp().GetScaledSize();
+        dc.DrawBitmap(corner_badge.bmp(), size.x - badge_size.x - FromDIP(1), FromDIP(1));
     }
 }
 

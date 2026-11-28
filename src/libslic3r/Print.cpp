@@ -5938,7 +5938,7 @@ std::string Print::output_filename(const std::string &filename_base) const
     // Set the placeholders for the data know first after the G-code export is finished.
     // These values will be just propagated into the output file name.
     DynamicConfig config = this->finished() ? this->print_statistics().config() : this->print_statistics().placeholders();
-    config.set_key_value("num_filaments", new ConfigOptionInt((int)m_config.nozzle_diameter.size()));
+    config.set_key_value("num_filaments", new ConfigOptionInt((int)m_config.filament_diameter.size()));
     config.set_key_value("num_extruders", new ConfigOptionInt((int) m_config.nozzle_diameter.size()));
     config.set_key_value("plate_name", new ConfigOptionString(get_plate_name()));
     config.set_key_value("plate_number", new ConfigOptionString(get_plate_number_formatted()));

@@ -26,6 +26,7 @@ public:
     virtual void open() = 0;
     virtual void close() = 0;
     virtual void send_offer(std::string sdp) = 0;
+    // candidate is the attribute value ("candidate:..."), without the SDP "a=" prefix.
     virtual void send_ice(std::string candidate, std::string mid) = 0;
 
     // These callbacks are invoked by the channel's worker thread. Consumers

@@ -129,6 +129,10 @@ public:
 	// shared client for compatibility with self-signed print hosts; opt in for any
 	// request carrying authentication credentials or sensitive user data.
 	Http& tls_verify(bool enable);
+	// Controls whether libcurl follows HTTP redirects. On by default for compatibility
+	// with existing callers; turn it off for requests that carry credentials so a
+	// redirect cannot forward them to another host.
+	Http& follow_redirects(bool enable);
 
 	Http& form_clear();
 	// Add a HTTP multipart form field

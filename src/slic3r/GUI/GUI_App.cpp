@@ -246,6 +246,7 @@
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
+#include "slic3r/Utils/PrinterCommLogger.hpp"
 
 #include "PluginsDialog.hpp"
 #include "SpeedDialDialog.hpp"
@@ -1186,14 +1187,21 @@ void GUI_App::post_init()
     if(!m_networking_need_update && m_agent) {
         m_agent->set_on_ssdp_msg_fn(
             [this](std::string json_str) {
+                // connect_type in this payload is the only source of dev_connection_type, which
+                // is in turn the sole input to every LAN-vs-cloud routing decision in the app.
+                PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("discovery", "ssdp", nlohmann::json::parse(json_str, nullptr, false)));
                 if (!is_closing() && m_device_manager)
                     m_device_manager->on_machine_alive(json_str);
             }
         );
         m_agent->set_on_http_error_fn([this](CloudEvent event, unsigned int status, std::string body) {
+            PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event(
+                "cloud", "http_error",
+                {{"provider", event.provider}, {"status", status}, {"body", PrinterCommLogger::body_for_log(body, 8192)}}));
             this->handle_http_error(status, body, event.provider);
         });
-        m_agent->start_discovery(true, false);
+        if (should_start_ssdp_discovery())
+            m_agent->start_discovery(true, false);
     }
 
     //update the plugin tips
@@ -1879,11 +1887,17 @@ void GUI_App::restart_networking()
         init_networking_callbacks();
         m_agent->set_on_ssdp_msg_fn(
             [this](std::string json_str) {
+                // connect_type in this payload is the only source of dev_connection_type, which
+                // is in turn the sole input to every LAN-vs-cloud routing decision in the app.
+                PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("discovery", "ssdp", nlohmann::json::parse(json_str, nullptr, false)));
                 if (!is_closing() && m_device_manager)
                     m_device_manager->on_machine_alive(json_str);
             }
         );
         m_agent->set_on_http_error_fn([this](CloudEvent event, unsigned int status, std::string body) {
+            PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event(
+                "cloud", "http_error",
+                {{"provider", event.provider}, {"status", status}, {"body", PrinterCommLogger::body_for_log(body, 8192)}}));
             this->handle_http_error(status, body, event.provider);
         });
         // on_init_network() rebuilt m_agent with a null printer agent, so calling
@@ -2327,6 +2341,9 @@ void GUI_App::init_networking_callbacks()
 
 
         m_agent->set_on_server_connected_fn([this](CloudEvent event, int return_code, int reason_code) {
+            PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event(
+                "lifecycle", "server_connected",
+                {{"provider", event.provider}, {"return_code", return_code}, {"reason_code", reason_code}}));
             if (is_closing()) {
                 return;
             }
@@ -2385,11 +2402,13 @@ void GUI_App::init_networking_callbacks()
             GUI::wxGetApp().CallAfter([this, dev_id] {
                 if (is_closing())
                     return;
+                PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("lifecycle", "printer_connected", {{"topic", dev_id}}));
                 bool tunnel = boost::algorithm::starts_with(dev_id, "tunnel/");
                 /* request_pushing */
                 MachineObject* obj = m_device_manager->get_my_machine(tunnel ? dev_id.substr(7) : dev_id);
                 if (obj) {
                     obj->is_tunnel_mqtt = tunnel;
+                    obj->reset_liveness_window();
                     obj->command_request_push_all(true);
                     obj->command_get_version();
                     obj->command_get_access_code();
@@ -2409,6 +2428,7 @@ void GUI_App::init_networking_callbacks()
         );
 
         m_agent->set_on_subscribe_failure_fn([this](std::string dev_id) {
+            PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("lifecycle", "subscribe_failure", {{"topic", dev_id}}));
             CallAfter([this, dev_id] {
                 on_start_subscribe_again(dev_id);
             });
@@ -2427,6 +2447,14 @@ void GUI_App::init_networking_callbacks()
                     // whether a later selection landed while that connect was in flight.
                     BOOST_LOG_TRIVIAL(info) << "local connect result: dev_id=" << dev_id << ", state=" << state
                                             << ", msg=" << msg;
+                    PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event(
+                        "lifecycle", "local_connect",
+                        {{"dev_id", dev_id},
+                         {"state", state},
+                         {"state_name", state == ConnectStatus::ConnectStatusOk       ? "ok" :
+                                        state == ConnectStatus::ConnectStatusFailed   ? "failed" :
+                                        state == ConnectStatus::ConnectStatusLost     ? "lost" : "other"},
+                         {"msg", msg}}));
                     /* request_pushing */
                     MachineObject* obj = m_device_manager->get_my_machine(dev_id);
                     wxCommandEvent event(EVT_CONNECT_LAN_MODE_PRINT);
@@ -2441,6 +2469,8 @@ void GUI_App::init_networking_callbacks()
                                 event.SetString(obj->get_dev_id());
 
                                 obj->set_online_state(true);
+                                obj->set_lan_session_open(true);
+                                obj->reset_liveness_window();
                             } else if (state == ConnectStatus::ConnectStatusFailed) {
                                 // Orca: only update status if same device id
                                 if (m_device_manager->selected_machine != dev_id) return;
@@ -2464,12 +2494,14 @@ void GUI_App::init_networking_callbacks()
                                 event.SetInt(-1);
 
                                 obj->set_online_state(false);
+                                obj->set_lan_session_open(false);
                             } else if (state == ConnectStatus::ConnectStatusLost) {
                                 m_device_manager->set_selected_machine("");
                                 event.SetInt(-1);
                                 BOOST_LOG_TRIVIAL(info) << "set_on_local_connect_fn: state = lost";
 
                                 obj->set_online_state(false);
+                                obj->set_lan_session_open(false);
                             } else {
                                 event.SetInt(-1);
                                 BOOST_LOG_TRIVIAL(info) << "set_on_local_connect_fn: state = " << state;
@@ -2507,7 +2539,8 @@ void GUI_App::init_networking_callbacks()
                 if (is_closing())
                     return;
 
-                if (process_network_msg(dev_id, msg)) {
+                if (PRINTER_COMM_RESULT(process_network_msg(dev_id, msg),
+                                        PrinterCommLogger::instance().log_mqtt_raw("cloud-mqtt", dev_id, msg, rc))) {
                     return;
                 }
 
@@ -2538,6 +2571,7 @@ void GUI_App::init_networking_callbacks()
                     return;
 
                 //check user
+                PRINTER_COMM_LOG(PrinterCommLogger::instance().log_mqtt_raw("user-mqtt", user_id, msg, false));
                 if (user_id == m_agent->get_user_id(get_printer_cloud_provider())) {
                     this->m_user_manager->parse_json(msg);
                 }
@@ -2556,7 +2590,8 @@ void GUI_App::init_networking_callbacks()
                 if (is_closing())
                     return;
 
-                if (this->process_network_msg(dev_id, msg)) {
+                if (PRINTER_COMM_RESULT(this->process_network_msg(dev_id, msg),
+                                        PrinterCommLogger::instance().log_mqtt_raw("lan-mqtt", dev_id, msg, rc))) {
                     return;
                 }
 
@@ -2856,6 +2891,9 @@ void GUI_App::init_app_config()
         app_config->set("mcp_port", std::to_string(Mcp::kDefaultPort));
     set_logging_level(Slic3r::level_string_to_boost(app_config->get("log_severity_level")));
 
+    // A build with ORCA_PRINTER_COMM_LOG records all printer and cloud traffic, redacted so the
+    // capture can be shared.
+    PRINTER_COMM_LOG(PrinterCommLogger::instance().initialize(Slic3r::data_dir() + "/log"));
 }
 
 // returns true if found newer version and user agreed to use it
@@ -2934,6 +2972,7 @@ bool GUI_App::OnInit()
 
 int GUI_App::OnExit()
 {
+    PRINTER_COMM_LOG(PrinterCommLogger::instance().flush());
     destroy_automation();
     stop_http_server();
     stop_sync_user_preset();
@@ -3780,6 +3819,11 @@ bool GUI_App::on_init_inner()
         }
     //}
 
+    // Register installed vendor models on the GUI thread. Model reports from workers only do a
+    // registry lookup; they never touch wx or the preset bundle.
+    if (preset_bundle)
+        DevPrinterConfigUtil::set_installed_printer_models(*preset_bundle);
+
 #ifdef WIN32
     register_win32_device_notification_event();
 #endif // WIN32
@@ -4400,6 +4444,18 @@ std::string GUI_App::resolve_printer_agent_id(const std::string& stored_id) cons
     return (preset_bundle && preset_bundle->is_bbl_vendor()) ? BBL_PRINTER_AGENT_ID : ORCA_PRINTER_AGENT_ID;
 }
 
+bool GUI_App::should_start_ssdp_discovery()
+{
+    // Non-Orca agents (BBL, plugins) keep their own discovery; OrcaSonar only scans in the
+    // background when one of its machines is already configured, otherwise the popup drives it.
+    const std::string agent_id = resolve_printer_agent_id(
+        preset_bundle ? preset_bundle->printers.get_edited_preset().config.opt_string("printer_agent")
+                      : std::string());
+    if (agent_id != ORCA_PRINTER_AGENT_ID)
+        return true;
+    return m_device_manager && !m_device_manager->get_my_machine_list(ORCA_PRINTER_AGENT_ID).empty();
+}
+
 std::string GUI_App::canonical_printer_agent_id(const std::string& picked_id)
 {
     return picked_id == resolve_printer_agent_id("") ? std::string() : picked_id;
@@ -4479,7 +4535,8 @@ void GUI_App::switch_printer_agent()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
 
     // Start discovery so Python agents can populate the device list via SSDP callback
-    m_agent->start_discovery(true, false);
+    if (should_start_ssdp_discovery())
+        m_agent->start_discovery(true, false);
 
     // Auto-switch MachineObject (new agent has empty device_info, so always re-select)
     select_machine(effective_agent_id);
@@ -4506,6 +4563,9 @@ void GUI_App::select_machine(const std::string& agent_id)
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no device manager or preset bundle";
         return;
     }
+
+    // A vendor installed after startup becomes recognizable without a restart.
+    DevPrinterConfigUtil::set_installed_printer_models(*preset_bundle);
 
     // Orca: Bambu printers are not tied to the preset's print_host. Reconnect the one the user last
     // selected, as BambuStudio does at startup: a saved LAN printer now, a cloud printer once the
@@ -4580,6 +4640,11 @@ void GUI_App::select_machine(const std::string& agent_id)
         machine.dev_ip = dev_id;
         machine.dev_name = dev_id;
         machine.printer_type = model_id.empty() ? preset.config.opt_string("printer_model") : model_id;
+        auto access_code = preset.config.opt_string("printhost_apikey");
+        // Orca expect non empty access code
+        if (access_code.empty()) {
+            access_code = NO_API_KEY_SENTINEL;
+        }
 
         existing = m_device_manager->insert_local_device(
             machine, "lan", "free", "", access_code);
@@ -4594,7 +4659,9 @@ void GUI_App::select_machine(const std::string& agent_id)
         existing->set_access_code(access_code);
     }
     // Entries saved before held the model name; this printer's preset gives the id to repair them.
-    if (!model_id.empty() && existing->printer_agent_id == agent_id && existing->printer_type != model_id) {
+    // Never replace a model the printer itself advertised.
+    if (!model_id.empty() && existing->printer_agent_id == agent_id && existing->printer_type != model_id &&
+        !existing->has_advertised_printer_model()) {
         existing->printer_type = model_id;
         DeviceManager::update_local_machine(*existing, app_config);
     }

@@ -222,7 +222,7 @@ void WebRtcMediaController::on_ready(std::vector<CameraIceServer> servers)
             return;
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_signaling)
-            m_signaling->send_ice(std::string(candidate), candidate.mid());
+            m_signaling->send_ice(candidate.candidate(), candidate.mid());
     });
     peer_connection->onStateChange([this](rtc::PeerConnection::State state) {
         BOOST_LOG_TRIVIAL(info) << "WebRTC: peer state -> " << static_cast<int>(state);

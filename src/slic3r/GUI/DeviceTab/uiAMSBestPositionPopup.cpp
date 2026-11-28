@@ -970,7 +970,11 @@ int ReselectMachineDialog::CaculateSwitcherDistribution(MachineObject* obj, cons
                 const auto& can = ams.cans[j];
                 auto id = getTrayID(obj, ams.ams_id, can.can_id);
                 auto material = can.material_name;
-                if (can.material_state == AMSCanType::AMS_CAN_TYPE_THIRDBRAND ||
+                if (can.is_empty || can.material_state == AMSCanType::AMS_CAN_TYPE_EMPTY)
+                {
+                    material = L("Empty");
+                }
+                else if (can.material_state == AMSCanType::AMS_CAN_TYPE_THIRDBRAND ||
                     can.material_state == AMSCanType::AMS_CAN_TYPE_BRAND ||
                     can.material_state == AMSCanType::AMS_CAN_TYPE_VIRTUAL)
                 {
@@ -978,10 +982,6 @@ int ReselectMachineDialog::CaculateSwitcherDistribution(MachineObject* obj, cons
                     {
                         material = L("?");
                     }
-                }
-                if (can.material_state == AMSCanType::AMS_CAN_TYPE_EMPTY)
-                {
-                    material = L("Empty");
                 }
 
                 auto itOK = std::find_if(posOK.begin(), posOK.end(), [&](const trayHelper& tray){

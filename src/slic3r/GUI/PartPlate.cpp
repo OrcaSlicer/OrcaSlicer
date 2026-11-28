@@ -3668,6 +3668,8 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
         const std::vector<std::string>& filament_types      = config.option<ConfigOptionStrings>("filament_type")->values;
         const std::vector<int>&         filament_printables = config.option<ConfigOptionInts>("filament_printable")->values;
         const std::vector<int>&         filament_map        = get_real_filament_maps(config);
+        const auto*                     nozzle_option       = config.option<ConfigOptionFloats>("nozzle_diameter");
+        const int                       nozzle_count        = nozzle_option ? (int) nozzle_option->values.size() : 0;
         // This runs synchronously mid printer-switch (load_current_preset -> reload_scene), before the
         // filament-count reconciliation clears stale per-object assignments, so the plate objects can
         // still reference filament indices beyond the freshly selected printer config. Skip those to
@@ -3680,6 +3682,12 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
             std::string filament_type = filament_types[filament_id];
             int filament_printable_status = filament_printables[filament_id];
             int extruder_idx = filament_map[filament_id] - 1;
+            // An assignment outside the printer's nozzles is invalid. Shifting by a negative or
+            // too-wide amount is undefined, and labeling it as the right nozzle would
+            // misattribute the failure, so skip it here.
+            if (extruder_idx < 0 || extruder_idx >= (int)(sizeof(int) * 8) ||
+                (nozzle_count > 0 && extruder_idx >= nozzle_count))
+                continue;
             if (!(filament_printable_status >> extruder_idx & 1)) {
                 error_message = wxString::Format(extruder_idx == 0 ? _L("The left nozzle cannot print %s.") : _L("The right nozzle cannot print %s."),
                                                  filament_type);
@@ -5868,6 +5876,28 @@ void PartPlate::on_extruder_count_changed(int extruder_count)
         //clear_filament_map_mode();
         // do not clear mode now, reset to default mode
         m_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = FilamentMapMode::fmmAutoForFlush;
+        return;
+    }
+
+    // Keep saved multi-tool assignments when the printer changes. Log the filaments whose
+    // assignment no longer names an available tool; switching printers does not reset or block.
+    const PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    if (preset_bundle == nullptr)
+        return;
+    const std::vector<int> filament_map = get_real_filament_maps(preset_bundle->project_config);
+    std::string invalid_filaments;
+    for (size_t i = 0; i < filament_map.size(); ++i) {
+        if (filament_map[i] < 1 || filament_map[i] > extruder_count) {
+            if (!invalid_filaments.empty())
+                invalid_filaments += ", ";
+            invalid_filaments += std::to_string(i + 1);
+        }
+    }
+    if (!invalid_filaments.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " diagnostic: plate " << m_plate_index
+                                   << " keeps filament assignments outside the printer's "
+                                   << extruder_count << " extruder(s) for filaments: "
+                                   << invalid_filaments;
     }
 }
 

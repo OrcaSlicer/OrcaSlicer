@@ -28,6 +28,7 @@ namespace Slic3r
 {
 
 class MachineObject;
+class PresetBundle;
 
 /// Toolhead component type (extruder / nozzle / hotend)
 enum class ToolHeadComponent {
@@ -63,10 +64,21 @@ public:
     /*printer*/
     // info
     static std::map<std::string, std::string> get_all_model_id_with_name();
+    // Installed vendor models are the model registry. Matching an advertised id or name against
+    // it is a map lookup, with no GUI access and no per-event resource parsing.
+    struct PrinterModelIdentity
+    {
+        std::string              canonical_id;
+        std::vector<std::string> aliases;
+    };
+    static void set_installed_printer_models(std::vector<PrinterModelIdentity> models);
+    static void set_installed_printer_models(const PresetBundle& preset_bundle);
+    static std::string resolve_printer_model_id(const std::string& reported_id);
     // A printer agent may not know the physical model. Keep that case optional so
     // model compatibility checks do not turn missing identity into a hard error.
     static bool is_printer_model_compatible(const std::string& source_model, MachineObject& machine);
-    static bool is_optional_printer_model_id(const std::string& model_id) { return model_id.empty(); }
+    // Missing or unrecognized identity is optional: warn, do not block.
+    static bool is_optional_printer_model_id(const std::string& model_id) { return resolve_printer_model_id(model_id).empty(); }
     static std::string get_printer_type(const std::string& type_str) { return get_value_from_config<std::string>(type_str, "printer_type"); }
     static std::string get_printer_display_name(const std::string& type_str) { return get_value_from_config<std::string>(type_str, "display_name"); }
     static std::string get_printer_series_str(std::string type_str) { return get_value_from_config<std::string>(type_str, "printer_series"); }

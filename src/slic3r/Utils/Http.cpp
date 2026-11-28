@@ -1,5 +1,6 @@
 #include "Http.hpp"
 #include "libslic3r_version.h"
+#include "PrinterCommLogger.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -159,6 +160,7 @@ struct Http::priv
 	size_t limit;
 	std::atomic_bool cancel;
     std::unique_ptr<form_file> putFile;
+    bool follow_redirects = true;
 
 	std::thread io_thread;
 	Http::CompleteFn completefn;
@@ -462,8 +464,9 @@ std::string Http::priv::body_size_error()
 
 void Http::priv::http_perform()
 {
-	::curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	::curl_easy_setopt(curl, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL);
+	::curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, follow_redirects ? 1L : 0L);
+	if (follow_redirects)
+		::curl_easy_setopt(curl, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL);
 	::curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writecb);
 	::curl_easy_setopt(curl, CURLOPT_WRITEDATA, static_cast<void*>(this));
 	::curl_easy_setopt(curl, CURLOPT_READFUNCTION, form_file_read_cb);
@@ -513,6 +516,26 @@ void Http::priv::http_perform()
 	CURLcode res = ::curl_easy_perform(curl);
 
     putFile.reset();
+
+#ifdef ORCA_PRINTER_COMM_LOG
+	if (PrinterCommLogger::instance().is_enabled()) {
+		long http_status = 0;
+		::curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_status);
+		nlohmann::json hdrs = nlohmann::json::array();
+		for (::curl_slist *h = headerlist; h != nullptr; h = h->next)
+			hdrs.push_back(h->data ? h->data : "");
+		PrinterCommLogger::instance().log_event(
+			"http", method.empty() ? "GET" : method,
+			{{"url", PrinterCommLogger::redact_url(url)},
+			 {"headers", std::move(hdrs)},
+			 {"post_bytes", postfields.size()},
+			 {"post", PrinterCommLogger::body_for_log(postfields, 2048)},
+			 {"curl_code", int(res)},
+			 {"http_status", http_status},
+			 {"resp_bytes", buffer.size()},
+			 {"resp", PrinterCommLogger::body_for_log(buffer, 8192)}});
+	}
+#endif
 
 	if (res != CURLE_OK) {
 		if (res == CURLE_ABORTED_BY_CALLBACK) {
@@ -673,6 +696,14 @@ Http& Http::tls_verify(bool enable)
 		::curl_easy_setopt(p->curl, CURLOPT_SSL_VERIFYPEER, enable ? 1L : 0L);
 		::curl_easy_setopt(p->curl, CURLOPT_SSL_VERIFYHOST, enable ? 2L : 0L);
 		::curl_easy_setopt(p->curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
+	}
+	return *this;
+}
+
+Http& Http::follow_redirects(bool enable)
+{
+	if (p) {
+		p->follow_redirects = enable;
 	}
 	return *this;
 }

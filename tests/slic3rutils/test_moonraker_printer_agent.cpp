@@ -67,24 +67,38 @@ namespace ssl       = net::ssl;
 using tcp           = net::ip::tcp;
 using namespace std::chrono_literals;
 
-// A self-signed certificate for 127.0.0.1, valid until 2126; the agent does not verify it.
+// A self-signed certificate for the IP address 127.0.0.1, valid until 2126. The agent verifies it only against a
+// configured CA file.
 const char* const TEST_CERTIFICATE = R"(-----BEGIN CERTIFICATE-----
-MIIBfjCCASWgAwIBAgIUQ6GXkNGttqdwgzP8jnIbjZmbmsUwCgYIKoZIzj0EAwIw
-FDESMBAGA1UEAwwJMTI3LjAuMC4xMCAXDTI2MTAyNTIyMzQzNloYDzIxMjYxMDAx
-MjIzNDM2WjAUMRIwEAYDVQQDDAkxMjcuMC4wLjEwWTATBgcqhkjOPQIBBggqhkjO
-PQMBBwNCAAQzyTk4fzS67d2QTOgff5VZdiFu6zfRKL1j1XrmZRdSNSQ+A/ecb+RA
-wYLxO+ImIhC9nfFDz83gN6HMdIDhKZqvo1MwUTAdBgNVHQ4EFgQUqLCEdBHexenh
-R0myp07v6RmToacwHwYDVR0jBBgwFoAUqLCEdBHexenhR0myp07v6RmToacwDwYD
-VR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAgNHADBEAiBtuziYmXx6OICr8OZ/ljgW
-206TTprzJEsote+V0YwmawIgCTzg5n5sn/JH8DSUh7udfljYTtgIwlfqiqLZ9Y79
-Xz8=
+MIIBkDCCATagAwIBAgIUNBsiBs6jFo0EpvlmtkfeQS61SuEwCgYIKoZIzj0EAwIw
+FDESMBAGA1UEAwwJMTI3LjAuMC4xMCAXDTI2MTExMDA5NDE1MFoYDzIxMjYxMDE3
+MDk0MTUwWjAUMRIwEAYDVQQDDAkxMjcuMC4wLjEwWTATBgcqhkjOPQIBBggqhkjO
+PQMBBwNCAATE+xP+W5IMnVnXRLDZ7waSG8K/mrX7C5ag0wK0/RnQtuDI1DrH8BtN
+G3pYefP1LyLHvY6eRo+idPJfdYZLRnMMo2QwYjAdBgNVHQ4EFgQUpS54cY4Tts7j
+LPybtg/pMEkuT1UwHwYDVR0jBBgwFoAUpS54cY4Tts7jLPybtg/pMEkuT1UwDwYD
+VR0RBAgwBocEfwAAATAPBgNVHRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA0gAMEUC
+IDBLkpS0DeU/dKzTb4znxv84rGABrQAPJhgalc5gSfgYAiEAzfAubIe5TfCeFrjC
+oRWZJcP9UJlO2lVLsBZ1L2KUeC0=
 -----END CERTIFICATE-----
 )";
 const char* const TEST_PRIVATE_KEY = R"(-----BEGIN PRIVATE KEY-----
-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgvrE3Z+AMBnG/JEQl
-PP9feoILjFkSRm5XAYES7mSg6JWhRANCAAQzyTk4fzS67d2QTOgff5VZdiFu6zfR
-KL1j1XrmZRdSNSQ+A/ecb+RAwYLxO+ImIhC9nfFDz83gN6HMdIDhKZqv
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgB91ojZEjc9V7/8BD
+gdxLN7Eoy/72IpxOwZ2kKY9KCO6hRANCAATE+xP+W5IMnVnXRLDZ7waSG8K/mrX7
+C5ag0wK0/RnQtuDI1DrH8BtNG3pYefP1LyLHvY6eRo+idPJfdYZLRnMM
 -----END PRIVATE KEY-----
+)";
+// A CA that did not sign TEST_CERTIFICATE.
+const char* const OTHER_CA_CERTIFICATE = R"(-----BEGIN CERTIFICATE-----
+MIIBfjCCASOgAwIBAgIUSYKsTDY8WgVvylcwcdjL+ihbvaswCgYIKoZIzj0EAwIw
+EzERMA8GA1UEAwwIT3RoZXIgQ0EwIBcNMjYxMTEwMDk0MTUwWhgPMjEyNjEwMTcw
+OTQxNTBaMBMxETAPBgNVBAMMCE90aGVyIENBMFkwEwYHKoZIzj0CAQYIKoZIzj0D
+AQcDQgAEjJAsmZ+N5ToGh+h0OcFHx2x4UEyMh83D3H4UY/0ppnLYYHQula5BuUAM
+mVFbWioCcEMBFruXdzfGiL0BZMeIhqNTMFEwHQYDVR0OBBYEFCgsL2wl3BU0BAFQ
+Kgp7dtBHLMtpMB8GA1UdIwQYMBaAFCgsL2wl3BU0BAFQKgp7dtBHLMtpMA8GA1Ud
+EwEB/wQFMAMBAf8wCgYIKoZIzj0EAwIDSQAwRgIhAMM1lNuHC8twhyBOU4t8yw8y
+XHC1sk0CwzYizVRAABJqAiEA15w9kqqGc6jeTOkkukrizM/krNOaR0r3OxIGaayQ
+shg=
+-----END CERTIFICATE-----
 )";
 
 class DiscoveryAgent : public MoonrakerPrinterAgent
@@ -95,11 +109,36 @@ public:
     mutable unsigned fetch_count = 0;
 
 protected:
-    bool fetch_device_info(
-        const std::string&, const std::string&, MoonrakerDeviceInfo& info, std::string&, const std::function<bool()>&) const override
+    bool fetch_device_info(const ConnectionSettings&, MoonrakerDeviceInfo& info, std::string&, const std::function<bool()>&) const override
     {
         ++fetch_count;
         info.dev_name = "Test printer";
+        return true;
+    }
+};
+
+// Exposes the protected device-info query and the advertised model it returns.
+class ServerInfoAgent : public MoonrakerPrinterAgent
+{
+public:
+    using MoonrakerPrinterAgent::MoonrakerPrinterAgent;
+
+    struct Info
+    {
+        std::string advertised_model;
+        bool        identity_fetched{false};
+    };
+
+    bool fetch_info(const std::string& base_url, Info& out)
+    {
+        ConnectionSettings connection;
+        connection.base_url = base_url;
+        MoonrakerDeviceInfo info;
+        std::string         error;
+        if (!MoonrakerPrinterAgent::fetch_device_info(connection, info, error, {}))
+            return false;
+        out.advertised_model = info.advertised_model;
+        out.identity_fetched = info.identity_fetched;
         return true;
     }
 };
@@ -112,24 +151,23 @@ public:
     std::shared_ptr<std::atomic<int>> fetches_returned;
 
 protected:
-    bool init_device_info(
-        const std::string& dev_id, const std::string& dev_ip, const std::string&, const std::string&, bool, const std::string& port) override
+    bool init_device_info(const PrinterConnectionParams& params) override
     {
         device_info          = MoonrakerDeviceInfo{};
-        device_info.dev_id   = dev_id;
-        device_info.base_url = "http://" + dev_ip + ":" + port;
+        device_info.dev_id   = params.dev_id;
+        device_info.dev_ip   = params.host;
+        device_info.base_url = std::string(params.use_ssl ? "https://" : "http://") + params.host + ":" + params.port;
         return true;
     }
 
-    bool fetch_device_info(const std::string&           base_url,
-                           const std::string&           api_key,
+    bool fetch_device_info(const ConnectionSettings&    connection,
                            MoonrakerDeviceInfo&         info,
                            std::string&                 error,
                            const std::function<bool()>& cancelled) const override
     {
         // Copied first, since the base destructor that waits for this query runs after this class's members are gone
         const std::shared_ptr<std::atomic<int>> counter = fetches_returned;
-        const bool fetched = MoonrakerPrinterAgent::fetch_device_info(base_url, api_key, info, error, cancelled);
+        const bool fetched = MoonrakerPrinterAgent::fetch_device_info(connection, info, error, cancelled);
         if (counter)
             ++*counter;
         return fetched;
@@ -140,13 +178,24 @@ class StreamAgent : public ConnectAgent
 {
 public:
     using ConnectAgent::ConnectAgent;
-    using MoonrakerPrinterAgent::start_status_stream;
-    using MoonrakerPrinterAgent::stop_status_stream;
     using MoonrakerPrinterAgent::ws_timings;
 
+    // Starts the stream the way a connection does, from a snapshot of the connection settings.
+    void start_stream(const std::string& base_url, bool use_ssl = false, const std::string& ca_file = {})
+    {
+        const std::string dev_id = "printer";
+        ConnectionSettings connection;
+        connection.dev_id   = dev_id;
+        connection.base_url = base_url;
+        connection.use_ssl  = use_ssl;
+        connection.ca_file  = ca_file;
+        start_status_stream(dev_id, std::move(connection));
+    }
+
+    void stop_stream() { stop_status_stream(); }
+
 protected:
-    bool fetch_device_info(
-        const std::string&, const std::string&, MoonrakerDeviceInfo& info, std::string&, const std::function<bool()>&) const override
+    bool fetch_device_info(const ConnectionSettings&, MoonrakerDeviceInfo& info, std::string&, const std::function<bool()>&) const override
     {
         info.dev_name = "Test printer";
         return true;
@@ -162,8 +211,7 @@ public:
     mutable std::atomic<int> fetches{0};
 
 protected:
-    bool fetch_device_info(const std::string&           base_url,
-                           const std::string&           api_key,
+    bool fetch_device_info(const ConnectionSettings&    connection,
                            MoonrakerDeviceInfo&         info,
                            std::string&                 error,
                            const std::function<bool()>& cancelled) const override
@@ -172,7 +220,7 @@ protected:
             error = "Couldn't connect to server";
             return false;
         }
-        return StreamAgent::fetch_device_info(base_url, api_key, info, error, cancelled);
+        return StreamAgent::fetch_device_info(connection, info, error, cancelled);
     }
 };
 
@@ -187,6 +235,7 @@ enum class Behavior {
     IgnoresClose,              // Reports Klippy disconnected, then never answers the close
     StallsObjectList,          // Never answers the stream's object list request
     StallsHttp,                // Never answers HTTP requests until released, then hangs up on them
+    RejectsTls,                // Records the first byte of the stream, which a TLS client sends as a handshake
 };
 
 class FakePrinter
@@ -242,11 +291,31 @@ public:
         return m_close_frames;
     }
 
+    // First byte the stream sent, or -1 until it has sent one.
+    bool wait_for_first_byte()
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        return m_changed.wait_for(lock, 10s, [&] { return m_first_byte >= 0; });
+    }
+
+    int first_byte()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_first_byte;
+    }
+
     // The answer to the gcodes directory listing, which reports the free space in disk_usage. Null leaves disk_usage out.
     void set_gcodes_listing(nlohmann::json disk_usage)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_disk_usage = std::move(disk_usage);
+    }
+
+    // The model /server/info advertises; empty means the printer reports none.
+    void set_server_model(std::string model)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_server_model = std::move(model);
     }
 
     // The multipart body of the last file upload.
@@ -290,6 +359,19 @@ private:
     void serve(net::io_context& ioc, tcp::socket socket)
     {
         if (m_behavior == Behavior::SilentBeforeHandshake) {
+            mark_ready();
+            wait_for_release();
+            return;
+        }
+        if (m_behavior == Behavior::RejectsTls) {
+            char              first = 0;
+            beast::error_code ec;
+            socket.read_some(net::buffer(&first, 1), ec);
+            if (!ec) {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                m_first_byte = static_cast<unsigned char>(first);
+                m_changed.notify_all();
+            }
             mark_ready();
             wait_for_release();
             return;
@@ -390,6 +472,15 @@ private:
             }
             response.result(http::status::ok);
             response.body() = nlohmann::json{{"result", result}}.dump();
+        } else if (request.target() == "/server/info") {
+            nlohmann::json result{{"machine_name", "Test printer"}, {"moonraker_version", "v0.9.0"}, {"klippy_state", "ready"}};
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                if (!m_server_model.empty())
+                    result["model"] = m_server_model;
+            }
+            response.result(http::status::ok);
+            response.body() = nlohmann::json{{"result", result}}.dump();
         } else if (request.target() == "/server/files/upload") {
             std::lock_guard<std::mutex> lock(m_mutex);
             m_upload = request.body();
@@ -487,8 +578,10 @@ private:
     int m_http_requests = 0;
     int m_http_hung_up  = 0;
     int m_close_frames  = 0;
+    int m_first_byte    = -1;
     bool m_released     = false;
     nlohmann::json m_disk_usage = {{"total", 8e9}, {"used", 2e9}, {"free", 6e9}};
+    std::string m_server_model = "Qidi-Q2";
     std::string m_upload;
     std::string m_script;
 };
@@ -532,18 +625,30 @@ struct StreamFixture
     // Runs before the members are destroyed, so the agent's destructor never joins a stream the printer still holds open.
     ~StreamFixture() { printer.release(); }
 
-    void start() { agent.start_status_stream("printer", printer.base_url(), ""); }
+    void start() { agent.start_stream(printer.base_url()); }
+
+    // Runs the stream as a wss client; the printer must be served on the same port.
+    void start_secure() { agent.start_stream("https://" + printer.host() + ":" + printer.port(), true); }
+
+    // Runs the stream against a TLS printer, verifying its certificate against the CA certificate `ca_pem`.
+    void start_with_ca(const std::string& ca_pem)
+    {
+        const boost::filesystem::path ca_file = ca_dir.path() / "ca.pem";
+        boost::filesystem::ofstream(ca_file, std::ios::binary) << ca_pem;
+        agent.start_stream(printer.base_url(), true, ca_file.string());
+    }
 
     // Stops the stream, giving it `limit` to return before the printer hangs up on it.
     bool stops_within(std::chrono::milliseconds limit)
     {
-        auto stopped       = std::async(std::launch::async, [this] { agent.stop_status_stream(); });
+        auto stopped       = std::async(std::launch::async, [this] { agent.stop_stream(); });
         const bool in_time = stopped.wait_for(limit) == std::future_status::ready;
         printer.release();
         stopped.wait();
         return in_time;
     }
 
+    ScopedTemporaryDir ca_dir{"moonraker-ca"};
     FakePrinter printer;
     StreamAgent agent{""};
 };
@@ -655,6 +760,23 @@ TEST_CASE("Moonraker discovery waits for a complete device identity", "[Moonrake
     REQUIRE(announcement.at("dev_name") == "Test model");
 }
 
+TEST_CASE("Moonraker reads the model the printer advertises in server info", "[MoonrakerPrinterAgent][Discovery]")
+{
+    FakePrinter printer{Behavior::Silent};
+    ServerInfoAgent agent("");
+    ServerInfoAgent::Info info;
+
+    REQUIRE(agent.fetch_info(printer.base_url(), info));
+    CHECK(info.identity_fetched);
+    CHECK(info.advertised_model == "Qidi-Q2");
+
+    // A printer that reports no model marks the identity as queried but unknown.
+    printer.set_server_model("");
+    REQUIRE(agent.fetch_info(printer.base_url(), info));
+    CHECK(info.identity_fetched);
+    CHECK(info.advertised_model.empty());
+}
+
 TEST_CASE("Binding another address does not reuse the connected printer's identity", "[MoonrakerPrinterAgent][Bind]")
 {
     // The agent was last connected to .5; binding .23 must not return .5's cached identity.
@@ -734,6 +856,16 @@ TEST_CASE("Stopping the status stream gives a silent printer no more than its ti
     CHECK(f.stops_within(limit));
 }
 
+TEST_CASE("A secure status stream opens with a TLS handshake", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    StreamFixture f(Behavior::RejectsTls);
+    f.start_secure();
+    REQUIRE(f.printer.wait_for_first_byte());
+    // 0x16 is a TLS handshake record; a plaintext client would send "GET".
+    CHECK(f.printer.first_byte() == 0x16);
+    CHECK(f.stops_within(3s));
+}
+
 TEST_CASE("Stopping the status stream sends the printer a close frame", "[MoonrakerPrinterAgent][StatusStream]")
 {
     // A stop while the stream reads, and one while it waits on the object list request.
@@ -792,6 +924,43 @@ TEST_CASE("The status stream reconnects at the shortest delay while the printer 
     CHECK(f.stops_within(3s));
 }
 
+TEST_CASE("The status transport reports connected until its stream is stopped", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    Reports       reports;
+    StreamFixture f(Behavior::AnswersPings);
+    reports.attach(f.agent);
+
+    CHECK_FALSE(f.agent.is_status_transport_connected());
+    f.start();
+    REQUIRE(reports.wait_for(1));
+    CHECK(f.agent.is_status_transport_connected());
+
+    // AnswersPings keeps the connection open until the fixture stops it, so this check does
+    // not race the printer closing the socket right after its first status.
+    CHECK(f.stops_within(3s));
+    CHECK_FALSE(f.agent.is_status_transport_connected());
+}
+
+TEST_CASE("A closed Moonraker status link reports disconnected", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    Reports       reports;
+    StreamFixture f(Behavior::HangsUp);
+    f.agent.ws_timings.reconnect_delay = 10s;
+    reports.attach(f.agent);
+    f.start();
+
+    // The status confirms the client reached the read loop; the printer then closes. Do not
+    // assert a transient connected state here: wait until the client observes the close.
+    REQUIRE(reports.wait_for(1));
+    REQUIRE(f.printer.wait_for_ready_connections(1));
+    const auto deadline = std::chrono::steady_clock::now() + 2s;
+    while (f.agent.is_status_transport_connected() && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(5ms);
+
+    CHECK_FALSE(f.agent.is_status_transport_connected());
+    CHECK(f.stops_within(3s));
+}
+
 TEST_CASE("The status stream keeps retrying a printer that never answers", "[MoonrakerPrinterAgent][StatusStream]")
 {
     StreamFixture f(Behavior::HangsUpWithoutAnswer);
@@ -810,7 +979,7 @@ TEST_CASE("A callback on the stream thread can stop the status stream", "[Moonra
     StreamFixture f(Behavior::AnswersPings);
     f.agent.set_on_local_message_fn([&](std::string, std::string) {
         std::call_once(stopped_once, [&] {
-            f.agent.stop_status_stream();
+            f.agent.stop_stream();
             stopped.set_value();
         });
     });
@@ -907,6 +1076,28 @@ TEST_CASE("The status stream reports a printer's status over TLS", "[MoonrakerPr
     CHECK(f.printer.close_frames() == 1);
 }
 
+TEST_CASE("A configured CA file makes the status stream verify the printer's certificate", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    Reports reports;
+    StreamFixture f(Behavior::AnswersPings, true);
+    reports.attach(f.agent);
+
+    SECTION("The CA signed the printer's certificate")
+    {
+        f.start_with_ca(TEST_CERTIFICATE);
+        CHECK(reports.wait_for(1));
+    }
+    SECTION("Another CA did")
+    {
+        f.agent.ws_timings.reconnect_delay = 50ms;
+        f.start_with_ca(OTHER_CA_CERTIFICATE);
+        // The printer completes no websocket upgrade, however often the stream retries
+        CHECK_FALSE(f.printer.wait_for_ready_connections(1, 1500ms));
+        CHECK(reports.times().empty());
+    }
+    CHECK(f.stops_within(3s));
+}
+
 TEST_CASE("The status stream sends no heartbeat while the printer has nothing new to report", "[MoonrakerPrinterAgent][StatusStream]")
 {
     const Behavior behavior = GENERATE(Behavior::Chatters, Behavior::AnswersPingsWithoutStatus);
@@ -933,11 +1124,14 @@ TEST_CASE("A disconnect during the connection queries keeps the status stream fr
     f.agent.connect_printer(connection_to(f.printer));
     REQUIRE(f.printer.wait_for_http_requests(1));
 
-    f.agent.disconnect_printer();
+    // disconnect_printer joins the worker running the stalled query, so it is called aside and the
+    // printer is released to let that query return.
+    auto disconnecting = std::async(std::launch::async, [&] { f.agent.disconnect_printer(); });
     f.printer.release();
     // The query has returned once the printer hangs up on it, and a stream would connect right after.
     REQUIRE(f.printer.wait_for_http_hang_ups(1));
     CHECK_FALSE(f.printer.wait_for_ready_connections(1, 500ms));
+    disconnecting.wait();
 }
 
 TEST_CASE("Destroying the agent waits for the connection threads it superseded", "[MoonrakerPrinterAgent][Connect]")

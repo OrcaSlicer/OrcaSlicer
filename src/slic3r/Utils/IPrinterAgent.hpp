@@ -13,6 +13,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <cstdint>
 #include <cmath>
 #include <nlohmann/json.hpp>
 #include <boost/format.hpp>
@@ -45,6 +46,17 @@ struct PrinterConnectionParams
     std::string ca_file;
 };
 
+// Sentinel stored as a LAN device's access code when the user has not supplied one, so the device
+// stays registered (has_access_right() is !access_code.empty()). It is not a real credential: every
+// printer agent must translate it back to an empty string before using/sending it on the wire.
+inline constexpr const char* NO_API_KEY_SENTINEL = "*_{NO_API_KEY}_*";
+
+// Returns an empty string when `code` is the "no API key" sentinel, otherwise `code` unchanged.
+inline std::string normalize_access_code(const std::string& code)
+{
+    return code == NO_API_KEY_SENTINEL ? std::string() : code;
+}
+
 /**
  * FilamentSyncMode - Modes for filament data synchronization.
  *
@@ -67,6 +79,34 @@ enum class CameraStreamMode {
     webrtc, // Cloud only
     http_snapshot // HTTP endpoint returning one image per request
 };
+
+struct PrinterFileEntry {
+    std::string   path;      // gcodes-root-relative, e.g. "sub/foo.gcode"
+    std::string   name;      // basename for display
+    std::uint64_t size = 0;  // bytes
+    std::int64_t  modified = 0; // unix seconds
+};
+
+// Moonraker per-file metadata: print time and filament usage. Missing fields are 0.
+struct PrinterFileMetadata {
+    int    estimated_time = 0;   // seconds
+    double filament_total = 0;   // millimetres
+    double filament_weight = 0;  // grams
+};
+
+// Async listing of the printer's G-code files. The return value reports whether
+// the request was dispatched; `callback` is invoked once with the result.
+using PrinterFileListFn = std::function<void(int result, std::vector<PrinterFileEntry> files)>;
+
+// Async fetch of one G-code file's embedded thumbnail. `image` is the raw image
+// bytes (empty when the file has no thumbnail); result reports dispatch/transfer.
+using PrinterFileThumbnailFn = std::function<void(int result, std::string image)>;
+
+// Async deletion of one printer G-code file. `result` reports dispatch and outcome.
+using PrinterFileDeleteFn = std::function<void(int result)>;
+
+// Async fetch of one G-code file's Moonraker metadata. `meta` fields default to 0.
+using PrinterFileMetadataFn = std::function<void(int result, PrinterFileMetadata meta)>;
 
 /**
  * IPrinterAgent - Interface for printer operations.
@@ -108,6 +148,22 @@ public:
      * Publish a JSON command to a printer through cloud relay.
      */
     virtual int send_message(std::string dev_id, std::string json_str, int qos, int flag) = 0;
+
+    // Capability queries are per-device because one agent may own many printers.
+    // Legacy agents keep their existing behavior unless they override these.
+    virtual bool supports_command(const std::string& /*dev_id*/, const std::string& /*command*/) const { return true; }
+    virtual bool supports_feature(const std::string& /*dev_id*/, const std::string& /*feature*/) const { return false; }
+
+    // The shared device state reports a capability the printer advertised, per device.
+    // The shared contract stays OrcaSonar; an agent may retain a compatibility message
+    // for a legacy transport and record this to adapt its own sends. The default ignores
+    // it, which is correct for printers that speak the shared protocol.
+    virtual void note_mqtt_alive_support(const std::string& /*dev_id*/, bool /*supported*/) {}
+
+    // Whether this agent serializes AMS lane selection into print.gcode_file's
+    // per-print filament_mapping field. A dialect question, not a capability one:
+    // the no-AMS external-spool normalization runs before capabilities are known.
+    virtual bool uses_filament_mapping() const { return false; }
 
     // why: gcode is firmware dialect, not a waist concept - commands whose body is Bambu-dialect
     // gcode live on the agent that speaks it; the default is an honest refusal that MachineObject's
@@ -265,6 +321,7 @@ public:
 
     /**
      * Perform binding detection/handshake on a LAN printer.
+     * Set detect.model_id only from a printer-reported model, never from a preset.
      */
     virtual int bind_detect(std::string dev_ip, std::string sec_link, detectResult& detect) = 0;
 
@@ -314,6 +371,48 @@ public:
         (void) file_name;
         (void) callback;
         return -1;
+    }
+
+    /**
+     * List the printer's G-code files, delivered asynchronously via callback.
+     * Agents without a file listing report ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
+     */
+    virtual int list_printer_files(const std::string& dev_id, PrinterFileListFn callback)
+    {
+        (void) dev_id;
+        (void) callback;
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    }
+
+    /**
+     * Fetch one G-code file's embedded thumbnail, delivered asynchronously via
+     * callback. Agents without thumbnail support report ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
+     */
+    virtual int get_printer_file_thumbnail(const std::string& dev_id, const std::string& path, PrinterFileThumbnailFn callback)
+    {
+        (void) dev_id; (void) path; (void) callback;
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    }
+
+    /**
+     * Delete one G-code file from the printer, delivered asynchronously via
+     * callback. Agents without file deletion report ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
+     */
+    virtual int delete_printer_file(const std::string& dev_id, const std::string& path, PrinterFileDeleteFn callback)
+    {
+        (void) dev_id; (void) path; (void) callback;
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+    }
+
+    /**
+     * Fetch one G-code file's Moonraker metadata (print time and filament usage),
+     * delivered asynchronously via callback. Agents without metadata support
+     * report ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
+     */
+    virtual int get_printer_file_metadata(const std::string& dev_id, const std::string& path, PrinterFileMetadataFn callback)
+    {
+        (void) dev_id; (void) path; (void) callback;
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
     }
 
     /**
@@ -390,6 +489,7 @@ public:
     // ========================================================================
     /**
      * Register SSDP discovery callback.
+     * Discovery dev_type must identify a model reported by the printer, or be empty when unknown.
      */
     virtual int set_on_ssdp_msg_fn(OnMsgArrivedFn fn) = 0;
 
@@ -455,9 +555,16 @@ public:
     virtual CameraStreamMode get_camera_stream_mode() const { return CameraStreamMode::none; }
 
     /**
-     * Refresh filament info from the printer synchronously.
-     * Should only be called when get_filament_sync_mode() returns FilamentSyncMode::pull.
-     * Populates the MachineObject's DevFilaSystem with fetched filament data.
+     * Refresh filament info from the printer.
+     *
+     * When called with FilamentSyncMode::pull (which requires get_filament_sync_mode() to
+     * return pull) this is a blocking, synchronous call: when it returns true the MachineObject's
+     * DevFilaSystem has already been populated and the caller may read it immediately.
+     *
+     * When called with FilamentSyncMode::subscription — by an implementation's own status loop —
+     * the refresh may be performed asynchronously: a true return then means the refresh was
+     * scheduled (or is already in flight), and DevFilaSystem is updated later on the main thread.
+     * Callers must not assume the data is ready on return.
      */
     virtual bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) { return false; }
 
@@ -470,6 +577,11 @@ public:
      */
     virtual std::string to_orca_filament_id(const std::string& printer_filament_id) const { return printer_filament_id; }
     virtual std::string from_orca_filament_id(const std::string& orca_filament_id) const { return orca_filament_id; }
+
+    // Device tool IDs in physical display order. Empty means that the agent has no
+    // layout information. This is not the preset's logical-to-physical tool map.
+    // Implementations must use cached state and must not perform network I/O.
+    virtual std::vector<int> tool_display_order(const std::string&, int) const { return {}; }
 
     /**
      * Get the current camera stream URL for this agent's active machine.

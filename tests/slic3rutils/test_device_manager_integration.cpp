@@ -16,12 +16,20 @@
 #include <catch2/catch_all.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <libslic3r/ProjectTask.hpp>
+#include <libslic3r/Preset.hpp>
+#include <libslic3r/Config.hpp>
+#include <slic3r/GUI/DeviceCore/DevConfigUtil.h>
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
+#include <slic3r/GUI/DeviceCore/DevFilaSystem.h>
+#include <slic3r/GUI/FilamentMappingUtils.hpp>
 #include <slic3r/GUI/Mcp/McpTools.hpp>
 #include <slic3r/GUI/Operations/Outcome.hpp>
 #include <slic3r/GUI/Operations/PrinterOps.hpp>
 #include <libslic3r/AppConfig.hpp>
+#include <libslic3r/PresetBundle.hpp>
+#include <libslic3r/PrintConfig.hpp>
 #include "catch2/catch_message.hpp"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
@@ -34,12 +42,15 @@
 
 #include <memory>
 #include <cstdint>
+#include <chrono>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 using namespace Slic3r;
+using Slic3r::GUI::MappingSendError;
+using Slic3r::GUI::prepare_filament_mapping_for_send;
 using json = nlohmann::json;
 
 namespace {
@@ -59,6 +70,11 @@ public:
     }
 
     std::string get_user_name() override { return "integration-test-user"; }
+    bool is_user_login() override { return logged_in; }
+    bool is_server_connected() override { return server_connected; }
+
+    bool logged_in{false};
+    bool server_connected{false};
 };
 
 class TestPrinterAgent final : public OrcaPrinterAgent
@@ -71,16 +87,32 @@ public:
 
     AgentInfo get_agent_info() override { return m_info; }
 
-    int send_message(std::string dev_id, std::string json_str, int, int) override
+    // This test double represents a legacy agent, not OrcaPrinterAgent behavior.
+    bool supports_command(const std::string&, const std::string&) const override { return true; }
+
+    // It models whichever agent is registered under its id: only the Orca agent
+    // serializes per-print filament_mapping.
+    bool uses_filament_mapping() const override { return m_info.id == "orca"; }
+
+    void note_mqtt_alive_support(const std::string& dev_id, bool supported) override
     {
-        published_device = std::move(dev_id);
-        published_message = json::parse(json_str);
-        return reply;
+        ++mqtt_alive_reports;
+        mqtt_alive_dev_id    = dev_id;
+        mqtt_alive_supported = supported;
     }
 
-    int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override
+    using OrcaPrinterAgent::deliver_to_sink;
+
+    int send_message(std::string dev_id, std::string json_str, int, int) override
     {
-        return send_message(std::move(dev_id), std::move(json_str), qos, flag);
+        ++cloud_sends;
+        return record_message(std::move(dev_id), std::move(json_str));
+    }
+
+    int send_message_to_printer(std::string dev_id, std::string json_str, int, int) override
+    {
+        ++lan_sends;
+        return record_message(std::move(dev_id), std::move(json_str));
     }
 
     int connect_printer(const PrinterConnectionParams& params) override
@@ -95,19 +127,47 @@ public:
         return OrcaPrinterAgent::set_user_selected_machine(std::move(dev_id));
     }
 
+    std::string last_message;
     std::string published_device;
     json published_message;
     std::string connected_ca_file;
     int reply = 0; // what a send returns: 0 when the printer took the message
     int selections{0};
+    int lan_sends{0};
+    int cloud_sends{0};
+    int mqtt_alive_reports{0};
+    std::string mqtt_alive_dev_id;
+    bool mqtt_alive_supported{false};
 
 private:
+    int record_message(std::string dev_id, std::string json_str)
+    {
+        last_message     = json_str;
+        published_device = std::move(dev_id);
+        published_message = json::parse(json_str);
+        return reply;
+    }
+
     AgentInfo m_info;
 };
 
 struct ScopedAppConfig
 {
     AppConfig config;
+};
+
+struct ScopedPrinterModelRegistry
+{
+    using PrinterModelIdentity = DevPrinterConfigUtil::PrinterModelIdentity;
+
+    explicit ScopedPrinterModelRegistry(std::vector<PrinterModelIdentity> models)
+    {
+        DevPrinterConfigUtil::set_installed_printer_models(std::move(models));
+    }
+    ~ScopedPrinterModelRegistry() { DevPrinterConfigUtil::set_installed_printer_models(std::vector<PrinterModelIdentity>{}); }
+
+    ScopedPrinterModelRegistry(const ScopedPrinterModelRegistry&)            = delete;
+    ScopedPrinterModelRegistry& operator=(const ScopedPrinterModelRegistry&) = delete;
 };
 
 std::string machine_list_response(const std::string& provider, const std::string& agent_id,
@@ -145,6 +205,450 @@ TEST_CASE("Network agent stamps user-machine responses with request context", "[
     CHECK(response["provider"] == ORCA_CLOUD_PROVIDER);
     CHECK(response["agent_id"] == "integration-agent-a");
     CHECK(response["generation"] == generation_before + 1);
+}
+
+TEST_CASE("An idle LAN printer is liveness probed once per quiet interval", "[DeviceManager][Liveness]")
+{
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    MachineObject obj(nullptr, &network, "test", "idle-lan", "127.0.0.1");
+    obj.printer_agent_id = "integration-agent";
+    obj.dev_connection_type = "lan";
+    obj.set_lan_session_open(true);
+
+    const auto now = std::chrono::system_clock::now();
+    obj.last_update_time = now - std::chrono::seconds(21);
+    obj.last_printer_message_time = now - std::chrono::seconds(21);
+    obj.last_request_push = now - std::chrono::seconds(5); // last start-up retry
+    const auto last_update = obj.last_update_time;
+
+    REQUIRE(obj.request_liveness_probe(now));
+    CHECK(agent->lan_sends == 1);
+    CHECK(agent->cloud_sends == 0);
+    CHECK(agent->published_message["pushing"]["command"] == "pushall");
+    // Sending is not evidence of life: only the printer's full-status reply may reset this.
+    CHECK(obj.last_update_time.time_since_epoch().count() ==
+          last_update.time_since_epoch().count());
+
+    // No reply yet: the next tick must not overlap or repeat the probe early.
+    CHECK_FALSE(obj.request_liveness_probe(now + std::chrono::seconds(1)));
+    CHECK(agent->lan_sends == 1);
+    CHECK(obj.last_update_time.time_since_epoch().count() ==
+          last_update.time_since_epoch().count());
+
+    // Past the display timeout with no reply: the device still shows disconnected, but an open
+    // transport keeps retrying no faster than one probe per quiet interval.
+    obj.last_update_time = now - std::chrono::seconds(31);
+    obj.last_printer_message_time = now - std::chrono::seconds(31);
+    const auto stale = obj.last_update_time;
+    CHECK_FALSE(obj.is_connected());
+    CHECK(obj.request_liveness_probe(now + std::chrono::seconds(21)));
+    CHECK(agent->lan_sends == 2);
+    CHECK(obj.last_update_time.time_since_epoch().count() ==
+          stale.time_since_epoch().count());
+    CHECK_FALSE(obj.is_connected());
+}
+
+TEST_CASE("A throttled liveness probe does not consume its probe interval", "[DeviceManager][Liveness]")
+{
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    MachineObject obj(nullptr, &network, "test", "throttled-lan", "127.0.0.1");
+    obj.printer_agent_id = "integration-agent";
+    obj.dev_connection_type = "lan";
+    obj.set_lan_session_open(true);
+
+    const auto now = std::chrono::system_clock::now();
+    obj.last_update_time = now - std::chrono::seconds(21);
+    obj.last_printer_message_time = now - std::chrono::seconds(21);
+    obj.last_request_push = now - std::chrono::seconds(1); // inside the 3 s serialization window
+
+    CHECK_FALSE(obj.request_liveness_probe(now));
+    CHECK(agent->lan_sends == 0);
+    CHECK(obj.last_liveness_probe.time_since_epoch().count() == 0);
+
+    // Once the serialization window has passed, the next tick probes; the failed attempt
+    // did not postpone it by the 20 s liveness interval.
+    CHECK(obj.request_liveness_probe(now + std::chrono::seconds(3)));
+    CHECK(agent->lan_sends == 1);
+}
+
+TEST_CASE("An active printer is not liveness probed", "[DeviceManager][Liveness]")
+{
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    MachineObject obj(nullptr, &network, "test", "active-lan", "127.0.0.1");
+    obj.printer_agent_id = "integration-agent";
+    obj.dev_connection_type = "lan";
+    obj.set_lan_session_open(true);
+
+    const auto now = std::chrono::system_clock::now();
+    obj.last_update_time = now - std::chrono::seconds(5);
+    obj.last_printer_message_time = now - std::chrono::seconds(5);
+
+    CHECK_FALSE(obj.request_liveness_probe(now));
+    CHECK(agent->lan_sends == 0);
+    CHECK(agent->cloud_sends == 0);
+}
+
+TEST_CASE("The liveness probe uses the cloud path for a cloud printer", "[DeviceManager][Liveness]")
+{
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    MachineObject obj(nullptr, &network, "test", "idle-cloud", "127.0.0.1");
+    obj.printer_agent_id = "integration-agent";
+    obj.dev_connection_type = "cloud";
+    obj.m_is_online = true;
+
+    const auto now = std::chrono::system_clock::now();
+    obj.last_update_time = now - std::chrono::seconds(21);
+    obj.last_printer_message_time = now - std::chrono::seconds(21);
+
+    REQUIRE(obj.request_liveness_probe(now));
+    CHECK(agent->cloud_sends == 1);
+    CHECK(agent->lan_sends == 0);
+    CHECK(agent->published_message["pushing"]["command"] == "pushall");
+}
+
+TEST_CASE("Liveness probing ignores support_mqtt_alive and cloud sign-in", "[DeviceManager][Liveness]")
+{
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    MachineObject obj(nullptr, &network, "test", "idle-suppressed", "127.0.0.1");
+    obj.printer_agent_id = "integration-agent";
+    obj.dev_connection_type = "lan";
+    obj.set_lan_session_open(true);
+    obj.is_support_mqtt_alive = true;
+
+    CHECK_FALSE(network.is_user_login(ORCA_CLOUD_PROVIDER));
+
+    const auto now = std::chrono::system_clock::now();
+    obj.last_update_time = now - std::chrono::seconds(21);
+    obj.last_printer_message_time = now - std::chrono::seconds(21);
+
+    REQUIRE(obj.request_liveness_probe(now));
+    CHECK(agent->lan_sends == 1);
+}
+
+TEST_CASE("A printer's mqtt alive capability reaches the owning agent", "[DeviceManager][Liveness]")
+{
+    ScopedAppConfig app_config;
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "capability-device";
+    machine.dev_name     = "Capability printer";
+    machine.dev_ip       = "192.0.2.43";
+    machine.printer_type = "C11";
+    REQUIRE(manager.insert_local_device(machine, "lan", "free", "", "access-code") != nullptr);
+    REQUIRE(manager.set_selected_machine(machine.dev_id));
+
+    MachineObject* obj = manager.get_selected_machine();
+    REQUIRE(obj != nullptr);
+    obj->printer_type.clear(); // keep the status parse free of model-profile lookups
+    REQUIRE(agent->mqtt_alive_reports == 0);
+
+    // The print-status path is where version-profile merged data lands.
+    obj->parse_json("lan", R"({"print":{"command":"push_status","msg":0,"support_mqtt_alive":true}})");
+    REQUIRE(agent->mqtt_alive_reports == 1);
+    CHECK(agent->mqtt_alive_dev_id == "capability-device");
+    CHECK(agent->mqtt_alive_supported);
+
+    // The get_capabilities reply carries the same flag under its flags object.
+    obj->parse_json("lan", R"({"info":{"command":"get_capabilities","capabilities":{"flags":{"support_mqtt_alive":false}}}})");
+    REQUIRE(agent->mqtt_alive_reports == 2);
+    CHECK(agent->mqtt_alive_dev_id == "capability-device");
+    CHECK_FALSE(agent->mqtt_alive_supported);
+
+    // A device owned by another agent is not handed to the active one.
+    obj->printer_agent_id = "different-agent";
+    obj->parse_json("lan", R"({"print":{"command":"push_status","msg":0,"support_mqtt_alive":true}})");
+    CHECK(agent->mqtt_alive_reports == 2);
+}
+
+TEST_CASE("An unsupported automatic liveness probe stays quiet", "[DeviceManager][Liveness]")
+{
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    MachineObject obj(nullptr, &network, "test", "unsupported-lan", "127.0.0.1");
+    obj.printer_agent_id = "integration-agent";
+    obj.dev_connection_type = "lan";
+    obj.set_lan_session_open(true);
+    agent->reply = ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+
+    const auto now = std::chrono::system_clock::now();
+    obj.last_update_time = now - std::chrono::seconds(21);
+    obj.last_printer_message_time = now - std::chrono::seconds(21);
+
+    // No wxApp exists here: a probe that reported unsupported would try to open a dialog.
+    CHECK_FALSE(obj.request_liveness_probe(now));
+    CHECK(agent->lan_sends == 1);
+}
+
+TEST_CASE("The selected LAN printer is probed, and loss or deselection stops it", "[DeviceManager][Liveness]")
+{
+    ScopedAppConfig app_config;
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "selected-lan-device";
+    machine.dev_name     = "Selected LAN printer";
+    machine.dev_ip       = "192.0.2.41";
+    machine.printer_type = "C11";
+    REQUIRE(manager.insert_local_device(machine, "lan", "free", "", "access-code") != nullptr);
+    REQUIRE(manager.set_selected_machine(machine.dev_id));
+
+    MachineObject* obj = manager.get_selected_machine();
+    REQUIRE(obj != nullptr);
+    obj->set_lan_session_open(true);
+
+    const auto now = std::chrono::system_clock::now();
+    obj->last_update_time = now - std::chrono::seconds(21);
+    obj->last_printer_message_time = now - std::chrono::seconds(21);
+    REQUIRE(manager.check_selected_machine_liveness(now));
+    CHECK(agent->lan_sends == 1);
+
+    // No reply before the display timeout: the selected path keeps the disconnected display
+    // but keeps retrying the open transport at the quiet interval.
+    obj->last_update_time = now - std::chrono::seconds(31);
+    obj->last_printer_message_time = now - std::chrono::seconds(31);
+    const auto stale = obj->last_update_time;
+    CHECK_FALSE(obj->is_connected());
+    CHECK(manager.check_selected_machine_liveness(now + std::chrono::seconds(31)));
+    CHECK(agent->lan_sends == 2);
+    CHECK(obj->last_update_time.time_since_epoch().count() ==
+          stale.time_since_epoch().count());
+
+    // Simulate a lost LAN session, then its SSDP discovery: discovery restores generic
+    // online state but must not make the closed session probeable again.
+    obj->set_lan_session_open(false);
+    obj->set_online_state(false);
+    manager.on_machine_alive(R"({
+        "dev_name":"Selected LAN printer",
+        "dev_id":"selected-lan-device",
+        "dev_ip":"192.0.2.41",
+        "dev_type":"C11",
+        "dev_signal":"strong",
+        "connect_type":"lan",
+        "bind_state":"free"
+    })");
+    CHECK(obj->is_online());
+    CHECK_FALSE(obj->is_lan_session_open());
+    obj->last_update_time = now - std::chrono::seconds(21);
+    obj->last_printer_message_time = now - std::chrono::seconds(21);
+    obj->last_request_push = {};
+    obj->last_liveness_probe = {};
+    CHECK_FALSE(manager.check_selected_machine_liveness(now + std::chrono::seconds(1)));
+    CHECK(agent->lan_sends == 2);
+
+    // Deselecting the selected printer also stops all probing.
+    REQUIRE(manager.set_selected_machine(""));
+    CHECK_FALSE(manager.check_selected_machine_liveness(now + std::chrono::seconds(2)));
+    CHECK(agent->lan_sends == 2);
+}
+
+TEST_CASE("A full-status reply resets the selected printer's liveness timer", "[DeviceManager][Liveness]")
+{
+    ScopedAppConfig app_config;
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "full-status-device";
+    machine.dev_name     = "Full status printer";
+    machine.dev_ip       = "192.0.2.42";
+    machine.printer_type = "C11";
+    REQUIRE(manager.insert_local_device(machine, "lan", "free", "", "access-code") != nullptr);
+    REQUIRE(manager.set_selected_machine(machine.dev_id));
+
+    MachineObject* obj = manager.get_selected_machine();
+    REQUIRE(obj != nullptr);
+    obj->set_lan_session_open(true);
+
+    const auto now = std::chrono::system_clock::now();
+    obj->last_update_time = now - std::chrono::seconds(21);
+    obj->last_printer_message_time = now - std::chrono::seconds(21);
+    REQUIRE(manager.check_selected_machine_liveness(now));
+    CHECK(agent->lan_sends == 1);
+
+    const auto before_reply = obj->last_update_time;
+    const auto before_message = obj->last_printer_message_time;
+    obj->printer_type.clear(); // keep the status parse free of model-profile lookups
+    obj->parse_json("lan", R"({"print":{"command":"push_status","msg":0}})");
+    CHECK(obj->last_update_time.time_since_epoch().count() >
+          before_reply.time_since_epoch().count());
+    CHECK(obj->last_printer_message_time.time_since_epoch().count() >
+          before_message.time_since_epoch().count());
+    CHECK(obj->is_connected());
+    CHECK_FALSE(manager.check_selected_machine_liveness(now + std::chrono::seconds(5)));
+    CHECK(agent->lan_sends == 1);
+}
+
+TEST_CASE("A synthetic status reload does not postpone the liveness probe", "[DeviceManager][Liveness]")
+{
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    MachineObject obj(nullptr, &network, "test", "synthetic-reload", "127.0.0.1");
+    obj.printer_agent_id = "integration-agent";
+    obj.dev_connection_type = "lan";
+    obj.set_lan_session_open(true);
+
+    const auto now = std::chrono::system_clock::now();
+    obj.last_update_time = now - std::chrono::seconds(21);
+    obj.last_printer_message_time = now - std::chrono::seconds(21);
+    const auto before_display = obj.last_update_time;
+    const auto before_message = obj.last_printer_message_time;
+
+    // reload_printer_settings() sends an empty object through parse_json(); it must keep
+    // refreshing the display clock without counting as a printer message for liveness.
+    obj.parse_json("cloud", "{}");
+    CHECK(obj.last_update_time.time_since_epoch().count() >
+          before_display.time_since_epoch().count());
+    CHECK(obj.last_printer_message_time.time_since_epoch().count() ==
+          before_message.time_since_epoch().count());
+
+    REQUIRE(obj.request_liveness_probe(now));
+    CHECK(agent->lan_sends == 1);
+}
+
+TEST_CASE("A device-view refresh does not reset the liveness probe window", "[DeviceManager][Liveness]")
+{
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    MachineObject obj(nullptr, &network, "test", "view-refresh", "127.0.0.1");
+    obj.printer_agent_id = "integration-agent";
+    obj.dev_connection_type = "lan";
+    obj.set_lan_session_open(true);
+
+    const auto now = std::chrono::system_clock::now();
+    obj.last_update_time = now - std::chrono::seconds(31);
+    obj.last_printer_message_time = now - std::chrono::seconds(31);
+    obj.last_liveness_probe = now - std::chrono::seconds(5);
+    const auto before_display = obj.last_update_time;
+    const auto before_message = obj.last_printer_message_time;
+    const auto before_probe = obj.last_liveness_probe;
+
+    obj.reset_update_time();
+    CHECK(obj.last_update_time.time_since_epoch().count() >
+          before_display.time_since_epoch().count());
+    CHECK(obj.last_printer_message_time.time_since_epoch().count() ==
+          before_message.time_since_epoch().count());
+    CHECK(obj.last_liveness_probe.time_since_epoch().count() ==
+          before_probe.time_since_epoch().count());
+
+    obj.reset_liveness_window();
+    CHECK(obj.last_printer_message_time.time_since_epoch().count() >
+          before_message.time_since_epoch().count());
+    CHECK(obj.last_liveness_probe.time_since_epoch().count() == 0);
+}
+
+TEST_CASE("A cloud printer is probed only while its server channel is open", "[DeviceManager][Liveness]")
+{
+    ScopedAppConfig app_config;
+    const auto cloud = std::make_shared<StubCloudAgent>();
+    cloud->logged_in        = true;
+    cloud->server_connected = true;
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(cloud, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    manager.parse_user_print_info(machine_list_response(ORCA_CLOUD_PROVIDER, "integration-agent",
+                                                        network.get_user_machine_list_generation(),
+                                                        "Cloud printer"));
+    REQUIRE(manager.set_selected_machine("integration-device"));
+
+    MachineObject* obj = manager.get_selected_machine();
+    REQUIRE(obj != nullptr);
+
+    const auto now = std::chrono::system_clock::now();
+    obj->last_update_time = now - std::chrono::seconds(21);
+    obj->last_printer_message_time = now - std::chrono::seconds(21);
+    REQUIRE(manager.check_selected_machine_liveness(now));
+    CHECK(agent->cloud_sends == 1);
+    CHECK(agent->lan_sends == 0);
+
+    // The transport closed: no further probe until the server channel comes back.
+    cloud->server_connected = false;
+    obj->last_update_time = now - std::chrono::seconds(21);
+    obj->last_printer_message_time = now - std::chrono::seconds(21);
+    obj->last_request_push = {};
+    obj->last_liveness_probe = {};
+    CHECK_FALSE(manager.check_selected_machine_liveness(now + std::chrono::seconds(1)));
+    CHECK(agent->cloud_sends == 1);
+}
+
+TEST_CASE("A selected cloud printer is probed without cloud sign-in", "[DeviceManager][Liveness]")
+{
+    ScopedAppConfig app_config;
+    const auto cloud = std::make_shared<StubCloudAgent>();
+    cloud->logged_in        = false;
+    cloud->server_connected = true;
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(cloud, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    manager.parse_user_print_info(machine_list_response(ORCA_CLOUD_PROVIDER, "integration-agent",
+                                                        network.get_user_machine_list_generation(),
+                                                        "Cloud printer"));
+    const auto machines = manager.get_user_machinelist();
+    REQUIRE(machines.count("integration-device") == 1);
+    MachineObject* obj = machines.at("integration-device");
+    REQUIRE(obj != nullptr);
+    // Legacy cloud entries may have no explicit connection type; selection treats non-LAN
+    // as cloud, and the liveness fallback must do the same.
+    obj->dev_connection_type.clear();
+
+    REQUIRE(manager.set_selected_machine("integration-device"));
+
+    // The normal selection accessor stays sign-in gated; the liveness accessor must not be.
+    CHECK(manager.get_selected_machine() == nullptr);
+
+    const auto now = std::chrono::system_clock::now();
+    obj->last_update_time = now - std::chrono::seconds(21);
+    obj->last_printer_message_time = now - std::chrono::seconds(21);
+    REQUIRE(manager.check_selected_machine_liveness(now));
+    CHECK(agent->cloud_sends == 1);
+    CHECK(agent->lan_sends == 0);
+}
+
+TEST_CASE("Liveness uses the normal selected object when LAN and cloud share an id", "[DeviceManager][Liveness]")
+{
+    ScopedAppConfig app_config;
+    const auto cloud = std::make_shared<StubCloudAgent>();
+    cloud->logged_in        = false;
+    cloud->server_connected = true;
+    const auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(cloud, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "integration-device";
+    machine.dev_name     = "Local duplicate";
+    machine.dev_ip       = "192.0.2.43";
+    machine.printer_type = "C11";
+    MachineObject* local = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(local != nullptr);
+
+    manager.parse_user_print_info(machine_list_response(ORCA_CLOUD_PROVIDER, "integration-agent",
+                                                        network.get_user_machine_list_generation(),
+                                                        "Cloud duplicate"));
+    REQUIRE(manager.set_selected_machine(machine.dev_id));
+
+    // Signed out, the normal accessor resolves the local object, not the cloud duplicate.
+    REQUIRE(manager.get_selected_machine() == local);
+    local->set_lan_session_open(true);
+    const auto now = std::chrono::system_clock::now();
+    local->last_update_time = now - std::chrono::seconds(21);
+    local->last_printer_message_time = now - std::chrono::seconds(21);
+
+    REQUIRE(manager.check_selected_machine_liveness(now));
+    CHECK(agent->lan_sends == 1);
+    CHECK(agent->cloud_sends == 0);
 }
 
 TEST_CASE("Device manager ignores stale cloud machine responses", "[DeviceManager][integration]")
@@ -211,6 +715,377 @@ TEST_CASE("Device manager filters and rehomes devices by printer-agent ownership
     CHECK(object->printer_agent_id == "integration-agent-b");
     CHECK(manager.get_my_machine_list("integration-agent-a").empty());
     CHECK(manager.get_my_machine_list("integration-agent-b").count(machine.dev_id) == 1);
+}
+
+TEST_CASE("A saved printer model is unverified until the printer advertises it", "[DeviceManager][integration]")
+{
+    const ScopedPrinterModelRegistry registry({{"C11", {"C11", "Bambu Lab P1P"}}});
+    ScopedAppConfig app_config;
+    const std::string agent_id = "integration-agent";
+    BBLocalMachine saved;
+    saved.dev_id           = "saved-model-device";
+    saved.dev_name         = "Saved model printer";
+    saved.dev_ip           = "192.0.2.30";
+    saved.printer_type     = "C11";
+    saved.printer_agent_id = agent_id;
+    saved.access_code      = "access-code";
+    app_config.config.update_local_machine(saved);
+
+    auto agent = std::make_shared<TestPrinterAgent>(agent_id);
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    MachineObject* object = manager.get_local_machine(saved.dev_id);
+    REQUIRE(object != nullptr);
+    CHECK(object->printer_type == "C11");
+    CHECK_FALSE(object->has_advertised_printer_model());
+
+    // An empty dev_type makes no model claim and must not confirm the saved identity.
+    manager.on_machine_alive(R"({
+        "dev_name":"Saved model printer",
+        "dev_id":"saved-model-device",
+        "dev_ip":"192.0.2.30",
+        "dev_type":"",
+        "dev_signal":"strong",
+        "connect_type":"lan",
+        "bind_state":"free"
+    })");
+    CHECK_FALSE(object->has_advertised_printer_model());
+
+    // Any agent can advertise the model; no agent-specific list governs identity.
+    manager.on_machine_alive(R"({
+        "dev_name":"Saved model printer",
+        "dev_id":"saved-model-device",
+        "dev_ip":"192.0.2.30",
+        "dev_type":"C11",
+        "dev_signal":"strong",
+        "connect_type":"lan",
+        "bind_state":"free"
+    })");
+    CHECK(object->printer_type == "C11");
+    CHECK(object->has_advertised_printer_model());
+}
+
+TEST_CASE("Only a model reported by the printer is marked advertised on insert", "[DeviceManager][integration]")
+{
+    const ScopedPrinterModelRegistry registry({{"C11", {"C11", "Bambu Lab P1P"}}});
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine preset_model;
+    preset_model.dev_id       = "preset-model-device";
+    preset_model.dev_name     = "Preset model printer";
+    preset_model.dev_ip       = "192.0.2.31";
+    preset_model.printer_type = "C11";
+    MachineObject* preset_object = manager.insert_local_device(preset_model, "lan", "free", "", "access-code");
+    REQUIRE(preset_object != nullptr);
+    CHECK(preset_object->printer_type == "C11");
+    CHECK_FALSE(preset_object->has_advertised_printer_model());
+    // An unverified preset-derived model must not block compatibility checks.
+    CHECK(DevPrinterConfigUtil::is_printer_model_compatible("C11", *preset_object));
+
+    BBLocalMachine advertised_model;
+    advertised_model.dev_id       = "advertised-model-device";
+    advertised_model.dev_name     = "Advertised model printer";
+    advertised_model.dev_ip       = "192.0.2.32";
+    advertised_model.printer_type = "C11";
+    MachineObject* advertised_object = manager.insert_local_device(advertised_model, "lan", "free", "", "access-code", true);
+    REQUIRE(advertised_object != nullptr);
+    CHECK(advertised_object->printer_type == "C11");
+    CHECK(advertised_object->has_advertised_printer_model());
+}
+
+TEST_CASE("An unrecognized advertised model stays unknown and does not block", "[DeviceManager][integration]")
+{
+    const ScopedPrinterModelRegistry registry({{"C11", {"C11", "Bambu Lab P1P"}}});
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine unknown_model;
+    unknown_model.dev_id       = "unknown-model-device";
+    unknown_model.dev_name     = "Unknown model printer";
+    unknown_model.dev_ip       = "192.0.2.33";
+    unknown_model.printer_type = "NewModel";
+    MachineObject* unknown_object = manager.insert_local_device(unknown_model, "lan", "free", "", "access-code", true);
+    REQUIRE(unknown_object != nullptr);
+    CHECK(unknown_object->printer_type.empty());
+    CHECK_FALSE(unknown_object->has_advertised_printer_model());
+    CHECK(DevPrinterConfigUtil::is_optional_printer_model_id("NewModel"));
+    CHECK(DevPrinterConfigUtil::is_printer_model_compatible("C11", *unknown_object));
+
+    // A later positive report of a different unrecognized model also clears the old identity.
+    BBLocalMachine known_model;
+    known_model.dev_id       = "known-model-device";
+    known_model.dev_name     = "Known model printer";
+    known_model.dev_ip       = "192.0.2.34";
+    known_model.printer_type = "C11";
+    MachineObject* known_object = manager.insert_local_device(known_model, "lan", "free", "", "access-code", true);
+    REQUIRE(known_object != nullptr);
+    REQUIRE(known_object->has_advertised_printer_model());
+
+    manager.on_machine_alive(R"({
+        "dev_name":"Known model printer",
+        "dev_id":"known-model-device",
+        "dev_ip":"192.0.2.34",
+        "dev_type":"NewModel",
+        "dev_signal":"strong",
+        "connect_type":"lan",
+        "bind_state":"free"
+    })");
+    CHECK(known_object->printer_type.empty());
+    CHECK_FALSE(known_object->has_advertised_printer_model());
+}
+
+TEST_CASE("An installed vendor model name resolves to its canonical id", "[DeviceManager][integration]")
+{
+    const ScopedPrinterModelRegistry registry({{"Qidi-Q2", {"Qidi-Q2", "Qidi Q2"}}});
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("Qidi-Q2") == "Qidi-Q2");
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("Qidi Q2") == "Qidi-Q2");
+
+    BBLocalMachine machine;
+    machine.dev_id       = "qidi-model-device";
+    machine.dev_name     = "Qidi printer";
+    machine.dev_ip       = "192.0.2.35";
+    machine.printer_type = "Qidi Q2";
+    MachineObject* object = manager.insert_local_device(machine, "lan", "free", "", "access-code", true);
+    REQUIRE(object != nullptr);
+    CHECK(object->printer_type == "Qidi-Q2");
+    CHECK(object->has_advertised_printer_model());
+    CHECK(DevPrinterConfigUtil::is_printer_model_compatible("Qidi-Q2", *object));
+    // An alias/name on the source side is normalized before equality.
+    CHECK(DevPrinterConfigUtil::is_printer_model_compatible("Qidi Q2", *object));
+}
+
+TEST_CASE("An installed upgrade kit changes the shown model but not the advertised identity", "[DeviceManager][integration]")
+{
+    const ScopedPrinterModelRegistry registry({{"C11", {"C11", "Bambu Lab P1P"}},
+                                               {"C12", {"C12", "Bambu Lab P1P + Upgrade Kit"}}});
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine p1p;
+    p1p.dev_id       = "upgrade-kit-device";
+    p1p.dev_name     = "P1P with upgrade kit";
+    p1p.dev_ip       = "192.0.2.36";
+    p1p.printer_type = "C11";
+    MachineObject* object = manager.insert_local_device(p1p, "lan", "free", "", "access-code", true);
+    REQUIRE(object != nullptr);
+    object->is_support_upgrade_kit = true;
+    object->installed_upgrade_kit  = true;
+
+    // The printer still advertises C11; only the effective model used for preset comparison is C12.
+    CHECK(object->printer_type == "C11");
+    CHECK(object->has_advertised_printer_model());
+    CHECK(object->get_show_printer_type() == "C12");
+}
+
+TEST_CASE("Model recognition follows the live registry and keeps Bambu legacy aliases", "[DeviceManager][integration]")
+{
+    DevPrinterConfigUtil::set_installed_printer_models(std::vector<DevPrinterConfigUtil::PrinterModelIdentity>{});
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("C11").empty());
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("3DPrinter-X1") == "BL-P002");
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("3DPrinter-X1-Carbon") == "BL-P001");
+
+    {
+        // A duplicated profile model entry with the same id is profile data, not an identity
+        // conflict; the id still resolves.
+        const ScopedPrinterModelRegistry registry({{"C11", {"C11", "Bambu Lab P1P"}},
+                                                   {"C11", {"C11", "Bambu Lab P1P"}}});
+        CHECK(DevPrinterConfigUtil::resolve_printer_model_id("C11") == "C11");
+        CHECK(DevPrinterConfigUtil::resolve_printer_model_id("Bambu Lab P1P") == "C11");
+    }
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("C11").empty());
+}
+
+TEST_CASE("Network agent rejects capability queries for a different device owner", "[DeviceManager][integration]")
+{
+    NetworkAgent network(nullptr, std::make_shared<TestPrinterAgent>("bbl"));
+
+    CHECK(network.owns_agent("bbl"));
+    CHECK_FALSE(network.owns_agent("orca"));
+    CHECK(network.supports_command("bbl", "device", "print.ams_control"));
+    CHECK_FALSE(network.supports_command("orca", "device", "print.ams_control"));
+    CHECK_FALSE(network.supports_feature("orca", "device", "filament_mapping"));
+
+    // The mapping dialect is queried the same way: a legacy owner never inherits
+    // Orca's, and a non-owner is never queried at all.
+    CHECK_FALSE(network.uses_filament_mapping("bbl"));
+    CHECK_FALSE(network.uses_filament_mapping("orca"));
+
+    NetworkAgent orca_network(nullptr, std::make_shared<TestPrinterAgent>("orca"));
+    CHECK(orca_network.uses_filament_mapping("orca"));
+    CHECK_FALSE(orca_network.uses_filament_mapping("bbl"));
+}
+
+// Send-time mapping policy belongs to the printer agent's dialect, not to an
+// agent id: the Orca dialect gets the no-AMS normalization plus both refusals.
+TEST_CASE("Per-print mapping send policy follows the owning agent's dialect", "[DeviceManager][integration]")
+{
+    auto orca_agent = std::make_shared<TestPrinterAgent>("orca");
+    NetworkAgent network(nullptr, orca_agent);
+    MachineObject obj(nullptr, &network, "test", "orca-mapping-policy", "127.0.0.1");
+    obj.printer_agent_id = "orca";
+
+    // No AMS: the auto-selected external spool is dropped before the capability
+    // gate, so it cannot refuse a print nobody mapped.
+    std::string external_only = R"([{"ams_id":255,"slot_id":0}])";
+    CHECK(prepare_filament_mapping_for_send(&obj, external_only, {}) == MappingSendError::none);
+    CHECK(external_only.empty());
+
+    // An AMS makes that a real target, but nothing advertised the capability yet.
+    obj.GetFilaSystem()->GetAmsList()["0"] = new DevAms("0", 0, DevAms::AMS);
+    std::string mapped = R"([{"ams_id":0,"slot_id":0}])";
+    CHECK(prepare_filament_mapping_for_send(&obj, mapped, {}) == MappingSendError::unsupported);
+    CHECK(mapped == R"([{"ams_id":0,"slot_id":0}])"); // the refusal leaves it intact
+
+    // Once the connector advertises the capability the mapping passes the gate.
+    orca_agent->deliver_to_sink(obj.get_dev_id(),
+                        R"({"info":{"command":"get_capabilities","supported_features":{"filament_mapping":true}}})",
+                        false);
+    CHECK(obj.printer_supports_feature("filament_mapping"));
+    CHECK(prepare_filament_mapping_for_send(&obj, mapped, {}) == MappingSendError::none);
+
+    // An unrecorded owner still sends through the active agent, so it takes
+    // that agent's dialect too rather than falling back to the legacy payload.
+    MachineObject unowned(nullptr, &network, "test", "orca-unowned", "127.0.0.1");
+    CHECK(unowned.printer_agent_id.empty());
+    CHECK(unowned.printer_uses_filament_mapping());
+    std::string unowned_external = R"([{"ams_id":255,"slot_id":0}])";
+    CHECK(prepare_filament_mapping_for_send(&unowned, unowned_external, {}) == MappingSendError::none);
+    CHECK(unowned_external.empty()); // the Orca normalization ran
+
+    // A partially mapped print is refused even while the capability holds.
+    FilamentInfo mapped_entry;
+    mapped_entry.ams_id = "0";
+    mapped_entry.slot_id = "0";
+    FilamentInfo unmapped_entry;
+    CHECK(prepare_filament_mapping_for_send(&obj, mapped, {mapped_entry, unmapped_entry}) ==
+          MappingSendError::incomplete);
+}
+
+// The legacy payload is the thing being protected: no normalization, no refusal.
+TEST_CASE("A legacy printer agent keeps its mapping payload untouched", "[DeviceManager][integration]")
+{
+    NetworkAgent network(nullptr, std::make_shared<TestPrinterAgent>("bbl"));
+    MachineObject obj(nullptr, &network, "test", "bbl-mapping-policy", "127.0.0.1");
+    obj.printer_agent_id = "bbl";
+
+    FilamentInfo mapped_entry;
+    mapped_entry.ams_id = "0";
+    mapped_entry.slot_id = "0";
+    FilamentInfo unmapped_entry;
+
+    std::string external_only = R"([{"ams_id":255,"slot_id":0}])";
+    CHECK(prepare_filament_mapping_for_send(&obj, external_only, {mapped_entry, unmapped_entry}) ==
+          MappingSendError::none);
+    CHECK(external_only == R"([{"ams_id":255,"slot_id":0}])");
+}
+
+TEST_CASE("AMS metadata retains setting_id for legacy printer agents", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto printer_agent = std::make_shared<TestPrinterAgent>("bbl");
+    NetworkAgent network(nullptr, printer_agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "bbl-setting-id";
+    machine.dev_name     = "Bambu setting id";
+    machine.dev_ip       = "192.0.2.32";
+    machine.printer_type = "C11";
+    MachineObject* obj = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(obj != nullptr);
+
+    REQUIRE(obj->command_ams_filament_settings(0, 1, "GFL99", "preset-setting", "00FF00FF", "PLA", 190, 220) == 0);
+    const json payload = json::parse(printer_agent->last_message);
+    CHECK(payload["print"]["setting_id"] == "preset-setting");
+}
+
+TEST_CASE("AMS user settings do not update local state when publishing fails", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto printer_agent = std::make_shared<TestPrinterAgent>("bbl");
+    NetworkAgent network(nullptr, printer_agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "bbl-ams-setting-failure";
+    machine.dev_name     = "Bambu AMS settings";
+    machine.dev_ip       = "192.0.2.33";
+    machine.printer_type = "C11";
+    MachineObject* obj = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(obj != nullptr);
+
+    auto& settings = obj->GetFilaSystem()->GetAmsSystemSetting();
+    settings.SetDetectOnInsertEnabled(false);
+    settings.SetDetectOnPowerupEnabled(false);
+    settings.SetDetectRemainEnabled(false);
+    printer_agent->reply = -1;
+
+    CHECK(obj->command_ams_user_settings(true, true, true) != 0);
+    CHECK(settings.IsDetectOnInsertEnabled() == false);
+    CHECK(settings.IsDetectOnPowerupEnabled() == false);
+    CHECK(settings.IsDetectRemainEnabled() == false);
+}
+
+// The AMS dialogs resolve their filament list from the connected device's model. OrcaSonar's
+// model id is optional (the agent falls back to "orcasonar"), so the resolver must stand in
+// with the selected printer profile instead of yielding no model at all.
+TEST_CASE("Filament printer model resolution falls back to the selected profile", "[DeviceManager][integration]")
+{
+    PresetBundle bundle;
+
+    VendorProfile qidi("Qidi");
+    qidi.name = "Qidi";
+    VendorProfile::PrinterModel model;
+    model.model_id = "Qidi-Q1Pro";
+    model.name     = "Qidi Q1 Pro";
+    qidi.models.push_back(model);
+    bundle.vendors.emplace(qidi.id, qidi);
+
+    // A vendor model id the device reported resolves through the vendor catalog.
+    CHECK(resolve_filament_printer_model("Qidi-Q1Pro", &bundle) == "Qidi Q1 Pro");
+
+    // The OrcaSonar fallback id has no vendor model; the selected profile stands in.
+    CHECK(resolve_filament_printer_model("orcasonar", &bundle).empty());
+    bundle.printers.get_selected_preset().config.set_key_value("printer_model", new ConfigOptionString("Generic Klipper Printer"));
+    CHECK(resolve_filament_printer_model("orcasonar", &bundle) == "Generic Klipper Printer");
+    CHECK(resolve_filament_printer_model("", &bundle) == "Generic Klipper Printer");
+
+    CHECK(resolve_filament_printer_model("orcasonar", nullptr).empty());
+}
+
+// The per-tray K/N records are Bambu firmware's flow-dynamics calibration. Agents with no
+// printer-side records must not offer the AMS K/N controls (they would show a synthesized
+// default and then refuse to confirm it).
+TEST_CASE("Flow-dynamics K/N is offered for Bambu agents only", "[DeviceManager][integration]")
+{
+    MachineObject bbl(nullptr, nullptr, "test", "bbl-device", "127.0.0.1");
+    bbl.printer_agent_id = "bbl";
+    CHECK(bbl.supports_extrusion_cali());
+
+    MachineObject orca(nullptr, nullptr, "test", "orca-device", "127.0.0.1");
+    orca.printer_agent_id = "orca";
+    CHECK_FALSE(orca.supports_extrusion_cali());
+
+    MachineObject moonraker(nullptr, nullptr, "test", "moonraker-device", "127.0.0.1");
+    moonraker.printer_agent_id = "moonraker";
+    CHECK_FALSE(moonraker.supports_extrusion_cali());
+
+    // No agent id predates the agent split and keeps the Bambu path.
+    MachineObject legacy(nullptr, nullptr, "test", "legacy-device", "127.0.0.1");
+    CHECK(legacy.supports_extrusion_cali());
 }
 
 TEST_CASE("A non-Bambu device without a model is not given Bambu's C11 model", "[DeviceManager][integration]")

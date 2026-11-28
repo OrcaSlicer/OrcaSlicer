@@ -10,6 +10,8 @@ add_executable(${_TEST_NAME}_tests
     test_creality_cfs_match.cpp
     test_creality_print.cpp
     test_dev_mapping.cpp
+    test_dev_extder_system.cpp
+    test_tool_display_order.cpp
     test_device_access.cpp
     test_moonraker_printer_agent.cpp
     test_moonraker_filament_sources.cpp
@@ -26,6 +28,7 @@ add_executable(${_TEST_NAME}_tests
     # The vertex that stands for a role when the solid model takes the toolpaths' colours.
     test_libvgcode_sampling.cpp
     test_device_progress.cpp
+    test_ams_item.cpp
     test_device_manager_integration.cpp
     test_web_media_controller.cpp
     test_part_plate.cpp
@@ -59,6 +62,8 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_status.cpp
     test_orca_mqtt_connection.cpp
     test_printer_agent.cpp
+    test_orca_mqtt_connection.cpp
+    test_orca_printer_agent.cpp
     test_qidi_printer_agent.cpp
     test_plugin_install.cpp
     test_plugin_update.cpp

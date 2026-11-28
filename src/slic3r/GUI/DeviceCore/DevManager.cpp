@@ -19,6 +19,7 @@
 #include <set>
 #include <wx/object.h>
 #include <wx/timer.h>
+#include <wx/app.h>
 #include "CloudProvider.hpp"
 #include "DevUtil.h"
 
@@ -29,6 +30,7 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
 
 #include "libslic3r/Time.hpp"
 
@@ -110,8 +112,10 @@ namespace Slic3r
             if (localMachineList.count(m.dev_id))
                 continue;
             MachineObject* obj       = new MachineObject(this, m_agent, m.dev_name, m.dev_id, m.dev_ip);
-            obj->printer_type        = m.printer_type;
             obj->printer_agent_id    = m.printer_agent_id;
+            // A saved identity is not confirmed until this session sees the printer advertise it.
+            obj->printer_type           = m.printer_type;
+            obj->printer_model_advertised = false;
             obj->dev_connection_type = "lan";
             obj->bind_state          = "free";
             obj->bind_sec_link       = "secure";
@@ -217,7 +221,14 @@ namespace Slic3r
         const std::string agent_id = get_current_printer_agent_id();
         if (!agent_id.empty())
             return agent_id == BBL_PRINTER_AGENT_ID ? BBL_CLOUD_PROVIDER : ORCA_CLOUD_PROVIDER;
-        return GUI::wxGetApp().get_printer_cloud_provider();
+        return wxTheApp ? GUI::wxGetApp().get_printer_cloud_provider() : ORCA_CLOUD_PROVIDER;
+    }
+
+    std::string DeviceManager::get_effective_cloud_provider() const
+    {
+        if (wxTheApp)
+            return GUI::wxGetApp().get_printer_cloud_provider();
+        return get_current_cloud_provider();
     }
 
     void DeviceManager::EnableMultiMachine(bool enable)
@@ -230,53 +241,69 @@ namespace Slic3r
     void DeviceManager::stop_refresher() { if (m_refresher) m_refresher->Stop(); }
 
 
+    bool DeviceManager::is_selected_machine_transport_open(MachineObject* obj) const
+    {
+        if (!obj)
+            return false;
+
+        if (obj->is_lan_mode_printer()) {
+            if (!obj->is_lan_session_open())
+                return false;
+
+            // Moonraker-based agents open the LAN session on Ok but do not emit Lost, so ask
+            // their status stream directly. This is the actual transport gate for those agents.
+            if (m_agent) {
+                auto printer_agent = m_agent->get_printer_agent();
+                if (auto* moonraker = dynamic_cast<MoonrakerPrinterAgent*>(printer_agent.get()))
+                    return moonraker->is_status_transport_connected();
+            }
+            return true;
+        }
+
+        return obj->is_online() && m_agent &&
+               m_agent->is_server_connected(get_effective_cloud_provider());
+    }
+
     void DeviceManager::keep_alive()
     {
         MachineObject* obj = this->get_selected_machine();
-        if (obj)
+        const auto now = std::chrono::system_clock::now();
+        if (!is_selected_machine_transport_open(obj))
+            return;
+
+        if (obj->keep_alive_count == 0)
         {
-            if (obj->keep_alive_count == 0)
-            {
-                obj->last_keep_alive = std::chrono::system_clock::now();
-            }
-            obj->keep_alive_count++;
-            std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-            auto internal = std::chrono::duration_cast<std::chrono::milliseconds>(start - obj->last_keep_alive);
-            if (internal.count() > TIMEOUT_FOR_KEEPALIVE && (internal.count() < 1000 * 60 * 60 * 300))
-            {
-                BOOST_LOG_TRIVIAL(info) << "keep alive = " << internal.count() << ", count = " << obj->keep_alive_count;
-                obj->command_request_push_all();
-                obj->last_keep_alive = start;
-            }
-            else if (obj->m_push_count == 0)
-            {
-                BOOST_LOG_TRIVIAL(info) << "keep alive = " << internal.count() << ", push_count = 0, count = " << obj->keep_alive_count;
-                obj->command_request_push_all();
-                obj->last_keep_alive = start;
-            }
+            obj->last_keep_alive = now;
+        }
+        obj->keep_alive_count++;
+        auto internal = std::chrono::duration_cast<std::chrono::milliseconds>(now - obj->last_keep_alive);
+        if (internal.count() > TIMEOUT_FOR_KEEPALIVE && (internal.count() < 1000 * 60 * 60 * 300))
+        {
+            BOOST_LOG_TRIVIAL(info) << "keep alive = " << internal.count() << ", count = " << obj->keep_alive_count;
+            obj->command_request_push_all();
+            obj->last_keep_alive = now;
+        }
+        else if (obj->m_push_count == 0 &&
+                 obj->last_liveness_probe == std::chrono::system_clock::time_point{} &&
+                 (now - obj->last_printer_message_time) <
+                     std::chrono::milliseconds(static_cast<int>(TIMEOUT_FOR_STRAT)))
+        {
+            // Preserve the start-up 5 s first-status retry, but hand off to the selected
+            // liveness probe at 20 s. Otherwise these retries would keep last_request_push
+            // fresh and starve the probe forever on a printer that never answers.
+            BOOST_LOG_TRIVIAL(info) << "keep alive = " << internal.count() << ", push_count = 0, count = " << obj->keep_alive_count;
+            obj->command_request_push_all();
+            obj->last_keep_alive = now;
         }
     }
 
-    void DeviceManager::check_pushing()
+    bool DeviceManager::check_selected_machine_liveness(std::chrono::system_clock::time_point now)
     {
-        keep_alive();
-        MachineObject* obj = this->get_selected_machine();
-        if (!obj) {
-            BOOST_LOG_TRIVIAL(warning) << "DeviceManager::check_pushing selected machine not found";
-            return;
-        }
+        MachineObject* obj = get_selected_machine_for_liveness();
+        if (!is_selected_machine_transport_open(obj))
+            return false;
 
-        std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-        auto internal = std::chrono::duration_cast<std::chrono::milliseconds>(start - obj->last_update_time);
-
-        if (!obj->is_support_mqtt_alive)
-        {
-            if (internal.count() > TIMEOUT_FOR_STRAT && internal.count() < 1000 * 60 * 60 * 300)
-            {
-                BOOST_LOG_TRIVIAL(info) << "command_pushing: diff = " << internal.count();
-                obj->command_pushing("start");
-            }
-        }
+        return obj->request_liveness_probe(now);
     }
 
     void DeviceManager::on_machine_alive(std::string json_str)
@@ -290,6 +317,13 @@ namespace Slic3r
             std::string printer_signal  = j["dev_signal"].get<std::string>();
             std::string connect_type    = j["connect_type"].get<std::string>();
             std::string bind_state      = j["bind_state"].get<std::string>();
+            // An empty dev_type is an agent making no model claim. A nonempty one is a model
+            // report: resolve it against installed vendor models. An unrecognized report stays
+            // unknown, so it warns and never blocks, even though the printer named a model.
+            const bool        model_report_present  = !printer_type_str.empty();
+            const std::string reported_printer_type =
+                model_report_present ? DevPrinterConfigUtil::resolve_printer_model_id(printer_type_str) : std::string();
+            const bool        clear_printer_model   = model_report_present && reported_printer_type.empty();
 
             // Passive discovery must not replace another agent's saved binding.
             if (get_current_printer_agent_id() == MOONRAKER_PRINTER_AGENT_ID) {
@@ -364,7 +398,13 @@ namespace Slic3r
                 obj = it->second;
                 // A reused LAN entry may have been discovered while another printer agent was
                 // active. The current discovery message establishes ownership for this agent.
+                if (obj->printer_agent_id != get_current_printer_agent_id())
+                    obj->printer_model_advertised = false;
                 obj->printer_agent_id = get_current_printer_agent_id();
+                const bool model_changed =
+                    model_report_present &&
+                    (clear_printer_model ? (!obj->printer_type.empty() || obj->printer_model_advertised)
+                                         : (obj->printer_type != reported_printer_type || !obj->printer_model_advertised));
 
                 if (obj->get_dev_ip().compare(dev_ip) != 0) {
                     if ( connection_name.empty() ) {
@@ -388,13 +428,13 @@ namespace Slic3r
                     obj->bind_state != bind_state ||
                     obj->bind_sec_link != sec_link ||
                     obj->bind_ssdp_version != ssdp_version ||
-                    obj->printer_type != _parse_printer_type(printer_type_str))
+                    model_changed)
                 {
                     if (obj->dev_connection_type != connect_type ||
                         obj->bind_state != bind_state ||
                         obj->bind_sec_link != sec_link ||
                         obj->bind_ssdp_version != ssdp_version ||
-                        obj->printer_type != _parse_printer_type(printer_type_str))
+                        model_changed)
                     {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " UpdateLocalMachineInfo"
                             << ", dev_id= " << dev_id
@@ -418,7 +458,10 @@ namespace Slic3r
                     obj->bind_state          = bind_state;
                     obj->bind_sec_link       = sec_link;
                     obj->bind_ssdp_version   = ssdp_version;
-                    obj->printer_type        = _parse_printer_type(printer_type_str);
+                    if (model_report_present) {
+                        obj->printer_type             = reported_printer_type;
+                        obj->printer_model_advertised = !reported_printer_type.empty();
+                    }
                 }
 
                 // U0 firmware
@@ -439,8 +482,12 @@ namespace Slic3r
             else {
                 /* insert a new machine */
                 obj = new MachineObject(this, m_agent, dev_name, dev_id, dev_ip);
-                obj->printer_type = _parse_printer_type(printer_type_str);
-                obj->printer_agent_id = get_current_printer_agent_id();
+                obj->printer_agent_id          = get_current_printer_agent_id();
+                obj->printer_type              = reported_printer_type;
+                obj->printer_model_advertised  = !reported_printer_type.empty();
+                if (clear_printer_model)
+                    BOOST_LOG_TRIVIAL(warning) << "Printer identity: unrecognized advertised model, leaving printer_type unknown: "
+                                               << printer_type_str;
                 obj->wifi_signal = printer_signal;
                 obj->dev_connection_type = connect_type;
                 obj->bind_state     = bind_state;
@@ -486,7 +533,7 @@ namespace Slic3r
 
     MachineObject* DeviceManager::insert_local_device(const BBLocalMachine& machine,
         std::string connection_type, std::string bind_state,
-        std::string version, std::string access_code)
+        std::string version, std::string access_code, bool model_advertised)
     {
         MachineObject* obj;
         bool           agent_changed = false;
@@ -496,18 +543,32 @@ namespace Slic3r
             // insert_local_device is called by the active agent, so a reused entry must follow
             // that agent as well; otherwise the agent-scoped printer list hides it.
             agent_changed         = obj->printer_agent_id != get_current_printer_agent_id();
+            if (agent_changed)
+                obj->printer_model_advertised = false;
             obj->printer_agent_id = get_current_printer_agent_id();
         } else {
             obj = new MachineObject(this, m_agent, machine.dev_name, machine.dev_id, machine.dev_ip);
             obj->printer_agent_id = get_current_printer_agent_id();
             localMachineList.insert(std::make_pair(machine.dev_id, obj));
         }
-        // Only Bambu printers use the C11 fallback. Other agents may not report a model,
-        // so leave their existing model unchanged when none is provided.
-        if (!machine.printer_type.empty())
-            obj->printer_type = _parse_printer_type(machine.printer_type);
-        else if (obj->printer_agent_id == BBL_PRINTER_AGENT_ID)
-            obj->printer_type = _parse_printer_type("C11");
+        // A supplied model is trusted as the printer's own only when the caller marks it as an
+        // advertisement and it resolves against the installed vendor model registry. A preset or
+        // manual value may be kept for display, but stays unverified so compatibility and preset
+        // sync do not treat it as confirmed. Without a supplied model, a Bambu printer gets the C11
+        // fallback, also unverified; other agents keep the model they already had.
+        if (!machine.printer_type.empty()) {
+            const std::string resolved_model = DevPrinterConfigUtil::resolve_printer_model_id(machine.printer_type);
+            if (model_advertised) {
+                obj->printer_type             = resolved_model;
+                obj->printer_model_advertised = !resolved_model.empty();
+            } else {
+                obj->printer_type             = resolved_model.empty() ? machine.printer_type : resolved_model;
+                obj->printer_model_advertised = false;
+            }
+        } else if (obj->printer_agent_id == BBL_PRINTER_AGENT_ID) {
+            obj->printer_type             = _parse_printer_type("C11");
+            obj->printer_model_advertised = false;
+        }
         obj->dev_connection_type = connection_type == "farm" ? "lan":connection_type;
         obj->bind_state          = connection_type == "farm" ? "free":bind_state;
         obj->bind_sec_link = "secure";
@@ -673,7 +734,7 @@ namespace Slic3r
                                 << " found=" << (it != my_machine_list.end())
                                 << " my_machine_count=" << my_machine_list.size()
                                 << " current_agent=" << get_current_printer_agent_id()
-                                << " provider=" << GUI::wxGetApp().get_printer_cloud_provider();
+                                << " provider=" << get_effective_cloud_provider();
         if (it != my_machine_list.end() && it->second) {
             BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: target machine dev_id=" << it->second->get_dev_id()
                                     << " printer_agent_id=" << it->second->printer_agent_id
@@ -690,6 +751,7 @@ namespace Slic3r
         {
             if (last_selected->second->connection_type() == "lan")
             {
+                last_selected->second->set_lan_session_open(false);
                 m_agent->disconnect_printer();
             }
             else if (last_selected->second->connection_type() == "cloud") {
@@ -712,6 +774,7 @@ namespace Slic3r
 
                     // only reset update time
                     it->second->reset_update_time();
+                    it->second->reset_liveness_window();
 
                     // check subscribe state
                     Slic3r::GUI::wxGetApp().on_start_subscribe_again(dev_id);
@@ -794,7 +857,7 @@ namespace Slic3r
     {
         if (selected_machine.empty()) return nullptr;
 
-        MachineObject* obj = get_user_machine(selected_machine, GUI::wxGetApp().get_printer_cloud_provider());
+        MachineObject* obj = get_user_machine(selected_machine, get_effective_cloud_provider());
         if (obj)
             return obj;
 
@@ -805,6 +868,29 @@ namespace Slic3r
             if (it->second->has_access_right())
                 return it->second;
         }
+        return nullptr;
+    }
+
+    MachineObject* DeviceManager::get_selected_machine_for_liveness()
+    {
+        if (selected_machine.empty())
+            return nullptr;
+
+        // Prefer the same object the normal selected path resolves. A LAN and a cloud entry can
+        // share a dev_id; probing the other map entry would read the wrong session.
+        if (MachineObject* normal = get_selected_machine())
+            return normal;
+
+        // Only when the normal lookup is sign-in gated away: an already-selected cloud printer
+        // can still be probed while its server channel is open. Match the current agent, and
+        // follow the original selection rule that treats every non-LAN device as cloud.
+        auto user = userMachineList.find(selected_machine);
+        if (user != userMachineList.end() && user->second && !user->second->is_lan_mode_printer()) {
+            const std::string agent_id = get_current_printer_agent_id();
+            if (agent_id.empty() || user->second->printer_agent_id == agent_id)
+                return user->second;
+        }
+
         return nullptr;
     }
 
@@ -1024,6 +1110,8 @@ namespace Slic3r
                         obj->set_dev_id(dev_id);
                         // A device can be rediscovered by a different agent after a preset
                         // switch while retaining the same MachineObject instance.
+                        if (obj->printer_agent_id != agent_id)
+                            obj->printer_model_advertised = false;
                         obj->printer_agent_id = agent_id;
                     }
                     else
@@ -1058,18 +1146,18 @@ namespace Slic3r
                     if (!elem["dev_online"].is_null())
                         obj->m_is_online = elem["dev_online"].get<bool>();
                     if (elem.contains("dev_model_name") && !elem["dev_model_name"].is_null()) {
-                        auto printer_type = elem["dev_model_name"].get<std::string>();
-                        for (const auto &pair : device_subseries) {
-                            auto it = std::find(pair.second.begin(), pair.second.end(), printer_type);
-                            if (it != pair.second.end())
-                            {
-                                obj->printer_type = Slic3r::_parse_printer_type(pair.first);
-                                break;
+                        std::string printer_type = elem["dev_model_name"].get<std::string>();
+                        if (!printer_type.empty()) {
+                            for (const auto &pair : device_subseries) {
+                                auto it = std::find(pair.second.begin(), pair.second.end(), printer_type);
+                                if (it != pair.second.end()) {
+                                    printer_type = pair.first;
+                                    break;
+                                }
                             }
-                            else
-                            {
-                                obj->printer_type = Slic3r::_parse_printer_type(printer_type);
-                            }
+                            const std::string resolved_model = DevPrinterConfigUtil::resolve_printer_model_id(printer_type);
+                            obj->printer_type             = resolved_model;
+                            obj->printer_model_advertised = !resolved_model.empty();
                         }
                     }
                     if (!elem["task_status"].is_null())
@@ -1224,13 +1312,15 @@ namespace Slic3r
             ctx.code = LifecycleEvtCode::Ok;
             fire_lifecycle_event(LifecycleEvent::DeviceSelected, ctx);
         }
-        if (MachineObject* obj_ = get_selected_machine()) {
-            GUI::wxGetApp().sidebar().update_sync_status(obj_);
-            if(m_agent->get_filament_sync_mode() == FilamentSyncMode::subscription)
-            {
-                GUI::wxGetApp().sidebar().load_ams_list(obj_);
+        if (wxTheApp) {
+            if (MachineObject* obj_ = get_selected_machine()) {
+                GUI::wxGetApp().sidebar().update_sync_status(obj_);
+                if(m_agent->get_filament_sync_mode() == FilamentSyncMode::subscription)
+                {
+                    GUI::wxGetApp().sidebar().load_ams_list(obj_);
+                }
             }
-        };
+        }
     }
 
     void DeviceManager::reload_printer_settings()
@@ -1263,10 +1353,15 @@ namespace Slic3r
         Slic3r::GUI::wxGetApp().reset_to_active();
 
         MachineObject* obj = m_manager->get_selected_machine();
-        if (!obj) { return; }
+        // The sign-in-independent lookup is what keeps an already-selected cloud printer
+        // probeable while its server channel is open. Use it only for selection validity and
+        // liveness; certificate work stays on the normal selection path.
+        MachineObject* liveness_obj = m_manager->get_selected_machine_for_liveness();
+        MachineObject* selected = liveness_obj ? liveness_obj : obj;
+        if (!selected) { return; }
 
         // check valid machine
-        if (obj && m_manager->get_my_machine(obj->get_dev_id()) == nullptr)
+        if (m_manager->get_my_machine(selected->get_dev_id()) == nullptr)
         {
             m_manager->set_selected_machine("");
             agent->set_user_selected_machine("");
@@ -1278,12 +1373,12 @@ namespace Slic3r
         if (Slic3r::GUI::wxGetApp().is_user_login(cloud_provider))
         {
             try {
-                m_manager->check_pushing();
+                m_manager->keep_alive();
             } catch (const std::exception& e) {
-                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer check_pushing exception="
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer keep_alive exception="
                                          << e.what();
             } catch (...) {
-                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer check_pushing unknown exception";
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer keep_alive unknown exception";
             }
 
             try {
@@ -1296,14 +1391,28 @@ namespace Slic3r
             }
         }
 
-        // certificate
+        // Idle printers may send no status for longer than the display timeout. Probe the
+        // selected device regardless of cloud sign-in; the probe itself avoids overlap and
+        // leaves last_update_time untouched until the printer answers with a full status.
         try {
-            agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
+            m_manager->check_selected_machine_liveness();
         } catch (const std::exception& e) {
-            BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer install_device_cert exception="
+            BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer check_selected_machine_liveness exception="
                                      << e.what();
         } catch (...) {
-            BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer install_device_cert unknown exception";
+            BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer check_selected_machine_liveness unknown exception";
+        }
+
+        // certificate
+        if (obj) {
+            try {
+                agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer install_device_cert exception="
+                                         << e.what();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer install_device_cert unknown exception";
+            }
         }
     }
 }

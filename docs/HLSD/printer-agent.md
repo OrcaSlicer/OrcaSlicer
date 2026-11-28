@@ -82,6 +82,13 @@ Concrete built-in implementations include the Bambu wrapper, the native Orca/Moo
 other printer-agent implementations registered by the application. A printer agent may use either
 the cloud agent, a direct LAN connection, or both.
 
+An agent may report `tool_display_order(dev_id, tool_count)` from cached device state. Each entry
+is a zero-based device tool ID in display order; for a two-tool printer the first entry is the left
+tool. An empty result leaves the order unspecified. The GUI uses identity order for generic devices
+and the Bambu two-tool convention when the corresponding agent is unavailable. Invalid permutations
+are rejected. This order controls presentation, not the preset's `physical_extruder_map`, which
+routes logical tools to physical tools.
+
 ### `ICloudServiceAgent`
 
 `ICloudServiceAgent` owns authentication and services provided by a cloud backend. It covers login
@@ -175,6 +182,23 @@ The provider mapping is currently selected by `GUI_App`: the Bambu agent maps to
 provider and other agents map to the Orca cloud provider. The generation check protects that existing
 selection from races; it does not make cloud-provider ownership intrinsic to an agent. Cloud-printer
 ownership and the broader Orca cloud services are therefore still separate architectural concerns.
+
+## Printer model identity
+
+Model identity is separate from printer-agent ownership. `MachineObject::printer_type` can contain a
+saved or preset-derived value, but `printer_model_advertised` marks whether the model was actually
+reported by the printer. Saved and manually supplied values are not proof of the connected model.
+Agents must provide a printer-reported model in binding and discovery responses, or leave it empty;
+Moonraker also accepts a model reported by `/server/info`.
+
+`DevPrinterConfigUtil` resolves reported IDs and names using installed vendor models and legacy
+protocol aliases to obtain a canonical model ID; ambiguous aliases are not resolved. An empty report
+makes no new model claim, while a nonempty unrecognized report leaves the model unknown. Compatibility
+checks compare the canonical ID with the selected preset's model ID, while retaining the existing
+compatible-machine and upgrade-kit rules; an installed upgrade kit changes the shown model used for
+comparison, not the advertised identity. A missing or unrecognized model is optional: the user is
+warned, but model compatibility does not block printing. Model sync does not choose a printer or
+nozzle preset for an unknown model, nor an arbitrary nozzle variant for a recognized model.
 
 ## Python printer agents
 

@@ -1,5 +1,6 @@
 #include "OrcaMqttConnection.hpp"
 #include "Http.hpp"
+#include "PrinterCommLogger.hpp"
 
 #include <async_mqtt/protocol/connection_status.hpp>
 #include <async_mqtt/protocol/event/event_variant.hpp>
@@ -40,6 +41,7 @@
 #include <boost/beast/core/stream_traits.hpp>
 #include <boost/beast/core/tcp_stream.hpp>
 #include <boost/beast/http/field.hpp>
+#include <nlohmann/json.hpp>
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/http/string_body.hpp>
 #include <boost/beast/websocket/ssl.hpp>
@@ -177,6 +179,15 @@ std::string device_of(const std::string& topic)
 
 // The cloud form of the connection is the one that authenticates with a bearer token.
 const char* transport_of(const OrcaMqttConnection::Config& config) { return config.bearer_provider ? "cloud-mqtt" : "lan-mqtt"; }
+
+#ifdef ORCA_PRINTER_COMM_LOG
+// Connection lifecycle as seen from this client, next to the plugin-reported events for Bambu printers.
+void comm_lifecycle(const char* name, const OrcaMqttConnection::Config& config, nlohmann::json fields)
+{
+    fields["transport"] = transport_of(config);
+    PrinterCommLogger::instance().log_event("lifecycle", name, std::move(fields));
+}
+#endif
 } // namespace
 
 
@@ -411,7 +422,7 @@ struct OrcaMqttConnection::Session
     void on_connack(int rc)
     {
         owner.m_last_connack_rc.store(rc);
-        // comm log: mqtt_connack
+        PRINTER_COMM_LOG(comm_lifecycle("mqtt_connack", config, {{"url", config.url}, {"rc", rc}}));
         BOOST_LOG_TRIVIAL(info) << "OrcaMqtt mqtt_connack: transport=" << transport_of(config) << " url=" << config.url << " rc=" << rc;
         if (rc != 0) {
             // Bad credentials / not authorized: retrying cannot help.
@@ -566,7 +577,8 @@ struct OrcaMqttConnection::Session
         }
         if (topic.empty())
             return;
-        // comm log: mqtt_suback
+        PRINTER_COMM_LOG(comm_lifecycle("mqtt_suback", config,
+                                        {{"dev_id", device_of(topic)}, {"result", result}, {"granted", granted}, {"queued_requests", released}}));
         BOOST_LOG_TRIVIAL(info) << "OrcaMqtt mqtt_suback: transport=" << transport_of(config) << " dev_id=" << device_of(topic)
                                 << " result=" << static_cast<int>(result) << " granted=" << granted << " queued_requests=" << released;
         publish_requests();
@@ -588,7 +600,10 @@ struct OrcaMqttConnection::Session
                 owner.requests.erase(ready);
             }
             handle_events(mqtt.send(am::v3_1_1::publish_packet{request_topic(request.dev_id), request.payload, am::qos::at_most_once}));
-            // comm log: log_mqtt("send")
+            // Every request this client publishes passes here, including the agents' own (subscription setup,
+            // pushing stop, file requests), and a held one when it is released.
+            PRINTER_COMM_LOG(PrinterCommLogger::instance().log_mqtt("send", transport_of(config), request.dev_id,
+                                                                    PrinterCommLogger::body_for_log(request.payload, 1024 * 1024), 0, 0));
             BOOST_LOG_TRIVIAL(debug) << "OrcaMqtt send: transport=" << transport_of(config) << " dev_id=" << request.dev_id << " bytes=" << request.payload.size();
         }
     }
@@ -852,7 +867,6 @@ bool OrcaMqttConnection::send_request(const std::string& dev_id, const std::stri
         const auto subscription = subscriptions.find(report_topic(dev_id));
         if (subscription != subscriptions.end() && subscription->second.state == SubscriptionState::Rejected) {
             // The broker refused this device's subscription: nothing will ever release the request.
-            // comm log: log_mqtt("send")
             BOOST_LOG_TRIVIAL(warning) << "OrcaMqtt send refused: transport=" << transport_of(current_config) << " dev_id=" << dev_id
                                        << " reason=subscription rejected";
             return false;
@@ -965,10 +979,10 @@ void OrcaMqttConnection::run_attempts()
         if (established)
             retry_seconds = 1;
         if (clean_close) {
-            // comm log: mqtt_closed
+            PRINTER_COMM_LOG(comm_lifecycle("mqtt_closed", current_config, nlohmann::json::object()));
             BOOST_LOG_TRIVIAL(info) << "OrcaMqtt mqtt_closed: transport=" << transport_of(current_config) << " url=" << current_config.url;
         } else if (!error.empty() && !terminal) {
-            // comm log: mqtt_error
+            PRINTER_COMM_LOG(comm_lifecycle("mqtt_error", current_config, {{"attempt", attempt}, {"error", error}, {"retry_in_s", retry_seconds}}));
             BOOST_LOG_TRIVIAL(warning) << "OrcaMqtt mqtt_error: transport=" << transport_of(current_config) << " attempt=" << attempt
                                        << " error=" << error << " retry_in_s=" << retry_seconds;
         }

@@ -182,6 +182,7 @@ src/slic3r/GUI/RecordingIndicator.cpp
 src/slic3r/GUI/RunScriptPanel.cpp
 src/slic3r/GUI/MediaPlayCtrl.cpp
 src/slic3r/GUI/MediaFilePanel.cpp
+src/slic3r/GUI/OrcaFilesPanel.cpp
 src/slic3r/GUI/ImageGrid.cpp
 src/slic3r/GUI/Widgets/ImageSwitchButton.cpp
 src/slic3r/GUI/Printer/PrinterFileSystem.cpp

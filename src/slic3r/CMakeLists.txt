@@ -481,6 +481,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/MarkdownTip.hpp
     GUI/MediaFilePanel.cpp
     GUI/MediaFilePanel.h
+    GUI/OrcaFilesPanel.cpp
+    GUI/OrcaFilesPanel.h
+    GUI/StoragePanel.cpp
+    GUI/StoragePanel.h
     GUI/MediaPlayCtrl.cpp
     GUI/MediaPlayCtrl.h
     GUI/WebRtcMediaController.cpp
@@ -574,6 +578,11 @@ set(SLIC3R_GUI_SOURCES
     GUI/PrimitiveSizeDialog.hpp
     GUI/PrinterCloudAuthDialog.cpp
     GUI/PrinterCloudAuthDialog.hpp
+    GUI/Printer/BambuFileGridModel.cpp
+    GUI/Printer/BambuFileGridModel.h
+    GUI/Printer/IFileGridModel.h
+    GUI/Printer/RemoteFileGridModel.cpp
+    GUI/Printer/RemoteFileGridModel.h
     GUI/Printer/PrinterFileSystem.cpp
     GUI/Printer/PrinterFileSystem.h
     GUI/PrinterWebView.cpp
@@ -914,8 +923,12 @@ set(SLIC3R_GUI_SOURCES
     Utils/ICameraSignalingChannel.hpp
     Utils/OrcaCloudServiceAgent.cpp
     Utils/OrcaCloudServiceAgent.hpp
+    Utils/OrcaMqttConnection.cpp
+    Utils/OrcaMqttConnection.hpp
     Utils/OrcaPrinterAgent.cpp
     Utils/OrcaPrinterAgent.hpp
+    Utils/OrcaCloudSignalingChannel.cpp
+    Utils/OrcaCloudSignalingChannel.hpp
     Utils/QidiPrinterAgent.cpp
     Utils/QidiPrinterAgent.hpp
     Utils/SnapmakerPrinterAgent.cpp
@@ -970,7 +983,14 @@ set(SLIC3R_GUI_SOURCES
     Utils/wxInspectorPlugins/CustomWidgetsPlugin.hpp
     Utils/wxInspectorPlugins/CustomWidgetsPlugin.cpp
     Utils/wxInspectorPlugins/Registration.hpp
+    Utils/PrinterCommLogger.hpp
 )
+
+# Developer tool: a redacted capture of all printer and cloud traffic. Off by default; the
+# call sites compile to nothing without it.
+if (ORCA_PRINTER_COMM_LOG)
+    list(APPEND SLIC3R_GUI_SOURCES Utils/PrinterCommLogger.cpp)
+endif ()
 
 # Design/CAD tab: parametric sketch UI, its gizmos, and the MCP server's Design commands.
 # All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
@@ -1070,7 +1090,7 @@ target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DI
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)
     # d3d11, dwmapi and runtimeobject: MCP window captures through Windows Graphics Capture.
-    target_link_libraries(libslic3r_gui Advapi32 d3d11 dwmapi runtimeobject)
+    target_link_libraries(libslic3r_gui Advapi32 Crypt32 d3d11 dwmapi runtimeobject)
 endif()
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_SOURCES})
@@ -1219,6 +1239,9 @@ endif ()
 
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
+if (ORCA_PRINTER_COMM_LOG)
+    target_compile_definitions(libslic3r_gui PRIVATE ORCA_PRINTER_COMM_LOG)
+endif ()
 
 if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
     add_library(orca_stubgen MODULE
