@@ -5143,6 +5143,9 @@ static bool create_mixed_filament_from_result(
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
 
     sidebar->update_mixed_filament_list();
+    // Only the virtual slot count changed, so Sidebar::on_filament_count_change() returned early
+    // and never reached update_ui_from_settings(); an open paint gizmo needs it to pick up the slot.
+    sidebar->update_ui_from_settings();
     wxGetApp().plater()->update_project_dirty_from_presets();
     wxPostEvent(sidebar, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, sidebar));
     return true;
@@ -5363,6 +5366,8 @@ void Sidebar::apply_mixed_filament_edit(size_t cfg_idx, const MixedFilamentResul
     // lists - and its blended colour and type are what they show for it.
     update_mixed_filament_list();
     update_dynamic_filament_list();
+    // Refresh an open paint gizmo with the slot's new colour / gradient.
+    update_ui_from_settings();
     wxGetApp().plater()->update_project_dirty_from_presets();
     wxPostEvent(this, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, this));
 }

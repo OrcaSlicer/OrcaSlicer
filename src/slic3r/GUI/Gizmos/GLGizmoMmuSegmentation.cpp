@@ -206,11 +206,16 @@ void GLGizmoMmuSegmentation::render_painter_gizmo()
 void GLGizmoMmuSegmentation::data_changed(bool is_serializing)
 {
     GLGizmoPainterBase::data_changed(is_serializing);
-    if (m_state != On || wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() != ptFFF || wxGetApp().extruders_edited_cnt() <= 1)
+    // Orca: gate on the filament count, not the nozzle count. extruders_edited_cnt() is 1 on every
+    // single-nozzle printer, which made this return before the filament list was ever compared.
+    if (m_state != On || wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() != ptFFF || wxGetApp().filaments_cnt() <= 1)
         return;
 
     ModelObject* model_object = m_c->selection_info()->model_object();
     int prev_extruders_count = int(m_extruders_colors.size());
+    // A mixed slot can switch between blended and gradient without its colour changing.
+    auto gradient_ramps = wxGetApp().plater()->get_filament_gradient_ramps();
+    gradient_ramps.resize(m_extruders_colors.size());
     if (prev_extruders_count != wxGetApp().filaments_cnt()) {
         if (wxGetApp().filaments_cnt() > int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
             show_notification_extruders_limit_exceeded();
@@ -219,7 +224,7 @@ void GLGizmoMmuSegmentation::data_changed(bool is_serializing)
         // Reinitialize triangle selectors because of change of extruder count need also change the size of GLIndexedVertexArray
         if (prev_extruders_count != wxGetApp().filaments_cnt())
             this->init_model_triangle_selectors();
-    } else if (wxGetApp().plater()->get_extruders_colors() != m_extruders_colors) {
+    } else if (wxGetApp().plater()->get_extruders_colors() != m_extruders_colors || gradient_ramps != m_gradient_ramps) {
         this->init_extruders_data();
         this->update_triangle_selectors_colors();
     }
