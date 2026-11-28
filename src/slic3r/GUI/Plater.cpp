@@ -312,6 +312,7 @@
 #include <stdexcept>
 #include "FilamentMapDialog.hpp"
 #include "CloneDialog.hpp"
+#include "MultipartImportDialog.hpp"
 #include "PurgeModeDialog.hpp"
 #include "Operations/ObjectOps.hpp"
 #include "Operations/Outcome.hpp"
@@ -9167,6 +9168,12 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         *config_loaded_out = false;
 
     std::vector<size_t> empty_result;
+    // The parts of a multi-part file, loaded as separate objects, are dropped where they were and end up on top of each
+    // other. When they are the only objects of the project, arrange them; objects the user has placed are never moved.
+    auto place_side_by_side = [this](const std::vector<size_t>& object_idxs) {
+        if (object_idxs.size() > 1 && object_idxs.size() == this->model.objects.size())
+            wxGetApp().CallAfter([this]() { q->arrange(true); });
+    };
     bool dlg_cont = true;
     bool is_user_cancel = false;
     bool translate_old = false;
@@ -10320,6 +10327,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             return empty_result;
         }
 
+        // Separate objects of a multi-part file are placed next to each other once they are loaded.
+        bool arrange_separate = false;
         if (load_model) {
             // The model should now be initialized
             auto convert_from_imperial_units = [](Model &model, bool only_small_volumes) { model.convert_from_imperial_units(only_small_volumes); };
@@ -10387,9 +10396,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                  return std::any_of(object->instances.begin(), object->instances.end(), [](const ModelInstance* instance) { return !instance->printable; });
              });
              if (!is_project_file && !has_excluded_bodies && model.looks_like_multipart_object()) {
-               MessageDialog msg_dlg(q, _L("This file contains several objects positioned at multiple heights.\nInstead of considering them as multiple objects, should the file be loaded as a single object with multiple parts\?") + "\n",
-                    _L("Multi-part object detected"), wxICON_WARNING | wxYES | wxNO);
-                if (msg_dlg.ShowModal() == wxID_YES) {
+                MultipartImportDialog msg_dlg(q, model, bed.build_volume().bounding_volume2d(), _L("Multi-part object detected"),
+                    _L("This file contains several objects positioned at multiple heights. How do you want to load them?"), false);
+                if (msg_dlg.ShowModal() != wxID_OK || !msg_dlg.single_object()) {
+                    arrange_separate = true;
+                } else {
                     // Kept original part names survive Orca's own merge; other files keep its naming.
                     model.convert_multipart_object(filaments_cnt, parsed_file.names_kept);
                     // The merged object is new, so the choices of this file's import dialog apply to it again.
@@ -10493,6 +10504,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             auto loaded_idxs = load_model_objects(model.objects, is_project_file, false, true,
                 stage_geometry ? &import_display_options : nullptr);
             obj_idxs.insert(obj_idxs.end(), loaded_idxs.begin(), loaded_idxs.end());
+            if (arrange_separate)
+                place_side_by_side(loaded_idxs);
 
             // load_model_objects only transfers ModelObjects; carry the Model-level CAD recipe
             // onto the plater model so the Design tab can rehydrate the editable feature tree on
@@ -10536,14 +10549,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         bool new_model_auto_drop = true;
         int single_object_answer = false;
         if (ask_multi) {
-            RichMessageDialog dlg(q, _L("Load these files as a single object with multiple parts?\n"),
-                _L("An object with multiple parts was detected"), wxICON_QUESTION | wxYES_NO);
-
-            dlg.ShowCheckBox(_L("Auto-Drop"), true);
-            single_object_answer = dlg.ShowModal();
-
-            if (dlg.IsCheckBoxChecked() == false) 
-                new_model_auto_drop = false;
+            MultipartImportDialog dlg(q, *new_model, bed.build_volume().bounding_volume2d(), _L("An object with multiple parts was detected"),
+                _L("These files can be loaded as one object or as separate objects. How do you want to load them?"), true);
+            single_object_answer = dlg.ShowModal() == wxID_OK && dlg.single_object() ? wxID_YES : wxID_NO;
+            new_model_auto_drop  = dlg.auto_drop();
 
             // convert to multipart and split after load_model_objects
             // to keep relative positioning if auto_drop == false
@@ -10580,6 +10589,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
         if (single_object_answer == wxID_NO && new_model_auto_drop == false) {
             split_object(loaded_idxs[0], new_model_auto_drop);
+        } else if (single_object_answer == wxID_NO) {
+            place_side_by_side(loaded_idxs);
         }
     }
 
