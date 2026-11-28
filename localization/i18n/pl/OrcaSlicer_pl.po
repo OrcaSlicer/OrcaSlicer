@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -9721,8 +9721,8 @@ msgid "Span"
 msgstr "Span"
 
 # AI Translated
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "Wykonuje wszystkie ścieżki wygenerowane podczas cięcia. Zawsze narzędzie 0 — użyj opcji Pozycja narzędzia 0 powyżej, aby wybrać, który narożnik stołu zajmuje. Nie można go usunąć z siatki."
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "Wykonuje wszystkie ścieżki wygenerowane podczas cięcia. Zawsze narzędzie 1 — użyj opcji Pozycja narzędzia 1 powyżej, aby wybrać, który narożnik stołu zajmuje. Nie można go usunąć z siatki."
 
 # AI Translated
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
@@ -15799,13 +15799,13 @@ msgid "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the
 msgstr "Wydruki wielokolorowe w równoległych trybach IDEX/IQEX wymagają narzędzia Span na portalu narzędzia głównego — bez niego tryb nie deklaruje partnera do druku wielokolorowego w obrębie portalu. Ogranicz wydruk do jednego filamentu, przełącz na tryb główny (Primary) lub otwórz edytor trybów IDEX/IQEX w ustawieniach drukarki i oznacz narzędzie na portalu narzędzia głównego jako Span."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "W tym trybie Span kolory drukują wyłącznie narzędzia %1%, ale filament %2% nie jest przypisany do żadnego narzędzia. Użyj filamentów przypisanych do %1% lub przełącz tę płytę na tryb główny (Primary)."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "W tym trybie Span kolory drukują wyłącznie narzędzia %1%, ale filament %2% jest przypisany do T%3%. Użyj filamentów przypisanych do %1% lub przełącz tę płytę na tryb główny (Primary)."
@@ -20993,12 +20993,12 @@ msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "Liczba niezależnych głowic na portal wzdłuż osi X. 2 dla układów typu IDEX."
 
 # AI Translated
-msgid "Tool 0 Position"
-msgstr "Pozycja narzędzia 0"
+msgid "Tool 1 Position"
+msgstr "Pozycja narzędzia 1"
 
 # AI Translated
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "Fizyczne położenie na stole, w którym znajduje się narzędzie T0 (indeks 0). Określa, jak indeksy narzędzi są przypisywane do stref stołu. W układach z jednym portalem (IDEX) liczy się tylko lewo/prawo; w układach z dwoma portalami (IQEX) można wybrać każdy z czterech narożników (przód = mniejsze Y / blisko operatora, tył = większe Y / tył maszyny)."
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "Fizyczne położenie na stole, w którym znajduje się narzędzie T1. Określa, jak indeksy narzędzi są przypisywane do stref stołu. W układach z jednym portalem (IDEX) liczy się tylko lewo/prawo; w układach z dwoma portalami (IQEX) można wybrać każdy z czterech narożników (przód = mniejsze Y / blisko operatora, tył = większe Y / tył maszyny)."
 
 # AI Translated
 msgid "Nozzle Clearance X"
@@ -25284,6 +25284,11 @@ msgstr "Timelapse"
 # AI Translated
 msgid "Enable IFS"
 msgstr "Włącz IFS"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "Kalibracja przepływu"
 
 # AI Translated
 #, c-format, boost-format

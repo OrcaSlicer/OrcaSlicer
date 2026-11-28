@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -10323,8 +10323,8 @@ msgid "Span"
 msgstr "Span"
 
 # AI Translated
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "Styr alla banor som bereds. Alltid verktyg 0 — använd \"Position för verktyg 0\" ovan för att välja vilket hörn av byggplattan det har. Det kan inte flyttas från rutnätet."
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "Styr alla banor som bereds. Alltid verktyg 1 — använd \"Position för verktyg 1\" ovan för att välja vilket hörn av byggplattan det har. Det kan inte flyttas från rutnätet."
 
 # AI Translated
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
@@ -16723,13 +16723,13 @@ msgid "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the
 msgstr "Flerfärgsutskrifter i parallella IDEX/IQEX-lägen kräver ett Span-verktyg på det primära verktygets portal — utan ett sådant anger läget ingen flerfärgspartner på samma portal. Minska antingen utskriften till ett enda filament, växla till läget Primär, eller öppna redigeraren för IDEX/IQEX-lägen i skrivarens inställningar och markera ett verktyg på det primära verktygets portal som Span."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "I det här Span-läget skriver bara %1% ut färger, men filament %2% är inte kopplat till något verktyg. Använd filament som är kopplade till %1%, eller växla den här plattan till läget Primär."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "I det här Span-läget skriver bara %1% ut färger, men filament %2% är kopplat till T%3%. Använd filament som är kopplade till %1%, eller växla den här plattan till läget Primär."
@@ -22388,12 +22388,12 @@ msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "Antal oberoende verktygshuvuden per portal längs X. 2 för IDEX-typ."
 
 # AI Translated
-msgid "Tool 0 Position"
-msgstr "Position för verktyg 0"
+msgid "Tool 1 Position"
+msgstr "Position för verktyg 1"
 
 # AI Translated
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "Fysisk position på byggplattan där verktyget T0 (index 0) finns. Bestämmer hur verktygsindex mappas till zoner på byggplattan. För uppställningar med en portal (IDEX) spelar bara vänster/höger roll; för uppställningar med dubbla portaler (IQEX) kan alla fyra hörnen väljas (främre = lägre Y / nära operatören, bakre = högre Y / maskinens baksida)."
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "Fysisk position på byggplattan där verktyget T1 finns. Bestämmer hur verktygsindex mappas till zoner på byggplattan. För uppställningar med en portal (IDEX) spelar bara vänster/höger roll; för uppställningar med dubbla portaler (IQEX) kan alla fyra hörnen väljas (främre = lägre Y / nära operatören, bakre = högre Y / maskinens baksida)."
 
 # AI Translated
 msgid "Nozzle Clearance X"
@@ -26908,6 +26908,11 @@ msgstr "Time-lapse"
 # AI Translated
 msgid "Enable IFS"
 msgstr "Aktivera IFS"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "Flödeskalibrering"
 
 # AI Translated
 #, c-format, boost-format

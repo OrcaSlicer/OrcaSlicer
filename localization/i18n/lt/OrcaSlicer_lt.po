@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -9591,8 +9591,8 @@ msgid "Span"
 msgstr "Span"
 
 # AI Translated
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "Valdo visas sluoksniuotas trajektorijas. Visada įrankis 0 — parinktimi „Įrankio 0 padėtis“ aukščiau pasirinkite, kurį pagrindo kampą jis užima. Jo negalima perkelti tinklelyje."
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "Valdo visas sluoksniuotas trajektorijas. Visada įrankis 1 — parinktimi „Įrankio 1 padėtis“ aukščiau pasirinkite, kurį pagrindo kampą jis užima. Jo negalima perkelti tinklelyje."
 
 # AI Translated
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
@@ -15491,13 +15491,13 @@ msgid "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the
 msgstr "Daugiaspalviam spausdinimui IDEX/IQEX lygiagrečiuose režimuose pagrindinio įrankio portale reikia Span įrankio — be jo režimas neapibrėžia daugiaspalvio spausdinimo partnerio tame pačiame portale. Sumažinkite spaudinį iki vienos gijos, perjunkite į režimą „Pagrindinis“ arba atverkite spausdintuvo nustatymų IDEX/IQEX režimų redaktorių ir pažymėkite pagrindinio įrankio portale esantį įrankį kaip Span."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "Šiame Span režime spalvomis spausdina tik %1%, tačiau gija %2% nenukreipta į jokį įrankį. Naudokite gijas, nukreiptas į %1%, arba perjunkite šią plokštę į režimą „Pagrindinis“."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "Šiame Span režime spalvomis spausdina tik %1%, tačiau gija %2% nukreipta į T%3%. Naudokite gijas, nukreiptas į %1%, arba perjunkite šią plokštę į režimą „Pagrindinis“."
@@ -20549,12 +20549,12 @@ msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "Nepriklausomų spausdinimo galvučių skaičius viename portale išilgai X. 2 – IDEX tipo sistemoms."
 
 # AI Translated
-msgid "Tool 0 Position"
-msgstr "Įrankio 0 padėtis"
+msgid "Tool 1 Position"
+msgstr "Įrankio 1 padėtis"
 
 # AI Translated
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "Fizinė padėtis ant pagrindo, kurioje yra įrankis T0 (indeksas 0). Nustato, kaip įrankių indeksai susiejami su pagrindo zonomis. Vieno portalo sistemose (IDEX) svarbu tik kairė / dešinė; dviejų portalų sistemose (IQEX) galima pasirinkti bet kurį iš keturių kampų (priekis = mažesnė Y / arčiau operatoriaus, galas = didesnė Y / įrenginio gale)."
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "Fizinė padėtis ant pagrindo, kurioje yra įrankis T1. Nustato, kaip įrankių indeksai susiejami su pagrindo zonomis. Vieno portalo sistemose (IDEX) svarbu tik kairė / dešinė; dviejų portalų sistemose (IQEX) galima pasirinkti bet kurį iš keturių kampų (priekis = mažesnė Y / arčiau operatoriaus, galas = didesnė Y / įrenginio gale)."
 
 # AI Translated
 msgid "Nozzle Clearance X"
@@ -24769,6 +24769,11 @@ msgstr "Laiko intervalai"
 
 msgid "Enable IFS"
 msgstr "Įjungti IFS"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "Srauto kalibravimas"
 
 # AI Translated
 #, c-format, boost-format

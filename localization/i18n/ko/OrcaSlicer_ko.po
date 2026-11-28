@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -9597,8 +9597,8 @@ msgid "Span"
 msgstr "Span"
 
 # AI Translated
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "슬라이스된 모든 경로를 구동합니다. 항상 도구 0이며, 베드의 어느 모서리에 위치할지는 위의 도구 0 위치에서 선택하세요. 격자에서 이동할 수 없습니다."
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "슬라이스된 모든 경로를 구동합니다. 항상 도구 1이며, 베드의 어느 모서리에 위치할지는 위의 도구 1 위치에서 선택하세요. 격자에서 이동할 수 없습니다."
 
 # AI Translated
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
@@ -15692,13 +15692,13 @@ msgid "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the
 msgstr "IDEX/IQEX 병렬 모드에서 멀티컬러 출력을 하려면 주 도구의 갠트리에 Span 도구가 있어야 합니다. Span 도구가 없으면 모드에 같은 갠트리 안의 멀티컬러 파트너가 지정되지 않습니다. 출력을 단일 필라멘트로 줄이거나, 주(Primary) 모드로 전환하거나, 프린터 설정의 IDEX/IQEX 모드 편집기를 열어 주 도구의 갠트리에 있는 도구 하나를 Span으로 지정하세요."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "이 Span 모드에서는 %1%만 색상을 출력하지만, 필라멘트 %2%은(는) 어떤 툴에도 연결되어 있지 않습니다. %1%에 연결된 필라멘트를 사용하거나, 이 플레이트를 주(Primary) 모드로 전환하세요."
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "이 Span 모드에서는 %1%만 색상을 출력하지만, 필라멘트 %2%은(는) T%3%에 연결되어 있습니다. %1%에 연결된 필라멘트를 사용하거나, 이 플레이트를 주(Primary) 모드로 전환하세요."
@@ -20928,12 +20928,12 @@ msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "갠트리당 X 방향의 독립 툴헤드 수입니다. IDEX 방식은 2입니다."
 
 # AI Translated
-msgid "Tool 0 Position"
-msgstr "도구 0 위치"
+msgid "Tool 1 Position"
+msgstr "도구 1 위치"
 
 # AI Translated
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "도구 T0(인덱스 0)이 위치한 베드 위의 물리적 위치입니다. 도구 인덱스가 베드 영역에 매핑되는 방식을 결정합니다. 단일 갠트리 구성(IDEX)에서는 왼쪽/오른쪽만 의미가 있으며, 듀얼 갠트리 구성(IQEX)에서는 네 모서리를 모두 선택할 수 있습니다(앞 = 낮은 Y / 작업자 쪽, 뒤 = 높은 Y / 기계 뒤쪽)."
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "도구 T1이 위치한 베드 위의 물리적 위치입니다. 도구 인덱스가 베드 영역에 매핑되는 방식을 결정합니다. 단일 갠트리 구성(IDEX)에서는 왼쪽/오른쪽만 의미가 있으며, 듀얼 갠트리 구성(IQEX)에서는 네 모서리를 모두 선택할 수 있습니다(앞 = 낮은 Y / 작업자 쪽, 뒤 = 높은 Y / 기계 뒤쪽)."
 
 # AI Translated
 msgid "Nozzle Clearance X"
@@ -25239,6 +25239,11 @@ msgstr "타임랩스"
 # AI Translated
 msgid "Enable IFS"
 msgstr "IFS 활성화"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "압출량 교정"
 
 # AI Translated
 #, c-format, boost-format

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-21 12:24+0800\n"
+"POT-Creation-Date: 2026-11-28 14:21+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -9959,8 +9959,8 @@ msgid "Span"
 msgstr "Span"
 
 # AI Translated
-msgid "Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
-msgstr "驅動所有切片路徑。固定為工具頭 0，可使用上方的「工具頭 0 位置」選擇它位於列印板的哪個角落。它無法從網格中移走。"
+msgid "Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose which corner of the bed it occupies. It cannot be moved from the grid."
+msgstr "驅動所有切片路徑。固定為工具頭 1，可使用上方的「工具頭 1 位置」選擇它位於列印板的哪個角落。它無法從網格中移走。"
 
 # AI Translated
 msgid "Follows the Primary at the firmware level, printing the same paths offset into its own zone."
@@ -16114,13 +16114,13 @@ msgid "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the
 msgstr "在 IDEX/IQEX 並行模式下進行多色列印時，主工具頭所在的龍門上必須有一個 Span 工具頭；否則此模式未宣告同一龍門內的多色搭檔。請將列印減少為單一線材、切換至主模式，或開啟列印裝置設定中的 IDEX/IQEX 模式編輯器，將主工具頭所在龍門上的一個工具頭標記為 Span。"
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "在此 Span 模式下，只有 %1% 會列印顏色，但線材 %2% 未分配給任何工具。請使用分配給 %1% 的線材，或將此列印板切換為主模式。"
 
 # AI Translated
-#. TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+#. TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
 #, boost-format
 msgid "In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
 msgstr "在此 Span 模式下，只有 %1% 會列印顏色，但線材 %2% 被分配給 T%3%。請使用分配給 %1% 的線材，或將此列印板切換為主模式。"
@@ -21587,12 +21587,12 @@ msgid "Number of independent toolheads per gantry along X. 2 for IDEX-style."
 msgstr "每個龍門上沿 X 方向獨立運動的工具頭數量。IDEX 類型為 2。"
 
 # AI Translated
-msgid "Tool 0 Position"
-msgstr "工具頭 0 位置"
+msgid "Tool 1 Position"
+msgstr "工具頭 1 位置"
 
 # AI Translated
-msgid "Physical position on the bed where tool T0 (index 0) is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
-msgstr "工具頭 T0（索引 0）在列印板上的實體位置，決定工具頭索引與列印板區域的對應關係。單龍門配置（IDEX）只區分左右；雙龍門配置（IQEX）可選擇全部四個角落（前 = Y 值較小／靠近操作者，後 = Y 值較大／機器後方）。"
+msgid "Physical position on the bed where tool T1 is located. Determines how tool indices map to bed zones. For single-gantry setups (IDEX) only left/right matters; for dual-gantry setups (IQEX) all four corners are selectable (front = lower Y / near the operator, rear = higher Y / back of machine)."
+msgstr "工具頭 T1 在列印板上的實體位置，決定工具頭索引與列印板區域的對應關係。單龍門配置（IDEX）只區分左右；雙龍門配置（IQEX）可選擇全部四個角落（前 = Y 值較小／靠近操作者，後 = Y 值較大／機器後方）。"
 
 # AI Translated
 msgid "Nozzle Clearance X"
@@ -26082,6 +26082,11 @@ msgstr "縮時攝影"
 
 msgid "Enable IFS"
 msgstr "啟用 IFS"
+
+# AI Translated
+# Needs human review: Checkbox in the Flashforge send dialog that turns on the Creator 5 firmware's own flow calibration before the print; check the wording against the printer's own name for it.
+msgid "Flow calibration"
+msgstr "流量校正"
 
 # AI Translated
 #, c-format, boost-format
