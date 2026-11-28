@@ -103,8 +103,6 @@ public:
 
             void init(std::string filename);
 
-            void set_color(const ColorRGBA& color) { m_model.set_color(color); }
-
             const BoundingBoxf3& get_bounding_box() const { return m_model.get_bounding_box(); }
 
             void set_world_position(const Vec3f& position) { m_world_position = position; }

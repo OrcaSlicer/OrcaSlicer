@@ -1823,9 +1823,9 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_only_gcode_in_preview = only_gcode;
 
     m_tool_colors.clear();
-    for (const auto& color_str : str_tool_colors) {
-        m_tool_colors.push_back(libvgcode::convert(libvgcode::convert(color_str)));
-    }
+    // ORCA: the filament colors the dynamic nozzle color takes, as the toolpaths draw them
+    for (const libvgcode::ColorWithAlpha& color : libvgcode::convert_filament_colors(str_tool_colors))
+        m_tool_colors.push_back(libvgcode::convert(color));
 
     m_sequential_view.gcode_window.load_gcode(gcode_result.filename, gcode_result.lines_ends);
 
