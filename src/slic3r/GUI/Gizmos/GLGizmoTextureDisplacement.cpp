@@ -673,11 +673,10 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
 
     // Once anything is painted, m_preview_glmodel holds the true displaced result (same algorithm
     // Bake uses). The untouched original topology (what render_triangles() draws) coincides exactly
-    // with it everywhere except the displaced area, so both can be drawn: the real preview geometry
-    // first, then the selectors' highlight with a small depth bias so it wins the depth test on the
+    // with it everywhere except the displaced area, so both can be drawn: the real preview geometry,
+    // and the selectors' highlight with a small depth bias so it wins the depth test on the
     // coincident surface. Where the surface has actually been displaced, the raised preview geometry
-    // legitimately occludes the flat highlight - that visible relief is itself the "this is painted"
-    // indicator in that area.
+    // stands in front of the flat highlight, so during a stroke it is drawn see-through.
     //
     // The shaded preview never actually moves geometry (it only shades), so its depth is identical to
     // the highlight's *everywhere*: the depth-biased opaque highlight would win the depth test across the
@@ -756,13 +755,18 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
         render_triangles(selection, previewed);
         textured_selector_drawn = false;
     } else if (use_true_preview) {
-        render_preview_mesh();
+        // While painting, draw preview see-through and after highlight, which existing relief would otherwise hide
+        const bool see_through = is_painting() && m_debug_stage < 0;
+        if (!see_through)
+            render_preview_mesh();
         glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
         glsafe(::glPolygonOffset(-1.0f, -1.0f));
         // Without paint feedback, only the parts with no preview over them: render_preview_mesh() draws
         // the rest.
         render_triangles(selection, paint_feedback ? std::vector<const ModelVolume *>{} : previewed);
         glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
+        if (see_through)
+            render_preview_mesh(0.35f);
         textured_selector_drawn = paint_feedback;
     } else {
         // render_triangles() *is* the model in a painter gizmo (it draws every model-part volume with the
@@ -1266,7 +1270,7 @@ void GLGizmoTextureDisplacement::render_seam_overlay()
     shader->stop_using();
 }
 
-void GLGizmoTextureDisplacement::render_preview_mesh()
+void GLGizmoTextureDisplacement::render_preview_mesh(float alpha)
 {
     const ModelObject *mo = m_c->selection_info()->model_object();
     if (mo == nullptr)
@@ -1281,6 +1285,11 @@ void GLGizmoTextureDisplacement::render_preview_mesh()
     const Camera      &camera          = wxGetApp().plater()->get_camera();
     const Transform3d &view_matrix     = camera.get_view_matrix();
 
+    const auto faded = [alpha](ColorRGBA color) {
+        color.a(color.a() * alpha);
+        return color;
+    };
+
     shader->start_using();
     // Each part is drawn through its own matrix: a multibody object's parts sit in different places
     // inside the object, so one matrix for all of them would pile every preview onto the first part.
@@ -1294,12 +1303,15 @@ void GLGizmoTextureDisplacement::render_preview_mesh()
                                             trafo_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
         if (runs.empty()) {
+            const ColorRGBA own = model.get_color();
+            model.set_color(faded(own));
             model.render();
+            model.set_color(own);
         } else {
             // set_color() writes the uniform the shader reads, so one call per group is all the
             // per-triangle colour this needs.
             for (const PreviewColorRun &run : runs) {
-                model.set_color(run.color);
+                model.set_color(faded(run.color));
                 model.render(run.range, shader);
             }
         }

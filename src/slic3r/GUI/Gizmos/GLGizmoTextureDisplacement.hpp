@@ -653,7 +653,8 @@ private:
     // computation runs in a background TextureDisplacementPreviewJob; this function only queues
     // it and returns immediately, and m_preview_glmodel is updated later when it completes.
     void rebuild_preview();
-    void render_preview_mesh();
+    // `alpha` < 1 draws it see-through (used while painting).
+    void render_preview_mesh(float alpha = 1.f);
 
     // Alternate, GPU-only preview: perturbs shading normals from the active layer's height texture
     // instead of actually moving vertices, using the resources/shaders/*/texture_displacement_shaded.*
