@@ -3883,7 +3883,10 @@ void Sidebar::update_all_preset_comboboxes(bool update_filament_combos)
                                  : MainFrame::PrintSelectType::eSendGcode;
         }
 
-        if (use_printer_agents)
+        // Orca: an empty url unloads the page, so a printer that disables its Device tab streams nothing.
+        if (preset_bundle.device_tab_disabled())
+            p_mainframe->load_printer_url(wxEmptyString, wxEmptyString);
+        else if (use_printer_agents)
             p_mainframe->load_printer_url();
         else if (!use_native_device_tab)
             p_mainframe->load_printer_url(url, apikey);

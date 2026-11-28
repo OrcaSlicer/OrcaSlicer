@@ -1678,8 +1678,13 @@ void MainFrame::init_tabpanel() {
         //select_tab(MainFrame::tpMonitor);
         m_printer_url     = evt.GetString();
         m_printer_api_key = evt.GetAPIkey();
-        if (PrinterWebView* view = PrinterWebView::if_built())
-            view->load_url(m_printer_url, m_printer_api_key);
+        // Orca: an empty url, sent for a printer that disables its Device tab, unloads the page.
+        if (PrinterWebView* view = PrinterWebView::if_built()) {
+            if (m_printer_url.empty())
+                view->unload();
+            else
+                view->load_url(m_printer_url, m_printer_api_key);
+        }
     });
 
     m_multi_machine_page = new LazyPage<MultiMachinePage>(m_tabpanel, TAB_ID_MULTI_DEVICE, 40);
@@ -1727,7 +1732,8 @@ void MainFrame::show_device(bool should_use_native) {
     // Printers that drive the native Bambu device tab have nothing to put in it, so they don't
     // get it — otherwise a Bambu user sees two Device tabs, one of them permanently empty.
     const bool want_web_device_tab = use_printer_agents && wxGetApp().preset_bundle != nullptr &&
-                                     !wxGetApp().preset_bundle->use_bbl_device_tab();
+                                     !wxGetApp().preset_bundle->use_bbl_device_tab() &&
+                                     !wxGetApp().preset_bundle->device_tab_disabled();
 
     // Remove the extra page before switching to any layout that shouldn't have it.
     if (!want_web_device_tab) {
@@ -1819,7 +1825,9 @@ void MainFrame::show_device(bool should_use_native) {
 #endif // _MSW_DARK_MODE
 
     } else {
-        if (m_printer_view_page->in_book()) {
+        // Orca: a printer that disables its Device tab gets no Device tab at all.
+        const bool device_tab_disabled = wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->device_tab_disabled();
+        if (m_printer_view_page->in_book() && !device_tab_disabled) {
             fit_tab_labels(); // ORCA on printer change - same button layout
             return;
         }
@@ -1835,9 +1843,14 @@ void MainFrame::show_device(bool should_use_native) {
             m_monitor_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
-        m_printer_view_page->Show(false);
-        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_printer_view_page,
-                               _L("Device"), "tab_monitor_active");
+        if (!device_tab_disabled) {
+            m_printer_view_page->Show(false);
+            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_printer_view_page,
+                                   _L("Device"), "tab_monitor_active");
+        } else if ((idx = m_tabpanel->FindPage(m_printer_view_page)) != wxNOT_FOUND) {
+            m_printer_view_page->Show(false);
+            m_tabpanel->RemovePage(idx);
+        }
     }
     fit_tab_labels(); // ORCA on printer change
     m_plugin_pages->relayout(); // re-sync plugin tabs against the native tabs just mutated above
@@ -4863,6 +4876,9 @@ void MainFrame::load_printer_url()
 {
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
     if (preset_bundle.use_bbl_device_tab() && !wxGetApp().app_config->get_bool("use_printer_agents"))
+        return;
+    // Orca: the Sidebar unloaded the page of a printer that disables its Device tab.
+    if (preset_bundle.device_tab_disabled())
         return;
 
     auto     cfg = preset_bundle.printers.get_edited_preset().config;

@@ -1239,6 +1239,14 @@ void PrintConfigDef::init_common_params()
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("enable_device_tab", coBool);
+    def->label = L("Enable Device tab");
+    def->tooltip = L("Show the Device tab with the device user interface. When off, the tab is removed and its "
+        "page, and any camera stream on it, is never loaded. G-code is still uploaded to the print host.");
+    def->mode = comAdvanced;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionBool(true));
+
     def = this->add("printhost_apikey", coString);
     def->label = L("API Key / Password");
     def->tooltip = L("Orca Slicer can upload G-code files to a printer host. This field should contain "

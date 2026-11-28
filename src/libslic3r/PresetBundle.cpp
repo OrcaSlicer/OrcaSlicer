@@ -1070,6 +1070,12 @@ bool PresetBundle::use_bbl_device_tab() {
     return cfg.opt_string("print_host_webui").empty();
 }
 
+bool PresetBundle::device_tab_disabled()
+{
+    const auto *opt = printers.get_edited_preset().config.option<ConfigOptionBool>("enable_device_tab");
+    return opt != nullptr && !opt->value;
+}
+
 bool PresetBundle::backup_user_folder() const
 {
     const std::string backup_folderpath = data_dir() + "/" + (boost::format("user_backup-v%1%") % SoftFever_VERSION).str();
@@ -5490,6 +5496,7 @@ DynamicPrintConfig PresetBundle::full_config_secure(std::optional<std::vector<in
     //FIXME legacy, the keys should not be there after conversion to a Physical Printer profile.
     config.erase("print_host");
     config.erase("print_host_webui");
+    config.erase("enable_device_tab");
     config.erase("printhost_apikey");
     config.erase("printhost_cafile");    
     config.erase("printhost_user");    

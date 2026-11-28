@@ -158,6 +158,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             this->update_ports();
         if (opt_key == "bbl_use_print_host_webui")
             this->update_webui();
+        if (opt_key == "enable_device_tab")
+            this->update_device_ui_enabled(boost::any_cast<bool>(value));
     };
 
     m_optgroup->append_single_option_line("host_type");
@@ -366,6 +368,9 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     host_line.append_widget(print_host_logout);
     m_optgroup->append_line(host_line);
 
+    // Orca: the Device tab checkbox comes right before the Device UI it turns on and off.
+    m_optgroup->append_single_option_line("enable_device_tab");
+
     option = m_optgroup->get_option("print_host_webui");
     option.opt.width = Field::def_width_wider();
     m_optgroup->append_single_option_line(option);
@@ -560,6 +565,13 @@ void PhysicalPrinterDialog::update_webui()
     }
 }
 
+// A Device tab that is off loads no page, so its Device UI is greyed out but keeps its value.
+void PhysicalPrinterDialog::update_device_ui_enabled(bool device_tab_enabled)
+{
+    if (Field* field = m_optgroup->get_field("print_host_webui"))
+        field->toggle(device_tab_enabled);
+}
+
 void PhysicalPrinterDialog::update_printhost_buttons()
 {
     std::unique_ptr<PrintHost> host(PrintHost::get_print_host(m_config));
@@ -606,6 +618,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
 
         m_optgroup->enable_field("print_host");
         m_optgroup->show_field("print_host_webui");
+        m_optgroup->show_field("enable_device_tab");
         m_optgroup->hide_field("bbl_use_print_host_webui");
         m_optgroup->enable_field("printhost_cafile");
         m_optgroup->enable_field("printhost_ssl_ignore_revoke");
@@ -683,6 +696,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 }
 
                 m_optgroup->hide_field("print_host_webui");
+                m_optgroup->hide_field("enable_device_tab");
                 m_optgroup->hide_field("printhost_apikey");
                 m_optgroup->disable_field("printhost_cafile");
                 m_optgroup->disable_field("printhost_ssl_ignore_revoke");
@@ -696,6 +710,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                     }
                 }
                 m_optgroup->hide_field("print_host_webui");
+                m_optgroup->hide_field("enable_device_tab");
                 m_optgroup->hide_field("printhost_apikey");
             } 
         }
@@ -717,6 +732,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 m_optgroup->show_field("printhost_password");
                 m_optgroup->enable_field("print_host");
                 m_optgroup->show_field("print_host_webui");
+                m_optgroup->show_field("enable_device_tab");
                 if (m_printhost_cafile_browse_btn) {
                     m_printhost_cafile_browse_btn->Disable();
                 }
@@ -749,6 +765,9 @@ void PhysicalPrinterDialog::update(bool printer_change)
     update_preset_input();
 
     update_printhost_buttons();
+
+    const auto* device_tab_enabled = m_config->option<ConfigOptionBool>("enable_device_tab");
+    update_device_ui_enabled(device_tab_enabled == nullptr || device_tab_enabled->value);
 
     this->SetSize(this->GetBestSize());
     this->Layout();

@@ -68,6 +68,7 @@ public:
     void        update_printers();
     void        update_ports();
     void        update_webui();
+    void        update_device_ui_enabled(bool device_tab_enabled);
 
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
