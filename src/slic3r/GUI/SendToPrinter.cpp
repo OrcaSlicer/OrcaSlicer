@@ -22,6 +22,7 @@
 #include <string>
 #include "slic3r/GUI/Auxiliary.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <cstddef>
 #include <cstring>
 #include "slic3r/GUI/MsgDialog.hpp"

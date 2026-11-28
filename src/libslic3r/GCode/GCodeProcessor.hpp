@@ -15,6 +15,7 @@
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/GCode/ExclusionVolumePathCheck.hpp"
 #include "libslic3r/GCode/MachineFrameTransform.hpp"
+#include "libslic3r/GCode/ConflictResult.hpp"
 
 #include <cstddef>
 #include <cassert>
@@ -155,22 +156,6 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             total_seam_scarf_distance = 0.0f;
         }
     };
-
-    struct ConflictResult
-    {
-        std::string        _objName1;
-        std::string        _objName2;
-        double             _height;
-        const void *_obj1; // nullptr means wipe tower
-        const void *_obj2;
-        int                layer = -1;
-        ConflictResult(const std::string &objName1, const std::string &objName2, double height, const void *obj1, const void *obj2)
-            : _objName1(objName1), _objName2(objName2), _height(height), _obj1(obj1), _obj2(obj2)
-        {}
-        ConflictResult() = default;
-    };
-
-    using ConflictResultOpt = std::optional<ConflictResult>;
 
     struct GCodeCheckResult
     {
@@ -1050,7 +1035,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         private:
             std::vector<ExtruderFreeBlock> m_extruder_free_blocks;
             const std::vector<GCodeProcessorResult::MoveVertex>& moves;
-            const std::vector<std::string>& filament_types;
+            [[maybe_unused]] const std::vector<std::string>& filament_types;
             const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result;
             const std::vector<int>& filament_nozzle_temps;
             const std::vector<int>& filament_nozzle_temps_initial_layer;
@@ -1065,7 +1050,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             const std::vector<std::pair<unsigned int, unsigned int>>& skippable_blocks;
             const std::vector<int>& extruder_max_nozzle_count;
             const std::vector<double>& filament_preheat_temperature_delta;
-            const std::vector<double>& filament_max_temperature_drop_when_ec;
+            [[maybe_unused]] const std::vector<double>& filament_max_temperature_drop_when_ec;
             const unsigned int machine_start_gcode_end_id;
             const unsigned int machine_end_gcode_start_id;
             const std::vector<ExtruderType>& extruder_types;

@@ -6,6 +6,7 @@
 
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <wx/wx.h>
 #include <wx/gdicmn.h>
 #include <wx/toplevel.h>
