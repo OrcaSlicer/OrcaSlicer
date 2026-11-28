@@ -12410,8 +12410,10 @@ msgstr "Velocidade de outras camadas"
 msgid "Overhang speed"
 msgstr "Velocidade em saliências"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Esta é a velocidade para vários degraus de saliência. Os degraus de saliência são expressos como uma porcentagem da largura da linha. A velocidade 0 significa que não há desaceleração para o intervalo de degraus de saliência e a velocidade de parede é usada"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "A saliência é a fração da largura da linha da parede que fica sem suporte. As velocidades são interpoladas entre os alvos em 10%, 25%, 50%, 75% e 87%. A velocidade de referência é a velocidade da parede externa ou interna após os limites volumétricos e de costura em bisel; os valores em porcentagem são calculados sobre essa referência. Alvos acima dela só imprimem mais rápido com \"Permitir velocidades em saliências acima da velocidade da parede\" habilitado; os demais alvos mantêm os limites de velocidade existentes da trajetória. Definir o primeiro alvo como 0 desativa a interpolação abaixo de 10%. Para os demais alvos, 0 usa a velocidade da parede nesse ponto; alvos vizinhos ainda podem alterar a velocidade entre os pontos."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Definir velocidade para pontes externas e internas"
@@ -15753,7 +15755,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Ative esta opção para reduzir a velocidade de impressão em áreas onde os perímetros podem ter se enrolado para cima.\n"
 "Por exemplo, uma desaceleração adicional será aplicada ao imprimir saliências em cantos vivos, como a frente do casco do Benchy, reduzindo o enrolamento que se acumula ao longo de várias camadas.\n"
@@ -15768,10 +15770,48 @@ msgstr ""
 "3. Se os artefatos ainda aparecerem, ative a 'Suavização da extrusão' (ERS) para suavizar ainda mais as transições de fluxo.\n"
 "\n"
 "Nota: quando esta opção está ativada, os perímetros de saliência são tratados como saliências, o que significa que a velocidade de saliência é aplicada mesmo que o perímetro em saliência faça parte de uma ponte.\n"
-"Por exemplo, quando os perímetros estão 100% em saliência, sem nenhuma parede os sustentando por baixo, a velocidade de saliência de 75% será aplicada, limitada pela velocidade da ponte."
+"Por exemplo, quando os perímetros estão 100% em saliência, sem nenhuma parede os sustentando por baixo, a velocidade de saliência de 75–100% será aplicada, limitada pela velocidade da ponte."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Permitir velocidades em saliências acima da velocidade da parede"
+
+# AI Translated
+# Needs human review: "overhang walls" is the Overhang wall feature type (walls printed as bridges), so it is quoted as "Parede saliente" to keep it apart from the overhanging walls of the first sentence; check it reads right.
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Imprime mais rápido as paredes externas e internas em saliência quando sua velocidade em saliências é definida acima da velocidade da parede, até a velocidade volumétrica máxima do filamento. Quando desabilitado, as velocidades em saliências nunca fazem uma parede ser impressa mais rápido do que seria sem a saliência.\n"
+"Pontes, paredes do tipo \"Parede saliente\", paredes totalmente sem suporte, costuras em bisel e paredes cuja velocidade é alterada por outras configurações, como pequenos perímetros ou prevenção de ressonância, nunca são aceleradas."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocidade alvo quando 10% da largura da linha da parede fica sem suporte. Entre 0% e 10%, a velocidade é interpolada linearmente da velocidade real da parede até este valor. Por exemplo, uma velocidade da parede de 60 mm/s e um alvo de 30 mm/s resultam em 45 mm/s com 5% de saliência. Um valor de 0 desativa essa interpolação inicial. Se o valor for expresso como %, será calculado sobre a velocidade de referência da parede. Um alvo acima dessa referência só imprime mais rápido com \"Permitir velocidades em saliências acima da velocidade da parede\" habilitado, sujeito aos limites de fluxo volumétrico, ao resfriamento e à redução de velocidade para perímetros encurvados."
 
 msgid "mm/s or %"
 msgstr "mm/s ou %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocidade alvo quando 25% da largura da linha da parede fica sem suporte. Entre 10% e 25%, a velocidade é interpolada linearmente do ponto de controle anterior até este valor. Um valor de 0 usa a velocidade da parede neste ponto de controle, respeitando os limites de velocidade existentes. Alvos adjacentes ainda podem alterar a velocidade entre os pontos de controle. Se o valor for expresso como %, será calculado sobre a velocidade de referência da parede. Um alvo acima dessa referência só imprime mais rápido com \"Permitir velocidades em saliências acima da velocidade da parede\" habilitado, sujeito aos limites de fluxo volumétrico, ao resfriamento e à redução de velocidade para perímetros encurvados."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocidade alvo quando 50% da largura da linha da parede fica sem suporte. Entre 25% e 50%, a velocidade é interpolada linearmente do ponto de controle anterior até este valor. Um valor de 0 usa a velocidade da parede neste ponto de controle, respeitando os limites de velocidade existentes. Alvos adjacentes ainda podem alterar a velocidade entre os pontos de controle. Se o valor for expresso como %, será calculado sobre a velocidade de referência da parede. Um alvo acima dessa referência só imprime mais rápido com \"Permitir velocidades em saliências acima da velocidade da parede\" habilitado, sujeito aos limites de fluxo volumétrico, ao resfriamento e à redução de velocidade para perímetros encurvados."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocidade alvo quando 75% da largura da linha da parede fica sem suporte. Entre 50% e 75%, a velocidade é interpolada linearmente do ponto de controle anterior até este valor. Um valor de 0 usa a velocidade da parede neste ponto de controle, respeitando os limites de velocidade existentes. Alvos adjacentes ainda podem alterar a velocidade entre os pontos de controle. Se o valor for expresso como %, será calculado sobre a velocidade de referência da parede. Um alvo acima dessa referência só imprime mais rápido com \"Permitir velocidades em saliências acima da velocidade da parede\" habilitado, sujeito aos limites de fluxo volumétrico, ao resfriamento e à redução de velocidade para perímetros encurvados."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocidade alvo quando 87% da largura da linha da parede fica sem suporte. Entre 75% e 87%, a velocidade é interpolada linearmente do ponto de controle anterior até este valor. Com \"Reduzir vel. para perímetros encurvados\" desabilitado, a velocidade é interpolada deste valor em 87% até a velocidade de pontes externas em 100%; esse alvo de ponte é limitado à velocidade original da trajetória. Com a opção habilitada, este valor é usado em toda a faixa de 87% a 100%, com a ressalva de que um valor acima da velocidade da parede volta à velocidade original da trajetória em 100%. Um valor de 0 usa a velocidade da parede neste ponto de controle, respeitando os limites de velocidade existentes. Alvos adjacentes ainda podem alterar a velocidade entre os pontos de controle. Se o valor for expresso como %, será calculado sobre a velocidade de referência da parede. Um alvo acima dessa referência só imprime mais rápido com \"Permitir velocidades em saliências acima da velocidade da parede\" habilitado, sujeito aos limites de fluxo volumétrico, ao resfriamento e à redução de velocidade para perímetros encurvados."
 
 # AI Translated
 msgid ""

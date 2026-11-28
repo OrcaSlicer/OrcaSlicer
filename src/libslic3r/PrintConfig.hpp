@@ -1616,6 +1616,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsOrPercentsNullable, top_surface_volumetric_flow))
     //BBS
     ((ConfigOptionBoolsNullable,            enable_overhang_speed))
+    ((ConfigOptionBoolsNullable,            allow_overhang_speedup))
+    ((ConfigOptionFloatsOrPercentsNullable, overhang_0_4_speed))
     ((ConfigOptionFloatsOrPercentsNullable, overhang_1_4_speed))
     ((ConfigOptionFloatsOrPercentsNullable, overhang_2_4_speed))
     ((ConfigOptionFloatsOrPercentsNullable, overhang_3_4_speed))

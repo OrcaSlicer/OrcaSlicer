@@ -14326,8 +14326,10 @@ msgstr "Hastighet på övriga lager"
 msgid "Overhang speed"
 msgstr "Hastighet vid överhäng"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Detta är hastigheten för varierande överhängs grader. Överhängs graderna uttrycks som en procent av linjebredden. Hastigheten 0 betyder att den inte minskar för överhängs gradernas område och hastigheten för väggarna används"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "Överhäng är den andel av väggens linjebredd som saknar stöd. Hastigheterna interpoleras mellan målhastigheterna vid 10%, 25%, 50%, 75% och 87%. Referenshastigheten är den yttre eller inre väggens hastighet efter begränsningarna för volymetrisk hastighet och sömmar med snedskarv; procentvärden är relativa denna referenshastighet. Målhastigheter över den ger snabbare utskrift endast när ”Tillåt överhängshastigheter över vägghastigheten” är aktiverat; för övriga målhastigheter gäller banans befintliga hastighetsgränser. Om den första målhastigheten är 0 sker ingen interpolering under 10%. För övriga målhastigheter innebär 0 vägghastigheten i den punkten; intilliggande målhastigheter kan ändå ändra hastigheten däremellan."
 
 # AI Translated
 msgid "Set speed for external and internal bridges"
@@ -18073,7 +18075,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Aktivera det här alternativet för att sakta ner utskriften i områden där perimetrar kan ha böjt sig uppåt.\n"
 "Till exempel tillämpas ytterligare nedsaktning vid utskrift av överhäng i skarpa hörn, som fören på en Benchy, vilket minskar uppböjning som annars förvärras över flera lager.\n"
@@ -18088,10 +18090,47 @@ msgstr ""
 "3. Om artefakter fortfarande syns, aktivera Utjämning av extruderingshastighet (ERS) för att jämna ut flödesövergångarna ytterligare.\n"
 "\n"
 "Obs! När det här alternativet är aktiverat behandlas överhängsperimetrar som överhäng, vilket innebär att överhängshastigheten tillämpas även om den överhängande perimetern är en del av en bridge.\n"
-"Till exempel, när perimetrarna hänger över till 100% utan någon vägg som stöder dem underifrån, tillämpas hastigheten för 75% överhäng, begränsad av bridge-hastigheten."
+"Till exempel, när perimetrarna hänger över till 100% utan någon vägg som stöder dem underifrån, tillämpas hastigheten för 75–100% överhäng, begränsad av bridge-hastigheten."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Tillåt överhängshastigheter över vägghastigheten"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Skriv ut överhängande yttre och inre väggar snabbare när deras överhängshastighet är inställd över vägghastigheten, upp till filamentets maximala volymetriska hastighet. När alternativet är avaktiverat gör överhängshastigheter aldrig att en vägg skrivs ut snabbare än den skulle utan överhänget.\n"
+"Bridges, överhängsväggar, väggar helt utan stöd, sömmar med snedskarv och väggar vars hastighet ändras av andra inställningar, till exempel ”Små perimetrar” eller ”Resonansundvikande”, snabbas aldrig upp."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Målhastighet när 10% av väggens linjebredd saknar stöd. Mellan 0% och 10% interpoleras hastigheten linjärt från den faktiska vägghastigheten till detta värde. Till exempel ger en vägghastighet på 60 mm/s och en målhastighet på 30 mm/s 45 mm/s vid 5% överhäng. Värdet 0 avaktiverar denna inledande interpolering. Värden i % är relativa väggens referenshastighet. Målhastigheter över den ger snabbare utskrift endast när ”Tillåt överhängshastigheter över vägghastigheten” är aktiverat och begränsas då av volymetriskt flöde, kylning och nedsaktning för uppböjda perimetrar."
 
 msgid "mm/s or %"
 msgstr "mm/s eller %."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Målhastighet när 25% av väggens linjebredd saknar stöd. Mellan 10% och 25% interpoleras hastigheten linjärt från föregående styrpunkt till detta värde. Med värdet 0 används vägghastigheten i denna styrpunkt, inom befintliga hastighetsgränser. Intilliggande målhastigheter kan ändå ändra hastigheten mellan styrpunkterna. Värden i % är relativa väggens referenshastighet. Målhastigheter över den ger snabbare utskrift endast när ”Tillåt överhängshastigheter över vägghastigheten” är aktiverat och begränsas då av volymetriskt flöde, kylning och nedsaktning för uppböjda perimetrar."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Målhastighet när 50% av väggens linjebredd saknar stöd. Mellan 25% och 50% interpoleras hastigheten linjärt från föregående styrpunkt till detta värde. Med värdet 0 används vägghastigheten i denna styrpunkt, inom befintliga hastighetsgränser. Intilliggande målhastigheter kan ändå ändra hastigheten mellan styrpunkterna. Värden i % är relativa väggens referenshastighet. Målhastigheter över den ger snabbare utskrift endast när ”Tillåt överhängshastigheter över vägghastigheten” är aktiverat och begränsas då av volymetriskt flöde, kylning och nedsaktning för uppböjda perimetrar."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Målhastighet när 75% av väggens linjebredd saknar stöd. Mellan 50% och 75% interpoleras hastigheten linjärt från föregående styrpunkt till detta värde. Med värdet 0 används vägghastigheten i denna styrpunkt, inom befintliga hastighetsgränser. Intilliggande målhastigheter kan ändå ändra hastigheten mellan styrpunkterna. Värden i % är relativa väggens referenshastighet. Målhastigheter över den ger snabbare utskrift endast när ”Tillåt överhängshastigheter över vägghastigheten” är aktiverat och begränsas då av volymetriskt flöde, kylning och nedsaktning för uppböjda perimetrar."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Målhastighet när 87% av väggens linjebredd saknar stöd. Mellan 75% och 87% interpoleras hastigheten linjärt från föregående styrpunkt till detta värde. Om ”Sakta ner för uppböjda perimetrar” är avaktiverat interpoleras hastigheten från detta värde vid 87% till hastigheten för yttre bridges vid 100%; målhastigheten för bridge begränsas då till banans ursprungliga hastighet. Om alternativet är aktiverat används detta värde i hela intervallet 87% till 100%, förutom att ett värde över vägghastigheten återgår till banans ursprungliga hastighet vid 100%. Med värdet 0 används vägghastigheten i denna styrpunkt, inom befintliga hastighetsgränser. Intilliggande målhastigheter kan ändå ändra hastigheten mellan styrpunkterna. Värden i % är relativa väggens referenshastighet. Målhastigheter över den ger snabbare utskrift endast när ”Tillåt överhängshastigheter över vägghastigheten” är aktiverat och begränsas då av volymetriskt flöde, kylning och nedsaktning för uppböjda perimetrar."
 
 # AI Translated
 msgid ""

@@ -14168,8 +14168,10 @@ msgstr "Snelheid voor andere lagen"
 msgid "Overhang speed"
 msgstr "Snelheid voor overhangende gebieden"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Dit is de snelheid voor diverse overhanggraden. Overhanggraden worden uitgedrukt als een percentage van de laag breedte. 0 betekend dat er niet afgeremd wordt voor overhanggraden en dat dezelfde snelheid als voor wanden gebruikt wordt"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "Overhang is het niet-ondersteunde deel van de lijnbreedte van een wand. De snelheden worden geïnterpoleerd tussen de doelsnelheden bij 10%, 25%, 50%, 75% en 87%. De referentiesnelheid is de snelheid van de buitenste of binnenste wand na de beperkingen door de volumetrische snelheid en schuine naden; percentages zijn relatief ten opzichte van deze referentiesnelheid. Doelsnelheden daarboven leiden alleen tot sneller printen als 'Overhangsnelheden boven de wandsnelheid toestaan' is ingeschakeld; voor de overige doelsnelheden blijven de bestaande snelheidslimieten van het pad gelden. Als de eerste doelsnelheid 0 is, wordt onder 10% niet geïnterpoleerd. Voor de overige doelsnelheden betekent 0 de wandsnelheid op dat punt; aangrenzende doelsnelheden kunnen de snelheid daartussen nog steeds veranderen."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Snelheid instellen voor externe en interne bruggen"
@@ -17889,7 +17891,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Schakel deze optie in om af te remmen in gebieden waar perimeters omhoog gekruld kunnen zijn.\n"
 "Zo wordt er extra afgeremd bij het printen van overhangen op scherpe hoeken, zoals de voorkant van de Benchy-romp, wat het omkrullen vermindert dat zich over meerdere lagen opstapelt.\n"
@@ -17904,10 +17906,47 @@ msgstr ""
 "3. Als er nog steeds artefacten optreden, schakel dan Afvlakking van de extrusiesnelheid (ERS) in om de flowovergangen verder af te vlakken.\n"
 "\n"
 "Let op: wanneer deze optie is ingeschakeld, worden overhangende perimeters als overhangen behandeld, wat betekent dat de overhangsnelheid wordt toegepast, zelfs als de overhangende perimeter deel uitmaakt van een brug.\n"
-"Bijvoorbeeld: wanneer de perimeters voor 100% overhangen en er geen wand is die ze van onderaf ondersteunt, wordt de overhangsnelheid voor 75% toegepast, beperkt door de brugsnelheid."
+"Bijvoorbeeld: wanneer de perimeters voor 100% overhangen en er geen wand is die ze van onderaf ondersteunt, wordt de overhangsnelheid voor 75–100% toegepast, beperkt door de brugsnelheid."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Overhangsnelheden boven de wandsnelheid toestaan"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Print buitenste en binnenste wanden met overhang sneller wanneer hun overhangsnelheid hoger is ingesteld dan de wandsnelheid, tot de maximale volumetrische snelheid van het filament. Indien uitgeschakeld, wordt een wand door overhangsnelheden nooit sneller geprint dan zonder de overhang.\n"
+"Bruggen, overhangende wanden, volledig niet-ondersteunde wanden, schuine naden en wanden waarvan de snelheid door andere instellingen wordt gewijzigd, zoals 'Kleine omtrek' of 'Resonantievermijding', worden nooit versneld."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Doelsnelheid wanneer 10% van de lijnbreedte van de wand niet ondersteund is. Tussen 0% en 10% wordt de snelheid lineair geïnterpoleerd van de werkelijke wandsnelheid naar deze waarde. Bijvoorbeeld: een wandsnelheid van 60 mm/s en een doelsnelheid van 30 mm/s geven 45 mm/s bij 5% overhang. Een waarde van 0 schakelt deze eerste interpolatie uit. Waarden in % zijn relatief ten opzichte van de referentiesnelheid van de wand. Doelsnelheden daarboven leiden alleen tot sneller printen als 'Overhangsnelheden boven de wandsnelheid toestaan' is ingeschakeld, en blijven daarbij begrensd door de volumestroom, de koeling en het afremmen voor omgekrulde perimeters."
 
 msgid "mm/s or %"
 msgstr "mm/s of %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Doelsnelheid wanneer 25% van de lijnbreedte van de wand niet ondersteund is. Tussen 10% en 25% wordt de snelheid lineair geïnterpoleerd van het vorige controlepunt naar deze waarde. Bij een waarde van 0 wordt op dit controlepunt de wandsnelheid gebruikt, binnen de bestaande snelheidslimieten. Aangrenzende doelsnelheden kunnen de snelheid tussen controlepunten nog steeds veranderen. Waarden in % zijn relatief ten opzichte van de referentiesnelheid van de wand. Doelsnelheden daarboven leiden alleen tot sneller printen als 'Overhangsnelheden boven de wandsnelheid toestaan' is ingeschakeld, en blijven daarbij begrensd door de volumestroom, de koeling en het afremmen voor omgekrulde perimeters."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Doelsnelheid wanneer 50% van de lijnbreedte van de wand niet ondersteund is. Tussen 25% en 50% wordt de snelheid lineair geïnterpoleerd van het vorige controlepunt naar deze waarde. Bij een waarde van 0 wordt op dit controlepunt de wandsnelheid gebruikt, binnen de bestaande snelheidslimieten. Aangrenzende doelsnelheden kunnen de snelheid tussen controlepunten nog steeds veranderen. Waarden in % zijn relatief ten opzichte van de referentiesnelheid van de wand. Doelsnelheden daarboven leiden alleen tot sneller printen als 'Overhangsnelheden boven de wandsnelheid toestaan' is ingeschakeld, en blijven daarbij begrensd door de volumestroom, de koeling en het afremmen voor omgekrulde perimeters."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Doelsnelheid wanneer 75% van de lijnbreedte van de wand niet ondersteund is. Tussen 50% en 75% wordt de snelheid lineair geïnterpoleerd van het vorige controlepunt naar deze waarde. Bij een waarde van 0 wordt op dit controlepunt de wandsnelheid gebruikt, binnen de bestaande snelheidslimieten. Aangrenzende doelsnelheden kunnen de snelheid tussen controlepunten nog steeds veranderen. Waarden in % zijn relatief ten opzichte van de referentiesnelheid van de wand. Doelsnelheden daarboven leiden alleen tot sneller printen als 'Overhangsnelheden boven de wandsnelheid toestaan' is ingeschakeld, en blijven daarbij begrensd door de volumestroom, de koeling en het afremmen voor omgekrulde perimeters."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Doelsnelheid wanneer 87% van de lijnbreedte van de wand niet ondersteund is. Tussen 75% en 87% wordt de snelheid lineair geïnterpoleerd van het vorige controlepunt naar deze waarde. Als 'Afremmen voor omgekrulde perimeters' is uitgeschakeld, wordt de snelheid geïnterpoleerd van deze waarde bij 87% naar de snelheid voor externe bruggen bij 100%; de doelsnelheid voor de brug is daarbij begrensd tot de oorspronkelijke padsnelheid. Als die optie is ingeschakeld, geldt deze waarde over het hele bereik van 87% tot 100%, behalve dat een waarde boven de wandsnelheid bij 100% terugvalt op de oorspronkelijke padsnelheid. Bij een waarde van 0 wordt op dit controlepunt de wandsnelheid gebruikt, binnen de bestaande snelheidslimieten. Aangrenzende doelsnelheden kunnen de snelheid tussen controlepunten nog steeds veranderen. Waarden in % zijn relatief ten opzichte van de referentiesnelheid van de wand. Doelsnelheden daarboven leiden alleen tot sneller printen als 'Overhangsnelheden boven de wandsnelheid toestaan' is ingeschakeld, en blijven daarbij begrensd door de volumestroom, de koeling en het afremmen voor omgekrulde perimeters."
 
 # AI Translated
 msgid ""

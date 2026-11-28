@@ -13647,8 +13647,10 @@ msgstr "他の層の速度"
 msgid "Overhang speed"
 msgstr "オーバーハング速度"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "オーバーハングを造形時の速度です。オーバーハングの角度が線幅に対する割合で表示します。0は減速無しで壁面の速度が使用されます"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "オーバーハングとは、壁の線幅のうち支持されていない部分の割合です。速度は、10%、25%、50%、75%、87%に設定された目標速度の間で補間されます。基準速度は、体積速度とスカーフ継ぎ目による制限を適用した後の外壁または内壁の速度で、%で指定した値はこの基準速度に対して計算されます。基準速度を超える目標速度で速く印刷されるのは、「壁の速度を超えるオーバーハング速度を許可」が有効な場合のみです。それ以外の目標速度には、既存のパス速度の制限がそのまま適用されます。最初の目標速度を0にすると、10%未満での補間が無効になります。残りの目標速度では、0にするとその制御点で壁の速度が使用されますが、その間の速度は隣接する目標速度によって変わることがあります。"
 
 msgid "Set speed for external and internal bridges"
 msgstr "外部および内部ブリッジの速度を設定"
@@ -17353,7 +17355,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "外周が上向きにカールしている可能性がある領域で、印刷を減速させる場合にこのオプションを有効にします。\n"
 "例えば、Benchyの船首のような鋭角部のオーバーハングを印刷する際に追加の減速が適用され、複数の層にわたって蓄積するカールを抑えられます。\n"
@@ -17368,12 +17370,49 @@ msgstr ""
 "3. それでもアーティファクトが出る場合は、押出レートスムージング (ERS) を有効にして流量の遷移をさらに滑らかにします。\n"
 "\n"
 "注意: このオプションを有効にすると、オーバーハング外周はオーバーハングとして扱われるため、オーバーハングする外周がブリッジの一部であってもオーバーハング速度が適用されます。\n"
-"例えば、外周が100%オーバーハングで下に支える壁がない場合、75%のオーバーハング速度が適用され、ブリッジ速度で制限されます。"
+"例えば、外周が100%オーバーハングで下に支える壁がない場合、75–100%のオーバーハング速度が適用され、ブリッジ速度で制限されます。"
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "壁の速度を超えるオーバーハング速度を許可"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"オーバーハング速度が壁の速度より高く設定されている場合、オーバーハングしている外壁と内壁を、フィラメントの最大体積速度を上限として速く印刷します。無効にすると、オーバーハング速度によって壁がオーバーハングのないときより速く印刷されることはありません。\n"
+"ブリッジ、オーバーハング壁、完全に支持されていない壁、スカーフ継ぎ目のほか、「小さな外周」や「共振回避」など他の設定で速度が変わる壁は、速くなることはありません。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "壁の線幅の10%が支持されていないときの目標速度です。0%から10%の間では、実際の壁の速度からこの値まで速度が線形補間されます。たとえば、壁の速度が60 mm/s、目標速度が30 mm/sの場合、オーバーハング5%では45 mm/sになります。0にすると、この最初の区間での補間が無効になります。%で指定した場合、壁の基準速度に対して計算されます。基準速度を超える目標速度は、「壁の速度を超えるオーバーハング速度を許可」が有効な場合にのみ速く印刷され、体積速度、冷却、「カールした外周のスローダウン」による制限を受けます。"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: 或は for または.
 msgid "mm/s or %"
 msgstr "mm/s または %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "壁の線幅の25%が支持されていないときの目標速度です。10%から25%の間では、前の制御点からこの値まで速度が線形補間されます。0にすると、この制御点では壁の速度が使用され、既存の速度制限が適用されます。ただし、制御点の間の速度は隣接する目標速度によって変わることがあります。%で指定した場合、壁の基準速度に対して計算されます。基準速度を超える目標速度は、「壁の速度を超えるオーバーハング速度を許可」が有効な場合にのみ速く印刷され、体積速度、冷却、「カールした外周のスローダウン」による制限を受けます。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "壁の線幅の50%が支持されていないときの目標速度です。25%から50%の間では、前の制御点からこの値まで速度が線形補間されます。0にすると、この制御点では壁の速度が使用され、既存の速度制限が適用されます。ただし、制御点の間の速度は隣接する目標速度によって変わることがあります。%で指定した場合、壁の基準速度に対して計算されます。基準速度を超える目標速度は、「壁の速度を超えるオーバーハング速度を許可」が有効な場合にのみ速く印刷され、体積速度、冷却、「カールした外周のスローダウン」による制限を受けます。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "壁の線幅の75%が支持されていないときの目標速度です。50%から75%の間では、前の制御点からこの値まで速度が線形補間されます。0にすると、この制御点では壁の速度が使用され、既存の速度制限が適用されます。ただし、制御点の間の速度は隣接する目標速度によって変わることがあります。%で指定した場合、壁の基準速度に対して計算されます。基準速度を超える目標速度は、「壁の速度を超えるオーバーハング速度を許可」が有効な場合にのみ速く印刷され、体積速度、冷却、「カールした外周のスローダウン」による制限を受けます。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "壁の線幅の87%が支持されていないときの目標速度です。75%から87%の間では、前の制御点からこの値まで速度が線形補間されます。「カールした外周のスローダウン」が無効な場合、速度は87%でのこの値から100%での外部ブリッジの速度まで補間されます。このブリッジの目標速度は、元のパス速度を上限とします。有効な場合は、87%から100%の範囲全体でこの値が使用されますが、壁の速度を超える値は100%で元のパス速度に戻ります。0にすると、この制御点では壁の速度が使用され、既存の速度制限が適用されます。ただし、制御点の間の速度は隣接する目標速度によって変わることがあります。%で指定した場合、壁の基準速度に対して計算されます。基準速度を超える目標速度は、「壁の速度を超えるオーバーハング速度を許可」が有効な場合にのみ速く印刷され、体積速度、冷却、「カールした外周のスローダウン」による制限を受けます。"
 
 # AI Translated
 msgid ""

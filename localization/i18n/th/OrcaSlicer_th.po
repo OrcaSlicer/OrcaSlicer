@@ -13188,8 +13188,10 @@ msgstr "ความเร็วเลเยอร์อื่นๆ"
 msgid "Overhang speed"
 msgstr "ความเร็วส่วนยื่น"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "นี่คือความเร็วขององศาส่วนยื่นต่างๆ องศาที่ยื่นออกมาจะแสดงเป็นเปอร์เซ็นต์ของความกว้างของเส้น ความเร็ว 0 หมายถึงไม่มีการชะลอความเร็วสำหรับช่วงองศายื่นและใช้ความเร็วของผนัง"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "ส่วนยื่นคือสัดส่วนของความกว้างเส้นผนังที่ไม่มีส่วนรองรับ ความเร็วจะถูกประมาณค่าในช่วงระหว่างค่าเป้าหมายที่ 10%, 25%, 50%, 75% และ 87% ความเร็วอ้างอิงคือความเร็วผนังด้านนอกหรือผนังด้านในหลังจากใช้ขีดจำกัดความเร็วปริมาตรและขีดจำกัดของรอยต่อ Scarf แล้ว ค่าเปอร์เซ็นต์สัมพันธ์กับความเร็วอ้างอิงนี้ ค่าเป้าหมายที่สูงกว่าความเร็วนี้จะทำให้พิมพ์เร็วขึ้นเฉพาะเมื่อเปิดใช้งาน \"อนุญาตความเร็วส่วนยื่นที่สูงกว่าความเร็วผนัง\" เท่านั้น ส่วนค่าเป้าหมายอื่นยังคงอยู่ภายใต้ขีดจำกัดความเร็วของเส้นทางเครื่องมือที่มีอยู่ การตั้งค่าเป้าหมายแรกเป็น 0 จะปิดการประมาณค่าในช่วงที่ต่ำกว่า 10% สำหรับค่าเป้าหมายที่เหลือ ค่า 0 จะใช้ความเร็วผนัง ณ จุดนั้น ทั้งนี้ค่าเป้าหมายที่อยู่ติดกันยังคงเปลี่ยนความเร็วในช่วงระหว่างจุดได้"
 
 msgid "Set speed for external and internal bridges"
 msgstr "ตั้งค่าความเร็วสำหรับบริดจ์ภายนอกและภายใน"
@@ -16699,7 +16701,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "เปิดใช้งานตัวเลือกนี้เพื่อชะลอการพิมพ์ในพื้นที่ที่เส้นรอบวงอาจงอขึ้น\n"
 "ตัวอย่างเช่น จะชะลอเพิ่มเติมเมื่อพิมพ์ส่วนยื่นที่มุมแหลม เช่นด้านหน้าของตัวเรือ Benchy ช่วยลดการงอที่สะสมข้ามหลายเลเยอร์\n"
@@ -16714,10 +16716,47 @@ msgstr ""
 "3. หากยังมีสิ่งแปลกปลอม ให้เปิดใช้งานอัตราการอัดรีดให้เรียบ (ERS) เพื่อปรับการเปลี่ยนอัตราการไหลให้เรียบขึ้น\n"
 "\n"
 "หมายเหตุ: เมื่อเปิดใช้งานตัวเลือกนี้ เส้นรอบวงส่วนยื่นจะถูกจัดเป็นส่วนยื่น หมายความว่าจะใช้ความเร็วส่วนยื่นแม้เส้นรอบวงนั้นเป็นส่วนหนึ่งของสะพาน\n"
-"ตัวอย่างเช่น เมื่อเส้นรอบวงยื่น 100% โดยไม่มีผนังรองรับจากด้านล่าง จะใช้ความเร็วส่วนยื่น 75% โดยจำกัดด้วยความเร็วสะพาน"
+"ตัวอย่างเช่น เมื่อเส้นรอบวงยื่น 100% โดยไม่มีผนังรองรับจากด้านล่าง จะใช้ความเร็วส่วนยื่น 75–100% โดยจำกัดด้วยความเร็วสะพาน"
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "อนุญาตความเร็วส่วนยื่นที่สูงกว่าความเร็วผนัง"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"พิมพ์ผนังด้านนอกและผนังด้านในที่มีส่วนยื่นให้เร็วขึ้นเมื่อตั้งความเร็วส่วนยื่นไว้สูงกว่าความเร็วผนัง โดยไม่เกินความเร็วปริมาตรสูงสุดของเส้นพลาสติก เมื่อปิดใช้งาน ความเร็วส่วนยื่นจะไม่ทำให้ผนังพิมพ์เร็วกว่าตอนที่ไม่มีส่วนยื่น\n"
+"สะพาน ผนังส่วนยื่น ผนังที่ไม่มีส่วนรองรับเลย รอยต่อ Scarf และผนังที่ความเร็วถูกเปลี่ยนโดยการตั้งค่าอื่น เช่น \"เส้นรอบวงเล็ก\" หรือ \"การหลีกเลี่ยงการสั่นพ้อง\" จะไม่ถูกเร่งความเร็ว"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "ความเร็วเป้าหมายเมื่อ 10% ของความกว้างเส้นผนังไม่มีส่วนรองรับ ระหว่าง 0% ถึง 10% ความเร็วจะถูกประมาณค่าในช่วงแบบเชิงเส้นจากความเร็วผนังจริงไปยังค่านี้ ตัวอย่างเช่น ความเร็วผนัง 60 มม./วินาที และค่าเป้าหมาย 30 มม./วินาที จะให้ความเร็ว 45 มม./วินาที ที่ส่วนยื่น 5% ค่า 0 จะปิดการประมาณค่าในช่วงเริ่มต้นนี้ ค่าเปอร์เซ็นต์สัมพันธ์กับความเร็วผนังอ้างอิง ค่าเป้าหมายที่สูงกว่าความเร็วนี้จะทำให้พิมพ์เร็วขึ้นเฉพาะเมื่อเปิดใช้งาน \"อนุญาตความเร็วส่วนยื่นที่สูงกว่าความเร็วผนัง\" เท่านั้น และยังถูกจำกัดโดยอัตราการไหลเชิงปริมาตร การระบายความร้อน และ \"ชะลอความเร็วลงสำหรับขอบเขตที่โค้งงอ\""
 
 msgid "mm/s or %"
 msgstr "มิลลิเมตร/วินาที หรือ %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "ความเร็วเป้าหมายเมื่อ 25% ของความกว้างเส้นผนังไม่มีส่วนรองรับ ระหว่าง 10% ถึง 25% ความเร็วจะถูกประมาณค่าในช่วงแบบเชิงเส้นจากจุดควบคุมก่อนหน้าไปยังค่านี้ ค่า 0 จะใช้ความเร็วผนัง ณ จุดควบคุมนี้ ภายใต้ขีดจำกัดความเร็วที่มีอยู่ ค่าเป้าหมายที่อยู่ติดกันยังคงเปลี่ยนความเร็วระหว่างจุดควบคุมได้ ค่าเปอร์เซ็นต์สัมพันธ์กับความเร็วผนังอ้างอิง ค่าเป้าหมายที่สูงกว่าความเร็วนี้จะทำให้พิมพ์เร็วขึ้นเฉพาะเมื่อเปิดใช้งาน \"อนุญาตความเร็วส่วนยื่นที่สูงกว่าความเร็วผนัง\" เท่านั้น และยังถูกจำกัดโดยอัตราการไหลเชิงปริมาตร การระบายความร้อน และ \"ชะลอความเร็วลงสำหรับขอบเขตที่โค้งงอ\""
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "ความเร็วเป้าหมายเมื่อ 50% ของความกว้างเส้นผนังไม่มีส่วนรองรับ ระหว่าง 25% ถึง 50% ความเร็วจะถูกประมาณค่าในช่วงแบบเชิงเส้นจากจุดควบคุมก่อนหน้าไปยังค่านี้ ค่า 0 จะใช้ความเร็วผนัง ณ จุดควบคุมนี้ ภายใต้ขีดจำกัดความเร็วที่มีอยู่ ค่าเป้าหมายที่อยู่ติดกันยังคงเปลี่ยนความเร็วระหว่างจุดควบคุมได้ ค่าเปอร์เซ็นต์สัมพันธ์กับความเร็วผนังอ้างอิง ค่าเป้าหมายที่สูงกว่าความเร็วนี้จะทำให้พิมพ์เร็วขึ้นเฉพาะเมื่อเปิดใช้งาน \"อนุญาตความเร็วส่วนยื่นที่สูงกว่าความเร็วผนัง\" เท่านั้น และยังถูกจำกัดโดยอัตราการไหลเชิงปริมาตร การระบายความร้อน และ \"ชะลอความเร็วลงสำหรับขอบเขตที่โค้งงอ\""
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "ความเร็วเป้าหมายเมื่อ 75% ของความกว้างเส้นผนังไม่มีส่วนรองรับ ระหว่าง 50% ถึง 75% ความเร็วจะถูกประมาณค่าในช่วงแบบเชิงเส้นจากจุดควบคุมก่อนหน้าไปยังค่านี้ ค่า 0 จะใช้ความเร็วผนัง ณ จุดควบคุมนี้ ภายใต้ขีดจำกัดความเร็วที่มีอยู่ ค่าเป้าหมายที่อยู่ติดกันยังคงเปลี่ยนความเร็วระหว่างจุดควบคุมได้ ค่าเปอร์เซ็นต์สัมพันธ์กับความเร็วผนังอ้างอิง ค่าเป้าหมายที่สูงกว่าความเร็วนี้จะทำให้พิมพ์เร็วขึ้นเฉพาะเมื่อเปิดใช้งาน \"อนุญาตความเร็วส่วนยื่นที่สูงกว่าความเร็วผนัง\" เท่านั้น และยังถูกจำกัดโดยอัตราการไหลเชิงปริมาตร การระบายความร้อน และ \"ชะลอความเร็วลงสำหรับขอบเขตที่โค้งงอ\""
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "ความเร็วเป้าหมายเมื่อ 87% ของความกว้างเส้นผนังไม่มีส่วนรองรับ ระหว่าง 75% ถึง 87% ความเร็วจะถูกประมาณค่าในช่วงแบบเชิงเส้นจากจุดควบคุมก่อนหน้าไปยังค่านี้ เมื่อปิดใช้งาน \"ชะลอความเร็วลงสำหรับขอบเขตที่โค้งงอ\" ความเร็วจะถูกประมาณค่าในช่วงจากค่านี้ที่ 87% ไปยังความเร็วสะพานภายนอกที่ 100% โดยค่าเป้าหมายของสะพานจะถูกจำกัดไม่ให้เกินความเร็วเดิมของเส้นทางเครื่องมือ เมื่อเปิดใช้งาน จะใช้ค่านี้ตลอดช่วง 87% ถึง 100% ยกเว้นค่าที่สูงกว่าความเร็วผนังจะกลับไปใช้ความเร็วเดิมของเส้นทางเครื่องมือที่ 100% ค่า 0 จะใช้ความเร็วผนัง ณ จุดควบคุมนี้ ภายใต้ขีดจำกัดความเร็วที่มีอยู่ ค่าเป้าหมายที่อยู่ติดกันยังคงเปลี่ยนความเร็วระหว่างจุดควบคุมได้ ค่าเปอร์เซ็นต์สัมพันธ์กับความเร็วผนังอ้างอิง ค่าเป้าหมายที่สูงกว่าความเร็วนี้จะทำให้พิมพ์เร็วขึ้นเฉพาะเมื่อเปิดใช้งาน \"อนุญาตความเร็วส่วนยื่นที่สูงกว่าความเร็วผนัง\" เท่านั้น และยังถูกจำกัดโดยอัตราการไหลเชิงปริมาตร การระบายความร้อน และ \"ชะลอความเร็วลงสำหรับขอบเขตที่โค้งงอ\""
 
 # AI Translated
 msgid ""
