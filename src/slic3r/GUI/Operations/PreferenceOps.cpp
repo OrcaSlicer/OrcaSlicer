@@ -241,6 +241,12 @@ std::vector<Preference> build_table()
                {L("Use the body names stored in the imported file when it contains them.")});
     t.checkbox("no_warn_when_modified_gcodes", L("Don't warn when loading 3MF with modified G-code"));
 
+    //// FILES > STL import
+    t.section(kFiles, L("STL import"));
+    t.checkbox("import_stl_colors", L("Import colors"),
+               {L("Read the per-facet colors stored in binary STL files (VisCAM, SolidView and Materialise Magics variants) and suggest "
+                  "a filament for each, which you can change before the model is added.\nDefault: disabled.")});
+
     //// FILES > STEP import
     t.section(kFiles, L("STEP import"));
     t.checkbox("enable_step_mesh_setting", L("Show options when importing"),
@@ -262,6 +268,9 @@ std::vector<Preference> build_table()
                   "in the import dialog, or directly when the import dialog is disabled.\nDefault: enabled.")});
     t.checkbox("import_names_step_keep", L("Keep original names"),
                {L("Use the body names stored in the imported file when it contains them.")});
+    t.checkbox("import_step_colors", L("Import colors"),
+               {L("Read the colors stored in imported STEP files and suggest a filament for each, which you can change before the model "
+                  "is added.\nDefault: disabled.")});
 
     //// FILES > AMF import
     t.section(kFiles, L("AMF import"));

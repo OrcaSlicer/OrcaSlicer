@@ -24,6 +24,8 @@ enum class LoadStrategy
     // One of Orca's own models, such as a calibration test, loads as written: the geometry-import choices and
     // their dialogs are for a person's files, and a calibration reads values from its objects' names.
     BundledModel = 512,
+    // Hand the colours stored in a STEP file to the texture-to-colour importer.
+    ImportColors = 1024,
 
     Restore = 0x10000 | LoadModel | LoadConfig | LoadAuxiliary | Silence,
 };

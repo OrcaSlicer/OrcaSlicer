@@ -2,15 +2,19 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "ObjectID.hpp"
+
 struct indexed_triangle_set;
 
 namespace Slic3r {
 
+class ModelObject;
 class TriangleMesh;
 class ModelVolume;
 
@@ -50,6 +54,16 @@ struct TexturedMesh {
     // split along the resulting cluster boundaries, so color borders stay sharp
     // instead of being averaged away into a single color per face.
     std::vector<std::array<float,4>> precomputed_vertex_colors;
+
+    // Set when the mesh is the union of several volumes (a CAD assembly). Each entry names a volume of an
+    // object and how many consecutive faces of `indices` belong to it, so the colours chosen for the merged
+    // mesh can be handed back to the volumes without re-meshing them.
+    struct Part {
+        ObjectID    object_id;
+        int         volume_idx = 0;
+        std::size_t face_count = 0;
+    };
+    std::vector<Part> parts;
 };
 
 struct PaintedMesh {
@@ -117,6 +131,29 @@ double compute_delta_e(
 
 bool apply_painted_mesh_to_volume(
     const PaintedMesh& painted,
+    const std::vector<FilamentMatch>& matches,
+    ModelVolume& volume);
+
+// The face colours a file format gives one volume, packed as 0xFFRRGGBB; 0 marks a face the file leaves uncoloured.
+struct VolumeFaceColors {
+    const ModelObject*         object = nullptr;
+    int                        volume_idx = 0;
+    std::vector<std::uint32_t> colors;
+};
+
+// The common route from a CAD-style importer (STEP, STL) to the texture-to-colour importer: merge the coloured
+// volumes into one TexturedMesh in object coordinates (placed by the object's first instance, if it has one),
+// so the colours are clustered and matched to filaments once for the whole file. Uncoloured faces take the most
+// common colour of their volume, and volumes without any colour are left out. Returns null when none is coloured.
+std::shared_ptr<TexturedMesh> make_face_color_mesh(const std::vector<VolumeFaceColors>& volumes);
+
+// Give a volume the filaments for its own per-face colours: each face takes the filament of the cluster
+// nearest to its colour. The volume's mesh is left as it is. A volume whose faces agree gets no painting,
+// only a base filament; otherwise the faces that differ from it are painted. Returns the volume's base
+// filament (0-based), or -1 when its colours match no filament.
+int apply_face_colors_to_volume(
+    const std::vector<std::array<std::size_t,3>>& face_colors,
+    const PaintedMesh& palette,
     const std::vector<FilamentMatch>& matches,
     ModelVolume& volume);
 

@@ -9341,6 +9341,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         read_strategy = read_strategy | LoadStrategy::KeepOriginalNames;
                 }
                 if (target.format == "step") {
+                    if (wxGetApp().app_config->get_bool("import_step_colors"))
+                        read_strategy = read_strategy | LoadStrategy::ImportColors;
                     target.model = Model::read_from_step(file_path.string(), read_strategy,
                         [&](int, int current, int total, bool& cancel) {
                             cancel = !progress(total > 0 ? current * 100 / total : 0);
@@ -10209,7 +10211,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_deflection"));
                         if (angle <= 0) angle = 0.5;
                         bool split_compound = wxGetApp().app_config->get_bool("is_split_compound");
-                        model = Slic3r::Model:: read_from_step(path.string(), strategy,
+                        const LoadStrategy step_strategy = wxGetApp().app_config->get_bool("import_step_colors") ?
+                            strategy | LoadStrategy::ImportColors : strategy;
+                        model = Slic3r::Model:: read_from_step(path.string(), step_strategy,
                         [&dlg, real_filename, &progress_percent, step_percent, INPUT_FILES_RATIO, total_files, i](int load_stage, int current, int total, bool &cancel)
                         {
                                 bool     cont = true;
@@ -10253,8 +10257,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             return -1;
                         }, linear, angle, split_compound);
                 }else {
+                    const LoadStrategy file_strategy = boost::iends_with(path.string(), ".stl") && wxGetApp().app_config->get_bool("import_stl_colors") ?
+                        strategy | LoadStrategy::ImportColors : strategy;
                     model = Slic3r::Model:: read_from_file(
-                    path.string(), nullptr, nullptr, strategy, &plate_data, &project_presets, &is_xxx, &file_version, nullptr,
+                    path.string(), nullptr, nullptr, file_strategy, &plate_data, &project_presets, &is_xxx, &file_version, nullptr,
                     [&dlg, real_filename, &progress_percent, INPUT_FILES_RATIO, total_files, i, &designer_model_id, &designer_country_code](int current, int total, bool &cancel, std::string &mode_id, std::string &code)
                     {
                             designer_model_id = mode_id;
@@ -16646,6 +16652,43 @@ void Plater::priv::apply_textured_mesh_import_result(Slic3r::Model& loaded_model
         if (idx >= loaded_model.objects.size()) continue;
         ModelObject* obj = loaded_model.objects[idx];
         if (!obj) continue;
+
+        // A multi-part import (STEP) merged its volumes into one mesh for the dialog. Its volumes keep their
+        // geometry: each takes the filaments of its own face colours from the palette the user confirmed.
+        if (loaded_model.texture_mesh && !loaded_model.texture_mesh->parts.empty()) {
+            const Slic3r::TexturedMesh& tex = *loaded_model.texture_mesh;
+            std::map<int, size_t>       base_votes;
+            size_t                      face_offset = 0;
+            for (const auto& part : tex.parts) {
+                const size_t first = face_offset;
+                face_offset += part.face_count;
+                if (part.object_id != obj->id() || part.volume_idx < 0 || part.volume_idx >= (int)obj->volumes.size() ||
+                    face_offset > tex.precomputed_face_colors.size())
+                    continue;
+                ModelVolume* volume = obj->volumes[part.volume_idx];
+                const std::vector<std::array<std::size_t, 3>> colors(tex.precomputed_face_colors.begin() + first,
+                                                                     tex.precomputed_face_colors.begin() + face_offset);
+                const int filament = Slic3r::apply_face_colors_to_volume(colors, painted, remapped_matches, *volume);
+                if (filament < 0)
+                    continue;
+                volume->config.set("extruder", filament + 1);
+                base_votes[filament + 1] += part.face_count;
+            }
+            if (!base_votes.empty()) {
+                const int object_extruder = std::max_element(base_votes.begin(), base_votes.end(),
+                    [](const auto& a, const auto& b) { return a.second < b.second; })->first;
+                obj->config.set("extruder", object_extruder);
+                if (update_scene) {
+                    if (auto* obj_list = wxGetApp().obj_list()) {
+                        obj_list->update_objects_list_filament_column(std::max<size_t>(wxGetApp().filaments_cnt(), (size_t)object_extruder));
+                        obj_list->update_info_items(idx);
+                    }
+                }
+            }
+            obj->invalidate_bounding_box();
+            obj->ensure_on_bed();
+            continue;
+        }
 
         // painted is derived from the whole textured mesh and is meaningful
         // only against a single MODEL_PART volume. Applying it to every
