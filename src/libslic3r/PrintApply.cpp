@@ -1287,12 +1287,16 @@ void Print::update_shrinkage_compensation(size_t num_extruders, std::vector<int>
 {
     const auto set_compensation = [this](unsigned int extruder) {
         // 100% from the user is the equivalent to 0 in orca.
-        const double xy_compensation = 100.0 / m_config.filament_shrink.get_at(extruder);
-        const double z_compensation  = 100.0 / m_config.filament_shrinkage_compensation_z.get_at(extruder);
-        m_shrinkage_compensation = { xy_compensation, xy_compensation, z_compensation };
+        const double xy_shrink_comp = 100.0 / m_config.filament_shrink.get_at(extruder);
+        const double x_compensation = xy_shrink_comp * (m_config.filament_size_compensation_x.get_at(extruder) / 100.0);
+        const double y_compensation = xy_shrink_comp * (m_config.filament_size_compensation_y.get_at(extruder) / 100.0);
+        const double z_compensation = 100.0 / m_config.filament_shrinkage_compensation_z.get_at(extruder);
+        m_shrinkage_compensation = { x_compensation, y_compensation, z_compensation };
     };
     const auto same_shrinkage = [this](unsigned int a, unsigned int b) {
         return m_config.filament_shrink.get_at(a) == m_config.filament_shrink.get_at(b) &&
+               m_config.filament_size_compensation_x.get_at(a) == m_config.filament_size_compensation_x.get_at(b) &&
+               m_config.filament_size_compensation_y.get_at(a) == m_config.filament_size_compensation_y.get_at(b) &&
                m_config.filament_shrinkage_compensation_z.get_at(a) == m_config.filament_shrinkage_compensation_z.get_at(b);
     };
     // Usually all filaments share the same shrinkage, then it does not matter which of them print.

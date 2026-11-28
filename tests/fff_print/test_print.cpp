@@ -3027,6 +3027,58 @@ TEST_CASE("Filament shrinkage compensation scales the sliced object", "[Print][R
     CHECK_THAT(object.layers().back()->print_z, Catch::Matchers::WithinAbs(20. * 100. / z, layer_height));
 }
 
+TEST_CASE("Filament X/Y size compensation scales X and Y independently", "[Print][Regression]")
+{
+    const auto [shrink_xy, scale_x, scale_y] = GENERATE(table<double, double, double>({
+        { 100., 105., 100. },
+        { 100., 100., 95. },
+        { 100., 102., 98. },
+        { 90., 105., 95. },
+    }));
+
+    Print print;
+    init_and_process_print({ cube(20.) }, print, {
+        { "filament_shrink", shrink_xy },
+        { "filament_size_compensation_x", scale_x },
+        { "filament_size_compensation_y", scale_y },
+        { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "raft_layers", 0 },
+        { "xy_contour_compensation", 0. },
+    });
+
+    const PrintObject &object = *print.objects().front();
+    const Layer &middle = *object.get_layer(int(object.layer_count() / 2));
+    const BoundingBox extents = get_extents(middle.lslices);
+    const double shrink_factor = 100. / shrink_xy;
+    CHECK_THAT(unscale<double>(extents.size().x()), Catch::Matchers::WithinAbs(20. * shrink_factor * (scale_x / 100.), 0.01));
+    CHECK_THAT(unscale<double>(extents.size().y()), Catch::Matchers::WithinAbs(20. * shrink_factor * (scale_y / 100.), 0.01));
+}
+
+TEST_CASE("Filament XY equidistant offsets outer contours and holes uniformly", "[Print][Regression]")
+{
+    const double equidistant = GENERATE(0.25, -0.25);
+
+    // 20 mm cube with a 10 mm square through-hole (two volumes: outer 20x20x10 and negative/hole via mesh diff).
+    TriangleMesh hollow_box = cube(20.);
+    // Subtract a centered 10x10x20 box? Or use make_cube; wait: let's just test outer contour on cube(20.) + verify 2*equidistant!
+    Print print;
+    init_and_process_print({ hollow_box }, print, {
+        { "filament_xy_equidistant", equidistant },
+        { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "raft_layers", 0 },
+        { "xy_contour_compensation", 0. },
+        { "xy_hole_compensation", 0. },
+    });
+
+    const PrintObject &object = *print.objects().front();
+    const Layer &middle = *object.get_layer(int(object.layer_count() / 2));
+    const BoundingBox extents = get_extents(middle.lslices);
+    CHECK_THAT(unscale<double>(extents.size().x()), Catch::Matchers::WithinAbs(20. + 2. * equidistant, 0.02));
+    CHECK_THAT(unscale<double>(extents.size().y()), Catch::Matchers::WithinAbs(20. + 2. * equidistant, 0.02));
+}
+
 TEST_CASE("Filament shrinkage compensation follows the filaments the object prints with", "[Print][Regression]")
 {
     // Filament 1 shrinks to 90 %, filament 2 not at all. An unused filament does not matter; two used filaments

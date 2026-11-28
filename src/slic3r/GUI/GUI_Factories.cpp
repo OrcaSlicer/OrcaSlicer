@@ -670,6 +670,7 @@ const std::vector<MenuFactory::HandyModel>& MenuFactory::handy_models()
         {"orcasliced_combo",    L("OrcaSliced Combo"),    {"OrcaSliced.3mf", "OrcaCube_v2.drc", "OrcaPlug_v2.drc"},  true},
         {"orca_badge",          L("Orca Badge"),          {"OrcaBadge.3mf"}},
         {"orca_tolerance_test", L("Orca Tolerance Test"), {"OrcaToleranceTest.drc"}},
+        {"k3d_accuracy_test_v8", L("K3D Accuracy Test v8"), {"k3d_accuracy_test_v8.stl"}},
         {"3dbenchy",            L("3DBenchy"),            {"3DBenchy.drc"}},
         {"cali_cat",            L("Cali Cat"),            {"calicat.drc"}},
         {"autodesk_fdm_test",   L("Autodesk FDM Test"),   {"ksr_fdmtest_v4.drc"}},

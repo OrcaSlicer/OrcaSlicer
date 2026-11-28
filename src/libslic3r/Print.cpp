@@ -490,6 +490,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "nozzle_diameter"
             || opt_key == "filament_shrink"
             || opt_key == "filament_shrinkage_compensation_z"
+            || opt_key == "filament_size_compensation_x"
+            || opt_key == "filament_size_compensation_y"
+            || opt_key == "filament_xy_equidistant"
             || opt_key == "resolution"
             || opt_key == "precise_z_height"
             // Spiral Vase forces different kind of slicing than the normal model:

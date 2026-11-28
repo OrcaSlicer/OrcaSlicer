@@ -3521,6 +3521,40 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPercents{ 100 });
 
+    def = this->add("filament_size_compensation_x", coPercents);
+    def->label = L("Size compensation (X)");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("K3D accuracy calibration: scale factor along the X axis in percent (100% = no change, 100.5% scales the part by 1.005 in X). "
+        "Combined multiplicatively with Shrinkage (XY). For multi-material prints, ensure values match across all used filaments.");
+    def->sidetext = "%";
+    def->ratio_over = "";
+    def->min = 50;
+    def->max = 150;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercents{ 100 });
+
+    def = this->add("filament_size_compensation_y", coPercents);
+    def->label = L("Size compensation (Y)");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("K3D accuracy calibration: scale factor along the Y axis in percent (100% = no change, 100.5% scales the part by 1.005 in Y). "
+        "Combined multiplicatively with Shrinkage (XY). For multi-material prints, ensure values match across all used filaments.");
+    def->sidetext = "%";
+    def->ratio_over = "";
+    def->min = 50;
+    def->max = 150;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercents{ 100 });
+
+    def = this->add("filament_xy_equidistant", coFloats);
+    def->label = L("XY equidistant");
+    def->tooltip = L("K3D accuracy calibration: uniform XY contour offset in mm applied to all perimeters of this filament. "
+        "Positive values expand outer contours (+2*value to outer size) and shrink holes (-2*value to hole size); negative values shrink outer contours and expand holes.");
+    def->sidetext = L("mm");
+    def->min = -10.f;
+    def->max = 10.f;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{ 0. });
+
     def           = this->add("filament_adhesiveness_category", coInts);
     def->label    = L("Adhesiveness Category");
     def->tooltip  = L("Filament category.");
