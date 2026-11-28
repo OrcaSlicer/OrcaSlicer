@@ -3441,12 +3441,16 @@ BoundingBox PrintObject::get_first_layer_bbox(float& a, float& layer_height, std
     if (layer_count() > 0) {
         auto layer = get_layer(0);
         layer_height = layer->height;
-        // only work for object with single instance
-        auto shift = instances()[0].shift_without_plate_offset();
-        for (auto bb : layer->lslices_bboxes)
-        {
-            bb.translate(shift.x(), shift.y());
-            bbox.merge(bb);
+        // Instances share the same slices, but have different positions on the plate.
+        BoundingBox layer_bbox;
+        for (const auto &bb : layer->lslices_bboxes)
+            layer_bbox.merge(bb);
+        if (layer_bbox.defined) {
+            for (const auto &instance : instances()) {
+                BoundingBox bb = layer_bbox;
+                bb.translate(instance.shift_without_plate_offset());
+                bbox.merge(bb);
+            }
         }
         for (auto slice : layer->lslices) {
             a += area(slice);

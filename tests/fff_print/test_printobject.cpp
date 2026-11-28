@@ -45,6 +45,68 @@
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
+TEST_CASE("First-layer bounding box covers all instances of a print object", "[PrintObject][Regression]")
+{
+    const bool brim = GENERATE(false, true);
+    INFO("brim: " << brim);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "print_sequence",             "by layer" },
+        { "brim_type",                  brim ? "outer_only" : "no_brim" },
+        { "brim_width",                 5 },
+        { "skirt_loops",                0 },
+        { "belt_printer",               false },
+    });
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+    ModelObject *object = model.objects.front();
+    object->instances.front()->set_offset(Vec3d(100., 100., 0.));
+    object->ensure_on_bed();
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.objects().size() == 1);
+    REQUIRE(print.objects().front()->instances().size() == 1);
+    REQUIRE(print.objects().front()->has_brim() == brim);
+    if (brim)
+        REQUIRE(print.objects().front()->firstLayerObjectBrimBoundingBox.defined);
+
+    float single_area = 0.f, single_height = 0.f;
+    std::string single_name;
+    const BoundingBox single_bbox = print.get_object(0)->get_first_layer_bbox(single_area, single_height, single_name);
+    REQUIRE(single_bbox.defined);
+    REQUIRE(single_area > 0.f);
+
+    // Keep the original instance away from all four extrema of the final bounding box.
+    const Vec3d origin = object->instances.front()->get_offset();
+    for (const Vec3d &offset : {Vec3d(-45., 0., 0.), Vec3d(45., 50., 0.), Vec3d(0., -50., 0.)})
+        object->add_instance(*object->instances.front())->set_offset(origin + offset);
+    print.apply(model, config);
+    print.process();
+
+    REQUIRE(print.objects().size() == 1);
+    PrintObject *print_object = print.get_object(0);
+    REQUIRE(print_object->instances().size() == 4);
+    if (brim)
+        REQUIRE(print_object->firstLayerObjectBrimBoundingBox.defined);
+    float area = 0.f, height = 0.f;
+    std::string name;
+    const BoundingBox bbox = print_object->get_first_layer_bbox(area, height, name);
+    REQUIRE(bbox.defined);
+
+    // The copies extend the single-instance bounds by their known XY offsets.
+    CHECK(std::abs(bbox.min.x() - single_bbox.min.x() + scaled(45.)) <= scaled(0.01));
+    CHECK(std::abs(bbox.max.x() - single_bbox.max.x() - scaled(45.)) <= scaled(0.01));
+    CHECK(std::abs(bbox.min.y() - single_bbox.min.y() + scaled(50.)) <= scaled(0.01));
+    CHECK(std::abs(bbox.max.y() - single_bbox.max.y() - scaled(50.)) <= scaled(0.01));
+    CHECK_THAT(area, Catch::Matchers::WithinRel(single_area, 1e-6f));
+    CHECK_THAT(height, Catch::Matchers::WithinAbs(single_height, 1e-6));
+    CHECK(name == single_name);
+}
+
 SCENARIO("Object layer heights", "[PrintObject]") {
     GIVEN("A 20mm cube") {
         WHEN("sliced with a 2mm layer height and a 3mm nozzle") {
