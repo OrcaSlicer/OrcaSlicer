@@ -44,7 +44,8 @@ TEST_CASE("AMS custom gradients retain repeated nodes direction and independent 
             std::reverse(original.colors.begin(), original.colors.end());
         const auto selection = original.picker_selection(true);
         REQUIRE(selection);
-        REQUIRE(std::holds_alternative<ColorGradient>(*selection));
+        REQUIRE(std::holds_alternative<ColorMulti>(*selection));
+        REQUIRE(std::get<ColorMulti>(*selection).gradient);
         const ColorItem result = ColorItem::from_picker_selection(*selection);
         REQUIRE(result.ctype == 0);
         REQUIRE(result.colors == original.colors);
@@ -73,7 +74,8 @@ TEST_CASE("AMS custom co-extruded colors retain order, alpha and their color typ
         const ColorItem original{{colors.begin(), colors.begin() + count}, 1};
         const auto selection = original.picker_selection(true);
         REQUIRE(selection);
-        REQUIRE(std::holds_alternative<ColorCoextruded>(*selection));
+        REQUIRE(std::holds_alternative<ColorMulti>(*selection));
+        REQUIRE_FALSE(std::get<ColorMulti>(*selection).gradient);
         const ColorItem result = ColorItem::from_picker_selection(*selection);
         REQUIRE(result.ctype == 1);
         REQUIRE(result.colors == original.colors);

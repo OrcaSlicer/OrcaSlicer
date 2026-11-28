@@ -23,14 +23,14 @@ namespace Slic3r::GUI {
 // The same limit applies to gradients and co-extruded colors.
 inline constexpr std::size_t COLOR_PICKER_MAX_GRADIENT_COLORS = 7;
 
-// Gradient colors retain their order (2..COLOR_PICKER_MAX_GRADIENT_COLORS); a solid has exactly one color.
-using ColorGradient = std::vector<ColorRGBA>;
-// Co-extruded filament has its colors side by side along its length; they are drawn as equal
-// segments in order, with the same color count limits as a gradient.
-struct ColorCoextruded {
+// Two or more ordered colors (2..COLOR_PICKER_MAX_GRADIENT_COLORS). A gradient blends from one to the
+// next; otherwise the colors are co-extruded, side by side along the filament and drawn as equal segments.
+struct ColorMulti {
     std::vector<ColorRGBA> colors;
+    bool gradient;
 };
-using ColorSelection = std::variant<ColorRGBA, ColorGradient, ColorCoextruded>;
+// A solid has exactly one color.
+using ColorSelection = std::variant<ColorRGBA, ColorMulti>;
 
 struct ColorPickerOptions {
     bool allow_gradient = false;

@@ -137,17 +137,11 @@ std::optional<ColorSelection> normalize_color_selection(const ColorSelection& se
     if (auto* solid = std::get_if<ColorRGBA>(&normalized)) {
         if (!normalize_color(*solid, options.allow_alpha))
             return std::nullopt;
-    } else if (auto* coextruded = std::get_if<ColorCoextruded>(&normalized)) {
-        if (!options.supports_gradient(coextruded->colors.size()))
-            return std::nullopt;
-        for (ColorRGBA& color : coextruded->colors)
-            if (!normalize_color(color, options.allow_alpha))
-                return std::nullopt;
     } else {
-        auto& gradient = std::get<ColorGradient>(normalized);
-        if (!options.supports_gradient(gradient.size()))
+        auto& multi = std::get<ColorMulti>(normalized);
+        if (!options.supports_gradient(multi.colors.size()))
             return std::nullopt;
-        for (ColorRGBA& color : gradient)
+        for (ColorRGBA& color : multi.colors)
             if (!normalize_color(color, options.allow_alpha))
                 return std::nullopt;
     }
@@ -166,18 +160,12 @@ std::optional<ColorSelection> color_selection_from_json(const nlohmann::json& va
         ColorRGBA solid;
         if (parse_color((*colors)[0], solid))
             return normalize_color_selection(solid, options);
-    } else if (*type == "gradient" && options.supports_gradient(colors->size())) {
-        ColorGradient gradient(colors->size());
-        for (std::size_t i = 0; i < gradient.size(); ++i)
-            if (!parse_color((*colors)[i], gradient[i]))
+    } else if ((*type == "gradient" || *type == "coextruded") && options.supports_gradient(colors->size())) {
+        ColorMulti multi{std::vector<ColorRGBA>(colors->size()), *type == "gradient"};
+        for (std::size_t i = 0; i < multi.colors.size(); ++i)
+            if (!parse_color((*colors)[i], multi.colors[i]))
                 return std::nullopt;
-        return normalize_color_selection(gradient, options);
-    } else if (*type == "coextruded" && options.supports_gradient(colors->size())) {
-        ColorCoextruded coextruded{std::vector<ColorRGBA>(colors->size())};
-        for (std::size_t i = 0; i < coextruded.colors.size(); ++i)
-            if (!parse_color((*colors)[i], coextruded.colors[i]))
-                return std::nullopt;
-        return normalize_color_selection(coextruded, options);
+        return normalize_color_selection(multi, options);
     }
     return std::nullopt;
 }
@@ -189,11 +177,11 @@ nlohmann::json color_selection_to_json(const ColorSelection& selection)
         throw std::invalid_argument("Invalid color selection channels");
     if (const auto* solid = std::get_if<ColorRGBA>(&*normalized))
         return {{"type", "solid"}, {"colors", {rgba_hex(*solid)}}};
-    const auto* coextruded = std::get_if<ColorCoextruded>(&*normalized);
+    const auto& multi = std::get<ColorMulti>(*normalized);
     nlohmann::json colors = nlohmann::json::array();
-    for (const ColorRGBA& color : coextruded ? coextruded->colors : std::get<ColorGradient>(*normalized))
+    for (const ColorRGBA& color : multi.colors)
         colors.push_back(rgba_hex(color));
-    return {{"type", coextruded ? "coextruded" : "gradient"}, {"colors", std::move(colors)}};
+    return {{"type", multi.gradient ? "gradient" : "coextruded"}, {"colors", std::move(colors)}};
 }
 
 // Saving rejects the whole list on an invalid entry; loading (skip_invalid) drops just that entry so one

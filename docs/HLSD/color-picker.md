@@ -27,10 +27,10 @@ parent-centering constraint and reapplies its native position after showing,
 bypassing wxGTK's requested-position cache. Absolute top-level placement remains
 subject to the window manager; Wayland compositors control it. The official filament palette's
 existing placement is independent of this custom panel.
-A solid selection contains one color; a gradient contains two through
-`COLOR_PICKER_MAX_GRADIENT_COLORS` ordered colors (currently seven). A co-extruded
-selection (`ColorCoextruded`), for filament whose colors run side by side along its
-length, holds the same number of ordered colors, drawn as equal segments with hard edges.
+A solid selection contains one color. A multi-color selection (`ColorMulti`) holds two through
+`COLOR_PICKER_MAX_GRADIENT_COLORS` ordered colors (currently seven). With `gradient` set it
+blends from one color to the next; otherwise it is co-extruded, for filament whose colors run
+side by side along its length, drawn as equal segments with hard edges.
 The bridge represents these as `{"type":"solid|gradient|coextruded",
 "colors":["#RRGGBBAA", ...]}`. RGB input is also accepted and becomes opaque.
 Native validation rejects malformed hex and incorrect cardinality.

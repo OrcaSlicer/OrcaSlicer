@@ -182,7 +182,8 @@ TEST_CASE("Project co-extruded colors keep order and alpha and stay distinct fro
         const std::vector<std::string> colors(all.begin(), all.begin() + count);
         const auto coextruded = filament_color_picker_selection({colors, false});
         REQUIRE(coextruded);
-        REQUIRE(std::holds_alternative<ColorCoextruded>(*coextruded));
+        REQUIRE(std::holds_alternative<ColorMulti>(*coextruded));
+        REQUIRE_FALSE(std::get<ColorMulti>(*coextruded).gradient);
         const auto result = filament_color_picker_result(*coextruded);
         REQUIRE_FALSE(result.gradient);
         REQUIRE(result.colors == colors);
@@ -231,5 +232,5 @@ TEST_CASE("Filament serialization rejects invalid native RGBA channels", "[Filam
     ColorRGBA color;
     color[channel] = invalid;
     REQUIRE_THROWS_AS(filament_color_picker_result(color), std::invalid_argument);
-    REQUIRE_THROWS_AS(filament_color_picker_result(ColorGradient{ColorRGBA::WHITE(), color}), std::invalid_argument);
+    REQUIRE_THROWS_AS(filament_color_picker_result(ColorMulti{{ColorRGBA::WHITE(), color}, true}), std::invalid_argument);
 }
