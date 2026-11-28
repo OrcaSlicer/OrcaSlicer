@@ -3477,6 +3477,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("brim_ears_max_angle", "others_settings_brim#ear-max-angle");
         optgroup->append_single_option_line("brim_ears_detection_length", "others_settings_brim#ear-detection-radius");
         optgroup->append_single_option_line("brim_ears_outer_only", "others_settings_brim#brim-ears-outer-only");
+        optgroup->append_single_option_line("brim_ears_sprue_length", "others_settings_brim#brim-ear-sprue-length");
+        optgroup->append_single_option_line("brim_ears_sprue_width", "others_settings_brim#brim-ear-sprue-width");
 
         optgroup = page->new_optgroup(L("Special mode"), L"param_special");
         optgroup->append_single_option_line("slicing_mode", "others_settings_special_mode#slicing-mode");

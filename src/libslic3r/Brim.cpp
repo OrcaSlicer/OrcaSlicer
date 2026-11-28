@@ -1,4 +1,5 @@
 #include "BoundingBox.hpp"
+#include "Brim.hpp"
 #include "BrimEarsPoint.hpp"
 #include "ClipperUtils.hpp"
 #include "EdgeGrid.hpp"
@@ -513,33 +514,153 @@ Points make_brim_ear_points(const Polygon &contour, coord_t ear_detection_length
     return ears;
 }
 
+//ORCA: Optional strip ("sprue") that moves a brim ear away from the outline.
+// With length 0 the ear is centred on the outline, as without a sprue.
+struct EarSprue
+{
+    coord_t length = 0; // outline to the near edge of the ear
+    coord_t width  = 0;
+};
+
+static EarSprue ear_sprue(const PrintObjectConfig &config)
+{
+    return { scaled<coord_t>(config.brim_ears_sprue_length.value), scaled<coord_t>(config.brim_ears_sprue_width.value) };
+}
+
+//ORCA: Finds the point of `outline` closest to `pt` and the direction pointing away from the
+// material there: the edge normal, or the bisector of both edge normals at a vertex.
+// Polygons follow the ExPolygon orientation (material on the left of each edge).
+// `back` is how far, in multiples of the strip half-width, a strip along that direction has to
+// reach back into the material so that both edges of the corner close it without a notch.
+static Vec2d ear_direction(const Polygons &outline, const Point &pt, Point &closest, double &back)
+{
+    double best = std::numeric_limits<double>::max();
+    Vec2d  dir  = Vec2d::Zero();
+    closest = pt;
+    back    = 1.;
+    const Vec2d p = pt.cast<double>();
+    for (const Polygon &poly : outline) {
+        const Points &pts = poly.points;
+        const size_t  n   = pts.size();
+        if (n < 3)
+            continue;
+        auto edge_normal = [&pts, n](size_t i) {
+            const Vec2d e = (pts[(i + 1) % n] - pts[i]).cast<double>();
+            return Vec2d(e.y(), -e.x()).normalized();
+        };
+        for (size_t i = 0; i < n; ++i) {
+            const Vec2d  a    = pts[i].cast<double>();
+            const Vec2d  e    = pts[(i + 1) % n].cast<double>() - a;
+            const double len2 = e.squaredNorm();
+            if (len2 <= 0.)
+                continue;
+            const double t = std::clamp((p - a).dot(e) / len2, 0., 1.);
+            const double d = (a + t * e - p).squaredNorm();
+            if (d >= best)
+                continue;
+            best    = d;
+            closest = Point(Vec2d(a + t * e));
+            if (t > 0. && t < 1.) {
+                dir  = edge_normal(i);
+                back = 1.;
+                continue;
+            }
+            const size_t v  = t == 0. ? i : (i + 1) % n;
+            const Vec2d  n1 = edge_normal((v + n - 1) % n);
+            const Vec2d  n2 = edge_normal(v);
+            const Vec2d  b  = n1 + n2;
+            if (b.squaredNorm() < EPSILON) { // degenerate spike, the edges fold back on each other
+                dir  = Vec2d(-n2.y(), n2.x());
+                back = 1.;
+                continue;
+            }
+            // The strip side at half-width h meets an edge h * tan(alpha/2) behind the vertex,
+            // alpha being the angle between the two edge normals.
+            const double cos_half = 0.5 * b.norm();
+            dir  = b.normalized();
+            back = std::clamp(std::sqrt(std::max(0., 1. - cos_half * cos_half)) / cos_half, 1., 8.);
+        }
+    }
+    return dir;
+}
+
+BrimEar place_brim_ear(const Polygons &outline, const Point &pt, coord_t radius, coord_t sprue_length, coord_t sprue_width)
+{
+    BrimEar ear;
+    ear.base   = pt;
+    ear.center = pt;
+    ear.dir    = Vec2d::Zero();
+    if (sprue_length > 0 && sprue_width > 0) {
+        double back = 1.;
+        ear.dir = ear_direction(outline, pt, ear.base, back);
+        if (ear.dir.isZero())
+            ear.base = pt;
+        else {
+            ear.back        = back * 0.5 * sprue_width;
+            ear.sprue_width = sprue_width;
+        }
+    }
+
+    Polygon circle;
+    for (size_t i = 0; i < POLY_SIDE_COUNT; i++) {
+        double angle = (2.0 * PI * i) / POLY_SIDE_COUNT;
+        circle.points.emplace_back(radius * cos(angle), radius * sin(angle));
+    }
+    if (ear.dir.isZero()) {
+        circle.translate(pt);
+        ear.footprint = { ExPolygon(std::move(circle)) };
+        return ear;
+    }
+    const Vec2d p      = ear.base.cast<double>();
+    const Vec2d center = p + ear.dir * double(sprue_length + radius);
+    ear.center = Point(center);
+    circle.translate(ear.center);
+    const Vec2d side  = Vec2d(-ear.dir.y(), ear.dir.x()) * (0.5 * sprue_width);
+    const Vec2d start = p - ear.dir * ear.back;
+    Polygons    parts{ std::move(circle),
+                       Polygon({ Point(Vec2d(p - side)), Point(Vec2d(center - side)), Point(Vec2d(center + side)), Point(Vec2d(p + side)) }) };
+    // The strip reaches back behind the outline so that both edges of a corner close it. Only the part
+    // of that reach inside the material is kept: at the tip of a wall thinner than the strip, the rest
+    // would stick out beside the wall.
+    const Polygons reach{ Polygon({ Point(Vec2d(start - side)), Point(Vec2d(p - side)), Point(Vec2d(p + side)), Point(Vec2d(start + side)) }) };
+    double outline_area = 0.;
+    for (const Polygon &poly : outline)
+        outline_area += poly.area();
+    if (outline_area > 0.) {
+        append(parts, to_polygons(intersection_ex(reach, outline)));
+    } else {
+        // Only holes, the material lies around them.
+        Polygons holes = outline;
+        polygons_reverse(holes);
+        append(parts, to_polygons(diff_ex(reach, holes)));
+    }
+    ear.footprint = union_ex(parts);
+    return ear;
+}
+
 // Generate ears
 // Ported from SuperSlicer: https://github.com/supermerill/SuperSlicer/blob/45d0532845b63cd5cefe7de7dc4ef0e0ed7e030a/src/libslic3r/Brim.cpp#L1116
 static ExPolygons make_brim_ears_auto(const ExPolygons& obj_expoly, coord_t size_ear, coord_t ear_detection_length,
-                                      coordf_t brim_ears_max_angle, bool is_outer_brim) {
+                                      coordf_t brim_ears_max_angle, bool is_outer_brim, const EarSprue &sprue) {
     ExPolygons mouse_ears_ex;
     if (size_ear <= 0) {
         return mouse_ears_ex;
     }
     // Detect places to put ears
     Points pt_ears;
-    for (const ExPolygon &poly : obj_expoly)
+    // Outlines the ears were detected on, oriented with the material on the left of each edge.
+    Polygons ear_outlines;
+    for (const ExPolygon &poly : obj_expoly) {
         append(pt_ears, make_brim_ear_points(poly.contour, ear_detection_length, brim_ears_max_angle, is_outer_brim));
-
-    // Then add ears
-    // create ear pattern
-    Polygon point_round;
-    for (size_t i = 0; i < POLY_SIDE_COUNT; i++) {
-        double angle = (2.0 * PI * i) / POLY_SIDE_COUNT;
-        point_round.points.emplace_back(size_ear * cos(angle), size_ear * sin(angle));
+        // Inner ears are detected on holes turned into contours, so the material lies outside them.
+        ear_outlines.emplace_back(poly.contour);
+        if (!is_outer_brim)
+            ear_outlines.back().reverse();
     }
 
     // create ears
-    for (Point &pt : pt_ears) {
-        mouse_ears_ex.emplace_back();
-        mouse_ears_ex.back().contour = point_round;
-        mouse_ears_ex.back().contour.translate(pt);
-    }
+    for (const Point &pt : pt_ears)
+        append(mouse_ears_ex, place_brim_ear(ear_outlines, pt, size_ear, sprue.length, sprue.width).footprint);
 
     return mouse_ears_ex;
 }
@@ -564,17 +685,13 @@ static ExPolygons make_brim_ears(const PrintObject* object)
     Transform3d model_trsf = trsf.get_matrix_no_offset();
     const Point &center_offset = object->center_offset();
     model_trsf = model_trsf.pretranslate(Vec3d(- unscale<double>(center_offset.x()), - unscale<double>(center_offset.y()), 0));
+    const EarSprue sprue = ear_sprue(object->config());
+    //ORCA: Outline the sprues start from, set up on the first ear that needs it.
+    Polygons sprue_outline;
     for (auto &pt : brim_ear_points) {
         Vec3f world_pos = pt.transform(trsf.get_matrix());
         if ( world_pos.z() > 0) continue;
-        Polygon point_round;
         const coord_t size_ear = scale_(pt.head_front_radius);
-        for (size_t i = 0; i < POLY_SIDE_COUNT; i++) {
-            double angle = (2.0 * PI * i) / POLY_SIDE_COUNT;
-            point_round.points.emplace_back(size_ear * cos(angle), size_ear * sin(angle));
-        }
-        mouse_ears_ex.emplace_back();
-        mouse_ears_ex.back().contour = point_round;
         Vec3f pos = pt.transform(model_trsf);
         int32_t pt_x = scale_(pos.x());
         int32_t pt_y = scale_(pos.y());
@@ -601,7 +718,15 @@ static ExPolygons make_brim_ears(const PrintObject* object)
             }
         }
 
-        mouse_ears_ex.back().contour.translate(Point(pt_x, pt_y));
+        if (sprue.length > 0 && sprue_outline.empty()) {
+            if (use_efc_outline && efc_outline == nullptr) {
+                efc_outline_storage = get_print_object_bottom_layer_expolygons(*object);
+                efc_outline = &efc_outline_storage;
+            }
+            sprue_outline = to_polygons(use_efc_outline ? *efc_outline : raw_outline);
+        }
+        //ORCA: With a sprue, the ear starts on the outline right below the painted point.
+        append(mouse_ears_ex, place_brim_ear(sprue_outline, Point(pt_x, pt_y), size_ear, sprue.length, sprue.width).footprint);
     }
     return mouse_ears_ex;
 }
@@ -739,7 +864,7 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                                     //outerExpoly = offset_ex(outerExpoly, brim_width_mod, jtRound, SCALED_RESOLUTION);
                                 } else if (use_auto_brim_ears) {
                                     coord_t size_ear = (brim_width_mod - brim_offset - flow.scaled_spacing());
-                                    outerExpoly = make_brim_ears_auto(innerExpoly, size_ear, ear_detection_length, brim_ears_max_angle, true);
+                                    outerExpoly = make_brim_ears_auto(innerExpoly, size_ear, ear_detection_length, brim_ears_max_angle, true, ear_sprue(object->config()));
                                 }else {
                                     outerExpoly = offset_ex(innerExpoly, brim_width_mod, jtRound, SCALED_RESOLUTION);
                                 }
@@ -752,7 +877,7 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                                     outerExpoly = make_brim_ears(object);
                                 } else if (use_auto_brim_ears) {
                                     coord_t size_ear = (brim_width - brim_offset - flow.scaled_spacing());
-                                    outerExpoly = make_brim_ears_auto(offset_ex(ex_poly_holes_reversed, -brim_offset), size_ear, ear_detection_length, brim_ears_max_angle, false);
+                                    outerExpoly = make_brim_ears_auto(offset_ex(ex_poly_holes_reversed, -brim_offset), size_ear, ear_detection_length, brim_ears_max_angle, false, ear_sprue(object->config()));
                                 }else {
                                     outerExpoly = offset_ex(ex_poly_holes_reversed, -brim_offset);
                                 }

@@ -14,6 +14,7 @@
 #include "Point.hpp"
 #include "PrintConfig.hpp"
 #include "BoundingBox.hpp"
+#include "BrimEarsPoint.hpp"
 #include "ExPolygon.hpp"
 #include "Polygon.hpp"
 
@@ -190,6 +191,21 @@ ArrangePolygon get_instance_arrange_poly(ModelInstance* instance, const Slic3r::
     else if (enable_support) {
         ap.brim_width = 24.0; // 2*MAX_BRANCH_RADIUS_FIRST_LAYER
         ap.has_tree_support = true;
+    }
+
+    //ORCA: Unlike a brim, brim ears on a sprue reach a sprue and an ear diameter beyond the object, far
+    // enough to land on a neighbour. Ears of two neighbours often point at each other across the gap
+    // and must not merge, or they no longer break off on their own. Corner ears run along the corner
+    // bisector, so across the gap they reach about cos(45°) of that; each object keeps 3/4 of the
+    // reach clear, plus a little.
+    const BrimType brim_type    = obj->get_config_value<ConfigOptionEnum<BrimType>>(config, "brim_type")->value;
+    const double   sprue_length = obj->get_config_value<ConfigOptionFloat>(config, "brim_ears_sprue_length")->value;
+    if ((brim_type == btEar || brim_type == btPainted) && sprue_length > 0.) {
+        double ear_radius = brim_type == btEar ? obj->get_config_value<ConfigOptionFloat>(config, "brim_width")->value : 0.;
+        if (brim_type == btPainted)
+            for (const BrimPoint &point : obj->brim_points)
+                ear_radius = std::max(ear_radius, double(point.head_front_radius));
+        ap.brim_width = std::max(ap.brim_width, 0.75 * (sprue_length + 2. * ear_radius) + 1.);
     }
 
     const BoundingBoxf3 bbox = obj->instance_convex_hull_bounding_box(instance);

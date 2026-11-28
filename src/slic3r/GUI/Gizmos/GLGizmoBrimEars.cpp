@@ -83,6 +83,7 @@ GLGizmoBrimEars::GLGizmoBrimEars(GLCanvas3D &parent, const std::string &icon_fil
     GLModel::Geometry cylinder_geometry = smooth_cylinder(16, 1.0f, 1.0f);
     m_cylinder.mesh_raycaster = std::make_unique<MeshRaycaster>(std::make_shared<const TriangleMesh>(cylinder_geometry.get_as_indexed_triangle_set()));
     m_cylinder.model.init_from(std::move(cylinder_geometry));
+    m_sprue_model.init_from(its_make_cube(1., 1., 1.));
 }
 
 bool GLGizmoBrimEars::on_init()
@@ -204,7 +205,10 @@ void GLGizmoBrimEars::render_points(const Selection &selection)
         m_cylinder.model.set_color(render_color);
         shader->set_uniform("emission_factor", 0.5f);
 
-        if (vol->is_left_handed()) glFrontFace(GL_CW);
+        //ORCA: With a sprue the ear is drawn in world coordinates, outside the (maybe mirrored) instance.
+        const BrimEar ear      = place_ear(brim_point, vol->get_instance_transformation());
+        const bool    mirrored = vol->is_left_handed() && ear.dir.isZero();
+        if (mirrored) glFrontFace(GL_CW);
 
         // Matrices set, we can render the point mark now.
         // If in editing mode, we'll also render a cone pointing to the sphere.
@@ -214,20 +218,42 @@ void GLGizmoBrimEars::render_points(const Selection &selection)
         q.setFromTwoVectors(Vec3d{0., 0., 1.}, instance_scaling_matrix_inverse * editing_cache[i].normal.cast<double>());
 
         double radius = (double) brim_point.head_front_radius * RenderPointScale;
-        const Transform3d center_matrix =
+        Transform3d center_matrix =
             instance_matrix
             * Geometry::translation_transform(brim_point.pos.cast<double>())
             // Inverse matrix of the instance scaling is applied so that the mark does not scale with the object.
             * instance_scaling_matrix_inverse
             * q
             * Geometry::scale_transform(Vec3d{radius, radius, .2});
+
+        //ORCA: With a sprue, draw the ear flat on the bed where the slicer puts it, joined to the
+        // model by its strip.
+        if (!ear.dir.isZero()) {
+            const double z      = (instance_matrix * brim_point.pos.cast<double>()).z();
+            const Vec2d  center = unscale(ear.center);
+            const double width  = unscale<double>(ear.sprue_width);
+            // Reach under the model only as far as a right-angled corner needs: further, the bar
+            // would show beside a thin wall, where the slicer leaves it out.
+            const Vec2d  start  = unscale(ear.base) - ear.dir * std::min(unscale<double>(ear.back), 0.5 * width);
+            const double length = (center - start).norm();
+            center_matrix = Geometry::translation_transform(Vec3d(center.x(), center.y(), z))
+                * Geometry::scale_transform(Vec3d{radius, radius, .2});
+            const Transform3d sprue_matrix = Geometry::translation_transform(Vec3d(start.x(), start.y(), z))
+                * Geometry::rotation_transform(Vec3d(0., 0., std::atan2(ear.dir.y(), ear.dir.x())))
+                * Geometry::translation_transform(Vec3d(0., -0.5 * width, 0.))
+                * Geometry::scale_transform(Vec3d{length, width, .2});
+            m_sprue_model.set_color(render_color);
+            shader->set_uniform("view_model_matrix", view_matrix * sprue_matrix);
+            m_sprue_model.render();
+        }
+
         if (i < m_grabbers.size()) {
             m_grabbers[i].raycasters[0]->set_transform(center_matrix);
         }
         shader->set_uniform("view_model_matrix", view_matrix * center_matrix);
         m_cylinder.model.render();
 
-        if (vol->is_left_handed()) glFrontFace(GL_CCW);
+        if (mirrored) glFrontFace(GL_CCW);
     }
 }
 
@@ -1169,21 +1195,24 @@ float GLGizmoBrimEars::get_brim_default_radius() const
         BRIM_EAR_RADIUS_MAX);
 }
 
-ExPolygon GLGizmoBrimEars::make_polygon(BrimPoint point, const Geometry::Transformation &trsf)
+BrimEar GLGizmoBrimEars::place_ear(BrimPoint point, const Geometry::Transformation &trsf) const
 {
-    ExPolygon   point_round;
-    Transform3d model_trsf = trsf.get_matrix();
-    Vec3f       world_pos  = point.transform(trsf.get_matrix());
-    coord_t     size_ear   = scale_(point.head_front_radius);
-    for (size_t i = 0; i < POLY_SIDE_COUNT; i++) {
-        double angle = (2.0 * PI * i) / POLY_SIDE_COUNT;
-        point_round.contour.points.emplace_back(size_ear * cos(angle), size_ear * sin(angle));
+    //ORCA: The sprue settings the slicer will use: the object's own, else the print preset's.
+    coord_t sprue_length = 0;
+    coord_t sprue_width  = 0;
+    if (const ModelObject *mo = m_c->selection_info() ? m_c->selection_info()->model_object() : nullptr) {
+        const DynamicPrintConfig &object_cfg = mo->config.get();
+        const DynamicPrintConfig &print_cfg  = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        auto value = [&object_cfg, &print_cfg](const char *key) {
+            const ConfigOption *opt = object_cfg.has(key) ? object_cfg.option(key) : print_cfg.option(key);
+            return opt ? scaled<coord_t>(opt->getFloat()) : coord_t(0);
+        };
+        sprue_length = value("brim_ears_sprue_length");
+        sprue_width  = value("brim_ears_sprue_width");
     }
-    Vec3f   pos  = point.transform(model_trsf);
-    int32_t pt_x = scale_(pos.x());
-    int32_t pt_y = scale_(pos.y());
-    point_round.translate(Point(pt_x, pt_y));
-    return point_round;
+    const Vec3f pos = point.transform(trsf.get_matrix());
+    return place_brim_ear(sprue_length > 0 ? to_polygons(m_first_layer) : Polygons(), Point(scaled<double>(pos.x()), scaled<double>(pos.y())),
+                          scaled<coord_t>(point.head_front_radius), sprue_length, sprue_width);
 }
 
 void GLGizmoBrimEars::find_single()
@@ -1212,9 +1241,9 @@ void GLGizmoBrimEars::find_single()
         }
         auto end = --m_single_brim.end();
         for (auto it = m_single_brim.begin(); it != m_single_brim.end(); ++it) {
-            ExPolygon point_pl = make_polygon(it->second.brim_point, trsf);
+            ExPolygons point_pl = place_ear(it->second.brim_point, trsf).footprint;
             if (overlaps(model_pl, point_pl)) {
-                model_pl.emplace_back(point_pl);
+                append(model_pl, std::move(point_pl));
                 model_pl = union_ex(model_pl);
                 it = m_single_brim.erase(it);
                 break;
