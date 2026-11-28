@@ -9,6 +9,7 @@
 
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "MainFrame.hpp"
 
 #include "MsgDialog.hpp"
@@ -3292,8 +3293,9 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
         }
     }
 
-    // support current temp for chamber
-    if (obj->get_printer_series() == PrinterSeries::SERIES_X1)
+    // support current temp for chamber; a printer agent other than Bambu's reports whether it has one
+    if (obj->get_printer_series() == PrinterSeries::SERIES_X1 ||
+        (obj->printer_agent_id != BBL_PRINTER_AGENT_ID && obj->GetConfig()->ReportsChamberTempDisplay()))
     {
         m_tempCtrl_chamber->SetCurrTemp(obj->chamber_temp);
     }
