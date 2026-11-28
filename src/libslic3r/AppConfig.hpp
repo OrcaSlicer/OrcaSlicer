@@ -25,6 +25,9 @@
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK "always_ask"
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY "load_geometry_only"
 
+// Per-install override that keeps interference travel disabled regardless of presets or projects.
+#define SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL "global_disable_interference_travel"
+
 #define SETTING_NETWORK_PLUGIN_VERSION "network_plugin_version"
 #define SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS "network_plugin_skipped_versions"
 #define SETTING_NETWORK_PLUGIN_UPDATE_DISABLED "network_plugin_update_prompts_disabled"
@@ -74,6 +77,7 @@
 
 namespace Slic3r {
 
+class DynamicPrintConfig;
 
 // Connected LAN mode BambuLab printer
 struct BBLocalMachine
@@ -125,6 +129,9 @@ public:
 	std::string get_hms_host();
 	bool get_stealth_mode();
 	bool get_hide_login_side_panel();
+
+	// Apply per-install overrides to a fully assembled print configuration.
+	void apply_print_config_overrides(DynamicPrintConfig &config) const;
 
 	// Clear and reset to defaults.
 	void 			   	reset();

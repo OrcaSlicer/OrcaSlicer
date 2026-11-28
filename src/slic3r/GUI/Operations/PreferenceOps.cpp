@@ -315,6 +315,8 @@ std::vector<Preference> build_table()
                                     "immediately.")});
     delay.unit    = L("sec");
     delay.own_row = true;
+    t.checkbox("global_disable_interference_travel", L("Disable interference travel everywhere"),
+               {L("Keep \"Reduce infill retraction\" off for every slice on this OrcaSlicer installation, even when a preset, project file, or upgrade enables it. The change applies from the next slice.")});
     t.checkbox("enable_primitive_size_dialog", L("Show options when adding a primitive"),
                {L("If enabled, a dialog asks for the dimensions of a primitive shape before it is added.")});
     t.checkbox("enable_high_low_temp_mixed_printing", L("Remove mixed temperature restriction"),

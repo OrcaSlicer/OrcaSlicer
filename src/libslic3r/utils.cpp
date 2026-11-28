@@ -79,6 +79,7 @@
 
 #ifdef WIN32
 	#include <windows.h>
+	#include <shlobj.h>
 	#include <psapi.h>
 	#include <direct.h>  // for mkdir
 	#include <io.h>  // for _access
@@ -431,17 +432,34 @@ bool wayland_socket_available()
 }
 #endif
 
-#ifdef __linux__
 std::string default_data_dir()
 {
     // Runs before any error handling is in place, so a lookup that fails only means no portable dir.
     boost::system::error_code ec;
-    const boost::filesystem::path portable = boost::dll::program_location(ec).parent_path() / "data_dir";
-    if (!ec && boost::filesystem::exists(portable, ec))
-        return portable.string();
-    return xdg_config_dir(SLIC3R_APP_KEY);
-}
+    boost::filesystem::path app_folder = boost::dll::program_location(ec).parent_path();
+#ifdef __APPLE__
+    // On macOS the executable is inside the .app bundle; the GUI checks beside the bundle.
+    app_folder = app_folder.parent_path().parent_path().parent_path();
 #endif
+    const boost::filesystem::path portable = app_folder / "data_dir";
+    if (!ec && !app_folder.empty() && boost::filesystem::exists(portable, ec))
+        return portable.string();
+#ifdef _WIN32
+    wchar_t app_data[MAX_PATH];
+    HRESULT hr = SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, SHGFP_TYPE_CURRENT, app_data);
+    if (hr == E_FAIL)
+        hr = SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, SHGFP_TYPE_DEFAULT, app_data);
+    if (SUCCEEDED(hr))
+        return (boost::filesystem::path(boost::nowide::narrow(app_data)) / SLIC3R_APP_KEY).string();
+    return std::string();
+#elif defined(__APPLE__)
+    if (const std::string base = macos_user_application_support_dir(); !base.empty())
+        return (boost::filesystem::path(base) / SLIC3R_APP_KEY).string();
+    return std::string();
+#else
+    return xdg_config_dir(SLIC3R_APP_KEY);
+#endif
+}
 
 std::string custom_shapes_dir()
 {

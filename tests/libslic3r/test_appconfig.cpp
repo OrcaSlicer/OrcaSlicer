@@ -3,6 +3,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Thread.hpp"
 #include "../slic3rutils/plugin_test_utils.hpp"
 #include "test_utils.hpp"
@@ -392,5 +394,36 @@ TEST_CASE("AppConfig keeps only the preview drag modes it knows", "[AppConfig]")
         config.set(key, mode);
         config.set_defaults();
         REQUIRE(config.get(key) == "off");
+    }
+}
+
+TEST_CASE("Interference travel override is opt-in", "[AppConfig]")
+{
+    AppConfig config;
+    config.set_defaults();
+    REQUIRE_FALSE(config.get_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL));
+
+    DynamicPrintConfig print_config;
+    print_config.set_key_value("reduce_infill_retraction", new ConfigOptionBool(true));
+
+    SECTION("disabled override preserves the configured value")
+    {
+        config.apply_print_config_overrides(print_config);
+        REQUIRE(print_config.opt_bool("reduce_infill_retraction"));
+    }
+
+    SECTION("enabled override forces interference travel off")
+    {
+        config.set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, true);
+        config.apply_print_config_overrides(print_config);
+        REQUIRE_FALSE(print_config.opt_bool("reduce_infill_retraction"));
+    }
+
+    SECTION("enabled override does not add the option to a configuration without it")
+    {
+        DynamicPrintConfig empty_config;
+        config.set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, true);
+        config.apply_print_config_overrides(empty_config);
+        REQUIRE_FALSE(empty_config.has("reduce_infill_retraction"));
     }
 }
