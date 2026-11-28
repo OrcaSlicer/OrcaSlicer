@@ -1665,7 +1665,7 @@ struct CompactedTowerZone
     Polygons    grown_body;
     // hull grown by half the bare nozzle cone radius, the innermost tier.
     Polygons    grown_nozzle;
-    // hull bounding box, the Y band the rod sweeps.
+    // hull bounding box, projected onto the gantry travel axis when testing rod clearance.
     BoundingBox bbox_rod;
     // Full body clearance, of which grown_body carries half. Which of the two tiers applies is decided
     // per object rather than here; see compacted_wipe_tower_clearance().

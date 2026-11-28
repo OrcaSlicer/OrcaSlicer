@@ -218,6 +218,17 @@ TEST_CASE("The tower keep-out zone grows by the spiral z-hop envelope", "[WipeTo
     CHECK_THAT(unscaled(lifted.bbox_rod.max.y()), WithinAbs(10.51 + 10., 0.02));
 }
 
+TEST_CASE("Compacted tower clearance follows an X-travelling gantry", "[WipeTower][GantryTravel]")
+{
+    PrintConfig cfg = clearance_config();
+    cfg.gantry_travel_axis.value = GantryTravelAxis::AlongX;
+    const auto zone = compacted_wipe_tower_zone(cfg, centered_square(0., 0., 20.));
+    CHECK_THAT(compacted_wipe_tower_clearance(cfg, zone, centered_square(0., 100., 10.), 50.).allowed_rise,
+               WithinAbs(cfg.extruder_clearance_height_to_rod.value, 1e-6));
+    CHECK_THAT(compacted_wipe_tower_clearance(cfg, zone, centered_square(100., 0., 10.), 50.).allowed_rise,
+               WithinAbs(cfg.extruder_clearance_height_to_lid.value, 1e-6));
+}
+
 TEST_CASE("An object beside a compacted tower is limited by the nearest part of the toolhead", "[WipeTower][NoSparseLayers]") {
     const PrintConfig        cfg  = clearance_config();
     const CompactedTowerZone zone = compacted_wipe_tower_zone(cfg, centered_square(0., 0., 20.));
