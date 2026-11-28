@@ -75,7 +75,9 @@ Refusal selection_refusal(EType type)
     switch (type) {
     case EType::MmSegmentation:
         return refusal("needs_instance_or_part", L("Select a single instance or a single part to paint in color."));
-    case EType::MeshBoolean: return refusal("needs_two_parts", L("Mesh Boolean needs an object of two parts or more."));
+    case EType::MeshBoolean:
+        return refusal("needs_two_parts",
+                       L("Mesh Boolean needs an object of two parts or more, or two whole objects or more on one plate."));
     case EType::Simplify:
         // The gizmo's own sentence (GLGizmoSimplify::on_render_input_window()).
         return refusal("needs_one_part", L("Simplification is currently only allowed when a single part is selected"));

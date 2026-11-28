@@ -1,10 +1,14 @@
 #include "Exception.hpp"
 #include "MeshBoolean.hpp"
+#include "libslic3r/AABBMesh.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TryCatchSignal.hpp"
 #include "libslic3r/format.hpp"
 #include <Eigen/Core>
 #include <cstddef>
+#include <cstdlib>
+#include <functional>
 #include <utility>
 #include <igl/MeshBooleanType.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
@@ -31,6 +35,7 @@
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 #include <cstdint>
 #include <map>
+#include <set>
 #include <algorithm>
 #undef PI
 
@@ -943,8 +948,18 @@ bool do_boolean_single(McutMesh &srcMesh, const McutMesh &cutMesh, const std::st
     return true;
 }
 
-void do_boolean(McutMesh& srcMesh, const McutMesh& cutMesh, const std::string& boolean_opts)
+bool do_boolean(McutMesh& srcMesh, const McutMesh& cutMesh, const std::string& boolean_opts,
+                const BooleanCancelCB& cancel_cb, const BooleanProgressCB& progress_cb)
 {
+    if (boolean_opts != "A_NOT_B" && boolean_opts != "UNION" && boolean_opts != "INTERSECTION")
+        return false;
+
+    const auto canceled = [&cancel_cb]() { return cancel_cb && cancel_cb(); };
+    const auto report   = [&progress_cb](size_t done, size_t total) {
+        if (progress_cb)
+            progress_cb(total == 0 ? 100.f : 100.f * float(done) / float(total));
+    };
+
     TriangleMesh tri_src = mcut_to_triangle_mesh(srcMesh);
     std::vector<indexed_triangle_set> src_parts = its_split(tri_src.its);
 
@@ -953,13 +968,18 @@ void do_boolean(McutMesh& srcMesh, const McutMesh& cutMesh, const std::string& b
 
     if (src_parts.empty() && boolean_opts == "UNION") {
         srcMesh = cutMesh;
-        return;
+        report(1, 1);
+        return true;
     }
-    if(cut_parts.empty()) return;
+    if (cut_parts.empty()) {
+        report(1, 1);
+        return true;
+    }
 
     // when src mesh has multiple connected components, mcut refuses to work.
     // But we can force it to work by spliting the src mesh into disconnected components,
     // and do booleans seperately, then merge all the results.
+    // Cancellation is checked between dispatches only: a running dispatch can't be interrupted.
     indexed_triangle_set all_its;
     if (boolean_opts == "A_NOT_B") {
         // Each cut can leave the source with several disconnected components, which mcut rejects
@@ -969,6 +989,8 @@ void do_boolean(McutMesh& srcMesh, const McutMesh& cutMesh, const std::string& b
             auto cut_part = triangle_mesh_to_mcut(cut_parts[j]);
             std::vector<indexed_triangle_set> next_parts;
             for (indexed_triangle_set &part : parts) {
+                if (canceled())
+                    return false;
                 auto src_part = triangle_mesh_to_mcut(part);
                 if (do_boolean_single(*src_part, *cut_part, boolean_opts)) {
                     TriangleMesh tri_part = mcut_to_triangle_mesh(*src_part);
@@ -978,24 +1000,32 @@ void do_boolean(McutMesh& srcMesh, const McutMesh& cutMesh, const std::string& b
                     next_parts.emplace_back(std::move(part));
             }
             parts = std::move(next_parts);
+            report(j + 1, cut_parts.size());
         }
         for (const indexed_triangle_set &part : parts)
             its_merge(all_its, part);
     }
     else if (boolean_opts == "UNION") {
+        const size_t total = src_parts.size() * cut_parts.size();
         for (size_t i = 0; i < src_parts.size(); i++) {
             auto src_part = triangle_mesh_to_mcut(src_parts[i]);
             for (size_t j = 0; j < cut_parts.size(); j++) {
+                if (canceled())
+                    return false;
                 auto cut_part = triangle_mesh_to_mcut(cut_parts[j]);
                 do_boolean_single(*src_part, *cut_part, boolean_opts);
+                report(i * cut_parts.size() + j + 1, total);
             }
             TriangleMesh tri_part = mcut_to_triangle_mesh(*src_part);
             its_merge(all_its, tri_part.its);
         }
     }
-    else if (boolean_opts == "INTERSECTION") {
+    else {
+        const size_t total = src_parts.size() * cut_parts.size();
         for (size_t i = 0; i < src_parts.size(); i++) {
             for (size_t j = 0; j < cut_parts.size(); j++) {
+                if (canceled())
+                    return false;
                 auto src_part = triangle_mesh_to_mcut(src_parts[i]);
                 auto cut_part = triangle_mesh_to_mcut(cut_parts[j]);
                 bool success = do_boolean_single(*src_part, *cut_part, boolean_opts);
@@ -1003,25 +1033,523 @@ void do_boolean(McutMesh& srcMesh, const McutMesh& cutMesh, const std::string& b
                     TriangleMesh tri_part = mcut_to_triangle_mesh(*src_part);
                     its_merge(all_its, tri_part.its);
                 }
+                report(i * cut_parts.size() + j + 1, total);
             }
         }
     }
     srcMesh = *triangle_mesh_to_mcut(all_its);
+    return true;
 }
 
-void make_boolean(const TriangleMesh &src_mesh, const TriangleMesh &cut_mesh, std::vector<TriangleMesh> &dst_mesh, const std::string &boolean_opts)
+void make_boolean(const TriangleMesh &src_mesh, const TriangleMesh &cut_mesh, std::vector<TriangleMesh> &dst_mesh, const std::string &boolean_opts,
+                  const BooleanCancelCB &cancel_cb, const BooleanProgressCB &progress_cb)
 {
     McutMesh srcMesh, cutMesh;
     triangle_mesh_to_mcut(src_mesh, srcMesh);
     triangle_mesh_to_mcut(cut_mesh, cutMesh);
-    //dst_mesh = make_boolean(srcMesh, cutMesh, boolean_opts);
-    do_boolean(srcMesh, cutMesh, boolean_opts);
+    if (!do_boolean(srcMesh, cutMesh, boolean_opts, cancel_cb, progress_cb))
+        return;
     TriangleMesh tri_src = mcut_to_triangle_mesh(srcMesh);
     if (!tri_src.empty())
         dst_mesh.push_back(std::move(tri_src));
 }
 
 } // namespace mcut
+
+namespace ops {
+namespace {
+
+using mcut::BooleanCancelCB;
+using mcut::BooleanProgressCB;
+
+// Spreads the 0-100 progress of a sequence of steps over 0-100 and never reports a lower value,
+// even when a step is retried.
+class ProgressSteps
+{
+public:
+    ProgressSteps(const BooleanProgressCB &progress_cb, size_t steps) : m_progress_cb(progress_cb), m_steps(std::max<size_t>(steps, 1)) {}
+
+    // Maps 0-100 onto steps [first, first + count).
+    BooleanProgressCB steps(size_t first, size_t count)
+    {
+        if (!m_progress_cb)
+            return {};
+        return [this, first, count](float p) { report(100.f * (float(first) + float(count) * std::clamp(p, 0.f, 100.f) / 100.f) / float(m_steps)); };
+    }
+    BooleanProgressCB step(size_t step) { return steps(step, 1); }
+    void done() { report(100.f); }
+
+private:
+    void report(float p)
+    {
+        if (m_progress_cb && p > m_last) {
+            m_last = p;
+            m_progress_cb(p);
+        }
+    }
+
+    const BooleanProgressCB &m_progress_cb;
+    size_t                   m_steps;
+    float                    m_last{-1.f};
+};
+
+bool canceled(const BooleanCancelCB &cancel_cb) { return cancel_cb && cancel_cb(); }
+
+void clean_result(TriangleMesh &mesh, bool merge_vertices)
+{
+    its_remove_degenerate_faces(mesh.its);
+    if (merge_vertices) {
+        its_merge_vertices(mesh.its, true);
+        its_remove_degenerate_faces(mesh.its, true);
+    }
+    its_compactify_vertices(mesh.its, true);
+    mesh = TriangleMesh(std::move(mesh.its));
+}
+
+std::optional<TriangleMesh> mcut_boolean(const TriangleMesh &a, const TriangleMesh &b, const std::string &op,
+                                         const BooleanCancelCB &cancel_cb, const BooleanProgressCB &progress_cb)
+{
+    std::vector<TriangleMesh> result;
+    mcut::make_boolean(a, b, result, op, cancel_cb, progress_cb);
+    if (result.empty() || result.front().empty())
+        return std::nullopt;
+    clean_result(result.front(), op == "INTERSECTION");
+    return std::move(result.front());
+}
+
+bool boxes_overlap(const TriangleMesh &a, const TriangleMesh &b)
+{
+    BoundingBoxf3 ba = a.bounding_box(), bb = b.bounding_box();
+    if (!ba.defined || !bb.defined)
+        return true;
+    ba.offset(0.05);
+    bb.offset(0.05);
+    return ba.intersects(bb);
+}
+
+std::vector<TriangleMesh> shells_of(const TriangleMesh &mesh)
+{
+    std::vector<TriangleMesh> shells;
+    for (indexed_triangle_set &its : its_split(mesh.its))
+        shells.emplace_back(std::move(its));
+    return shells;
+}
+
+TriangleMesh merged(const std::vector<TriangleMesh> &meshes)
+{
+    indexed_triangle_set its;
+    for (const TriangleMesh &mesh : meshes)
+        its_merge(its, mesh.its);
+    return TriangleMesh(std::move(its));
+}
+
+// Whether the solid shell `inner` lies strictly inside the solid shell `outer`. mcut leaves a shell alone both when
+// the surfaces don't cross and when it refuses a mesh it can't handle, so every vertex of `inner` must test inside,
+// clear of the surface of `outer`; in doubt the answer is no and the caller keeps the shell as it is.
+bool lies_inside(const TriangleMesh &inner, const TriangleMesh &outer)
+{
+    if (inner.its.vertices.empty() || outer.its.indices.empty() || its_volume(inner.its) <= 0.f || its_volume(outer.its) <= 0.f)
+        return false;
+    const BoundingBoxf3 inner_box = inner.bounding_box(), outer_box = outer.bounding_box();
+    if (!outer_box.contains(inner_box.min) || !outer_box.contains(inner_box.max))
+        return false;
+    const AABBMesh tree(outer.its);
+    // Nearer than this to the surface of `outer` counts as touching it.
+    const double clearance = 1e-4 * outer_box.size().norm();
+    // An oblique ray, so it doesn't run along a face or an edge of a box-like mesh.
+    const Vec3d direction = Vec3d(0.3, 0.5, 0.8).normalized();
+    return std::all_of(inner.its.vertices.begin(), inner.its.vertices.end(), [&](const Vec3f &vertex) {
+        const Vec3d                point = vertex.cast<double>();
+        const AABBMesh::hit_result hit   = tree.query_ray_hit(point, direction);
+        return hit.is_inside() && hit.distance() > clearance && tree.squared_distance(point) > clearance * clearance;
+    });
+}
+
+size_t solid_shell_count(const TriangleMesh &mesh)
+{
+    const std::vector<indexed_triangle_set> shells = its_split(mesh.its);
+    return size_t(std::count_if(shells.begin(), shells.end(), [](const indexed_triangle_set &its) { return its_volume(its) > 0.f; }));
+}
+
+// Whether CGAL can take the mesh safely, as the CSG path checks before its booleans.
+bool cgal_can_take(const TriangleMesh &mesh)
+{
+    const cgal::CGALMeshPtr cgal_mesh = cgal::triangle_mesh_to_cgal(mesh.its);
+    return cgal_mesh && cgal::does_bound_a_volume(*cgal_mesh) && !cgal::does_self_intersect(*cgal_mesh);
+}
+
+// `a` op `b` through CGAL, on meshes it can take safely. False when it can't take them or fails; otherwise `a`
+// holds the result, which may be empty.
+template<class Op> bool cgal_boolean(TriangleMesh &a, TriangleMesh b, Op op)
+{
+    // The in-place CGAL conversion keeps isolated vertices, so drop them first.
+    its_compactify_vertices(a.its);
+    its_compactify_vertices(b.its);
+    if (!cgal_can_take(a) || !cgal_can_take(b))
+        return false;
+    try {
+        op(a, b);
+    } catch (const std::exception &e) {
+        BOOST_LOG_TRIVIAL(warning) << "Mesh boolean: CGAL operation failed: " << e.what();
+        return false;
+    }
+    if (!a.empty())
+        clean_result(a, true);
+    return true;
+}
+
+// Whether a cavity (an inward shell) of one of the meshes meets a solid shell other than the one around it. mcut
+// sees each shell on its own, which gets a cavity right only while nothing else reaches into it.
+bool cavity_reached(const std::vector<const TriangleMesh *> &meshes)
+{
+    std::vector<BoundingBoxf3> solids, cavities;
+    for (const TriangleMesh *mesh : meshes)
+        for (const indexed_triangle_set &its : its_split(mesh->its)) {
+            BoundingBoxf3 box = bounding_box(its);
+            box.offset(0.05);
+            (its_volume(its) < 0.f ? cavities : solids).push_back(box);
+        }
+    return std::any_of(cavities.begin(), cavities.end(), [&solids](const BoundingBoxf3 &cavity) {
+        return std::count_if(solids.begin(), solids.end(), [&cavity](const BoundingBoxf3 &solid) { return solid.intersects(cavity); }) > 1;
+    });
+}
+
+const auto cgal_minus     = [](TriangleMesh &a, const TriangleMesh &b) { cgal::minus(a, b); };
+const auto cgal_plus      = [](TriangleMesh &a, const TriangleMesh &b) { cgal::plus(a, b); };
+const auto cgal_intersect = [](TriangleMesh &a, const TriangleMesh &b) { cgal::intersect(a, b); };
+
+// `a` minus `cutter`, shell by shell. mcut leaves a shell whose surface the cutter doesn't cross, so a shell left
+// as it was that lies inside the cutter is dropped. When a cavity is reached, CGAL takes the whole pair first.
+// Nothing when nothing is left or when cancelled.
+std::optional<TriangleMesh> subtract_pair(const TriangleMesh &a, const TriangleMesh &cutter,
+                                          const BooleanCancelCB &cancel_cb, const BooleanProgressCB &progress_cb)
+{
+    if (canceled(cancel_cb))
+        return std::nullopt;
+    if (cavity_reached({&a, &cutter})) {
+        if (TriangleMesh result = a; cgal_boolean(result, cutter, cgal_minus)) {
+            if (result.empty() || canceled(cancel_cb))
+                return std::nullopt;
+            if (progress_cb)
+                progress_cb(100.f);
+            return result;
+        }
+    }
+
+    const std::vector<TriangleMesh> shells = shells_of(a);
+    std::vector<TriangleMesh>       kept;
+    ProgressSteps                   progress(progress_cb, shells.size());
+    for (size_t i = 0; i < shells.size(); ++i) {
+        const TriangleMesh &shell = shells[i];
+        if (canceled(cancel_cb))
+            return std::nullopt;
+        if (!boxes_overlap(shell, cutter)) {
+            kept.push_back(shell);
+            continue;
+        }
+        std::optional<TriangleMesh> cut = mcut_boolean(shell, cutter, "A_NOT_B", cancel_cb, progress.step(i));
+        if (canceled(cancel_cb))
+            return std::nullopt;
+        if (!cut)
+            continue;
+        const bool untouched = cut->its.indices.size() == shell.its.indices.size() &&
+                               std::abs(its_volume(cut->its) - its_volume(shell.its)) <= 1e-4f * std::abs(its_volume(shell.its));
+        if (untouched && lies_inside(shell, cutter))
+            continue;
+        kept.push_back(std::move(*cut));
+    }
+    if (kept.empty())
+        return std::nullopt;
+    progress.done();
+    return merged(kept);
+}
+
+// `a` intersected with `b`, shell pair by shell pair. mcut returns nothing for a shell lying wholly inside the
+// other, so such a shell is kept as it is. When a cavity is reached, CGAL takes the whole pair first; when nothing
+// comes out of mcut, CGAL tries the whole meshes, if it can take them. `failed` is set when the answer is not a
+// clean "no common volume": CGAL could not run or threw.
+std::optional<TriangleMesh> intersect_pair(const TriangleMesh &a, const TriangleMesh &b,
+                                           const BooleanCancelCB &cancel_cb, const BooleanProgressCB &progress_cb, bool &failed)
+{
+    if (canceled(cancel_cb))
+        return std::nullopt;
+    if (cavity_reached({&a, &b})) {
+        if (TriangleMesh result = a; cgal_boolean(result, b, cgal_intersect)) {
+            if (result.empty() || canceled(cancel_cb))
+                return std::nullopt;
+            if (progress_cb)
+                progress_cb(100.f);
+            return result;
+        }
+    }
+
+    const std::vector<TriangleMesh> shells_a = shells_of(a), shells_b = shells_of(b);
+    std::vector<TriangleMesh>       pieces;
+    ProgressSteps                   progress(progress_cb, shells_a.size() * shells_b.size());
+    bool                            any_overlap = false;
+    for (size_t i = 0; i < shells_a.size(); ++i)
+        for (size_t j = 0; j < shells_b.size(); ++j) {
+            if (canceled(cancel_cb))
+                return std::nullopt;
+            if (!boxes_overlap(shells_a[i], shells_b[j]))
+                continue;
+            any_overlap = true;
+            std::optional<TriangleMesh> piece = mcut_boolean(shells_a[i], shells_b[j], "INTERSECTION", cancel_cb,
+                                                             progress.step(i * shells_b.size() + j));
+            if (canceled(cancel_cb))
+                return std::nullopt;
+            if (piece)
+                pieces.push_back(std::move(*piece));
+            else if (lies_inside(shells_a[i], shells_b[j]))
+                pieces.push_back(shells_a[i]);
+            else if (lies_inside(shells_b[j], shells_a[i]))
+                pieces.push_back(shells_b[j]);
+        }
+    if (!pieces.empty()) {
+        TriangleMesh result = merged(pieces);
+        clean_result(result, true);
+        progress.done();
+        return result;
+    }
+    // No two shells come near each other: known to be empty.
+    if (!any_overlap)
+        return std::nullopt;
+
+    // mcut gives up on some touching or coplanar inputs that CGAL handles.
+    if (canceled(cancel_cb))
+        return std::nullopt;
+    TriangleMesh result = a;
+    if (!cgal_boolean(result, b, cgal_intersect)) {
+        failed = true;
+        return std::nullopt;
+    }
+    if (result.empty())
+        return std::nullopt;
+    progress.done();
+    return result;
+}
+
+} // namespace
+
+void normalize_input(TriangleMesh &mesh)
+{
+    if (its_volume(mesh.its) < 0.f)
+        mesh.flip_triangles();
+}
+
+std::optional<TriangleMesh> union_all(const std::vector<TriangleMesh> &meshes, const BooleanCancelCB &cancel_cb, const BooleanProgressCB &progress_cb)
+{
+    // An mcut union appends the cutter to every source shell it doesn't reach, so the union is built from single
+    // shells: overlapping pairs are joined until no pair joins, and the rest is put side by side once. A shell inside
+    // another is absorbed by it. Cavities (inward shells) are kept as they are, unless one is reached: then CGAL
+    // joins the whole meshes first. A single mesh always takes the shell path, which joins its own shells.
+    if (meshes.empty() || canceled(cancel_cb))
+        return std::nullopt;
+    std::vector<const TriangleMesh *> inputs;
+    for (const TriangleMesh &mesh : meshes)
+        inputs.push_back(&mesh);
+    if (meshes.size() > 1 && cavity_reached(inputs)) {
+        TriangleMesh result = meshes.front();
+        bool         joined = true;
+        for (size_t i = 1; i < meshes.size() && joined; ++i) {
+            if (canceled(cancel_cb))
+                return std::nullopt;
+            joined = cgal_boolean(result, meshes[i], cgal_plus);
+        }
+        if (canceled(cancel_cb))
+            return std::nullopt;
+        if (joined && !result.empty()) {
+            if (progress_cb)
+                progress_cb(100.f);
+            return result;
+        }
+    }
+
+    std::vector<TriangleMesh> shells, cavities;
+    for (const TriangleMesh &mesh : meshes)
+        for (TriangleMesh &shell : shells_of(mesh))
+            (its_volume(shell.its) < 0.f ? cavities : shells).push_back(std::move(shell));
+    if (shells.empty())
+        return std::nullopt;
+
+    ProgressSteps       progress(progress_cb, shells.size() - 1);
+    size_t              joins = 0;
+    // Overlapping pairs already tried and not joined, by shell id; a joined shell gets a new id.
+    std::vector<size_t> ids(shells.size());
+    for (size_t i = 0; i < ids.size(); ++i)
+        ids[i] = i;
+    size_t                                next_id = ids.size();
+    std::set<std::pair<size_t, size_t>>   tried;
+    for (bool joined_any = true; joined_any;) {
+        joined_any = false;
+        for (size_t i = 0; i < shells.size() && !joined_any; ++i) {
+            if (canceled(cancel_cb))
+                return std::nullopt;
+            for (size_t j = i + 1; j < shells.size() && !joined_any; ++j) {
+                if (!boxes_overlap(shells[i], shells[j]) || !tried.insert({ids[i], ids[j]}).second)
+                    continue;
+                std::optional<TriangleMesh> joined = mcut_boolean(shells[i], shells[j], "UNION", cancel_cb, progress.step(joins));
+                if (canceled(cancel_cb))
+                    return std::nullopt;
+                if (!joined || solid_shell_count(*joined) != 1) {
+                    if (lies_inside(shells[j], shells[i]))
+                        joined = shells[i];
+                    else if (lies_inside(shells[i], shells[j]))
+                        joined = shells[j];
+                    else
+                        continue;
+                }
+                shells[i] = std::move(*joined);
+                ids[i]    = next_id++;
+                shells.erase(shells.begin() + std::ptrdiff_t(j));
+                ids.erase(ids.begin() + std::ptrdiff_t(j));
+                ++joins;
+                joined_any = true;
+            }
+        }
+    }
+    shells.insert(shells.end(), cavities.begin(), cavities.end());
+    TriangleMesh result = merged(shells);
+    clean_result(result, false);
+    progress.done();
+    return result;
+}
+
+std::optional<TriangleMesh> intersect_all(const std::vector<TriangleMesh> &meshes, const BooleanCancelCB &cancel_cb, const BooleanProgressCB &progress_cb,
+                                          bool *failed)
+{
+    if (failed != nullptr)
+        *failed = false;
+    bool any_failed = false;
+    if (meshes.size() < 2) {
+        if (meshes.empty())
+            return std::nullopt;
+        if (progress_cb)
+            progress_cb(100.f);
+        return meshes.front();
+    }
+
+    // All meshes must be connected through overlapping bounding boxes, or there is no common volume.
+    const size_t        n = meshes.size();
+    std::vector<size_t> parent(n);
+    for (size_t i = 0; i < n; ++i)
+        parent[i] = i;
+    const auto find = [&parent](size_t x) {
+        while (parent[x] != x)
+            x = parent[x];
+        return x;
+    };
+    std::vector<size_t> degree(n, 0);
+    for (size_t i = 0; i < n; ++i)
+        for (size_t j = i + 1; j < n; ++j)
+            if (boxes_overlap(meshes[i], meshes[j])) {
+                parent[find(i)] = find(j);
+                ++degree[i];
+                ++degree[j];
+            }
+    for (size_t i = 1; i < n; ++i)
+        if (find(i) != find(0))
+            return std::nullopt;
+
+    // An mcut or CGAL step can fail on one pair yet succeed in another order, so try the
+    // best-connected seeds first and, at each step, every remaining operand before giving up.
+    std::vector<size_t> seeds(n);
+    for (size_t i = 0; i < n; ++i)
+        seeds[i] = i;
+    std::stable_sort(seeds.begin(), seeds.end(), [&degree](size_t a, size_t b) { return degree[a] > degree[b]; });
+
+    ProgressSteps progress(progress_cb, n - 1);
+    for (size_t seed : seeds) {
+        if (canceled(cancel_cb))
+            return std::nullopt;
+        TriangleMesh        acc = meshes[seed];
+        std::vector<size_t> remaining;
+        for (size_t i = 0; i < n; ++i)
+            if (i != seed)
+                remaining.push_back(i);
+
+        size_t step = 0;
+        while (!remaining.empty()) {
+            if (canceled(cancel_cb))
+                return std::nullopt;
+            std::stable_sort(remaining.begin(), remaining.end(), [&](size_t a, size_t b) {
+                return boxes_overlap(acc, meshes[a]) && !boxes_overlap(acc, meshes[b]);
+            });
+            bool progressed = false;
+            for (size_t i = 0; i < remaining.size(); ++i) {
+                if (std::optional<TriangleMesh> next = intersect_pair(acc, meshes[remaining[i]], cancel_cb, progress.step(step), any_failed)) {
+                    acc = std::move(*next);
+                    remaining.erase(remaining.begin() + std::ptrdiff_t(i));
+                    ++step;
+                    progressed = true;
+                    break;
+                }
+                if (canceled(cancel_cb))
+                    return std::nullopt;
+            }
+            if (!progressed)
+                break;
+        }
+        if (remaining.empty() && !acc.empty()) {
+            progress.done();
+            return acc;
+        }
+    }
+    if (failed != nullptr)
+        *failed = any_failed;
+    return std::nullopt;
+}
+
+std::vector<std::optional<TriangleMesh>> subtract_each(const std::vector<TriangleMesh> &a, const std::vector<TriangleMesh> &b,
+                                                       const BooleanCancelCB &cancel_cb, const BooleanProgressCB &progress_cb)
+{
+    std::vector<std::optional<TriangleMesh>> results(a.size());
+    ProgressSteps                            progress(progress_cb, a.size() * b.size());
+    for (size_t i = 0; i < a.size(); ++i) {
+        std::optional<TriangleMesh> acc = a[i];
+        for (size_t j = 0; j < b.size() && acc; ++j)
+            acc = subtract_pair(*acc, b[j], cancel_cb, progress.step(i * b.size() + j));
+        if (canceled(cancel_cb))
+            return {};
+        results[i] = std::move(acc);
+    }
+    progress.done();
+    return results;
+}
+
+std::vector<std::optional<TriangleMesh>> subtract_union(const std::vector<TriangleMesh> &a, const std::vector<TriangleMesh> &b,
+                                                        const BooleanCancelCB &cancel_cb, const BooleanProgressCB &progress_cb)
+{
+    const size_t  union_steps = b.empty() ? 0 : b.size() - 1;
+    ProgressSteps progress(progress_cb, union_steps + a.size());
+    std::optional<TriangleMesh> cutter = union_all(b, cancel_cb, progress.steps(0, union_steps));
+    if (!cutter)
+        return {};
+    std::vector<std::optional<TriangleMesh>> results(a.size());
+    for (size_t i = 0; i < a.size(); ++i) {
+        results[i] = subtract_pair(a[i], *cutter, cancel_cb, progress.step(union_steps + i));
+        if (canceled(cancel_cb))
+            return {};
+    }
+    progress.done();
+    return results;
+}
+
+std::optional<TriangleMesh> solid(const std::vector<TriangleMesh> &parts, const std::vector<TriangleMesh> &negatives,
+                                  const BooleanCancelCB &cancel_cb, const BooleanProgressCB &progress_cb)
+{
+    ProgressSteps progress(progress_cb, negatives.empty() ? 1 : 2);
+    std::optional<TriangleMesh> result = union_all(parts, cancel_cb, progress.step(0));
+    if (result && !negatives.empty()) {
+        std::vector<std::optional<TriangleMesh>> cut = subtract_union({*result}, negatives, cancel_cb, progress.step(1));
+        result = cut.empty() ? std::nullopt : std::move(cut.front());
+    }
+    if (result)
+        progress.done();
+    return result;
+}
+
+} // namespace ops
 
 
 } // namespace MeshBoolean

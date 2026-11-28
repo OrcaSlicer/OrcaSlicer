@@ -304,9 +304,24 @@ the camera at `iso` and fitted to it.
 |---|---|---|---|
 | 0 | start | part 0 `mesh_volume` 8000 · part 1 1000, both type part | the object's `bbox` is x 90–115, y 90–115, z 0–25 |
 | 1 | Mesh Boolean opened, `{imgui: "Union", index: 0}` clicked | as after 0 | |
-| 2 | `select_source_volume`, a click at `{object: 0, part: 0, spot: "front"}`, `select_tool_volume`, a click at `{object: 0, part: 1, spot: "top"}`, then `{imgui_name: "btn"}`, then idle | one part, type part, its name ending ` - union`, `mesh_volume` 8875 to 1 | the object's `bbox` is x 87.5–112.5, y 87.5–112.5, z -2.5–22.5: the union lands 2.5 mm off along each axis, its bounding-box centre where part 0's centre was, and nothing drops it back onto the bed; `gizmo()` none: with one part left the gizmo can no longer be open (`GLGizmoMeshBoolean::on_is_activable` asks for two), and the manager closes it (`GLGizmosManager::refresh_on_off_state`) |
-| 3 | `undo` | as after 0 | the `bbox` as after 0 |
-| 4 | `redo` | as after 2 | |
+| 2 | a click at `{object: 0, part: 0, spot: "front"}`, then at `{object: 0, part: 1, spot: "top"}`: Union's one list takes each part clicked | as after 0 | the panel's texts hold "Cube" and "Generic-Cube", the parts' names, in that order |
+| 3 | `{imgui_name: "btn"}`, then idle | one part, type part, its name ending ` - union`, `mesh_volume` 8875 to 1 | the object's `bbox` as after 0, to 0.01 mm since MCUT shifts the cutter by a few micrometres before it cuts: the result is expressed in the source part's frame, so it does not move; `gizmo()` none: with one part left the selection is neither of the gizmo's modes (`GLGizmoMeshBoolean::target_for`), and the manager closes it (`GLGizmosManager::refresh_on_off_state`) |
+| 4 | `undo` | as after 0 | the operation is one undo step |
+| 5 | `redo` | as after 3 | |
+
+**Scenario: Mesh Boolean on objects**
+
+A 20 mm cube A at (100, 100) and a 20 mm cube B at (110, 110), which share a 10 × 10 × 20 mm box; nothing selected,
+the camera at `iso` and fitted to them.
+
+| # | Step | Objects after | Also checked |
+|---|---|---|---|
+| 0 | start | A, B: one part each, `mesh_volume` 8000 | |
+| 1 | `part_boolean {objects: [0, 1]}` | as after 0 | reply `gizmo` "MeshBoolean", `objects` A and B; `gizmo()` MeshBoolean; `selected()` objects [0, 1] |
+| 2 | `{imgui: "Union", index: 0}`, a click at `{object: 0, spot: "front"}`, then at `{object: 1, spot: "top"}` | as after 0 | the panel's texts hold "A" and "B", A first |
+| 3 | `{imgui_name: "btn"}`, then idle | one object, named "A - union", one part, `mesh_volume` 14000 to 1 | its `bbox` is x 90–120, y 90–120, z 0–20, to 0.01 mm as in the scenario above: the new object takes A's instance, its offset (100, 100, 10), and holds the mesh in its frame; `gizmo()` none: one object of one part is selected, neither of the gizmo's modes |
+| 4 | `undo` | as after 0 | the operation is one undo step |
+| 5 | `redo` | as after 3 | |
 
 **Scenario: brim ears**
 
@@ -552,13 +567,6 @@ negative text and the SVG parts there stand for the text part, the negative text
 | 10 | `object_select {parts: [[0, 3]]}`, A's negative part alone, then `object_add_svg {type: "modifier", path: star.svg}` | as after 4 · modifier star.svg | two objects: the SVG is A's. As a person does it: a part's menu offers no text or SVG, and a right click on A's row, whose menu offers them by type, selects A whole first; Add Modifier>Text there makes a modifier of A. So `type` alone selects the selected object whole first, as a call that names it does. (The action without `type`, the Speed Dial's, makes a new object here, since a text or SVG lands on a selected solid part, `find_closest()` in `EmbossJob.cpp`.) `gizmo()` SVG |
 
 **To settle in review:**
-- Mesh Boolean moves its result (step 2 of its scenario): a bug in the app's own code, which is on `main`, left as
-  it is and a bug for a fix of its own. `GLGizmoMeshBoolean::generate_new_volume` builds the union in the object's
-  frame (both parts' meshes transformed by their part matrices) and adds it with `ModelObject::add_volume`, which
-  centres the mesh on its bounding box and sets the part's offset to that centre, so the union is still in place; it
-  then sets the new part's offset to the source part's (`GLGizmoMeshBoolean.cpp:504`), dropping that shift, and the
-  `ensure_on_bed` call after it is commented out. Step 2 expects where the union lands today: moved by (-2.5, -2.5,
-  -2.5) mm, from x, y and z 90–115, 90–115 and 0–25 to 87.5–112.5, 87.5–112.5 and -2.5–22.5.
 - Undo and redo lose a text part's font face name: a bug in the app's own code, on `main`, left as it is.
   `FontProp::save` and `load` (`TextConfiguration.hpp`), which undo and redo serialize the style through, leave out
   `face_name`, so after an undo `object_list`'s `text.font` gives the style's font descriptor (`style.path`, such as
@@ -572,9 +580,10 @@ negative text and the SVG parts there stand for the text part, the negative text
   `GLGizmoEmboss::draw_model_type` takes a snapshot and sets the part's type, then starts the job that moves the
   text inward, whose `update_volume` (`EmbossJob.cpp`) takes a snapshot of its own. The first undo takes back the
   move and leaves the part negative; the second takes back the type.
-- The union closes Mesh Boolean (Mesh Boolean, step 2): the app's own code, on `main`. The gizmo can be open only on
-  an object with more than one part (`GLGizmoMeshBoolean::on_is_activable`), and
-  `GLGizmosManager::refresh_on_off_state` closes it once the union leaves one, so no step closes it.
+- The union closes Mesh Boolean (step 3 of both its scenarios): the app's own code. The gizmo can be open only on
+  an object with more than one part or on two objects or more (`GLGizmoMeshBoolean::target_for`), and
+  `GLGizmosManager::refresh_on_off_state` closes it once the union leaves one object of one part, so no step closes
+  it.
 - The SVG's file after reopening (SVG, step 7): the project keeps the SVG itself (`path_in_3mf`) and names the local
   file by its name alone, `star.svg`, since `to_xml` in `bbs_3mf.cpp` writes `filename()` unless full paths are
   exported: the app's own code, on `main`.
@@ -622,8 +631,10 @@ negative text and the SVG parts there stand for the text part, the negative text
   at an angle.
 - Cut: dowel and snap connectors, cutting by groove or contour, flipping or placing the halves, keeping one half,
   and the connector's size and depth, and so the lower half's height, which its connector part raises above the cut.
-- Simplify by error, Mesh Boolean's difference and intersection and their Delete input option, and deleting or
-  resizing brim ears in the gizmo.
+- Simplify by error, Mesh Boolean's difference and intersection, the Select buttons of Difference's two lists and
+  the Delete input option and the Keep painting preference, removing a list entry with its ✕ button, a Mesh Boolean
+  refused on objects (on two plates, or a cut object), `part_boolean` with one entry in `objects`, and
+  deleting or resizing brim ears in the gizmo.
 - That Simplify is still working out its result when row 2 of its scenario closes it: the app decides when the
   calculation ends, and no tool reports it but `app_wait {for: "idle"}`, which waits for it to end. The row's checks
   hold whether it has ended or not.

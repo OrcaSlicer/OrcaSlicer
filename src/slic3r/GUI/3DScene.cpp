@@ -402,6 +402,9 @@ void GLVolume::set_render_color()
     if (!visible) {
         render_color = MODEL_HIDDEN_COL;
     }
+
+    if (color_override)
+        render_color = ColorRGBA(color_override->r(), color_override->g(), color_override->b(), render_color.a());
 }
 
 ColorRGBA color_from_model_volume(const ModelVolume& model_volume)
@@ -547,7 +550,7 @@ void GLVolume::render()
     ModelObjectPtrs &model_objects = GUI::wxGetApp().model().objects;
     std::vector<ColorRGBA> colors = GUI::wxGetApp().plater()->get_extruders_colors();
 
-    simple_render(shader, model_objects, colors);
+    simple_render(shader, model_objects, colors, false, color_override.has_value());
 }
 
 //BBS add render for simple case

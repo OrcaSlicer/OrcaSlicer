@@ -864,7 +864,7 @@ class GizmosTest:
         self.run("object_select", objects=[0])
         self.camera("iso")
 
-        def state(label, parts, lo, hi):
+        def state(label, parts, lo, hi, tol=0.001):
             objs = self.scene()
             if not objs:
                 self.t.check(f"{label}: the object", False, "no object")
@@ -878,26 +878,78 @@ class GizmosTest:
                         self.t.check(f"{label}: part {i}'s name ends with {name!r}", p["name"].endswith(name),
                                      p["name"])
             box = objs[0]["bbox"]
-            self.t.near(f"{label}: the object's bbox", box["min"] + box["max"], lo + hi, 0.001)
+            self.t.near(f"{label}: the object's bbox", box["min"] + box["max"], lo + hi, tol)
 
         after0 = ([("part", 8000, None), ("part", 1000, None)], [90, 90, 0], [115, 115, 25])
         state(f"{s} 0", *after0)
         self.open(f"{s} 1", "MeshBoolean")
         self.press({"imgui": "Union", "index": 0})
         state(f"{s} 1", *after0)
-        self.press({"imgui_name": "select_source_volume"})
         self.click({"object": 0, "part": 0, "spot": "front"})
-        self.press({"imgui_name": "select_tool_volume"})
         self.click({"object": 0, "part": 1, "spot": "top"})
+        state(f"{s} 2", *after0)
+        self.listed_in_order(f"{s} 2", ["Cube", "Generic-Cube"])
         self.press({"imgui_name": "btn"})
         self.idle()
-        after2 = ([("part", 8875, " - union")], [87.5, 87.5, -2.5], [112.5, 112.5, 22.5])
-        state(f"{s} 2: the union lands 2.5 mm off", *after2)
-        self.t.equal(f"{s} 2: with one part left the gizmo closes", self.gizmo(), None)
+        # MCUT shifts the cutter by a few micrometres before it cuts.
+        after3 = ([("part", 8875, " - union")], [90, 90, 0], [115, 115, 25], 0.01)
+        state(f"{s} 3: the union stays in place", *after3)
+        self.t.equal(f"{s} 3: with one part left the gizmo closes", self.gizmo(), None)
         self.undo()
-        state(f"{s} 3", *after0)
+        state(f"{s} 4", *after0)
         self.redo()
-        state(f"{s} 4", *after2)
+        state(f"{s} 5", *after3)
+
+    def listed_in_order(self, label, names):
+        """The open gizmo's panel shows each of `names`, in that order."""
+        texts = self.panel()["texts"]
+        at = [texts.index(n) if n in texts else -1 for n in names]
+        self.t.check(f"{label}: the panel lists {names} in order", -1 not in at and at == sorted(at), texts)
+
+    def mesh_boolean_objects(self):
+        s = "Mesh Boolean on objects"
+        self.start(s)
+        self.cube([100, 100], name="A")
+        self.cube([110, 110], name="B")
+        self.run("object_select", none=True)
+        self.camera("iso")
+
+        def state(label, objects):
+            objs = self.scene()
+            got = [(o["name"], [p["type"] for p in o["parts"]]) for o in objs]
+            self.t.equal(f"{label}: the objects", got, [(n, ["part"]) for n, _, _, _ in objects])
+            if len(objs) == len(objects):
+                for o, (name, volume, lo, hi) in zip(objs, objects):
+                    self.t.near(f"{label}: {name}'s mesh volume", o["parts"][0]["mesh_volume"], volume, 1)
+                    if lo is not None:
+                        # The result's, to 0.01 mm: MCUT shifts the cutter by a few micrometres before it cuts.
+                        box = o["bbox"]
+                        self.t.near(f"{label}: {name}'s bbox", box["min"] + box["max"], lo + hi, 0.01)
+
+        after0 = [("A", 8000, None, None), ("B", 8000, None, None)]
+        state(f"{s} 0", after0)
+        reply = self.run("part_boolean", objects=[0, 1])
+        self.t.equal(f"{s} 1: the reply", (reply.get("gizmo"), [o["name"] for o in reply.get("objects", [])]),
+                     ("MeshBoolean", ["A", "B"]))
+        self.t.equal(f"{s} 1: the gizmo open", self.gizmo(), {"name": "MeshBoolean", "canvas": "3d"})
+        self.t.equal(f"{s} 1: the selection", self.selected(), {"objects": [0, 1], "instances": [[0, 0], [1, 0]]})
+        state(f"{s} 1", after0)
+        self.press({"imgui": "Union", "index": 0})
+        self.click({"object": 0, "spot": "front"})
+        self.click({"object": 1, "spot": "top"})
+        state(f"{s} 2", after0)
+        self.listed_in_order(f"{s} 2", ["A", "B"])
+        self.press({"imgui_name": "btn"})
+        self.idle()
+        after3 = [("A - union", 14000, [90, 90, 0], [120, 120, 20])]
+        state(f"{s} 3", after3)
+        objs = self.objects()
+        self.t.equal(f"{s} 3: the new object takes A's instance", objs[0]["offset"] if objs else None, [100, 100, 10])
+        self.t.equal(f"{s} 3: the gizmo closes", self.gizmo(), None)
+        self.undo()
+        state(f"{s} 4", after0)
+        self.redo()
+        state(f"{s} 5", after3)
 
     def brim_ears(self):
         s = "brim ears"
@@ -1637,6 +1689,7 @@ class GizmosTest:
                      ("aligning in the Move panel", self.align), ("lay on face", self.lay_on_face),
                      ("painting and texture layers", self.painting), ("text", self.text), ("SVG", self.svg),
                      ("Measure", self.measure), ("Simplify", self.simplify), ("Mesh Boolean", self.mesh_boolean),
+                     ("Mesh Boolean on objects", self.mesh_boolean_objects),
                      ("brim ears", self.brim_ears), ("assembly in the assemble view", self.assembly_view),
                      ("cut with a connector", self.cut), ("canvas input", self.canvas_input),
                      ("opening a gizmo on a target", self.opening), ("openings refused", self.refused_openings),
