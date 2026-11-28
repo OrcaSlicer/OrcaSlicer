@@ -107,6 +107,81 @@ ExtrusionMultiPath thick_polyline_to_multi_path(const ThickPolyline& thick_polyl
     return multi_path;
 }
 
+// ORCA: thick_polyline_to_multi_path() starts a new path at every change of width, however small, so a line whose width
+// drifts, as Arachne's do, becomes a path per segment, and arc fitting, which works within a path, has nothing to fit.
+// Here consecutive segments share a path for as long as all their widths stay within width_band of each other, and the
+// path takes their length weighted mean width. The cross section of an extrusion is linear in its width, so that extrudes
+// the volume the varying widths would, where taking each segment at its wider end, as the function above does,
+// over-extrudes wherever the width changes. A segment whose width changes by more than tolerance is split first, as
+// above, so that a path can end partway along it.
+ExtrusionMultiPath thick_polyline_to_multi_path_banded(const ThickPolyline& thick_polyline, ExtrusionRole role, const Flow& flow, const float tolerance, const float width_band)
+{
+    ThickLines lines;
+    for (const ThickLine &line : thick_polyline.thicklines()) {
+        const double delta = fabs(line.a_width - line.b_width);
+        if (delta <= tolerance) {
+            lines.emplace_back(line);
+            continue;
+        }
+        const unsigned int pieces = (unsigned int)ceil(delta / tolerance);
+        Point  prev   = line.a;
+        double prev_w = line.a_width;
+        for (unsigned int j = 1; j <= pieces; ++ j) {
+            const double t = double(j) / double(pieces);
+            const Point  p = j == pieces ? line.b : (line.a.cast<double>() + (line.b - line.a).cast<double>() * t).cast<coord_t>();
+            const double w = j == pieces ? line.b_width : line.a_width + (line.b_width - line.a_width) * t;
+            lines.emplace_back(prev, p, prev_w, w);
+            prev   = p;
+            prev_w = w;
+        }
+    }
+
+    ExtrusionMultiPath multi_path;
+    ExtrusionPath      path(role);
+    double             run_min = 0., run_max = 0., run_length = 0., run_width_length = 0.;
+    auto flush = [&]() {
+        if (path.polyline.points.size() >= 2 && run_length > 0.) {
+            const double width    = run_width_length / run_length;
+            const Flow   new_flow = (role == erOverhangPerimeter && flow.bridge()) ? flow :
+                                    flow.with_width(unscale<float>(width) + flow.height() * float(1. - 0.25 * PI));
+            path.mm3_per_mm = new_flow.mm3_per_mm();
+            path.width      = new_flow.width();
+            path.height     = new_flow.height();
+            multi_path.paths.emplace_back(std::move(path));
+        }
+        path       = ExtrusionPath(role);
+        run_length = run_width_length = 0.;
+    };
+    for (const ThickLine &line : lines) {
+        const double length = line.length();
+        if (length < SCALED_EPSILON) {
+            // Too short for its width to matter: it just carries the path on.
+            if (path.polyline.points.empty())
+                path.polyline.append(Point3(line.a));
+            path.polyline.append(Point3(line.b));
+            continue;
+        }
+        const double lo = std::min(line.a_width, line.b_width);
+        const double hi = std::max(line.a_width, line.b_width);
+        if (run_length > 0. && std::max(run_max, hi) - std::min(run_min, lo) > width_band)
+            flush();
+        if (run_length == 0.) {
+            if (path.polyline.points.empty())
+                path.polyline.append(Point3(line.a));
+            run_min = lo;
+            run_max = hi;
+        } else {
+            run_min = std::min(run_min, lo);
+            run_max = std::max(run_max, hi);
+        }
+        path.polyline.append(Point3(line.b));
+        run_length       += length;
+        run_width_length += length * 0.5 * (line.a_width + line.b_width);
+    }
+    flush();
+    return multi_path;
+}
+
 //BBS: new function to filter width to avoid too fragmented segments
 static ExtrusionPaths thick_polyline_to_extrusion_paths_2(const ThickPolyline& thick_polyline, ExtrusionRole role, const Flow& flow, const float tolerance)
 {
