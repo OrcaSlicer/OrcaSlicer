@@ -5,7 +5,7 @@
 	"from": "system",
 	"setting_id": "o828K3OgfkY099HE",
 	"instantiation": "true",
-	"overhang_3_4_speed": "50",
+	"overhang_2_4_speed": "50",
 	"compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE[^_a-zA-Z0-9].*/ and nozzle_diameter[0]==0.4 and printer_notes!~/.*HF_NOZZLE.*/",
 	"travel_speed": "350",
 	"travel_acceleration": "7000",

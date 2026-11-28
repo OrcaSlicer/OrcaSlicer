@@ -117,7 +117,7 @@ protected:
 private:
     MachineObject* m_obj;
 
-    int m_error_code;
+    int m_error_code = 0;
     std::unordered_set<Button*> m_used_button;
 
     wxWebRequest web_request;

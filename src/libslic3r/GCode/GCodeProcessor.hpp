@@ -1336,6 +1336,18 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         unsigned int m_line_id;
         unsigned int m_last_line_id;
         float m_feedrate; // mm/s
+        // Orca: Bambu Lab firmware runs a G2/G3 as one smooth arc. While process_G2_G3() times such an arc as
+        // chords, this describes it, so the chords take the arc's own speed limit and neither meet each other
+        // nor the moves around the arc at jerk limited corners.
+        struct SmoothArc
+        {
+            float radius; // mm
+            Vec3f start_tangent;
+            Vec3f end_tangent;
+            bool first_chord;
+            bool last_chord;
+        };
+        std::optional<SmoothArc> m_smooth_arc;
         float m_width; // mm
         float m_height; // mm
         float m_forced_width; // mm

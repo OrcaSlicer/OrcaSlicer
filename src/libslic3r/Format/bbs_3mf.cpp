@@ -91,6 +91,10 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/foreach.hpp>
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/format.hpp>
 #include <openssl/md5.h>
 #include <string>
 #include <vector>
@@ -380,6 +384,7 @@ static constexpr const char* FIRST_LAYER_PRINT_SEQUENCE_ATTR = "first_layer_prin
 static constexpr const char* OTHER_LAYERS_PRINT_SEQUENCE_ATTR = "other_layers_print_sequence";
 static constexpr const char* OTHER_LAYERS_PRINT_SEQUENCE_NUMS_ATTR = "other_layers_print_sequence_nums";
 static constexpr const char* SPIRAL_VASE_MODE = "spiral_mode";
+static constexpr const char* SKIRT_START_ANGLE_ATTR = "skirt_start_angle";
 static constexpr const char* IMEX_PARALLEL_MODE_ATTR = "imex_parallel_mode";
 // The same attribute before the feature was renamed IMEX. Plate metadata is matched by exact
 // string and written with set_key_value, so it never passes through handle_legacy: without this
@@ -4679,6 +4684,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 std::istringstream(value) >> std::boolalpha >> spiral_mode;
                 m_curr_plater->config.set_key_value("spiral_mode", new ConfigOptionBool(spiral_mode));
             }
+            else if (key == SKIRT_START_ANGLE_ATTR) {
+                // plate override of the skirt start point, ignored when it is not a valid angle
+                size_t parsed = 0;
+                const double skirt_start_angle = string_to_double_decimal_point(value, &parsed);
+                if (parsed > 0 && skirt_start_angle >= -180. && skirt_start_angle <= 180.)
+                    m_curr_plater->config.set_key_value("skirt_start_angle", new ConfigOptionFloat(skirt_start_angle));
+            }
             else if (key == IMEX_PARALLEL_MODE_ATTR || key == IXEX_PARALLEL_MODE_ATTR_LEGACY) {
                 m_curr_plater->config.set_key_value("imex_parallel_mode", new ConfigOptionString(value));
             }
@@ -5385,8 +5397,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (shared_volume) {
                 const TriangleMesh& trangle_mesh = volume->mesh();
                 Vec3d shift = trangle_mesh.get_init_shift();
+                // The shift is in mesh coordinates, so it goes through the component's rotation and scale, as on the mesh's first use.
                 if (!shift.isApprox(Vec3d::Zero()))
-                    volume->translate(shift);
+                    volume->translate(comp_transformatino.get_matrix_no_offset() * shift);
             }
 
             // recreate custom supports, seam and mmu segmentation from previously loaded attribute
@@ -8553,6 +8566,11 @@ bool _BBS_3MF_Exporter::_add_model_config_file_to_archive(mz_zip_archive& archiv
                 ConfigOption* spiral_mode_opt = plate_data->config.option("spiral_mode");
                 if (spiral_mode_opt)
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SPIRAL_VASE_MODE << "\" " << VALUE_ATTR << "=\"" << spiral_mode_opt->getBool() << "\"/>\n";
+
+                // plate override of the skirt start point, written with a decimal point in every locale
+                auto* skirt_start_angle_opt = plate_data->config.option<ConfigOptionFloat>("skirt_start_angle");
+                if (skirt_start_angle_opt)
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SKIRT_START_ANGLE_ATTR << "\" " << VALUE_ATTR << "=\"" << float_to_string_decimal_point(skirt_start_angle_opt->value) << "\"/>\n";
 
                 {
                     // Mode names are user supplied free text, so the value has to be escaped for an

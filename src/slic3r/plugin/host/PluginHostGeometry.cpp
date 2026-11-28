@@ -77,52 +77,92 @@ void host_bindings::register_geometry(py::module_& host)
     // instead — see the lifetime rule in PluginHostSlicing.cpp.
     // ------------------------------------------------------------------
 
-    // Axis-aligned bounding box, returned by value (a copy) so its lifetime is
-    // independent of the model object it was computed from. Coordinates are in mm.
-    py::class_<BoundingBoxf3>(host, "BoundingBox", "Axis-aligned bounding box in millimetres")
-        .def_property_readonly("defined", [](const BoundingBoxf3& bb) { return bb.defined; })
-        .def_property_readonly("min", [](const BoundingBoxf3& bb) { return vec3_to_tuple(bb.min); })
-        .def_property_readonly("max", [](const BoundingBoxf3& bb) { return vec3_to_tuple(bb.max); })
-        .def_property_readonly("size", [](const BoundingBoxf3& bb) { return vec3_to_tuple(bb.size()); })
-        .def_property_readonly("center", [](const BoundingBoxf3& bb) { return vec3_to_tuple(bb.center()); })
-        .def_property_readonly("radius", [](const BoundingBoxf3& bb) { return bb.radius(); });
+    py::class_<BoundingBoxf3>(host, "BoundingBox",
+        "Axis-aligned 3D bounding box in mm. It is a copy, independent of what it was computed from. Check defined "
+        "before using the other fields.")
+        .def_property_readonly("defined", [](const BoundingBoxf3& bb) { return bb.defined; },
+            "False for an empty box, such as that of an object without model parts, or one with no extent along "
+            "some axis, such as that of a flat mesh; min and max then mean nothing.")
+        .def_property_readonly("min", [](const BoundingBoxf3& bb) { return vec3_to_tuple(bb.min); },
+            "Minimum corner (x, y, z), in mm.")
+        .def_property_readonly("max", [](const BoundingBoxf3& bb) { return vec3_to_tuple(bb.max); },
+            "Maximum corner (x, y, z), in mm.")
+        .def_property_readonly("size", [](const BoundingBoxf3& bb) { return vec3_to_tuple(bb.size()); },
+            "Extent (dx, dy, dz), max minus min, in mm.")
+        .def_property_readonly("center", [](const BoundingBoxf3& bb) { return vec3_to_tuple(bb.center()); },
+            "Center (x, y, z), the midpoint of min and max, in mm.")
+        .def_property_readonly("radius", [](const BoundingBoxf3& bb) { return bb.radius(); },
+            "Half the length of the box's diagonal, in mm: the radius of the sphere around center that holds the box.");
 
     // Point: a constructible value type (default holder, so Python-owned instances
     // are freed). Returned-by-reference from Polygon.points, it aliases the buffer;
     // x()/y() are Eigen lvalues, so the properties are read/write. p+q / p-q go
     // through Eigen expression templates, wrapped back into a Point.
-    py::class_<Point>(host, "Point")
-        .def(py::init([](coord_t x, coord_t y) { return Point(x, y); }), py::arg("x"), py::arg("y"))
+    py::class_<Point>(host, "Point",
+        "2D point in scaled integer coordinates, the unit of all orca.host 2D geometry: mm = value * SCALING_FACTOR, "
+        "which is 1e-6 (1 unit = 1 nm), or 1e-5 when a side of the printer's bed is longer than 2147 mm. "
+        "orca.slicing.unscale(value) converts a coordinate to mm with the factor in use, and "
+        "round(mm / orca.slicing.unscale(1)) converts back. A Point read from Polygon.points is a live reference into "
+        "that polygon.")
+        .def(py::init([](coord_t x, coord_t y) { return Point(x, y); }), py::arg("x"), py::arg("y"),
+             "Point at (x, y), in scaled integer coordinates.")
         .def_property("x", [](const Point& p) { return p.x(); },
-                           [](Point& p, coord_t v) { p.x() = v; })
+                           [](Point& p, coord_t v) { p.x() = v; },
+                      "X coordinate in scaled units; assigning it edits the polygon this Point belongs to, if any.")
         .def_property("y", [](const Point& p) { return p.y(); },
-                           [](Point& p, coord_t v) { p.y() = v; })
-        .def("__add__", [](const Point& a, const Point& b) { return Point(a + b); }, py::is_operator())
-        .def("__sub__", [](const Point& a, const Point& b) { return Point(a - b); }, py::is_operator())
-        .def("__mul__", [](const Point& a, double s) { return Point(a.x() * s, a.y() * s); }, py::is_operator())
+                           [](Point& p, coord_t v) { p.y() = v; },
+                      "Y coordinate in scaled units; assigning it edits the polygon this Point belongs to, if any.")
+        .def("__add__", [](const Point& a, const Point& b) { return Point(a + b); }, py::is_operator(),
+             "Component-wise sum, as a new Point.")
+        .def("__sub__", [](const Point& a, const Point& b) { return Point(a - b); }, py::is_operator(),
+             "Component-wise difference, as a new Point.")
+        .def("__mul__", [](const Point& a, double s) { return Point(a.x() * s, a.y() * s); }, py::is_operator(),
+             "Both coordinates multiplied by a float and rounded to integers, as a new Point.")
         .def("__repr__", [](const Point& p) {
             return "orca.host.Point(" + std::to_string(p.x()) + ", " + std::to_string(p.y()) + ")";
-        });
+        }, "orca.host.Point(x, y) with the scaled coordinates.");
 
-    py::class_<Polygon>(host, "Polygon")
-        .def(py::init<>())
-        .def("size", [](const Polygon& p) { return p.points.size(); })
-        .def("is_valid", [](const Polygon& p) { return p.is_valid(); })
-        .def("is_counter_clockwise", [](const Polygon& p) { return p.is_counter_clockwise(); })
-        .def("is_clockwise", [](const Polygon& p) { return p.is_clockwise(); })
+    py::class_<Polygon>(host, "Polygon",
+        "Closed 2D polygon whose last vertex joins back to the first, in scaled integer coordinates (see Point). "
+        "Outer contours run counter-clockwise and holes clockwise. Plugins can construct and own one; a Polygon "
+        "reached from an ExPolygon or the slicing graph is a live reference into it.")
+        .def(py::init<>(), "Empty polygon; add vertices with append() or set_points().")
+        .def("size", [](const Polygon& p) { return p.points.size(); }, "Number of vertices.")
+        .def("is_valid", [](const Polygon& p) { return p.is_valid(); },
+             "True when the polygon has at least 3 vertices; self-intersections are not checked.")
+        .def("is_counter_clockwise", [](const Polygon& p) { return p.is_counter_clockwise(); },
+             "True when the signed area is 0 or more: counter-clockwise winding, as outer contours have.")
+        .def("is_clockwise", [](const Polygon& p) { return p.is_clockwise(); },
+             "True when the signed area is negative: clockwise winding, as holes have.")
         .def("make_counter_clockwise", [](Polygon& p) { return p.make_counter_clockwise(); },
              "Reorient to CCW in place. Returns True if it reversed the winding.")
-        .def("make_clockwise", [](Polygon& p) { return p.make_clockwise(); })
-        .def("area", [](const Polygon& p) { return p.area(); })
-        .def("centroid", [](const Polygon& p) { return p.centroid(); })
-        .def("contains", [](const Polygon& p, const Point& pt) { return p.contains(pt); }, py::arg("point"))
-        .def("translate", [](Polygon& p, double x, double y) { p.translate(x, y); }, py::arg("x"), py::arg("y"))
-        .def("rotate", [](Polygon& p, double angle) { p.rotate(angle); }, py::arg("angle"))
+        .def("make_clockwise", [](Polygon& p) { return p.make_clockwise(); },
+             "Reorient to CW in place. Returns True if it reversed the winding.")
+        .def("area", [](const Polygon& p) { return p.area(); },
+             "Signed area in scaled units squared, positive when counter-clockwise and negative when clockwise; "
+             "multiply by orca.slicing.unscale(1) ** 2 for mm^2.")
+        .def("centroid", [](const Polygon& p) { return p.centroid(); },
+             "Centre of mass of the enclosed area, as a Point in scaled coordinates. Meaningless for a polygon with "
+             "fewer than 3 vertices or no area.")
+        .def("contains", [](const Polygon& p, const Point& pt) { return p.contains(pt); }, py::arg("point"),
+             "True when point lies inside the polygon or on its boundary, whichever its winding.")
+        .def("translate", [](Polygon& p, double x, double y) { p.translate(x, y); }, py::arg("x"), py::arg("y"),
+             "Move every vertex by (x, y) scaled units, in place; x and y are truncated to integers.")
+        .def("rotate", [](Polygon& p, double angle) { p.rotate(angle); }, py::arg("angle"),
+             "Rotate in place by angle radians, counter-clockwise, about the origin (0, 0); vertices are rounded to "
+             "integers.")
         .def("rotate", [](Polygon& p, double angle, const Point& c) { p.rotate(angle, c); },
-             py::arg("angle"), py::arg("center"))
-        .def("douglas_peucker", [](Polygon& p, double tol) { p.douglas_peucker(tol); }, py::arg("tolerance"))
+             py::arg("angle"), py::arg("center"),
+             "Rotate in place by angle radians, counter-clockwise, about the Point center; vertices are rounded to "
+             "integers.")
+        .def("douglas_peucker", [](Polygon& p, double tol) { p.douglas_peucker(tol); }, py::arg("tolerance"),
+             "Simplify in place with the Douglas-Peucker algorithm, dropping vertices within tolerance scaled units "
+             "of the simplified outline. A small polygon can end up with fewer than 3 vertices, so check is_valid() "
+             "afterwards. The polygon must not be empty.")
         .def("simplify", [](const Polygon& p, double tol) { return p.simplify(tol); }, py::arg("tolerance"),
-             "Return simplified geometry as a list of Polygon (may split into several).")
+             "Return simplified geometry as a list of Polygon (may split into several): Douglas-Peucker with "
+             "tolerance in scaled units, then cleaned into simple polygons. Expects a non-empty counter-clockwise "
+             "polygon.")
         .def("offset", [](const Polygon& p, coord_t delta) { return offset(p, (float) delta); }, py::arg("delta"),
              "Clipper offset by `delta` scaled units (negative shrinks). Returns [Polygon].")
         // --- Point-object idiom: references into the buffer (in-place element edit). ---
@@ -157,7 +197,10 @@ void host_bindings::register_geometry(py::module_& host)
     // their own geometry, not just navigate the live slicing graph. contour/holes accessors
     // still use reference_internal, so refs into a graph-owned ExPolygon stay non-owning views
     // tied to that owner's lifetime, same as Polygon/Surface.
-    py::class_<ExPolygon>(host, "ExPolygon")
+    py::class_<ExPolygon>(host, "ExPolygon",
+        "Polygon with holes: a counter-clockwise outer contour and clockwise hole Polygons, in scaled integer "
+        "coordinates (see Point). Plugins can construct and own one; an ExPolygon reached from the slicing graph is a "
+        "live reference into it.")
         .def(py::init([](py::handle contour, py::handle holes) {
             // Accept bound Polygons or (N,2) ndarrays for both contour and each hole.
             ExPolygon ex;
@@ -180,7 +223,8 @@ void host_bindings::register_geometry(py::module_& host)
             [](ExPolygon& e) -> Polygon& { return e.contour; },
             [](ExPolygon& e, py::handle v) { e.contour = as_polygon(v, "ExPolygon.contour"); },
             py::return_value_policy::reference_internal,
-            "Outer contour (CCW). Read returns a live Polygon ref; assign a Polygon/ndarray to replace it.")
+            "Outer contour (CCW). Read returns a live Polygon ref; assign a Polygon/ndarray to replace it. An "
+            "assigned contour keeps its winding, so pass it counter-clockwise.")
         .def_property_readonly("holes", [](py::object self) {
             ExPolygon& e = self.cast<ExPolygon&>();
             py::list out;
@@ -199,18 +243,36 @@ void host_bindings::register_geometry(py::module_& host)
             }
             e.holes = std::move(tmp.holes);
         }, py::arg("holes"), "Replace all holes. Invalidates prior hole refs (C++ vector semantics).")
-        .def("translate", [](ExPolygon& e, double x, double y) { e.translate(x, y); }, py::arg("x"), py::arg("y"))
-        .def("rotate", [](ExPolygon& e, double a) { e.rotate(a); }, py::arg("angle"))
+        .def("translate", [](ExPolygon& e, double x, double y) { e.translate(x, y); }, py::arg("x"), py::arg("y"),
+             "Move the contour and holes by (x, y) scaled units, in place; x and y are truncated to integers.")
+        .def("rotate", [](ExPolygon& e, double a) { e.rotate(a); }, py::arg("angle"),
+             "Rotate the contour and holes in place by angle radians, counter-clockwise, about the origin (0, 0); "
+             "vertices are rounded to integers.")
         .def("rotate", [](ExPolygon& e, double a, const Point& c) { e.rotate(a, c); },
-             py::arg("angle"), py::arg("center"))
-        .def("scale", [](ExPolygon& e, double f) { e.scale(f); }, py::arg("factor"))
-        .def("douglas_peucker", [](ExPolygon& e, double t) { e.douglas_peucker(t); }, py::arg("tolerance"))
-        .def("area", [](const ExPolygon& e) { return e.area(); })
-        .def("is_valid", [](const ExPolygon& e) { return e.is_valid(); })
-        .def("contains", [](const ExPolygon& e, const Point& p) { return e.contains(p); }, py::arg("point"))
-        .def("num_contours", [](const ExPolygon& e) { return e.num_contours(); })
+             py::arg("angle"), py::arg("center"),
+             "Rotate the contour and holes in place by angle radians, counter-clockwise, about the Point center; "
+             "vertices are rounded to integers.")
+        .def("scale", [](ExPolygon& e, double f) { e.scale(f); }, py::arg("factor"),
+             "Multiply every coordinate by factor in place, which scales about the origin (0, 0); results are "
+             "truncated to integers.")
+        .def("douglas_peucker", [](ExPolygon& e, double t) { e.douglas_peucker(t); }, py::arg("tolerance"),
+             "Simplify the contour and each hole in place with the Douglas-Peucker algorithm, tolerance in scaled "
+             "units. A small ring can end up with fewer than 3 vertices, so check is_valid() afterwards. The contour "
+             "and holes must not be empty.")
+        .def("area", [](const ExPolygon& e) { return e.area(); },
+             "Area of the contour minus its holes, in scaled units squared (multiply by orca.slicing.unscale(1) ** 2 "
+             "for mm^2). Assumes the normal winding: contour counter-clockwise, holes clockwise.")
+        .def("is_valid", [](const ExPolygon& e) { return e.is_valid(); },
+             "True when the contour has at least 3 vertices and runs counter-clockwise and every hole has at least 3 "
+             "vertices and runs clockwise.")
+        .def("contains", [](const ExPolygon& e, const Point& p) { return e.contains(p); }, py::arg("point"),
+             "True when point lies inside the contour and outside every hole; a point on the contour or on a hole's "
+             "boundary counts as inside.")
+        .def("num_contours", [](const ExPolygon& e) { return e.num_contours(); },
+             "Number of rings: 1 for the contour plus one per hole.")
         .def("simplify", [](const ExPolygon& e, double t) { return e.simplify(t); }, py::arg("tolerance"),
-             "Return simplified geometry as [ExPolygon].")
+             "Return simplified geometry as [ExPolygon]: Douglas-Peucker on each ring with tolerance in scaled units, "
+             "then merged back into simple shapes.")
         .def("offset", [](const ExPolygon& e, coord_t delta) { return offset_ex(e, (float) delta); },
              py::arg("delta"), "Clipper offset by `delta` scaled units (negative shrinks). Returns [ExPolygon].")
         .def("union_ex", [](const ExPolygon& a, const ExPolygon& b) {

@@ -701,6 +701,75 @@ TEST_CASE("How fast a corner is taken does not depend on how much is extruded th
     }
 }
 
+// The estimator splits a G2/G3 into chords. Bambu Lab firmware runs the arc as one smooth path, which
+// arc-fitted gyroid infill relies on: timed as jerk-limited chords it came out hours too long.
+namespace {
+
+constexpr double arc_e_per_mm = 0.03;
+
+// A clockwise half circle from (x, y) around the point `radius` to its right. It starts heading +Y.
+std::string half_circle(double x, double y, double radius, double feedrate)
+{
+    std::ostringstream os;
+    os << std::fixed << std::setprecision(4) << "G2 X" << x + 2.0 * radius << " Y" << y << " I" << radius
+       << " J0 E" << M_PI * radius * arc_e_per_mm << " F" << feedrate << "\n";
+    return os.str();
+}
+
+// A straight move from (x, y) along +Y, the half circle's starting tangent.
+std::string straight_up(double x, double y, double length, double feedrate)
+{
+    std::ostringstream os;
+    os << std::fixed << std::setprecision(4) << "G1 X" << x << " Y" << y + length << " E" << length * arc_e_per_mm
+       << " F" << feedrate << "\n";
+    return os.str();
+}
+
+// Time of `move` after a 40mm extrusion at 150mm/s reaching its start (x, y) heading `heading_deg`.
+double time_after_lead_in(double x, double y, double heading_deg, const std::string& move, bool is_bbl_printer,
+                          double jerk)
+{
+    const double len = 40.0;
+    const double a   = heading_deg * M_PI / 180.0;
+    std::ostringstream os;
+    os << std::fixed << std::setprecision(4) << "M83\nG1 Z0.2 F1200\n"
+       << "G1 X" << x - len * std::cos(a) << " Y" << y - len * std::sin(a) << " F9000\n"
+       << "G1 X" << x << " Y" << y << " E" << len * arc_e_per_mm << " F9000\n"
+       << move;
+    GCodeProcessor proc;
+    run_processor(proc, make_junction_config(gcfMarlinLegacy, jerk, 0.0), os.str().c_str(), is_bbl_printer);
+    return proc.get_time(PrintEstimatedStatistics::ETimeMode::Normal);
+}
+
+} // namespace
+
+TEST_CASE("A Bambu Lab arc is timed as one smooth move rather than as jerk-limited chords", "[GCodeTiming][Regression]")
+{
+    // Entered along its tangent, the arc has no corner at its start or between its chords, where a 1mm/s jerk
+    // would nearly stop the toolhead. A 50mm radius keeps the centripetal limit, sqrt(1000 * 50) = 224mm/s,
+    // above the commanded 150mm/s, so the half circle takes as long as a straight move of its length.
+    const double radius   = 50.0;
+    const double jerk     = 1.0;
+    const double straight = time_after_lead_in(10.0, 60.0, 90.0, straight_up(10.0, 60.0, M_PI * radius, 9000.0), true, jerk);
+    REQUIRE_THAT(time_after_lead_in(10.0, 60.0, 90.0, half_circle(10.0, 60.0, radius, 9000.0), true, jerk),
+                 WithinRel(straight, 0.01));
+    // Other printers keep planning the chords as the firmware's own arc segments.
+    REQUIRE(time_after_lead_in(10.0, 60.0, 90.0, half_circle(10.0, 60.0, radius, 9000.0), false, jerk) > 1.5 * straight);
+}
+
+TEST_CASE("A Bambu Lab arc is limited by its own radius however it is entered", "[GCodeTiming][Regression]")
+{
+    // A 5mm radius limits the arc to sqrt(1000 * 5) = 70.7mm/s. Entered at a 25 degree corner, it takes as long
+    // as a straight move at that speed turning the same corner: the corner is not read as the arc's curvature.
+    // A 100mm/s jerk lets both take the corner at that speed.
+    const double radius   = 5.0;
+    const double jerk     = 100.0;
+    const double limit    = std::sqrt(1000.0 * radius) * 60.0; // mm/min
+    const double straight = time_after_lead_in(55.0, 60.0, 65.0, straight_up(55.0, 60.0, M_PI * radius, limit), true, jerk);
+    REQUIRE_THAT(time_after_lead_in(55.0, 60.0, 65.0, half_circle(55.0, 60.0, radius, 9000.0), true, jerk),
+                 WithinRel(straight, 0.01));
+}
+
 // Expected times are Klipper's own planner math (klippy/toolhead.py). For a move from rest to rest,
 // LookAheadQueue.flush() reduces to cruise_v2 = min(vmax^2, d * accel, d * pseudo_accel) with
 // pseudo_accel = accel * (1 - minimum_cruise_ratio), and Move.set_junction() to a trapezoid at accel;

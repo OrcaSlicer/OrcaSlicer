@@ -20,6 +20,7 @@
 #include "slic3r/GUI/Event.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/Brim.hpp"
 #include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/Geometry.hpp"
 #include <limits>
@@ -60,8 +61,6 @@ static const ColorRGBA DEF_COLOR   = {0.7f, 0.7f, 0.7f, 1.f};
 static const ColorRGBA SELECTED_COLOR = {0.0f, 0.5f, 0.5f, 1.0f};
 static const ColorRGBA ERR_COLOR = {1.0f, 0.3f, 0.3f, 0.5f};
 static const ColorRGBA HOVER_COLOR = {0.7f, 0.7f, 0.7f, 0.5f};
-static constexpr float BRIM_EAR_RADIUS_MIN = 0.1f;
-static constexpr float BRIM_EAR_RADIUS_MAX = 100.f;
 
 static ModelVolume *get_model_volume(const Selection &selection, Model &model)
 {
@@ -802,6 +801,7 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
             ImVec2 min = ImGui::GetItemRectMin();
             ImVec2 max = ImGui::GetItemRectMax();
             ImGui::GetWindowDrawList()->AddLine(ImVec2(min.x, max.y - 2.0f), ImVec2(max.x, max.y - 2.0f), HyperColor);
+            m_imgui->record_named_item("Set brim type to painted", "button", min, max);
 
             if (ImGui::IsMouseHoveringRect(min, max)) {
                 m_link_text_hover = true;
@@ -872,6 +872,13 @@ void GLGizmoBrimEars::update_model_object()
         wxGetApp().plater()->set_plater_dirty(true);
     }
     m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
+}
+
+void GLGizmoBrimEars::reload_on_next_opening()
+{
+    // An invalid id matches no object, so set_brim_data() reloads the cache when the gizmo next turns on.
+    m_old_mo_id = ObjectID();
+    select_point(NoPoints);
 }
 
 // switch gizmos
@@ -958,22 +965,9 @@ void GLGizmoBrimEars::reload_cache()
     find_single();
 }
 
-Points GLGizmoBrimEars::generate_points(Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer)
+Points GLGizmoBrimEars::generate_points(const Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer)
 {
-    const coordf_t angle_threshold = (180 - brim_ears_max_angle) * PI / 180.0;
-    Points         pt_ears;
-    if (ear_detection_length > 0) {
-        double detect_length = ear_detection_length / SCALING_FACTOR;
-        Points points = obj_polygon.points;
-        points.push_back(points.front());
-        points = MultiPoint::_douglas_peucker(points, detect_length);
-        if (points.size() > 4) {
-            points.erase(points.end() - 1);
-        }
-        obj_polygon.points = points;
-    }
-    append(pt_ears, is_outer ? obj_polygon.convex_points(angle_threshold) : obj_polygon.concave_points(angle_threshold));
-    return pt_ears;
+    return make_brim_ear_points(obj_polygon, scale_(ear_detection_length), brim_ears_max_angle, is_outer);
 }
 
 void GLGizmoBrimEars::first_layer_slicer()
@@ -1053,6 +1047,7 @@ void GLGizmoBrimEars::get_detection_radius_max()
         min_points_num   = MultiPoint::_douglas_peucker(out_points, 0).size();
         int repeat       = 0;
         int loop_protect = 0;
+        // ORCA: only a feature-size estimate for the slider's upper bound; the detector no longer decimates.
         for (;;) {
             loop_protect++;
             tolerance += 10;

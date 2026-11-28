@@ -168,7 +168,10 @@ using json = nlohmann::json;
 #endif
 
 #ifdef SLIC3R_GUI
+    #include "slic3r/GUI/CommandCatalog.hpp"
     #include "slic3r/GUI/GUI_Init.hpp"
+    #include "slic3r/GUI/Mcp/McpStdioBridge.hpp"
+    #include "slic3r/GUI/NativeCommands.hpp"
     // BBLPrinterAgent::from_orca_filament_id(); the map and its lookups live in libslic3r_gui,
     // which only a SLIC3R_GUI build links (see target_link_libraries(OrcaSlicer libslic3r_gui)
     // in CMakeLists).
@@ -1218,17 +1221,26 @@ int CLI::run(int argc, char **argv)
     // Save the thread ID of the main thread.
     save_main_thread_id();
 
+#ifdef SLIC3R_GUI
+    // The stdio bridge is a plain pipe to a running GUI instance; it needs none of the setup below.
+    for (int i = 1; i < argc; ++i)
+        if (std::strcmp(argv[i], "--mcp-stdio") == 0)
+            return Slic3r::GUI::Mcp::run_stdio_bridge(argc, argv, []() -> const Slic3r::GUI::CommandCatalog& {
+                return Slic3r::GUI::NativeCommands::instance();
+            });
+#endif
+
 #ifdef __WXGTK__
     // ------------------------------------------------------------------
     // Linux backend selection — runtime, based on GDK_BACKEND env var.
     //
     //   GDK_BACKEND unset (DEFAULT)    Wayland path.
     //                                  GTK auto-picks Wayland on Wayland
-    //                                  sessions and X11 otherwise. WebKit
-    //                                  XWayland-compositing workaround
-    //                                  applied only when actually on
-    //                                  XWayland. XInitThreads gated on
-    //                                  DISPLAY presence.
+    //                                  sessions and X11 otherwise. Outside
+    //                                  the Flatpak, WebKit avoids its
+    //                                  hardware DMABUF path on Wayland.
+    //                                  XInitThreads gated on DISPLAY
+    //                                  presence.
     //
     //   GDK_BACKEND=x11   (OPT-IN)     X11/XWayland mode. Applies the
     //                                  v2.3.2 workarounds that the X11
@@ -1243,10 +1255,11 @@ int CLI::run(int argc, char **argv)
     // opt-in path. The ~2020-era WebKit2GTK XWayland compositor bug it
     // worked around appears fixed in WebKit2GTK >= 2.42; leaving it
     // unset preserves WebKit hardware acceleration on Device / Setup
-    // Wizard / login / store. The default path applies it only where it
-    // forces GDK_BACKEND=x11 below (a build without EGL, so the app really
-    // runs through XWayland), and only when the linked WebKitGTK predates
-    // the fix (< 2.42), as a conservative fallback for older WebKit.
+    // Wizard / login / store. The default path applies it where it forces
+    // GDK_BACKEND=x11 below (a build without EGL, which runs through
+    // XWayland) on WebKitGTK < 2.42, and in a Wayland session outside the
+    // Flatpak on WebKitGTK 2.42 and 2.43, which ignore the shared-memory
+    // transport.
     // ------------------------------------------------------------------
     {
         const char* gdk_backend = ::getenv("GDK_BACKEND");
@@ -1254,16 +1267,33 @@ int CLI::run(int argc, char **argv)
         // honours the first backend in the comma-separated list).
         const bool x11_opt_in = gdk_backend && boost::starts_with(gdk_backend, "x11");
 
-        // NVIDIA's proprietary driver cannot back WebKitGTK's DMABUF renderer.
-        // Force the shared-memory transport, which keeps compositing and threaded
-        // scrolling; the second variable clears Debian/Ubuntu/openSUSE's isNVIDIA().
-        if (::access("/proc/driver/nvidia/version", F_OK) == 0 && WebView::SupportsForceSharedMemory()) {
-            ::setenv("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1", /* replace */ false);
-            ::setenv("WEBKIT_FORCE_DMABUF_RENDERER", "1", /* replace */ false);
-        }
+        const bool nvidia = ::access("/proc/driver/nvidia/version", F_OK) == 0;
 
-        if (is_hypervisor_guest() && WebView::SupportsForceSharedMemory())
-            ::setenv("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1", /* replace */ false);
+        // The Wayland default below forces GDK_BACKEND=x11 in a build without EGL, so that build runs through XWayland.
+        #if defined(wxHAS_EGL) && wxHAS_EGL
+        constexpr bool wx_has_egl = true;
+        #else
+        constexpr bool wx_has_egl = false;
+        #endif
+
+        // System WebKitGTK builds such as Ubuntu's 2.52 on Intel and Debian's 2.54 on AMD freeze the window under
+        // Wayland on their hardware DMABUF path; affected builds can't be told apart, so the default path avoids it
+        // for every WebKitGTK outside the Flatpak.
+        const bool system_webkit_on_wayland = wx_has_egl && !x11_opt_in && wayland_socket_available() &&
+                                              !is_running_in_flatpak();
+
+        // NVIDIA's proprietary driver and virtual GPUs cannot back the DMABUF renderer either, and the
+        // shared-memory transport keeps compositing on.
+        if (WebView::SupportsForceSharedMemory()) {
+            if (nvidia || is_hypervisor_guest() || system_webkit_on_wayland)
+                ::setenv("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1", /* replace */ false);
+            // Clears the isNVIDIA() early return that Debian, Ubuntu and openSUSE patch into WebKitGTK.
+            if (nvidia)
+                ::setenv("WEBKIT_FORCE_DMABUF_RENDERER", "1", /* replace */ false);
+        } else if (system_webkit_on_wayland && !WebView::NeedsCompositingWorkaround()) {
+            // WebKitGTK 2.42 and 2.43 have the DMABUF renderer but ignore the shared-memory switch.
+            ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+        }
 
         if (x11_opt_in) {
             // ===== X11 / XWayland (opted in via GDK_BACKEND=x11) =====
@@ -1287,8 +1317,7 @@ int CLI::run(int argc, char **argv)
             // deps were not rebuilt.
             #if !defined(wxHAS_EGL) || !wxHAS_EGL
             {
-                const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
-                if (wayland_env && *wayland_env) {
+                if (wayland_socket_available()) {
                     BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
                     ::setenv("GDK_BACKEND", "x11", true);
 
@@ -1482,15 +1511,22 @@ int CLI::run(int argc, char **argv)
     }
 
     bool start_gui = m_actions.empty() && !downward_check;
+    // --run runs its file in the GUI, so it is refused where no GUI starts rather than left unrun.
+    if (!start_gui && m_given_option_keys.count("run") > 0) {
+        std::string flag = m_actions.empty() ? std::string("downward_check") : m_actions.front();
+        std::replace(flag.begin(), flag.end(), '_', '-');
+        boost::nowide::cerr << "--run cannot be combined with --" << flag << std::endl;
+        record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+        flush_and_exit(CLI_INVALID_PARAMS);
+    }
     if (start_gui) {
         BOOST_LOG_TRIVIAL(info) << "no action, start gui directly" << std::endl;
 #ifdef SLIC3R_GUI
     #if !defined(_WIN32) && !defined(__APPLE__)
         // likely some linux / unix system
         const char *display = boost::nowide::getenv("DISPLAY");
-        const char *wayland_display = boost::nowide::getenv("WAYLAND_DISPLAY");
-        if (! ((display && *display) || (wayland_display && *wayland_display))) {
-            boost::nowide::cerr << "Neither DISPLAY nor WAYLAND_DISPLAY set, GUI mode not available." << std::endl << std::endl;
+        if (! ((display && *display) || wayland_socket_available())) {
+            boost::nowide::cerr << "Neither DISPLAY nor a Wayland socket found, GUI mode not available." << std::endl << std::endl;
             this->print_help(false);
             // Indicate an error.
             return 1;
@@ -1525,6 +1561,22 @@ int CLI::run(int argc, char **argv)
         }
         //BBS: remove GCodeViewer as separate APP logic
         //params.start_as_gcodeviewer = start_as_gcodeviewer;
+
+        // --mcp-port opens the endpoint as --mcp does, whatever its value. Every option has a value after setup(),
+        // so whether it was given is read from the options the command line named.
+        if (const auto *opt = m_config.opt<ConfigOptionBool>("mcp"))
+            params.mcp.enable = opt->value;
+        if (m_given_option_keys.count("mcp_port") > 0)
+            params.mcp.enable = true;
+        if (const auto *opt = m_config.opt<ConfigOptionInt>("mcp_port"))
+            params.mcp.port = opt->value;
+        // Resolved now: the GUI moves the working directory to <data_dir>/log before the replay or script runs.
+        if (m_given_option_keys.count("run") > 0) {
+            params.mcp.run_file = resolve_cli_input_path(m_config.opt_string("run"));
+            params.mcp.run_out  = resolve_cli_input_path(m_config.opt_string("outputdir"));
+        }
+        params.unrestricted_scripts = m_config.opt_bool("unrestricted_scripts");
+        params.cad                  = m_config.opt_bool("cad");
 
         BOOST_LOG_TRIVIAL(info) << "begin to launch OrcaSlicer GUI soon";
         return Slic3r::GUI::GUI_Run(params);
@@ -4731,6 +4783,12 @@ int CLI::run(int argc, char **argv)
     };
     if (plate_data_src.size() > 0)
     {
+        // Assign objects to plates on the bed the project was saved with, because the new bed's shape on the
+        // old plate grid does not match the plates the objects were placed on.
+        const bool retarget_bed = (translate_old || shrink_to_new_bed > 0) && old_printable_area.size() >= 4;
+        if (retarget_bed)
+            partplate_list.set_shapes(make_counter_clockwise(old_printable_area), old_exclude_area, {}, {}, {}, bed_texture,
+                                      height_to_lid, height_to_rod);
         partplate_list.load_from_3mf_structure(plate_data_src);
 
         int plate_count = partplate_list.get_plate_count();
@@ -4744,6 +4802,11 @@ int CLI::run(int argc, char **argv)
         }
 
         translate_models(partplate_list, m_print_config);
+        if (retarget_bed) {
+            partplate_list.set_shapes(make_counter_clockwise(current_printable_area), current_exclude_area, current_wrapping_exclude_area,
+                                      current_extruder_areas, current_extruder_print_heights, bed_texture, height_to_lid, height_to_rod);
+            partplate_list.reload_all_objects();
+        }
     }
 
     /*for (ModelObject *model_object : m_models[0].objects)
@@ -5539,10 +5602,7 @@ int CLI::run(int argc, char **argv)
                     arrange_cfg.align_to_y_axis = (printer_structure_opt->value == PrinterStructure::psI3);
                 }
 
-                arrangement::update_arrange_params(arrange_cfg, &m_print_config, selected);
-                arrangement::update_selected_items_inflation(selected, &m_print_config, arrange_cfg);
-                arrangement::update_unselected_items_inflation(unselected, &m_print_config, arrange_cfg);
-                arrangement::update_selected_items_axis_align(selected, &m_print_config, arrange_cfg);
+                arrangement::update_arrange_items(selected, unselected, &m_print_config, arrange_cfg);
 
                 beds = get_shrink_bedpts(&m_print_config, arrange_cfg);
 
@@ -6014,10 +6074,7 @@ int CLI::run(int argc, char **argv)
                     arrange_cfg.align_to_y_axis = (printer_structure_opt->value == PrinterStructure::psI3);
                 }
 
-                arrangement::update_arrange_params(arrange_cfg, &m_print_config, selected);
-                arrangement::update_selected_items_inflation(selected, &m_print_config, arrange_cfg);
-                arrangement::update_unselected_items_inflation(unselected, &m_print_config, arrange_cfg);
-                arrangement::update_selected_items_axis_align(selected, &m_print_config, arrange_cfg);
+                arrangement::update_arrange_items(selected, unselected, &m_print_config, arrange_cfg);
 
                 beds=get_shrink_bedpts(&m_print_config, arrange_cfg);
 
@@ -6843,6 +6900,12 @@ int CLI::run(int argc, char **argv)
                                     }
                                     else
                                         filament_maps = part_plate->get_real_filament_maps(m_print_config);
+
+                                    // The checks below index per-nozzle tables with these values; as in Print::apply,
+                                    // a nozzle outside [1, nozzle count] means nozzle 1.
+                                    for (int &nozzle : filament_maps)
+                                        if (nozzle < 1 || nozzle > new_extruder_count)
+                                            nozzle = 1;
 
                                     // Multi-nozzle printers need the per-filament volume assignment as a grouping
                                     // input in the manual modes: synthesize it from the per-extruder flow types when

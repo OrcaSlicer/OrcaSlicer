@@ -15,6 +15,7 @@
 #include <utility>
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 
 namespace Slic3r {
 
@@ -314,6 +315,12 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     auto filament_color    = ptc.value("filament_color_rgba", std::vector<std::string>{});
     auto filament_vendor   = ptc.value("filament_vendor", std::vector<std::string>{});
 
+    // Every color of a multi-color spool (optional), per slot, e.g.
+    // {"nums": 2, "alpha": 255, "mode": 0, "colors": ["FF0000", "0000FF"]}
+    nlohmann::json color_multi;
+    if (ptc.contains("filament_color_multi"))
+        color_multi = ptc["filament_color_multi"];
+
     const int slot_count = static_cast<int>(filament_exist.size());
     if (slot_count == 0) {
         BOOST_LOG_TRIVIAL(info) << "SnapmakerPrinterAgent::fetch_filament_info: No filament slots reported";
@@ -344,6 +351,46 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
             tray.tray_color    = safe_at(filament_color, i, empty_str);
             if (tray.tray_color.empty())
                 tray.tray_color = default_color;
+
+            if (color_multi.is_array() && i < static_cast<int>(color_multi.size()) && color_multi[i].is_object()) {
+                // The colors are optional: a malformed record leaves this slot with its single
+                // color rather than failing the whole sync.
+                try {
+                    const auto& multi = color_multi[i];
+                    if (multi.contains("colors") && multi["colors"].is_array()) {
+                        const auto& colors = multi["colors"];
+                        // Use no more colors than the record says it holds
+                        size_t count = colors.size();
+                        if (multi.contains("nums") && multi["nums"].is_number_integer())
+                            count = std::min(count, static_cast<size_t>(std::max(multi["nums"].get<int>(), 0)));
+
+                        // RRGGBB colors with one alpha for the spool
+                        const int alpha = multi.contains("alpha") && multi["alpha"].is_number() ?
+                                              static_cast<int>(std::clamp(multi["alpha"].get<double>(), 0.0, 255.0)) :
+                                              255;
+                        char alpha_hex[3];
+                        std::snprintf(alpha_hex, sizeof(alpha_hex), "%02X", static_cast<unsigned>(alpha));
+
+                        std::vector<std::string> tray_colors;
+                        for (size_t c = 0; c < count; ++c) {
+                            if (!colors[c].is_string())
+                                continue;
+                            std::string value = colors[c].get<std::string>();
+                            tray_colors.push_back(value.size() == 6 ? value + alpha_hex : value);
+                        }
+                        if (tray_colors.size() > 1) {
+                            tray.tray_colors = std::move(tray_colors);
+                            // Mode 0 = co-extruded (segments), other modes = gradient
+                            tray.colors_gradient = safe_json_int(multi, "mode") != 0;
+                        }
+                    }
+                } catch (const nlohmann::json::exception& e) {
+                    tray.tray_colors.clear();
+                    tray.colors_gradient = false;
+                    BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: Ignoring malformed "
+                                                  "filament_color_multi for slot " << i << ": " << e.what();
+                }
+            }
 
             auto* bundle = GUI::wxGetApp().preset_bundle;
             // Try to find a matching preset for this filament based on vendor, type and color.

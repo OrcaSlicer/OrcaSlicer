@@ -743,6 +743,19 @@ TEST_CASE("load_from_json hands a preset's include list to the caller instead of
     CHECK(config.opt_string("machine_end_gcode") == "M84");
 }
 
+TEST_CASE("the command line has one run option and no MCP-named one", "[Config]") {
+    CHECK(cli_misc_config_def.has("run"));
+    CHECK(cli_misc_config_def.has("unrestricted_scripts"));
+    CHECK(cli_misc_config_def.has("cad"));
+    CHECK(cli_misc_config_def.has("outputdir"));
+    CHECK_FALSE(cli_misc_config_def.has("mcp_run"));
+    CHECK_FALSE(cli_misc_config_def.has("mcp_run_out"));
+    CHECK_FALSE(cli_misc_config_def.has("mcp_token"));
+    CHECK(cli_misc_config_def.has("mcp"));
+    CHECK(cli_misc_config_def.has("mcp_port"));
+    CHECK(cli_misc_config_def.has("mcp_stdio"));
+}
+
 TEST_CASE("save_to_json writes the same document to a stream as to a file", "[Config]") {
     DynamicPrintConfig config;
     config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
@@ -1929,8 +1942,10 @@ TEST_CASE("An empty list applied by index replaces the target list", "[Config][R
     DynamicPrintConfig saved;
     saved.set_key_value("filament_ids", new ConfigOptionStrings());
     DynamicPrintConfig edited;
-    SECTION("target has entries") { edited.set_key_value("filament_ids", new ConfigOptionStrings({"GFA00"})); }
-    SECTION("target lacks the option") {}
+    const bool target_has_entries = GENERATE(false, true);
+    CAPTURE(target_has_entries);
+    if (target_has_entries)
+        edited.set_key_value("filament_ids", new ConfigOptionStrings({"GFA00"}));
 
     edited.apply_only(saved, {"filament_ids#0"});
     CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());
@@ -2026,4 +2041,51 @@ TEST_CASE("The print speed table keeps a bed outline when the extruders share no
     const BoundingBox outline(Model::getBedPolygon().points);
     CHECK(outline.min == Point(0, 0));
     CHECK(outline.max == Point(scaled(350.), scaled(350.)));
+}
+
+static ConfigOptionInts make_pem(std::vector<int> v) {
+    ConfigOptionInts o;
+    o.values = std::move(v);
+    return o;
+}
+
+TEST_CASE("effective_physical_extruder_map - authored map wins", "[Config][PhysicalExtruderMap]") {
+    // An AFC manifold on a 7-extruder machine: logical 0-3 all feed physical 0. Not derivable,
+    // so it must be honoured verbatim.
+    auto explicit_pem = make_pem({0, 0, 0, 0, 1, 2, 3});
+    auto out = effective_physical_extruder_map(&explicit_pem, 7);
+    REQUIRE(out.values == std::vector<int>{0, 0, 0, 0, 1, 2, 3});
+}
+
+TEST_CASE("effective_physical_extruder_map - a permutation is honoured", "[Config][PhysicalExtruderMap]") {
+    // Shipping BBL dual-nozzle profiles author {1,0}: a slicer/firmware numbering swap, not a
+    // sharing map. Deriving over it would silently renumber both extruders.
+    auto explicit_pem = make_pem({1, 0});
+    auto out = effective_physical_extruder_map(&explicit_pem, 2);
+    REQUIRE(out.values == std::vector<int>{1, 0});
+}
+
+TEST_CASE("effective_physical_extruder_map - unauthored derives the identity", "[Config][PhysicalExtruderMap]") {
+    // The PrintConfig default is a single element, which is not an authored map on a 2-extruder
+    // machine. Identity is what upstream itself falls back to.
+    auto default_pem = make_pem({0});
+    auto out = effective_physical_extruder_map(&default_pem, 2);
+    REQUIRE(out.values == std::vector<int>{0, 1});
+}
+
+TEST_CASE("effective_physical_extruder_map - result is always one entry per extruder", "[Config][PhysicalExtruderMap]") {
+    // The defining property: consumers index this map by logical extruder and size their own
+    // arrays from nozzle_diameter, so a shorter map is an out-of-bounds read in several of them.
+    for (int n : { 1, 2, 4, 7 }) {
+        DYNAMIC_SECTION("nozzle count " << n) {
+            REQUIRE((int) effective_physical_extruder_map(nullptr, n).values.size() == n);
+            auto stale = make_pem({0});   // wrong length: must not be mistaken for authored
+            REQUIRE((int) effective_physical_extruder_map(&stale, n).values.size() == n);
+        }
+    }
+}
+
+TEST_CASE("effective_physical_extruder_map - degenerate nozzle count still yields a usable map", "[Config][PhysicalExtruderMap]") {
+    // Never hand back an empty map: several consumers index it as a raw vector.
+    REQUIRE(effective_physical_extruder_map(nullptr, 0).values == std::vector<int>{0});
 }

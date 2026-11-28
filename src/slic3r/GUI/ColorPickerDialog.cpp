@@ -912,7 +912,9 @@ void ColorPickerDialog::position_panel()
         return;
     m_positioning = true;
     // Both dimensions come from the page: width changes when the palette sidebar opens or closes.
-    wxSize size = FromDIP(wxSize(m_content_width, m_content_height));
+    // m_content_* are CSS pixels as reported by the page; m_page_zoom converts them to DIPs.
+    wxSize size = FromDIP(wxSize(static_cast<int>(std::ceil(m_content_width * m_page_zoom)),
+                                 static_cast<int>(std::ceil(m_content_height * m_page_zoom))));
     // The work-area limit includes the native title bar and fixed frame.
     const wxSize frame = GetSize() - GetClientSize();
     size.x = std::min(size.x, std::max(1, m_work_area.width - frame.x));
@@ -1072,6 +1074,21 @@ void ColorPickerDialog::handle_web_command(const nlohmann::json& payload)
             if (!std::isfinite(width_value) || width_value < 300 || width_value > 1200)
                 return;
             m_content_width = static_cast<int>(std::ceil(width_value));
+        }
+        // The viewport width the page sees (CSS px) against the WebView's real width (DIP) is the
+        // page zoom. Optional, so an older page keeps the current factor.
+        const auto viewport = payload.find("viewport");
+        if (viewport != payload.end() && viewport->is_number()) {
+            const double css_width = viewport->get<double>();
+            const int    dip_width = ToDIP(browser()->GetClientSize().x);
+            if (std::isfinite(css_width) && css_width >= 1 && dip_width > 0) {
+                double zoom = dip_width / css_width;
+                if (std::abs(zoom - 1.0) < 0.03)
+                    zoom = 1.0; // integer rounding of either width, not a real zoom
+                // Ignore re-measurements that only differ by rounding, so the size stays stable.
+                if (zoom >= 0.5 && zoom <= 4.0 && std::abs(zoom - m_page_zoom) > 0.02 * m_page_zoom)
+                    m_page_zoom = zoom;
+            }
         }
         resize_to_content(static_cast<int>(std::ceil(value)));
         return;

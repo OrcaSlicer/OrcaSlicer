@@ -1,0 +1,139 @@
+/* The step rail that Action Replay and Agent Activity draw a list of calls with: a numbered dot per step on a
+ * thread that takes the accent as steps pass, the step's title and target, its time at the side, and its detail
+ * when opened. Colours come from the host theme contract (--orca-*) and theme.css's status roles, so it follows the
+ * app in light and dark. A page links it after theme.css and before its own style.css. */
+
+:root {
+  --sr-bg: var(--orca-bg, #ffffff);
+  --sr-fg: var(--orca-fg, #262e30);
+  --sr-muted: var(--orca-muted, #6b7478);
+  --sr-rule: var(--border, #dcdfe1);
+  --sr-accent: var(--orca-accent, #009688);
+  --sr-accent-fg: var(--orca-accent-fg, #ffffff);
+  --sr-pass: var(--plugin-status-ok, #137333);
+  --sr-fail: var(--plugin-status-danger, #b42318);
+  --sr-fail-bg: var(--plugin-status-danger-bg, rgba(180, 35, 24, 0.12));
+  --sr-warn: var(--plugin-status-warn, #a15c00);
+  --sr-warn-bg: var(--plugin-status-warn-bg, rgba(199, 122, 22, 0.12));
+  --sr-hover: var(--row-hover, #f7f9fb);
+  --sr-ring: rgba(0, 150, 136, 0.25);
+  --sr-ring-soft: rgba(0, 150, 136, 0.1);
+  --sr-mono: var(--code-font);
+  --sr-dot: 20px;
+}
+
+.rail { list-style: none; margin: 0; padding: 6px 0 10px; }
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--sr-dot) minmax(0, 1fr) auto;
+  column-gap: 10px;
+  padding: 0 12px 0 14px;
+}
+/* The thread from this step's dot down to the next one; it takes the accent once the step passed. */
+.step::before {
+  content: "";
+  position: absolute;
+  left: calc(14px + var(--sr-dot) / 2 - 1px);
+  top: calc(6px + var(--sr-dot));
+  bottom: -6px;
+  width: 2px;
+  background: var(--sr-rule);
+  transition: background-color 240ms ease;
+}
+.step:last-child::before { display: none; }
+.step.is-done::before, .step.is-warn::before { background: var(--sr-accent); }
+.dot {
+  margin-top: 6px;
+  width: var(--sr-dot);
+  height: var(--sr-dot);
+  border-radius: 50%;
+  border: 1.5px solid var(--sr-rule);
+  background: var(--sr-bg);
+  color: var(--sr-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 1;
+}
+.step.is-done .dot { background: var(--sr-accent); border-color: var(--sr-accent); color: var(--sr-accent-fg); }
+.step.is-warn .dot { background: var(--sr-warn); border-color: var(--sr-warn); color: #ffffff; }
+.step.is-fail .dot, .step.is-stopped .dot { background: var(--sr-fail); border-color: var(--sr-fail); color: #ffffff; }
+.step.is-running .dot { border-color: var(--sr-accent); color: var(--sr-accent); animation: sr-ring 1.4s ease-in-out infinite; }
+@keyframes sr-ring {
+  0%, 100% { box-shadow: 0 0 0 2px var(--sr-ring); }
+  50% { box-shadow: 0 0 0 5px var(--sr-ring-soft); }
+}
+
+.step-main { min-width: 0; }
+.step-head {
+  display: block;
+  width: 100%;
+  padding: 6px 4px 6px 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.step-title { font-weight: 600; }
+.step-what, .step-args { display: block; color: var(--sr-muted); font-size: 12px; overflow-wrap: anywhere; }
+.step-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.tag {
+  font-size: 11px;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: 3px;
+  color: var(--sr-warn);
+  background: var(--sr-warn-bg);
+}
+.tag.is-check { color: var(--sr-muted); background: none; border: 1px solid var(--sr-rule); }
+
+.step-side { display: flex; align-items: flex-start; gap: 6px; padding-top: 7px; }
+.time { font-size: 12px; color: var(--sr-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.step.is-running .time { color: var(--sr-accent); }
+
+/* ---- an opened step ---- */
+.step-detail { padding: 2px 0 10px; font-size: 12px; }
+.step.is-open { background: var(--sr-hover); }
+.args { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; margin: 0 0 6px; }
+.args dt { color: var(--sr-muted); }
+.args dd { margin: 0; font-family: var(--sr-mono); font-size: 11.5px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.failure {
+  margin: 4px 0 6px;
+  padding: 6px 8px;
+  border-left: 2px solid var(--sr-fail);
+  border-radius: 0 3px 3px 0;
+  background: var(--sr-fail-bg);
+}
+.step.is-warn .failure { border-left-color: var(--sr-warn); background: var(--sr-warn-bg); }
+.failure-detail { display: block; margin-top: 3px; color: var(--sr-muted); overflow-wrap: anywhere; }
+.thumb {
+  display: block;
+  width: 160px;
+  max-width: 100%;
+  border: 1px solid var(--sr-rule);
+  border-radius: 3px;
+  cursor: zoom-in;
+}
+.raw {
+  margin: 6px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 6px 8px;
+  border: 1px solid var(--sr-rule);
+  border-radius: 3px;
+  font-family: var(--sr-mono);
+  font-size: 11px;
+  white-space: pre;
+  user-select: text;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step.is-running .dot { animation: none; box-shadow: 0 0 0 2px var(--sr-ring); }
+  .step::before { transition: none; }
+}

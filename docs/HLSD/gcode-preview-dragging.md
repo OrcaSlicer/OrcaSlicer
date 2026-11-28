@@ -101,7 +101,7 @@ The solid stands in for the toolpaths, so it wears their colours. In the views t
 filament (Summary, Filament, Tool) each body keeps the filament colour its shell was loaded with.
 In every other view `GCodeViewer::update_solid_model_colors()` samples the toolpaths through
 `Viewer::get_vertex_color()`: the body takes the outer wall's colour over the layers the solid
-stands for, each cap the infill's in the layer it is cut under, sparse infill before solid, and
+stands for, each layer cap the infill's in the layer it is cut under, sparse infill before solid, and
 the prime tower its own role's. One vertex stands for the role, chosen by
 `Viewer::find_extrusion_vertex()`: in a view that grades the toolpaths by a value, the
 length-weighted median of that value over the role's extrusions in up to eight layers spread over
@@ -116,7 +116,9 @@ the ends of the layer range then do not bound. And so does a belt printer's: its
 tilted at the belt angle, with heights in the G-code's frame, which no horizontal cut follows.
 
 A section view cuts the solid by its plane as it cuts the toolpaths, and the section face is one
-more cap, counted on the body cut by that plane alone and drawn between the two heights.
+more cap, counted on the body cut by that plane alone and drawn between the two heights. It may
+cross any of the layers the solid stands for, so its colour is the infill's sampled over all of
+them, as the body's is, or the body's own where the body has no infill.
 
 The solid is drawn opaque whatever the filaments' alpha: a translucent filament shows its toolpaths
 inside through the walls at rest, and the solid has no inside to show.

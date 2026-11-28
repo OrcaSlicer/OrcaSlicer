@@ -785,7 +785,8 @@ namespace std {
 
 // start Boost
 #include <boost/version.hpp>
-#include <boost/polygon/polygon.hpp>
+#include <boost/polygon/isotropy.hpp>
+#include <boost/polygon/point_concept.hpp>
 namespace boost { namespace polygon {
     template <>
     struct geometry_concept<Slic3r::Point> { using type = point_concept; };

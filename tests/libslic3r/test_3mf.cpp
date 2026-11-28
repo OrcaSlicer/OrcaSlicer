@@ -743,6 +743,38 @@ TEST_CASE("A project whose components reference themselves fails to load", "[3mf
     REQUIRE_FALSE(loaded);
 }
 
+TEST_CASE("Components that share an off-center mesh keep their placement", "[3mf][Regression]")
+{
+    // The importer centers a mesh on its first use and shares it with every later component that uses it, so each
+    // of those volumes has to apply the same centering shift before its component transform.
+    // One box mesh (x 10..12, y 0..4, z 0..1) used by four components: rotated 90 degrees about X (its first use),
+    // rotated the same way and moved 20 mm along X, scaled 2x along X and moved 40 mm, moved 80 mm.
+    ScopedTemporaryDir backup_dir("orca_shared_mesh");
+    Model              model;
+    REQUIRE(load_project(std::string(TEST_DATA_DIR) + "/test_3mf/shared_mesh_components.3mf", model, backup_dir));
+    REQUIRE(model.objects.size() == 1);
+    const ModelVolumePtrs& volumes = model.objects.front()->volumes;
+    REQUIRE(volumes.size() == 4);
+
+    // Where each component puts the box, in object coordinates.
+    const std::vector<std::pair<Vec3d, Vec3d>> expected = {
+        { { 10., -1., 0. }, { 12., 0., 4. } },
+        { { 30., -1., 0. }, { 32., 0., 4. } },
+        { { 60., 0., 0. }, { 64., 4., 1. } },
+        { { 90., 0., 0. }, { 92., 4., 1. } },
+    };
+    for (size_t i = 0; i < volumes.size(); ++i) {
+        INFO("volume " << i);
+        REQUIRE(volumes[i]->mesh_ptr() == volumes.front()->mesh_ptr());
+        const BoundingBoxf3 box = volumes[i]->mesh().transformed_bounding_box(volumes[i]->get_matrix());
+        for (int axis = 0; axis < 3; ++axis) {
+            INFO("axis " << axis);
+            CHECK_THAT(box.min(axis), Catch::Matchers::WithinAbs(expected[i].first(axis), 1e-6));
+            CHECK_THAT(box.max(axis), Catch::Matchers::WithinAbs(expected[i].second(axis), 1e-6));
+        }
+    }
+}
+
 TEST_CASE("A project in the 2.4.x layout keeps auto drop off from its build item", "[3mf][Regression]")
 {
     // 2.4.x wrote auto_drop on the build item and left it off the object, so the object is re-laid out here.
@@ -1293,9 +1325,7 @@ SCENARIO("Non-standard nozzle diameter survives .3mf save on a single-nozzle pri
     }
 }
 
-// A legacy / foreign project (no multi-nozzle metadata) must load crash-safe through the BBS
-// importer and must not fabricate a filament_volume_map.
-SCENARIO("Legacy project loads crash-safe via load_bbs_3mf", "[3mf][MultiNozzle]") {
+SCENARIO("Loading via load_bbs_3mf is crash-safe and invents no volume map", "[3mf][MultiNozzle]") {
     GIVEN("a project without any multi-nozzle metadata") {
         std::string path = std::string(TEST_DATA_DIR) + "/test_3mf/Geräte/Büchse.3mf";
         Model                model;
@@ -1312,10 +1342,47 @@ SCENARIO("Legacy project loads crash-safe via load_bbs_3mf", "[3mf][MultiNozzle]
                                                   &project_presets, &is_bbl_3mf, &is_orca_3mf,
                                                   &file_version, nullptr,
                                                   LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
-            THEN("it does not crash and invents no per-filament volume map") {
-                for (PlateData* p : plates) {
-                    REQUIRE(p->config.option<ConfigOptionInts>("filament_volume_map") == nullptr);
-                }
+            THEN("it loads") {
+                CHECK(loaded);
+            }
+            release_PlateData_list(plates);
+        }
+    }
+    GIVEN("a project whose plate has no per-filament volume map") {
+        Model model;
+        REQUIRE(load_stl((std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl").c_str(), &model));
+        model.add_default_instances();
+        ScopedTemporaryDir backup_dir("orca_no_volume_map");
+        model.set_backup_path(backup_dir.string());
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        PlateData          plate;
+        plate.plate_index = 0;
+
+        ScopedTemporaryFile temp(".3mf");
+        const std::string   path = temp.string();
+        StoreParams         store_params;
+        store_params.path     = path.c_str();
+        store_params.model    = &model;
+        store_params.config   = &config;
+        store_params.plate_data_list.push_back(&plate);
+        store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+        REQUIRE(store_bbs_3mf(store_params));
+
+        WHEN("loaded through the BBS importer") {
+            Model                     dst_model;
+            DynamicPrintConfig        dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs             plates;
+            std::vector<Preset*>      project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            const bool loaded = load_bbs_3mf(path.c_str(), &dst_config, &ctxt, &dst_model, &plates, &project_presets,
+                                             &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                             LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            THEN("the loaded plate has no per-filament volume map") {
+                REQUIRE(loaded);
+                REQUIRE(plates.size() == 1);
+                CHECK(plates.front()->config.option<ConfigOptionInts>("filament_volume_map") == nullptr);
             }
             release_PlateData_list(plates);
         }
@@ -1518,6 +1585,7 @@ SCENARIO("BBS 3MF round-trips per-plate IMEX state (parallel mode + head filamen
         plate0->plate_index = 0;
         plate0->config.set_key_value("imex_parallel_mode",     new ConfigOptionString(hostile_mode));
         plate0->config.set_key_value("imex_head_filament_map", new ConfigOptionString(hostile_hfm));
+        plate0->config.set_key_value("skirt_start_angle",      new ConfigOptionFloat(12.5));
         src_plates.push_back(plate0);
 
         WHEN("the model is saved to BBS 3MF and loaded back") {
@@ -1559,6 +1627,12 @@ SCENARIO("BBS 3MF round-trips per-plate IMEX state (parallel mode + head filamen
                 auto *hfm_opt = dst_plates[0]->config.option<ConfigOptionString>("imex_head_filament_map");
                 REQUIRE(hfm_opt != nullptr);
                 REQUIRE(hfm_opt->value == hostile_hfm);
+            }
+            THEN("skirt_start_angle round-trips with its fraction") {
+                REQUIRE(dst_plates.size() >= 1);
+                auto *angle_opt = dst_plates[0]->config.option<ConfigOptionFloat>("skirt_start_angle");
+                REQUIRE(angle_opt != nullptr);
+                REQUIRE_THAT(angle_opt->value, Catch::Matchers::WithinAbs(12.5, 1e-6));
             }
 
             release_PlateData_list(dst_plates);

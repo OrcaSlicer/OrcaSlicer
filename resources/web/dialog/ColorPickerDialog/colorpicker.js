@@ -73,7 +73,9 @@
       const width  = Math.min(1200, Math.max(300, Math.ceil(rect.width )));
       if (height !== lastContentHeight || width !== lastContentWidth) {
         lastContentHeight = height; lastContentWidth = width;
-        emit("resize", {width, height});
+        // viewport: the host compares it with the WebView's real width to learn the page zoom
+        // (WebKitGTK zooms pages by the system text scaling), so it can convert CSS px to window px.
+        emit("resize", {width, height, viewport: window.innerWidth});
       }
     });
   }

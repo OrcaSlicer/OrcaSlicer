@@ -54,6 +54,8 @@
 #include <vector>
 #include <string>
 #include <wx/string.h>
+
+class wxImage;
 #include <wx/colour.h>
 #include <wx/time.h>
 #include <wx/timer.h>
@@ -362,6 +364,11 @@ class GLCanvas3D
         int last_object_id{ -1 };
         float last_z{ 0.0f };
         LayerHeightEditActionType last_action{ LAYER_HEIGHT_EDIT_ACTION_INCREASE };
+        // Orca: The stroke was started on an object in the scene, not on a bar.
+        bool editing_on_object{ false };
+        // Orca: The height under the cursor on an object a press would paint, where the band is drawn before
+        // the press. -1000 when the cursor is not on one. Set by GLCanvas3D::_picking_pass().
+        float hover_z{ -1000.0f };
 
         LayersEditing() = default;
         ~LayersEditing();
@@ -373,11 +380,14 @@ class GLCanvas3D
         void set_other_objects(std::vector<int> object_ids) { m_other_object_ids = std::move(object_ids); }
         // Orca: lays out the bars for the selected objects (tallest first) and returns the object to
         // show and edit: the one whose bar the mouse is on, or else the one shown so far.
-        int choose_shown_object(const GLCanvas3D& canvas, const Model& model, const std::vector<int>& object_ids);
+        // An object under the mouse that has a bar (hover_object_id) is shown, as it is with its bar under the mouse.
+        int choose_shown_object(const GLCanvas3D& canvas, const Model& model, const std::vector<int>& object_ids, int hover_object_id = -1);
         // Orca: frees the textures of the objects that are no longer selected. Needs the GL context.
         void release_unselected_textures(const Model& model, const std::vector<int>& object_ids);
         // Orca: whether the tool paints this object with its layer heights.
         bool is_edited_object(int object_id) const;
+        // Orca: whether a stroke painted on this object in the scene edits the profile of the object shown.
+        bool is_painted_object(int object_id);
 
         bool is_allowed() const;
 
@@ -463,7 +473,7 @@ class GLCanvas3D
         Vec2d position{ DBL_MAX, DBL_MAX };
         bool ignore_left_up{ false };
         Drag drag;
-        bool ignore_right_up;
+        bool ignore_right_up{ false };
         // ORCA a button was pressed on toolbar empty areas, swallow events until it is released
         bool down_on_toolbar{ false };
 
@@ -706,6 +716,16 @@ public:
         //BBS: add more arrangeSettings
         bool is_seq_print        = false;
         bool  align_to_y_axis    = false;
+
+        // The Arrange options panel's rule between two of its options: Align to Y axis is off while auto
+        // rotation is on. Returns whether that turned it off.
+        bool apply_option_rules()
+        {
+            const bool turned_off = enable_rotation && align_to_y_axis;
+            if (turned_off)
+                align_to_y_axis = false;
+            return turned_off;
+        }
     };
 
     struct OrientSettings
@@ -738,6 +758,10 @@ private:
 #endif
     unsigned int m_last_w, m_last_h;
     bool m_in_render;
+    // Set only during render_and_capture(): the frame is read back into it before the swap.
+    wxImage* m_frame_capture{ nullptr };
+    // Frames presented so far; see presented_frames().
+    uint64_t m_presented_frames{ 0 };
     // How many canvases are inside _render_frame() right now - see is_frame_in_progress().
     static int s_frames_in_progress;
     wxTimer m_timer;
@@ -954,6 +978,9 @@ public:
 
     void load_arrange_settings();
     ArrangeSettings& get_arrange_settings();
+    // Saves the current print mode's spacing, rotation and material rule to the app config under the
+    // keys the Arrange options panel writes, for settings changed outside the panel.
+    void store_arrange_settings();
 
     class SequentialPrintClearance
     {
@@ -1022,6 +1049,7 @@ public:
 #endif // ENABLE_SHOW_CAMERA_TARGET
     GLModel m_background;
     unsigned int m_fxaa_texture_id{ 0 };
+    unsigned int m_fxaa_framebuffer_id{ 0 };
     std::array<unsigned int, 2> m_fxaa_texture_size{ 0, 0 };
     unsigned int m_ssao_color_texture_id{ 0 };
     unsigned int m_ssao_depth_texture_id{ 0 };
@@ -1110,6 +1138,9 @@ private:
 public:
     //BBS
     GCodeViewer& get_gcode_viewer() { return m_gcode_viewer; }
+    // Hands the layers and moves sliders' positions to the toolpaths, which otherwise take them when the canvas next
+    // draws. Returns whether either slider had moved.
+    bool apply_gcode_sliders();
     void init_gcode_viewer(ConfigOptionMode mode, Slic3r::PresetBundle* preset_bundle) { m_gcode_viewer.init(mode, preset_bundle); }
     void reset_gcode_toolpaths() { _set_shown_canvas_current(); m_gcode_viewer.reset(); }
     const GCodeViewer::SequentialView& get_gcode_sequential_view() const { return m_gcode_viewer.get_sequential_view(); }
@@ -1135,6 +1166,7 @@ public:
 
     const GLGizmosManager& get_gizmos_manager() const { return m_gizmos; }
     GLGizmosManager& get_gizmos_manager() { return m_gizmos; }
+    GLToolbar& get_main_toolbar() { return m_main_toolbar; }
 
     void bed_shape_changed();
 
@@ -1171,6 +1203,7 @@ public:
     void share_section_view(const GLCanvas3D& owner) { m_section_view = owner.m_section_view; }
 
     void toggle_world_axes_visibility(bool force_show = false);
+    bool are_world_axes_shown() const { return m_show_world_axes; }
     void refresh_camera_scene_box();
     void set_color_by(const std::string& value);
 
@@ -1264,6 +1297,14 @@ public:
     bool has_mouse_capture() const;
 
     void render(bool only_init = false);
+    // Draws a full frame now and copies it, as presented (scene, toolpaths, toolbars and ImGui
+    // overlays), into `out` at the canvas's pixel size, after any extra frames a change asked for to
+    // settle. Used by automation screenshots. Fails with `err` when the canvas is hidden, not
+    // drawable, or already inside a frame (a dialog opened from one of its panels). UI thread.
+    bool render_and_capture(wxImage& out, std::string& err);
+    // How many frames this canvas has presented. While it stays the same, the frame on screen is the last
+    // one presented, so a recording can reuse its capture of it instead of drawing another.
+    uint64_t presented_frames() const { return m_presented_frames; }
     bool is_rendering_enabled()
     {
         return m_enable_render;
@@ -1358,6 +1399,9 @@ public:
     void reset_gcode_layers_times_cache() { m_gcode_layers_times_cache.clear(); }
     void set_volumes_z_range(const std::array<double, 2>& range) { m_volumes.set_range(range[0] - 1e-6, range[1] + 1e-6); }
     size_t get_gcode_extruders_count() { return m_gcode_viewer.get_extruders_count(); }
+    // Hands the layer slider's tick edits, if any, to the plater (EVT_CUSTOMEVT_TICKSCHANGED), which writes
+    // them into the plate's custom G-codes. Each Preview frame calls it; so does MCP after editing ticks.
+    void send_layer_ticks_changes();
 
     std::vector<int> load_object(const ModelObject& model_object, int obj_idx, std::vector<int> instance_idxs);
     std::vector<int> load_object(const Model& model, int obj_idx);
@@ -1400,6 +1444,11 @@ public:
     void on_set_color_timer(wxTimerEvent& evt);
     void on_fps_overlay_timer(wxTimerEvent& evt);
     void on_mouse(wxMouseEvent& evt);
+    // A click on a plate or one of its icons, by its bed picking id, as on_mouse() does it for the one
+    // under the pointer (MCP calls it for an icon it names): a left click selects the plate or runs the
+    // icon; a right click selects the plate, then opens the plate menu unless the icon opened its own.
+    // `logical_pos` is where the plate menu opens. The caller checks what on_mouse() checks first.
+    void click_plate(int picking_id, bool right_click, const Vec2d& logical_pos);
     void on_gesture(wxGestureEvent& evt);
     void on_paint(wxPaintEvent& evt);
     void on_set_focus(wxFocusEvent& evt);
@@ -1572,7 +1621,7 @@ public:
     void _perform_layer_editing_action(wxMouseEvent* evt = nullptr);
     // Orca: hands the variable layer height tool the selected objects and the one to show. While
     // rendering, it also frees the textures of the objects no longer selected.
-    void _update_layers_editing_objects(bool rendering);
+    void _update_layers_editing_objects(bool rendering, int hover_object_idx = -1);
 
     // Convert the screen space coordinate to an object space coordinate.
     // If the Z screen space coordinate is not provided, a depth buffer value is substituted.
@@ -1586,6 +1635,10 @@ private:
     bool _is_shown_on_screen() const;
 
     void _update_slice_error_status();
+
+    // Picks what the variable layer height actions edit: the open panel's objects, else the selected
+    // object. False when there is none.
+    bool _select_layers_editing_object();
 
     void _switch_toolbars_icon_filename();
     bool _init_toolbars();

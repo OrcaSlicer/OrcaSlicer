@@ -65,6 +65,16 @@ TEST_CASE("KeyChord::parse accepts aliases and rejects malformed text", "[Shortc
     CHECK_FALSE(KeyChord::parse("Shift+/").has_value());   // Shift is part of the punctuation character
 }
 
+TEST_CASE("KeyChord::parse_modifier names one modifier as chords spell it", "[Shortcuts]")
+{
+    CHECK(KeyChord::parse_modifier("ctrl") == wxMOD_CONTROL);
+    CHECK(KeyChord::parse_modifier("cmd") == wxMOD_CONTROL);
+    CHECK(KeyChord::parse_modifier("rawctrl") == wxMOD_RAW_CONTROL);
+    CHECK(KeyChord::parse_modifier("Option") == wxMOD_ALT);
+    CHECK(KeyChord::parse_modifier("Meta") == wxMOD_NONE);
+    CHECK(KeyChord::parse_modifier("") == wxMOD_NONE);
+}
+
 TEST_CASE("Key events normalize to the key-down key codes", "[Shortcuts]")
 {
     CHECK(KeyChord::from_event(key_event(wxEVT_KEY_DOWN, 'A', wxMOD_CONTROL)) == KeyChord{ 'A', wxMOD_CONTROL });
@@ -225,6 +235,15 @@ TEST_CASE("Every shortcut is listed under the section of its table row", "[Short
     CHECK(shortcut_section(Shortcut::KeyboardShortcuts) == ShortcutSection::Application);
     CHECK(shortcut_section(Shortcut::Quit) == ShortcutSection::Application);
     CHECK(std::string(section_name(ShortcutSection::SlicingAndPrinting)) == "Slicing and printing");
+}
+
+TEST_CASE("Run Script toggles from anywhere with Ctrl+Shift+T", "[Shortcuts]")
+{
+    const ShortcutInfo& info = shortcut_info(Shortcut::ToggleRunScript);
+    CHECK(std::string(info.key) == "toggle_run_script");
+    CHECK(info.contexts == context_bit(ShortcutContext::Global));
+    CHECK(info.default_chord == KeyChord{'T', wxMOD_CONTROL | wxMOD_SHIFT});
+    CHECK(shortcut_section(Shortcut::ToggleRunScript) == ShortcutSection::Application);
 }
 
 TEST_CASE("Default bindings never collide inside a context", "[Shortcuts]")

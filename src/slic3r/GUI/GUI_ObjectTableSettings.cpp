@@ -29,6 +29,7 @@
 #include "slic3r/GUI/Field.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include <boost/any.hpp>
+#include <boost/format.hpp>
 #include <wx/sizer.h>
 #include <wx/wupdlock.h>
 
@@ -267,7 +268,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
             Option option = optgroup->get_option(opt.name);
             option.opt.width = Field::def_width_wider(); // ORCA match parameter box width
             if (is_extruders_cat)
-                option.opt.max = wxGetApp().extruders_edited_cnt();
+                option.opt.max = wxGetApp().filaments_cnt();
             optgroup->append_single_option_line(option);
 
             if (!opt.label.empty()) {

@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <array>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <cassert>
 #include <cfloat>
 #include <utility>
@@ -1384,7 +1385,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // Orca: used_filaments and objects() still describe the previous model. The check after the
     // region update normalizes this copy again by the current ones.
     DynamicPrintConfig unnormalized_config = new_full_config;
-    t_config_option_keys changed_keys = new_full_config.normalize_fdm_2(objects().size(), used_filaments.size());
+    t_config_option_keys changed_keys = new_full_config.normalize_fdm_2(num_object_instances(), used_filaments.size());
     if (changed_keys.size() > 0) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", got changed_keys, size=%1%")%changed_keys.size();
         for (int i = 0; i < changed_keys.size(); i++)
@@ -1425,6 +1426,30 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         }
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", has_scarf_joint_seam:" << has_scarf_joint_seam;
+    }
+
+    // A plate's filament maps can be longer than the filament list after a printer switch removes filaments.
+    if (const auto* diameter_opt = new_full_config.option<ConfigOptionFloats>("filament_diameter"); diameter_opt && !diameter_opt->values.empty())
+        for (const char* key : {"filament_map", "filament_volume_map", "filament_nozzle_map"})
+            if (auto* map_opt = new_full_config.option<ConfigOptionInts>(key); map_opt && map_opt->values.size() > diameter_opt->values.size())
+                map_opt->values.resize(diameter_opt->values.size());
+
+    // A value outside [1, nozzle count] means nozzle 1. Normalize it here so the slicing engine
+    // (Extruder::extruder_id(), the machine envelope, the variant expansion and the snapshot below)
+    // only sees in-range values. This works on this print's copy of the config; readers of the
+    // plate/project config are not changed.
+    if (auto* filament_map_opt = new_full_config.option<ConfigOptionInts>("filament_map")) {
+        const auto* nozzle_diameter_opt = new_full_config.option<ConfigOptionFloats>("nozzle_diameter");
+        const int   nozzle_count        = nozzle_diameter_opt ? std::max(1, static_cast<int>(nozzle_diameter_opt->values.size())) : 1;
+        bool        out_of_range        = false;
+        for (int& nozzle : filament_map_opt->values)
+            if (nozzle < 1 || nozzle > nozzle_count) {
+                nozzle       = 1;
+                out_of_range = true;
+            }
+        if (out_of_range)
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": filament_map names a nozzle outside 1.." << nozzle_count
+                                     << ", using nozzle 1 for those filaments";
     }
 
     //apply extruder related values
@@ -2245,7 +2270,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     //BBS: check the config again
     int new_used_filaments = this->extruders(true).size();
-    t_config_option_keys new_changed_keys = unnormalized_config.normalize_fdm_2(objects().size(), new_used_filaments);
+    t_config_option_keys new_changed_keys = unnormalized_config.normalize_fdm_2(num_object_instances(), new_used_filaments);
     // Compare both passes with what was applied above, so a key disabled there can be enabled again.
     append(new_changed_keys, changed_keys);
     new_changed_keys.erase(std::remove_if(new_changed_keys.begin(), new_changed_keys.end(), [&](const std::string &key) {
