@@ -670,6 +670,13 @@ void MixedFilamentDialog::build_ui()
 
     Layout();
     CentreOnParent();
+
+    // Refit once shown, the first fit can be clipped on GTK
+    CallAfter([this] {
+        Fit();
+        CentreOnParent();
+        fit_within_display();
+    });
 }
 
 wxBoxSizer* MixedFilamentDialog::create_preview_panel()
