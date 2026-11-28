@@ -120,6 +120,7 @@ set(lisbslic3r_sources
     CustomGCode.hpp
     CutUtils.cpp
     CutUtils.hpp
+    DropOldestQueue.hpp
     EdgeGrid.cpp
     EdgeGrid.hpp
     ElephantFootCompensation.cpp
@@ -245,6 +246,7 @@ set(lisbslic3r_sources
     Format/svg.hpp
     Format/ZipperArchiveImport.cpp
     Format/ZipperArchiveImport.hpp
+    FramePacer.hpp
     GCode/AdaptivePAInterpolator.cpp
     GCode/AdaptivePAInterpolator.hpp
     GCode/AdaptivePAProcessor.cpp
