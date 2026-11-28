@@ -10582,51 +10582,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         }
     }
 
-    if (load_config) {
-        DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-        if (dev) {
-            MachineObject *obj = dev->get_selected_machine();
-            if (obj && obj->is_info_ready()) {
-                if (obj->GetExtderSystem()->GetTotalExtderCount() > 0) {
-                    PresetBundle *preset_bundle  = wxGetApp().preset_bundle;
-                    Preset       &printer_preset = preset_bundle->printers.get_selected_preset();
-
-                    double              preset_nozzle_diameter = 0.4;
-                    const ConfigOption *opt                    = printer_preset.config.option("nozzle_diameter");
-                    if (opt) preset_nozzle_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
-
-                    std::string machine_type = obj->printer_type;
-                    if (obj->is_support_upgrade_kit && obj->installed_upgrade_kit) machine_type = "C12";
-
-                    bool nozzle_mismatch = !obj->GetExtderSystem()->NozzleDiameterMatchesOrUnknown(0, (float) preset_nozzle_diameter);
-                    if (printer_preset.get_current_printer_type(preset_bundle) != machine_type || nozzle_mismatch) {
-                        Preset *machine_preset = get_printer_preset(obj);
-                        if (machine_preset != nullptr) {
-                            std::string printer_model = machine_preset->config.option<ConfigOptionString>("printer_model")->value;
-                            bool sync_printer_info = false;
-                            if (!wxGetApp().app_config->has("sync_after_load_file_show_flag")) {
-                                wxString tips = from_u8((boost::format(_u8L("Connected printer is %s. It must match the project preset for printing.\n")) % printer_model).str());
-
-                                tips += _L("Do you want to sync the printer information and automatically switch the preset?");
-                                TipsDialog dlg(wxGetApp().mainframe, _L("Tips"), tips, "sync_after_load_file_show_flag", wxYES_NO);
-                                if (dlg.ShowModal() == wxID_YES) { sync_printer_info = true; }
-                            }
-                            else {
-                                sync_printer_info = wxGetApp().app_config->get("sync_after_load_file_show_flag") == "true";
-                            }
-                            if (sync_printer_info) {
-                                Tab *printer_tab = GUI::wxGetApp().get_tab(Preset::Type::TYPE_PRINTER);
-                                printer_tab->select_preset(machine_preset->name);
-                                if (obj->is_multi_extruders()) GUI::wxGetApp().sidebar().sync_extruder_list();
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
     //BBS: translate old 3mf to correct positions
     if (translate_old) {
         //translate the objects
@@ -10690,6 +10645,51 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         //always set to 3D after loading files
         q->select_view_3D("3D");
         wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    }
+
+    // Skips sliced files, whose G-code is for the printer they were sliced with.
+    if (load_config && !q->m_exported_file) {
+        DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+        if (dev) {
+            MachineObject *obj = dev->get_selected_machine();
+            if (obj && obj->is_info_ready()) {
+                if (obj->GetExtderSystem()->GetTotalExtderCount() > 0) {
+                    PresetBundle *preset_bundle  = wxGetApp().preset_bundle;
+                    Preset       &printer_preset = preset_bundle->printers.get_selected_preset();
+
+                    double              preset_nozzle_diameter = 0.4;
+                    const ConfigOption *opt                    = printer_preset.config.option("nozzle_diameter");
+                    if (opt) preset_nozzle_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
+
+                    std::string machine_type = obj->printer_type;
+                    if (obj->is_support_upgrade_kit && obj->installed_upgrade_kit) machine_type = "C12";
+
+                    bool nozzle_mismatch = !obj->GetExtderSystem()->NozzleDiameterMatchesOrUnknown(0, (float) preset_nozzle_diameter);
+                    if (printer_preset.get_current_printer_type(preset_bundle) != machine_type || nozzle_mismatch) {
+                        Preset *machine_preset = get_printer_preset(obj);
+                        if (machine_preset != nullptr) {
+                            std::string printer_model = machine_preset->config.option<ConfigOptionString>("printer_model")->value;
+                            bool sync_printer_info = false;
+                            if (!wxGetApp().app_config->has("sync_after_load_file_show_flag")) {
+                                wxString tips = from_u8((boost::format(_u8L("Connected printer is %s. It must match the project preset for printing.\n")) % printer_model).str());
+
+                                tips += _L("Do you want to sync the printer information and automatically switch the preset?");
+                                TipsDialog dlg(wxGetApp().mainframe, _L("Tips"), tips, "sync_after_load_file_show_flag", wxYES_NO);
+                                if (dlg.ShowModal() == wxID_YES) { sync_printer_info = true; }
+                            }
+                            else {
+                                sync_printer_info = wxGetApp().app_config->get("sync_after_load_file_show_flag") == "true";
+                            }
+                            if (sync_printer_info) {
+                                Tab *printer_tab = GUI::wxGetApp().get_tab(Preset::Type::TYPE_PRINTER);
+                                printer_tab->select_preset(machine_preset->name);
+                                if (obj->is_multi_extruders()) GUI::wxGetApp().sidebar().sync_extruder_list();
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (load_model) {
