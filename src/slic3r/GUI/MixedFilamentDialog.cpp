@@ -299,6 +299,7 @@ void MixedFilamentDialog::append_material_row()
 
     auto* combo = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                wxSize(FromDIP(166), FromDIP(24)), 0, nullptr, wxCB_READONLY);
+    combo->EnableTypeToFilter();
     combo->SetKeepDropArrow(true);
     // Named so that automation finds each component's selector (widget_set_value {"target": {"name": "filament_1"}}),
     // as it finds the gradient controls below.

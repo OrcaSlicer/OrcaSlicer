@@ -103,11 +103,8 @@ void ExtrusionCalibration::create()
     auto filament_sel_text = new wxStaticText(m_step_1_panel, wxID_ANY, _L("Filament"), wxDefaultPosition, wxDefaultSize, 0);
     select_sizer->Add(filament_sel_text, 0, wxALIGN_LEFT);
     select_sizer->AddSpacer(FromDIP(4));
-#ifdef __APPLE__
-    m_comboBox_filament = new wxComboBox(m_step_1_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, EXTRUSION_CALIBRATION_BED_COMBOX, 0, nullptr, wxCB_READONLY);
-#else
     m_comboBox_filament = new ComboBox(m_step_1_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, EXTRUSION_CALIBRATION_BED_COMBOX, 0, nullptr, wxCB_READONLY);
-#endif
+    m_comboBox_filament->EnableTypeToFilter();
     select_sizer->Add(m_comboBox_filament, 0, wxEXPAND);
     select_sizer->Add(0, EXTRUSION_CALIBRATION_WIDGET_GAP, 0, 0);
 
