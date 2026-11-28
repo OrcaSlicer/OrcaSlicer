@@ -14,6 +14,12 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Utils.hpp"
+#include <boost/filesystem/path.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
+#include <tuple>
 
 using namespace Slic3r;
 
@@ -200,4 +206,55 @@ TEST_CASE("PA pattern extrudes with the diameter and flow ratio of its test fila
     // Same lines, so the feed scales with the flow ratio over the filament cross-section.
     const double expected = (1.75 * 1.75) / (2.85 * 2.85) * 0.9;
     REQUIRE_THAT(second / first, Catch::Matchers::WithinRel(expected, 0.005));
+}
+
+TEST_CASE("Ironing flow marks use the smallest step that keeps them 10 mm apart", "[Calib]")
+{
+    // min flow, max flow, band length, expected step (0 when even 20% marks are closer than 10 mm)
+    const auto [min_flow, max_flow, length, step] = GENERATE(table<double, double, double, double>({
+        {10., 60., 100., 5.},
+        {0., 10., 100., 1.},
+        {0., 100., 100., 10.},
+        {0., 100., 50., 20.},
+        {0., 100., 40., 0.},
+    }));
+    CAPTURE(min_flow, max_flow, length);
+    CHECK_THAT(ironing_flow_calib_mark_step(min_flow, max_flow, length), Catch::Matchers::WithinAbs(step, 1e-9));
+}
+
+TEST_CASE("Ironing flow test meshes are a closed strip on a closed base, with closed labels on the base in front", "[Calib]")
+{
+    // The text needs the font in resources/fonts.
+    const std::string previous = resources_dir();
+    set_resources_dir(boost::filesystem::path(PROFILES_DIR).parent_path().string());
+
+    const double length  = 100.;
+    const double base_z  = 0.32;
+    const double marks_z = 0.56;
+    const double top_z   = 0.68;
+    const IroningFlowCalibMeshes meshes = ironing_flow_calib_meshes(10., 60., length, "Generic PLA", 0.4, base_z, marks_z, top_z);
+    set_resources_dir(previous);
+
+    // The band plus 5 mm at each end, on top of the base.
+    const BoundingBoxf3 strip = bounding_box(meshes.strip);
+    CHECK_THAT(strip.size().x(), Catch::Matchers::WithinAbs(length + 10., 1e-3));
+    CHECK_THAT(strip.min.z(), Catch::Matchers::WithinAbs(base_z, 1e-6));
+    CHECK_THAT(strip.max.z(), Catch::Matchers::WithinAbs(top_z, 1e-6));
+    CHECK(its_num_open_edges(meshes.strip) == 0);
+
+    // The base lies under the strip and reaches in front of it, under the labels.
+    const BoundingBoxf3 base = bounding_box(meshes.base);
+    CHECK_THAT(base.min.z(), Catch::Matchers::WithinAbs(0., 1e-6));
+    CHECK_THAT(base.max.z(), Catch::Matchers::WithinAbs(base_z, 1e-6));
+    CHECK_THAT(base.max.y(), Catch::Matchers::WithinAbs(strip.max.y(), 1e-6));
+    CHECK(its_num_open_edges(meshes.base) == 0);
+
+    // The marks and the name lie on the base, in front of the band.
+    const BoundingBoxf3 labels = bounding_box(meshes.labels);
+    CHECK_THAT(labels.min.z(), Catch::Matchers::WithinAbs(base_z, 1e-6));
+    CHECK_THAT(labels.max.z(), Catch::Matchers::WithinAbs(marks_z, 1e-6));
+    CHECK(labels.max.y() <= 1e-6);
+    CHECK(labels.min.y() < -10.);
+    CHECK(labels.min.y() > base.min.y());
+    CHECK(its_num_open_edges(meshes.labels) == 0);
 }

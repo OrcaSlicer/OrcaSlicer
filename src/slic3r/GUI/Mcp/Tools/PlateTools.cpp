@@ -1684,6 +1684,7 @@ void register_plate_tools(CommandCatalog& catalog)
         {"calib_input_shaping_damp", L("Input Shaping Damping Calibration"), "param_resonance_avoidance", "input_shaping_damp",
          CalibKind::InputShapingDamp},
         {"calib_vfa", L("VFA Calibration"), "param_speed", "vfa", CalibKind::VFA},
+        {"calib_ironing_flow", L("Ironing Flow Calibration"), "param_ironing", "ironing_flow", CalibKind::IroningFlow},
     };
     calibration.actions = json::array();
     for (const CalibrationMenuItem& item : calibration_menu_items)
