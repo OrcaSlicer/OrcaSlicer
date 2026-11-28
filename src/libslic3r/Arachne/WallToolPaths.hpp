@@ -41,7 +41,7 @@ public:
     coord_t wall_maximum_deviation  = meshfix_maximum_deviation();
 };
 
-WallToolPathsParams make_paths_params(const int layer_id, const PrintObjectConfig &print_object_config, const PrintConfig &print_config);
+WallToolPathsParams make_paths_params(const int layer_id, const PrintObjectConfig &print_object_config, double nozzle_diameter);
 
 class WallToolPaths
 {

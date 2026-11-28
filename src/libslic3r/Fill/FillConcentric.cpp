@@ -6,6 +6,7 @@
 
 #include "FillConcentric.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/Flow.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
 #include "FillCornerSmoothing.hpp"
@@ -131,13 +132,13 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
         coord_t                loops_count = std::max(bbox_size.x(), bbox_size.y()) / min_spacing + 1;
         Polygons               polygons = offset(expolygon, float(min_spacing) / 2.f);
 
-        double min_nozzle_diameter = *std::min_element(print_config->nozzle_diameter.values.begin(), print_config->nozzle_diameter.values.end());
+        const double nozzle_diameter = params.flow.nozzle_diameter();
         Arachne::WallToolPathsParams input_params;
-        input_params.min_bead_width = 0.85 * min_nozzle_diameter;
-        input_params.min_feature_size = 0.25 * min_nozzle_diameter;
-        input_params.wall_transition_length = 1.0 * min_nozzle_diameter;
+        input_params.min_bead_width = 0.85 * nozzle_diameter;
+        input_params.min_feature_size = 0.25 * nozzle_diameter;
+        input_params.wall_transition_length = 1.0 * nozzle_diameter;
         input_params.wall_transition_angle = 10;
-        input_params.wall_transition_filter_deviation = 0.25 * min_nozzle_diameter;
+        input_params.wall_transition_filter_deviation = 0.25 * nozzle_diameter;
         input_params.wall_distribution_count = 1;
 
         Arachne::WallToolPaths wallToolPaths(polygons, min_spacing, min_spacing, loops_count, 0, params.layer_height, input_params);
