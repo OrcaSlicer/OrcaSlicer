@@ -1,4 +1,5 @@
 #include "Preferences.hpp"
+#include "ToolbarCustomizeDialog.hpp"
 #include "slic3r/plugin/host/PluginPages.hpp"
 #include "CloudProvider.hpp"
 #include "ColorPickerDialog.hpp"
@@ -2287,7 +2288,11 @@ wxBoxSizer* PreferencesDialog::create_own_row(wxFlexGridSizer* g_sizer, const Op
 
 void PreferencesDialog::add_rows_after(wxFlexGridSizer* g_sizer, const Ops::Preference& p, wxBoxSizer* row)
 {
-    if (p.key == "enable_cad_feature") {
+    if (p.key == "enable_high_low_temp_mixed_printing") {
+        auto item_customize_toolbar = create_item_button(_L("Toolbar"), _L("Customize"), "",
+            _L("Choose which toolbar icons are shown and in what order."), [this]() { show_toolbar_customize_dialog(this); });
+        g_sizer->Add(item_customize_toolbar);
+    } else if (p.key == "enable_cad_feature") {
         // The checkbox is the saved preference; --cad turns the feature on for this run without changing it.
         if (wxGetApp().cad_feature_set_for_run())
             row->Add(run_override_label(m_parent), 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));

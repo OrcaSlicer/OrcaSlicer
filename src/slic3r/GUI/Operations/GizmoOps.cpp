@@ -268,6 +268,8 @@ void close_open_gizmo()
         canvas.reset_all_gizmos();
 }
 
+// A gizmo hidden in View > Customize Toolbar still opens, as its keyboard shortcut opens it: hiding takes the icon off
+// the bar, not the gizmo away.
 Outcome<OpenedGizmo> open_gizmo(const OpenGizmoArgs& args)
 {
     assert(wxThread::IsMain());

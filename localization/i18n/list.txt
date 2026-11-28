@@ -400,6 +400,7 @@ src/slic3r/GUI/TerminalDialog.cpp
 src/slic3r/GUI/TextureImportDialog.cpp
 src/slic3r/GUI/TextureLibrary.cpp
 src/slic3r/GUI/TextureProjectorFrame.cpp
+src/slic3r/GUI/ToolbarCustomizeDialog.cpp
 src/slic3r/GUI/UVEditorCanvas.cpp
 src/slic3r/GUI/UserManager.cpp
 src/slic3r/GUI/WebViewDialog.cpp

@@ -1,4 +1,5 @@
 #include "MainFrame.hpp"
+#include "ToolbarCustomizeDialog.hpp"
 #include "slic3r/plugin/host/PluginPages.hpp"
 
 #include <wx/event.h>
@@ -3712,6 +3713,11 @@ void MainFrame::init_menubar_as_editor()
                 return panel != nullptr && panel->on_screen();
             },
             this);
+
+        append_menu_item(
+            viewMenu, wxID_ANY, _L("Customize Toolbar..."), _L("Choose which toolbar icons are shown and in what order."),
+            [this](wxCommandEvent&) { show_toolbar_customize_dialog(this); }, "", this,
+            [this]() { return m_plater != nullptr && m_plater->is_view3D_shown(); }, this);
 
         append_menu_item(
             viewMenu, wxID_ANY, _L("Reset Window Layout"), _L("Reset to default window layout"),

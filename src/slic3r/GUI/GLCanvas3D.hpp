@@ -476,6 +476,7 @@ class GLCanvas3D
         bool ignore_right_up{ false };
         // ORCA a button was pressed on toolbar empty areas, swallow events until it is released
         bool down_on_toolbar{ false };
+        bool menu_armed{ false }; // a right press on the top toolbars, whose release opens their menu
 
         // Orca: The screen-space start and world-space anchor describe the same pan session.
         // Invalidating one must invalidate the other so a new drag cannot reuse stale depth.
@@ -1282,7 +1283,8 @@ public:
     float get_assemble_view_toolbar_width() const { return m_assemble_view_toolbar.get_width(); }
     float get_assemble_view_toolbar_height() const { return m_assemble_view_toolbar.get_height(); }
     float get_assembly_paint_toolbar_width() const { return m_paint_toolbar_width; }
-    float get_separator_toolbar_width() const { return m_separator_toolbar.get_width(); }
+    // Half the separator toolbar follows each bar that shows icons: left the main toolbar, right the gizmo bar.
+    float get_separator_toolbar_width(bool left) const;
     float get_separator_toolbar_height() const { return m_separator_toolbar.get_height(); }
     bool  is_collapse_toolbar_on_left() const;
     float get_collapse_toolbar_width() const;
@@ -1438,6 +1440,11 @@ public:
     void apply_selection_rotate(double angle_z_rad);
     void finish_selection_edit();
     void update_shortcut_tooltips();
+    // Rebuilds the Prepare canvas's main toolbar and gizmo bar from the saved toolbar layout.
+    void apply_toolbar_layout();
+    void close_toolbar_group_lists();
+    // The stock visibility rule of a toolbar item or gizmo id, ignoring the user's layout.
+    bool is_toolbar_item_available(const std::string& id) const;
     void on_mouse_wheel(wxMouseEvent& evt);
     void on_timer(wxTimerEvent& evt);
     void on_render_timer(wxTimerEvent& evt);
@@ -1552,7 +1559,7 @@ public:
     FrameProfiler& get_frame_profiler() { return m_frame_profiler; }
 
     int get_main_toolbar_item_id(const std::string& name) const { return m_main_toolbar.get_item_id(name); }
-    void force_main_toolbar_left_action(int item_id) { m_main_toolbar.force_left_action(item_id, *this); }
+    void force_main_toolbar_left_action(int item_id);
     void force_main_toolbar_right_action(int item_id) { m_main_toolbar.force_right_action(item_id, *this); }
 
     bool has_toolpaths_to_export() const { return m_gcode_viewer.can_export_toolpaths(); }
@@ -1752,6 +1759,7 @@ private:
     void _render_volumes_for_picking(const Camera& camera) const;
     void _render_current_gizmo() const;
     void _render_gizmos_overlay();
+    void _place_main_toolbar();
     void _render_main_toolbar();
     void _render_imgui_select_plate_toolbar();
     // Prepare: picks the plate to show while the inactive ones are hidden.
