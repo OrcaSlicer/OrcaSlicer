@@ -763,7 +763,11 @@ void PrintObject::prepare_infill()
     bool needs_separated_components = false;
     for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
         const PrintRegionConfig &rc = this->printing_region(i).config();
-        if (rc.separated_infills || rc.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model ||
+        const bool has_hilbert      = rc.sparse_infill_pattern.value == ipHilbertCurve || 
+                                      rc.internal_solid_infill_pattern.value == ipHilbertCurve ||
+                                      rc.top_surface_pattern.value == ipHilbertCurve ||
+                                      rc.bottom_surface_pattern.value == ipHilbertCurve;
+        if (has_hilbert || rc.separated_infills || rc.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model ||
             (rc.sparse_infill_density > 0 && is_octree_infill_pattern(rc.sparse_infill_pattern))) {
             needs_separated_components = true;
             break;
@@ -3965,8 +3969,10 @@ void PrintObject::bridge_over_infill()
                             if (&lower_region->region() != &candidate.region->region() ||
                                 intersection(area_to_be_bridge, to_polygons(lower_region->fill_surfaces.filter_by_type(stInternal))).empty())
                                 continue;
-                            bridging_angle = calculate_infill_rotation_angle(po, layer->lower_layer->id(), region_config.infill_direction.value,
-                                                                            region_config.sparse_infill_rotate_template.value) + 0.5 * PI;
+                            bridging_angle = calculate_infill_rotation_angle(po, layer->lower_layer->id(), 
+                                                                             !region_config.sparse_infill_rotate_template.value.empty() ?
+                                                                                 0. : region_config.infill_direction.value,
+                                                                             region_config.sparse_infill_rotate_template.value) + 0.5 * PI;
                             // Orca: Apply model alignment as infill generation does, then normalize
                             // the undirected bridge angle to [0, PI), including negative rotations.
                             if (region_config.align_infill_direction_to_model) {

@@ -847,11 +847,12 @@ TEST_CASE("Infill rotation template range can be a height in mm, cm, m, feet, in
         {"+90/0.2cm", turn_9_per_layer},
         {"+90/0.002m", turn_9_per_layer},
         {"+90/50%", turn_9_per_layer},
-        // 0.01' is 3.048mm and 0.1" is 2.54mm, which do not end on a layer.
+        // 0.01' is 3.048mm and 0.1" is 2.54mm, which do not end on a layer. The layer that crosses the end
+        // of a range stops at 90, and the next range starts at the exact height.
         {"+90/0.01'", {5.91, 11.81, 17.72, 23.62, 29.53, 35.43, 41.34, 47.24, 53.15, 59.06,
-                       64.96, 70.87, 76.77, 82.68, 88.58, 95.91, 101.81, 107.72, 113.62, 119.53}},
+                       64.96, 70.87, 76.77, 82.68, 88.58, 90, 100.39, 106.30, 112.20, 118.11}},
         {"+90/0.1\"", {7.09, 14.17, 21.26, 28.35, 35.43, 42.52, 49.61, 56.69, 63.78, 70.87,
-                       77.95, 85.04, 92.13, 97.09, 104.17, 111.26, 118.35, 125.43, 132.52, 139.61}},
+                       77.95, 85.04, 90, 99.21, 106.30, 113.39, 120.47, 127.56, 134.65, 141.73}},
     }));
     check_rotate_template(rotate_template, expected);
 }
@@ -884,10 +885,10 @@ TEST_CASE("Infill rotation template B and T counts take the bottom and top shell
     check_rotate_template(rotate_template, expected);
 }
 
-TEST_CASE("Infill rotation template range that would end above the object is squeezed into the layers left", "[Fill][RotateTemplate]")
+TEST_CASE("Infill rotation template range that would end above the object keeps its step in the layers left", "[Fill][RotateTemplate]")
 {
-    // Turns 30 degrees over every 3 layers, and the full 30 over the 2 layers left at the top.
-    check_rotate_template("+10B", {10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 195, 210});
+    // Turns 30 degrees over every 3 layers, and 10 degrees per layer over the 2 layers left at the top.
+    check_rotate_template("+10B", {10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200});
 }
 
 TEST_CASE("Infill rotation template star count repeats an instruction", "[Fill][RotateTemplate]")
@@ -912,6 +913,190 @@ TEST_CASE("Infill rotation template exclamation mark runs an instruction once", 
         {"0!, +10, +20", {0, 10, 30, 40, 60, 70, 90, 100, 120, 130, 150, 160, 180, 190, 210, 220, 240, 250, 270, 280}},
     }));
     check_rotate_template(rotate_template, expected);
+}
+
+TEST_CASE("Infill rotation template underscore sets a negative absolute angle", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        {"_45", std::vector<double>(20, -45.)},
+        {"A_45", std::vector<double>(20, -45.)},
+        {"_45!, +10", {-45, -35, -25, -15, -5, 5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 105, 115, 125, 135, 145}},
+    }));
+    check_rotate_template(rotate_template, expected);
+}
+
+TEST_CASE("Infill rotation template fraction is a share of a half turn or of a full turn with a percent", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        {"A1:2", std::vector<double>(20, 90.)},
+        {"1:2", std::vector<double>(20, 90.)},
+        {"1:2%", std::vector<double>(20, 180.)},
+        {"A1:8%", std::vector<double>(20, 45.)},
+        {"+1:1", {180, 360, 540, 720, 900, 1080, 1260, 1440, 1620, 1800, 1980, 2160, 2340, 2520, 2700, 2880, 3060, 3240, 3420, 3600}},
+        {"+1:2", {90, 180, 270, 360, 450, 540, 630, 720, 810, 900, 990, 1080, 1170, 1260, 1350, 1440, 1530, 1620, 1710, 1800}},
+        {"+1:5%", {72, 144, 216, 288, 360, 432, 504, 576, 648, 720, 792, 864, 936, 1008, 1080, 1152, 1224, 1296, 1368, 1440}},
+        {"_3:5%", std::vector<double>(20, -216.)},
+        {"+:2", {90, 180, 270, 360, 450, 540, 630, 720, 810, 900, 990, 1080, 1170, 1260, 1350, 1440, 1530, 1620, 1710, 1800}},    }));
+    check_rotate_template(rotate_template, expected);
+}
+
+TEST_CASE("Infill rotation template M, C, O and o joints shape the turn over the range", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        // \ turns the angle like /, it only rounds the multiline count differently.
+        {"+90\\10", turn_9_per_layer},
+        // M holds the middle angle of each range, and | is the same.
+        {"+90M5", {45, 45, 45, 45, 45, 135, 135, 135, 135, 135, 225, 225, 225, 225, 225, 315, 315, 315, 315, 315}},
+        {"+90|5", {45, 45, 45, 45, 45, 135, 135, 135, 135, 135, 225, 225, 225, 225, 225, 315, 315, 315, 315, 315}},
+        // Half of a circle: sqrt(1 - (2x - 1)^2).
+        {"+90C10", {54, 72, 82.49, 88.18, 90, 88.18, 82.49, 72, 54, 0,
+                    144, 162, 172.49, 178.18, 180, 178.18, 172.49, 162, 144, 90}},
+        {"+90C-10", {36, 18, 7.51, 1.82, 0, 1.82, 7.51, 18, 36, 90,
+                     126, 108, 97.51, 91.82, 90, 91.82, 97.51, 108, 126, 180}},
+        // Vertical cosine wave: (cos(2 pi x) + 1) / 2.
+        {"+90O10", {81.40, 58.90, 31.10, 8.60, 0, 8.60, 31.10, 58.90, 81.40, 90,
+                    171.40, 148.90, 121.10, 98.60, 90, 98.60, 121.10, 148.90, 171.40, 180}},
+        // Vertical sine wave: (sin(2 pi x) + 1) / 2.
+        {"+90o10", {71.45, 87.80, 87.80, 71.45, 45, 18.55, 2.20, 2.20, 18.55, 45,
+                    161.45, 177.80, 177.80, 161.45, 135, 108.55, 92.20, 92.20, 108.55, 135}},
+    }));
+    check_rotate_template(rotate_template, expected);
+}
+
+// The infill parameters that a template gives the 20 layers of slice_for_rotate_templates(),
+// for 15% sparse infill of one 0.45mm line.
+static std::vector<InfillParams> rotate_template_params(const std::string &rotate_template)
+{
+    Print print;
+    slice_for_rotate_templates(print, rotate_template_first_layer_height);
+    const PrintObject &object = *print.objects().front();
+    std::vector<InfillParams> params;
+    for (const Layer *layer : object.layers())
+        params.push_back(calculate_infill_position_rad(&object, layer->id(), 0., rotate_template, 15., 1, 0.45));
+    return params;
+}
+
+TEST_CASE("Infill rotation template XY zone places the infill center", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, x, y] = GENERATE(table<std::string, double, double>({
+        {"0X10Y_5", 10., -5.},
+        {"X10X20", 30., 0.},
+        {"0XY3", 3., 3.},
+        {"0X_Y3", 3., -3.},
+        {"0X1:4", 0.25, 0.},
+        {"0X1cm", 10., 0.},
+        {"0X1\"", 25.4, 0.},
+        // 2 line widths.
+        {"0X2&", 0.9, 0.},
+        // 2 infill steps of 0.45mm at 15%.
+        {"0X2@", 6., 0.},
+        // 10% of the 4mm object.
+        {"0X10%", 0.4, 0.},
+    }));
+    CAPTURE(rotate_template);
+    for (const InfillParams &params : rotate_template_params(rotate_template)) {
+        CHECK_THAT(params.shift.x() * SCALING_FACTOR, Catch::Matchers::WithinAbs(x, 0.001));
+        CHECK_THAT(params.shift.y() * SCALING_FACTOR, Catch::Matchers::WithinAbs(y, 0.001));
+    }
+}
+
+TEST_CASE("Infill rotation template relative XY shift moves the infill center over the range", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, x_per_layer, y_per_layer] = GENERATE(table<std::string, double, double>({
+        {"0X+1", 1., 0.},
+        {"0Y-2/10", 0., -0.2},
+    }));
+    CAPTURE(rotate_template);
+    const std::vector<InfillParams> params = rotate_template_params(rotate_template);
+    for (size_t i = 0; i < params.size(); ++i) {
+        CAPTURE(i);
+        CHECK_THAT(params[i].shift.x() * SCALING_FACTOR, Catch::Matchers::WithinAbs(x_per_layer * double(i + 1), 0.001));
+        CHECK_THAT(params[i].shift.y() * SCALING_FACTOR, Catch::Matchers::WithinAbs(y_per_layer * double(i + 1), 0.001));
+    }
+}
+
+TEST_CASE("Infill rotation template D zone sets the sparse infill density", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        {"D25%", std::vector<double>(20, 25.)},
+        {"D0.2", std::vector<double>(20, 20.)},
+        {"D1", std::vector<double>(20, 100.)},
+        // d squares an absolute density.
+        {"d50%", std::vector<double>(20, 25.)},
+        // D changes the density linearly over the range.
+        {"D20%D+40%/10", {24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60}},
+        // d changes the line spacing linearly, so the density follows 1/x.
+        {"D20%d+40%/10", {21.43, 23.08, 25, 27.27, 30, 33.33, 37.5, 42.86, 50, 60,
+                          21.43, 23.08, 25, 27.27, 30, 33.33, 37.5, 42.86, 50, 60}},
+    }));
+    CAPTURE(rotate_template);
+    const std::vector<InfillParams> params = rotate_template_params(rotate_template);
+    REQUIRE(params.size() == expected.size());
+    for (size_t i = 0; i < params.size(); ++i) {
+        CAPTURE(i);
+        CHECK_THAT(params[i].density, Catch::Matchers::WithinAbs(expected[i], 0.01));
+    }
+}
+
+TEST_CASE("Infill rotation template D zone sets the multiline count", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, multiline, density] = GENERATE(table<std::string, int, double>({
+        // D keeps the spacing of one line, so 2 lines double the density.
+        {"D2:", 2, 30.},
+        // d keeps the density.
+        {"d2:", 2, 15.},
+        // 2 lines of every 3.
+        {"D2:3", 2, 66.67},
+    }));
+    CAPTURE(rotate_template);
+    for (const InfillParams &params : rotate_template_params(rotate_template)) {
+        CHECK(params.multiline == multiline);
+        CHECK_THAT(params.density, Catch::Matchers::WithinAbs(density, 0.01));
+    }
+}
+
+TEST_CASE("Infill rotation template rounds a changing multiline count by its joint", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<int>>({
+        // / rounds to the nearest count, \ rounds up and \- rounds down.
+        {"D1:D+1:/10", {1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2}},
+        {"D1:D+1:\\10", {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}},
+        {"D1:D+1:\\-10", {1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2}},
+    }));
+    CAPTURE(rotate_template);
+    const std::vector<InfillParams> params = rotate_template_params(rotate_template);
+    REQUIRE(params.size() == expected.size());
+    for (size_t i = 0; i < params.size(); ++i) {
+        CAPTURE(i);
+        CHECK(params[i].multiline == expected[i]);
+    }
+}
+
+TEST_CASE("Infill rotation template D zone changes the multiline count over the range", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, multiline, density] = GENERATE(table<std::string, std::vector<int>, std::vector<double>>({
+        // D keeps the spacing of one line, so the density grows with the count.
+        {"D+1:/33%", {1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4},
+                     {15, 15, 15, 30, 30, 30, 30, 30, 30, 45, 45, 45, 45, 45, 45, 45, 60, 60, 60, 60}},
+        // d keeps the density.
+        {"d+1:/33%", {1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4}, std::vector<double>(20, 15.)},
+        // The count changes in steps, and the line spacing follows the linear count: 15% * count / linear count.
+        {"D+1:1/33%", {1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4},
+                      {13.03, 11.51, 10.31, 18.68, 17.07, 15.71, 15, 13.56, 12.69, 17.89,
+                       16.88, 15.97, 15.15, 15, 13.75, 13.14, 16.78, 16.10, 15.47, 15}},
+        // No formula, so these are the current values.
+        {"D+1:2/33%", {1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4},
+                      {14.01, 13.26, 12.66, 24.34, 23.53, 22.86, 22.5, 22.5, 22.5, 33.75,
+                       33.75, 33.75, 33.75, 33.75, 35.16, 35.84, 48.62, 49.39, 50.10, 50.63}},
+    }));
+    CAPTURE(rotate_template);
+    const std::vector<InfillParams> params = rotate_template_params(rotate_template);
+    REQUIRE(params.size() == multiline.size());
+    for (size_t i = 0; i < params.size(); ++i) {
+        CAPTURE(i);
+        CHECK(params[i].multiline == multiline[i]);
+        CHECK_THAT(params[i].density, Catch::Matchers::WithinAbs(density[i], 0.01));
+    }
 }
 
 TEST_CASE("Printed infill follows the rotation template and ignores the infill direction", "[Fill][RotateTemplate]")
@@ -2364,6 +2549,25 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
 }
 
+// The farthest point, in mm, of the sparse infill that layer 4 hands to internal bridges as anchors from the printed sparse infill.
+static double max_anchor_distance_from_printed_infill(const Print &print)
+{
+    const Layer &layer = *print.objects().front()->get_layer(4);
+    const Polylines printed = layer_paths(layer, erInternalInfill);
+    REQUIRE_FALSE(printed.empty());
+    const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
+
+    // Orca: Exclude perimeter connections: anchoring and extrusion can trim those differently.
+    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
+                                              shrink(to_polygons(layer.lslices), scale_(3.)));
+    REQUIRE_FALSE(anchors.empty());
+    double max_distance = 0.;
+    for (const Polyline &path : anchors)
+        for (const Point &point : path.equally_spaced_points(scale_(0.25)))
+            max_distance = std::max(max_distance, printed_tree.distance_from_lines<false>(point));
+    return unscale<double>(max_distance);
+}
+
 TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][InternalBridge][Regression]")
 {
     // Orca: Compare generated anchors with actual extrusion across plane-path patterns,
@@ -2407,22 +2611,78 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
     }
     print.process();
 
-    const Layer &layer = *print.objects().front()->get_layer(4);
-    const Polylines printed = layer_paths(layer, erInternalInfill);
-    REQUIRE_FALSE(printed.empty());
-    const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
-
-    // Orca: Exclude perimeter connections: anchoring and extrusion can trim those differently.
-    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
-                                              shrink(to_polygons(layer.lslices), scale_(3.)));
-    REQUIRE_FALSE(anchors.empty());
-    double max_distance = 0.;
-    for (const Polyline &path : anchors)
-        for (const Point &point : path.equally_spaced_points(scale_(0.25)))
-            max_distance = std::max(max_distance, printed_tree.distance_from_lines<false>(point));
     // Orca: Allow only the configured simplification tolerance; infill-scale offsets
     // would hide anchors that no longer coincide with printed lines.
-    CHECK(unscale<double>(max_distance) <= config.opt_float("resolution"));
+    CHECK(max_anchor_distance_from_printed_infill(print) <= config.opt_float("resolution"));
+}
+
+TEST_CASE("Sparse infill anchors follow the XY shift of the rotation template", "[Fill][InternalBridge][Regression]")
+{
+    // The shift moves the printed infill of every pattern, not only the plane-path ones.
+    const std::string pattern = GENERATE("rectilinear", "hilbertcurve", "archimedeanchords");
+    CAPTURE(pattern);
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"sparse_infill_density", "15%"},
+                                   {"sparse_infill_rotate_template", "0X1.3Y0.7"},
+                                   {"top_shell_layers", 0},
+                                   {"bottom_shell_layers", 0},
+                                   {"top_shell_thickness", 0},
+                                   {"bottom_shell_thickness", 0},
+                                   {"layer_height", 0.2},
+                                   {"initial_layer_print_height", 0.2},
+                                   {"resolution", 0.012}});
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({make_cube(30, 24, 1)}, print, model, config, nullptr, false);
+    print.process();
+
+    CHECK(max_anchor_distance_from_printed_infill(print) <= config.opt_float("resolution"));
+}
+
+TEST_CASE("Printed sparse infill moves by the XY shift of the rotation template", "[Fill][RotateTemplate]")
+{
+    const std::string pattern = GENERATE("rectilinear", "archimedeanchords");
+    CAPTURE(pattern);
+    const Point shift = Point::new_scale(1.3, 0.7);
+
+    // The sparse infill of layer 4, at least margin mm away from the walls.
+    auto interior_infill = [&pattern](const std::string &rotate_template, double margin) {
+        auto config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                       {"sparse_infill_density", "15%"},
+                                       {"sparse_infill_rotate_template", rotate_template},
+                                       {"top_shell_layers", 0},
+                                       {"bottom_shell_layers", 0},
+                                       {"top_shell_thickness", 0},
+                                       {"bottom_shell_thickness", 0},
+                                       {"layer_height", 0.2},
+                                       {"initial_layer_print_height", 0.2}});
+        Print print;
+        Model model;
+        Slic3r::Test::init_print({make_cube(30, 24, 1)}, print, model, config, nullptr, false);
+        print.process();
+        const Layer &layer = *print.objects().front()->get_layer(4);
+        return intersection_pl(layer_paths(layer, erInternalInfill), shrink(to_polygons(layer.lslices), scale_(margin)));
+    };
+    // The unshifted infill reaches further, so the shifted infill still lands on it after moving back.
+    const Polylines plain   = interior_infill("0", 1.);
+    const Polylines shifted = interior_infill("0X1.3Y0.7", 3.);
+    REQUIRE_FALSE(plain.empty());
+    REQUIRE_FALSE(shifted.empty());
+
+    const AABBTreeLines::LinesDistancer<Line> plain_tree(to_lines(plain));
+    double off_plain = 0.;
+    double off_moved = 0.;
+    for (const Polyline &path : shifted)
+        for (const Point &point : path.equally_spaced_points(scale_(0.25))) {
+            off_plain = std::max(off_plain, plain_tree.distance_from_lines<false>(point));
+            off_moved = std::max(off_moved, plain_tree.distance_from_lines<false>(Point(point - shift)));
+        }
+    // The shift moves the lines, and moving them back puts them on the unshifted infill.
+    CHECK(unscale<double>(off_plain) > 0.3);
+    CHECK(unscale<double>(off_moved) <= 0.025);
 }
 
 // Orca: Slices the meshes as the parts of one object, where they are, with modifiers of their own config.
@@ -3004,6 +3264,7 @@ TEST_CASE("Infill lines do not end where the rings of the pattern start", "[Fill
         std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
         filler->spacing  = spacing;
         filler->angle    = float(M_PI / 4.);
+        filler->set_bounding_box(get_extents(box));
         filler->z        = z;
         filler->layer_id = size_t(std::lround(z / 0.2));
         filler->adaptive_infill_field = field.get();

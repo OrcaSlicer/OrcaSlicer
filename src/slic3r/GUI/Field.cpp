@@ -687,14 +687,117 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
         } else if (m_opt.opt_key == "sparse_infill_rotate_template" || m_opt.opt_key == "solid_infill_rotate_template") {
             std::string ustr(str.utf8_string());
             if (!ConfigOptionFloats::validate_string(ustr)) {
+                
+                // Orca: Keyboard layout corrector
+                // A set of meta commands in an incorrect keyboard layout breaks the command structure.
+                // There is an attempt to automatically correct this before the string is critically distorted.
+                // The layout table contains the correspondence of the pressed national letter in the English layout.
+                if (wxGetApp().app_config->get("keyboard_layout_corrector") == "true") {
+                    for (char& ch : ustr) { 
+                        if (static_cast<unsigned char>(ch) > 127) { // has any unicode symbol
+                            std::wstring wstr(str.ToStdWstring());
+
+                            // Orca: AI generated table
+                            // It works best with Cyrillic, Greek, and Armenian layouts.
+                            // For other world-wide layouts that do not support capitals letters, there may be limitations in the definition.
+                            static std::wstring const in_keyboard_layout[]{
+                                L"ФΑԱㅁちაשฤओش", L"фаաฟो", // A a
+                                L"ИΒԻㅠلاこბנฺऑبذ", L"иβիิॉ", // B b
+                                L"СΨՑㅊそცבฉणزؤ", L"сψցแ", // C c
+                                L"ВΔԴㅇしდגฏअي", L"вδդก", // D d
+                                L"УΕԵㄸいეקฎआث", L"уεำ", // E e
+                                L"АΦՖㄹはფכโइب", L"аφֆดइ", // F f
+                                L"ПΓԳㅎきგעฌउل", L"пγգเ", // G g
+                                L"РΗՀㅗくჰי็ا", L"рηհ้", // H h
+                                L"ШΙԻㅑにიןณईه", L"шιիร", // I i
+                                L"ОΞՃㅓまჯח๋ت", L"оξճ่", // J j
+                                L"ЛΚԿㅏのკלษकن", L"лκկา", // K k
+                                L"ДΛԼㅣりლךศतमم", L"дλլส", // L l
+                                L"ЬΜՄㅡもმצ؟सپة", L"ьμմท", // M m
+                                L"ТΝՆㅜみնמ์लدى", L"тνնื", // N n
+                                L"ЩЎΟՈㅒらოםฯऐخ", L"щўοոน", // O o
+                                L"ЗΠՉㅖせპפญएح", L"зπչㅔย", // P p
+                                L"ЙՔㅃたქ๐औض", L"йքㅂๆ", // Q q
+                                L"КΡՐㄲすრרฑईق", L"кρրㄱพ", // R r
+                                L"ЫІΣՍㄴとსדฆس", L"ыіσսดห", // S s
+                                L"ЕΤՏㅆかאธऊف", L"еτտㅅะ", // T t
+                                L"ГΘՒㅕなუו๊ع", L"гθւี", // U u
+                                L"МΩՎㅍひვהฮر", L"мωվอ", // V v
+                                L"ЦΣԾㅉてწص", L"цςծㅈไ", // W w
+                                L"ЧΧԽㅌさხסطء", L"чχխป", // X x
+                                L"НΥՅㅛんყטํغ", L"нυյั", // Y y
+                                L"ЯΖՁㅋつზזظئ", L"яζձผ", // Z z
+                                L"ЁҐّろ՜×", L"ёґ÷ذ", // ~ `
+                                L"Хほฐढ", L"хบडج", // { [
+                                L"ЪЇへฅञ", L"ъїลणدچ", // } ]
+                                L"Жれซछ", L"жวचکك", // : ;
+                                L"ЭЄけठط", L"эєงटگ", // " ' 
+                                L"Бねฒषو", L"бม", // < ,
+                                L"Юるฬ", L"юใ", // > .
+                                L"№" // #
+                            };
+                            
+                            static std::string const out_symbol{"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz~`{[}]:;\"'<,>.#"};
+                            for (int i = 0; i < out_symbol.size(); i++) {
+                                std::wstring kb = in_keyboard_layout[i];
+                                std::string out_string(out_symbol.substr(i, 1));
+                                std::wstring out_char(out_string.begin(), out_string.end());
+                                if (!kb.empty()) {
+                                    std::wregex kbstr(L"([" + kb + L"])");
+                                    wstr = std::regex_replace(wstr, kbstr, out_char);
+                                }
+                            }
+                            ustr = wxString(wstr).utf8_string();
+                            break;
+                        }
+                    }                
+                }
+                
+                // adjustment of the unnecessary separators
+                ustr = std::regex_replace(ustr, std::regex("\\s*;+\\s*;?\\s*"), ";");
+
+                // adjustment of the decimal separator
+                if (wxGetApp().app_config->get("decimal_separator_corrector") == "true")
+                    ustr = std::regex_replace(ustr, std::regex("(\\d)(,)(\\d+[^,.\\d\\s+\\-])"), "$1.$3");
+
+                // validate density percents
                 std::string v;
                 std::smatch match;
-                std::string ps = (m_opt.opt_key == "sparse_infill_rotate_template") ?
-                                     u8"[BT][!]?|[#][\\d]+[!]?|[+\\-]?[\\d.]+[%]?[*]?[\\d]*[/NnZz$LlUuQq~^|#]?[+\\-]?[\\d.]*[%#\'\"cm]?[m]?[BT]?[!*]?" :
-                                     u8"[#][\\d]+[!]?|[+\\-]?[\\d.]+[%]?[*]?[\\d]*[/NnZz$LlUuQq~^|#]?[+\\-]?[\\d.]*[%#\'\"cm]?[m]?[!*]?";
+
+                // remove all unnecessary zeros 
+                std::regex pattern("([Dd][+\\-]?(?:[\\d.]+:_?)?)([\\d.]*%?)"); 
+                while (std::regex_search(ustr, match, pattern)) {
+                    std::string match_str(match[2].str());
+                    v += match.prefix().str() + match[1].str();
+                    if (match_str.back() == '%') {
+                        v += match_str;
+                    } else {
+                        size_t r(match_str.find_first_of("0123456789."));
+                        if (r < match_str.length()) {
+                            v += match_str.substr(0, r);
+                            double number(std::strtod(&match_str[r], nullptr));
+                            v += get_str_value_wo_zeros(number) + ((number > 1) ? "%" : "");
+                        } else
+                            v += match_str;
+                    }
+                    ustr = match.suffix().str();
+                }
+                ustr = v + ustr;
+                v    = "";
+
+                // split into separate commands
+                std::string const a_zone    = u8"[+\\-_]?[\\d.]+(?::[\\d.]+)?%?";
+                std::string const d_zone    = u8"[Dd](?:[+\\-][\\d.]+(?:%|:\\-?[\\d.]?%?)?|[\\d.]+(?:%|:[\\d.]?%?)?)";
+                std::string const xy_zone   = u8"(?:X[_\\-]?Y?|x[_\\-]?y?|[Yy])[+\\-_]?[\\d.]+(?::[\\d.]+)?(?:[&@%\'\"]|cm?|mm?)?";
+                std::string const z_zone    = u8"[BT]|[\\^~\\\\/NnZz$LlUuQq#COoM|]+(?:[+\\-]?[\\d.]*(?::?[\\d.]+)(?:[@&%#\'\"]|cm?|mm?)?|B[#-]?|T[#-_]?)?";
+                std::string const r_zone    = u8"\\*?\\d*";
+                std::string const rz_zone   = u8"(?:(?:" + z_zone + u8")[;]?(?:" + r_zone + u8")?|(?:" + r_zone + u8")[;]?(?:" + z_zone + u8")|" + r_zone + u8")?!?";
+                std::string const ps_sparse = u8"[BT]!?|#[\\d.]+!?|(?:(?:" + a_zone + u8")?(?:A" + a_zone + u8"|" + d_zone + u8"|" + xy_zone + u8")+;?)+" + rz_zone;
+                std::string const ps_solid  = u8"#[\\d.]+!?|(?:(?:" + a_zone + u8")?(?:A" + a_zone + u8"|" + xy_zone + u8")+;?)+" + rz_zone;
+                std::string ps = (m_opt.opt_key == "sparse_infill_rotate_template") ? ps_sparse : ps_solid;
 
                 while (std::regex_search(ustr, match, std::regex(ps))) {
-                    for (auto x : match) v += x.str() + ", ";
+                    for (std::ssub_match const &x : match) v += x.str() + ", ";
                     ustr = match.suffix().str();
                 }
                 v = v.substr(0, v.length() - 2);
