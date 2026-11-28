@@ -25,6 +25,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleSelector.hpp"
+#include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/PartPlate.hpp"
 
 using namespace Slic3r;
@@ -215,4 +216,157 @@ TEST_CASE("A mixed filament a part sets for its outer wall stands for its compon
     CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{1, 2});
     CHECK(on_plate.plate.get_extruders(false, config, config, false) == std::vector<int>{1, 3});
     CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1, 2});
+}
+
+TEST_CASE("A feature filament a part sets for a feature it does not print is not a filament the plate uses", "[PartPlate]")
+{
+    const auto [key, setting, value] = GENERATE(table<std::string, std::string, int>({
+        {"top_surface_filament_id", "top_shell_layers", 0},
+        {"bottom_surface_filament_id", "bottom_shell_layers", 0},
+        {"inner_wall_filament_id", "wall_loops", 1},
+        {"sparse_infill_filament_id", "sparse_infill_density", 0},
+    }));
+    ObjectOnPlate on_plate;
+    on_plate.part->config.set(key, 2);
+    if (setting == "sparse_infill_density")
+        on_plate.part->config.set_key_value(setting, new ConfigOptionPercent(value));
+    else
+        on_plate.part->config.set(setting, value);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{1});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1});
+}
+
+TEST_CASE("A filament a layer range above the object sets is not a filament the plate uses", "[PartPlate]")
+{
+    const std::string key = GENERATE("extruder", "sparse_infill_filament_id");
+    ObjectOnPlate     on_plate;
+    on_plate.object->layer_config_ranges[{20., 30.}].set(key, 2);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{1});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1});
+}
+
+TEST_CASE("A filament a modifier sets is a filament the plate uses only when the modifier overlaps a part", "[PartPlate]")
+{
+    const std::string key = GENERATE("extruder", "sparse_infill_filament_id");
+    const auto [offset, expected] = GENERATE(table<Vec3d, std::vector<int>>({
+        {Vec3d(2., 2., 2.), {1, 2}},
+        {Vec3d(20., 20., 2.), {1}},
+    }));
+    ObjectOnPlate on_plate;
+    ModelVolume*  modifier = on_plate.object->add_volume(make_cube(5., 5., 5.), ModelVolumeType::PARAMETER_MODIFIER, false);
+    modifier->set_offset(offset);
+    modifier->config.set(key, 2);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == expected);
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == expected);
+}
+
+TEST_CASE("The object's filament is not a filament the plate uses when its only part prints every feature with another", "[PartPlate]")
+{
+    ObjectOnPlate on_plate;
+    for (const char* key : {"outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+                            "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"})
+        on_plate.part->config.set(key, 2);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{2});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{2});
+}
+
+TEST_CASE("The plate's filaments without support list a feature filament a part sets and leave out the support and brim filaments", "[PartPlate]")
+{
+    ObjectOnPlate on_plate;
+    on_plate.part->config.set("sparse_infill_filament_id", 2);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+    config.set("enable_support", true);
+    config.set("support_filament", 3);
+    config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
+    config.set("brim_width", 5.);
+    config.set("brim_filament_id", 3);
+
+    CHECK(on_plate.plate.get_extruders_without_support(false, config, config) == std::vector<int>{1, 2});
+    CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{1, 2, 3});
+}
+
+TEST_CASE("The object's filament is not a filament the plate uses when a layer range covering the object sets another", "[PartPlate]")
+{
+    ObjectOnPlate on_plate;
+    on_plate.object->layer_config_ranges[{0., 10.}].set("extruder", 2);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{2});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{2});
+}
+
+TEST_CASE("A layer range over the part of a sinking object below the bed is not a filament the plate uses", "[PartPlate]")
+{
+    ObjectOnPlate on_plate;
+    // The 10 mm cube sinks 3 mm, so it prints up to 7 mm.
+    on_plate.object->instances.front()->set_offset(Vec3d(95., 95., -3.));
+    on_plate.object->layer_config_ranges[{8., 10.}].set("sparse_infill_filament_id", 2);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{1});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1});
+}
+
+TEST_CASE("A layer range above a rotated part's top is not a filament the plate uses", "[PartPlate]")
+{
+    ObjectOnPlate on_plate;
+    on_plate.object->add_volume(make_sphere(10.), ModelVolumeType::MODEL_PART, false);
+    on_plate.object->delete_volume(0);
+    // The sphere prints up to 20 mm, while its mesh box turned 45 degrees reaches 24 mm.
+    on_plate.object->instances.front()->set_offset(Vec3d(95., 95., 10.));
+    on_plate.object->instances.front()->set_rotation(Vec3d(PI / 4., 0., 0.));
+    on_plate.object->layer_config_ranges[{21., 24.}].set("sparse_infill_filament_id", 2);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{1});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1});
+}
+
+TEST_CASE("The plate's filaments without support leave out an outer wall filament that only the brim prints with", "[PartPlate]")
+{
+    ObjectOnPlate on_plate;
+    on_plate.part->config.set("wall_loops", 0);
+    on_plate.part->config.set("outer_wall_filament_id", 2);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+    config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
+    config.set("brim_width", 5.);
+
+    CHECK(on_plate.plate.get_extruders_without_support(false, config, config) == std::vector<int>{1});
+}
+
+TEST_CASE("A brim filament is a filament the plate uses only when the brim prints", "[PartPlate]")
+{
+    const auto [brim_width, raft_layers, expected] = GENERATE(table<double, int, std::vector<int>>({
+        {5., 0, {1, 2}},
+        {0., 0, {1}},
+        {5., 2, {1}},
+    }));
+    ObjectOnPlate      on_plate;
+    DynamicPrintConfig config = config_with_object_filaments_only();
+    config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
+    config.set("brim_width", brim_width);
+    config.set("brim_filament_id", 2);
+    config.set("raft_layers", raft_layers);
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == expected);
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == expected);
+}
+
+TEST_CASE("The support filament is a filament the plate uses when support is enforced for the first layers", "[PartPlate]")
+{
+    ObjectOnPlate      on_plate;
+    DynamicPrintConfig config = config_with_object_filaments_only();
+    config.set("enforce_support_layers", 3);
+    config.set("support_filament", 3);
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{1, 3});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1, 3});
 }

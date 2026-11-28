@@ -774,6 +774,83 @@ bool Print::append_support_extruders(const PrintObjectConfig &config, unsigned i
     return uses_current_extruder;
 }
 
+void Print::append_model_object_printing_extruders(const ModelObject &mo, const PrintObjectConfig &default_object_config,
+                                                   const PrintRegionConfig &default_region_config, size_t num_extruders,
+                                                   bool include_support_and_brim, std::vector<unsigned int> &extruders)
+{
+    std::vector<int>        variant_index;
+    const PrintObjectConfig object_config = PrintObject::object_config_from_model_object(default_object_config, mo, num_extruders, variant_index);
+    const bool              has_brim      = PrintObject::has_brim(object_config, mo);
+
+    // Convex hull boxes in the sliced object's frame, with Z measured from the bed like layer range heights.
+    Transform3d instance_trafo = Transform3d::Identity();
+    if (! mo.instances.empty()) {
+        instance_trafo = mo.instances.front()->get_matrix_no_offset();
+        instance_trafo.pretranslate(Vec3d(0., 0., mo.instances.front()->get_offset(Z)));
+    }
+    std::vector<BoundingBoxf3> boxes;
+    double                     object_height = 0.;
+    for (const ModelVolume *mv : mo.volumes) {
+        const TriangleMesh &hull = mv->get_convex_hull_shared_ptr() ? mv->get_convex_hull() : mv->mesh();
+        boxes.emplace_back(hull.transformed_bounding_box(instance_trafo * mv->get_matrix()));
+        if (mv->is_model_part())
+            object_height = std::max(object_height, boxes.back().max.z());
+    }
+    if (object_height <= 0.)
+        return;
+
+    // Splits the object's height into spans, each with one layer range's config or none where no range covers it.
+    std::vector<std::pair<t_layer_height_range, const DynamicPrintConfig*>> spans;
+    double z = 0.;
+    for (const auto &[range, config] : mo.layer_config_ranges) {
+        if (range.first >= object_height)
+            break;
+        if (range.first > z)
+            spans.push_back({ { z, range.first }, nullptr });
+        if (range.second > z)
+            spans.push_back({ { std::max(z, range.first), std::min(range.second, object_height) }, &config.get() });
+        z = std::max(z, range.second);
+    }
+    if (z < object_height)
+        spans.push_back({ { z, object_height }, nullptr });
+
+    struct Region { PrintRegionConfig config; BoundingBoxf3 box; };
+    std::vector<Region> regions;
+    for (const auto &[span, range_config] : spans) {
+        regions.clear();
+        for (size_t i = 0; i < mo.volumes.size(); ++ i) {
+            const ModelVolume &mv  = *mo.volumes[i];
+            BoundingBoxf3      box = boxes[i];
+            box.min.z() = std::max(box.min.z(), span.first);
+            box.max.z() = std::min(box.max.z(), span.second);
+            if (box.min.z() >= box.max.z())
+                continue;
+            if (mv.is_model_part())
+                regions.push_back({ region_config_from_model_volume(default_region_config, range_config, mv, num_extruders, variant_index), box });
+            else if (mv.is_region_modifier())
+                // Adds a region for each earlier region the modifier overlaps and changes.
+                for (size_t parent = 0, num_parents = regions.size(); parent < num_parents; ++ parent)
+                    if (regions[parent].box.intersects(box))
+                        if (PrintRegionConfig config = region_config_from_model_volume(regions[parent].config, nullptr, mv, num_extruders, variant_index);
+                            config != regions[parent].config)
+                            regions.push_back({ std::move(config), BoundingBoxf3(regions[parent].box.min.cwiseMax(box.min), regions[parent].box.max.cwiseMin(box.max)) });
+        }
+        for (const Region &region : regions)
+            PrintRegion::collect_object_printing_extruders(num_extruders, region.config, has_brim && include_support_and_brim, extruders);
+    }
+
+    for (size_t i = 0; i < mo.volumes.size(); ++ i)
+        if (mo.volumes[i]->is_model_part() && boxes[i].max.z() > 0.)
+            for (size_t extruder : mo.volumes[i]->get_extruders_from_multi_material_painting())
+                extruders.push_back((unsigned int)extruder);
+    if (! include_support_and_brim)
+        return;
+    if (has_brim && object_config.brim_filament_id.value > 0)
+        extruders.push_back((unsigned int)object_config.brim_filament_id.value - 1);
+    if (PrintObject::has_support_material(object_config))
+        append_support_extruders(object_config, (unsigned int)num_extruders, extruders);
+}
+
 // returns 0-based indices of used extruders
 std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
 {

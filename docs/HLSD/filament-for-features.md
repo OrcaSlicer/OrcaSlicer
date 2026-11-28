@@ -119,8 +119,15 @@ and a brim for the brim filament.
   and validation.
 - `PrintObject::printing_extruders()`: bed exclusion collisions and automatic
   filament grouping.
+- `Print::append_model_object_printing_extruders()`: one model object's
+  filaments without a `Print`. It resolves each part and modifier through
+  `region_config_from_model_volume()` per layer range, as `Print::apply()` does,
+  and skips modifiers that overlap no part and layer ranges above the object.
 - `PartPlate::get_extruders()` and `get_extruders_under_cli()`: the plate's
-  filament list for AMS mapping and filament checks.
+  filament list for AMS mapping and filament checks, from
+  `append_model_object_printing_extruders()`.
+- `PartPlate::get_extruders_without_support()`: the same list without support,
+  raft and brim, for the preview's layer slider.
 - `PartPlate::get_object_filament_extruders()`: the bed exclusion preview.
 - `project_used_filament_slots()` in `PublishSettingsDialog.cpp`: the filament
   slots a published project uses.
