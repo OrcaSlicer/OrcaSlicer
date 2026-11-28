@@ -26,6 +26,7 @@
 #include <wx/window.h>
 
 #include "GUI_App.hpp"
+#include "GUI_Utils.hpp"
 #include "I18N.hpp"
 #include "Plater.hpp"
 #include "Tab.hpp"
