@@ -653,6 +653,24 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             Total_Wipe_Tower_Cost_Placeholder,
             Total_Wipe_Tower_Filament_Placeholder,
             Outer_Overhang_Wall,
+            // Appended after Outer_Overhang_Wall so the indexes of the tags above do not move.
+            // Both Reserved_Tags arrays must gain the matching strings, in this order.
+            // These are inline tokens (they contain '@'). Post-processing replaces them once the
+            // final print statistics, the extruding-move bounds and the finished file are known.
+            // file_start_gcode is written before any of that exists, so it stores the token and
+            // the pass below fills in the real value. See process_inline_placeholders() and
+            // substitute_final_line_counts().
+            Used_Filament_Mm_Placeholder,
+            Filament_Used_Mm_Placeholder,
+            Filament_Used_G_Placeholder,
+            GCode_Line_Count_Placeholder,
+            GCode_Command_Line_Count_Placeholder,
+            Extruded_BBox_Min_X_Placeholder,
+            Extruded_BBox_Min_Y_Placeholder,
+            Extruded_BBox_Min_Z_Placeholder,
+            Extruded_BBox_Max_X_Placeholder,
+            Extruded_BBox_Max_Y_Placeholder,
+            Extruded_BBox_Max_Z_Placeholder,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
@@ -1371,6 +1389,16 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         bool  m_is_XL_printer = false;
         int m_highest_bed_temp;
         float m_extruded_last_z;
+        // Axis-aligned bounds of the nozzle while it is depositing filament, in the coordinate
+        // frame written to the G-code file (not the plate-shifted preview frame). Undefined until
+        // the first extruding move. Filled from process_G1() and read back when the file header's
+        // {extruded_bbox_*} placeholders are replaced. Travels, retractions and wipes are not included:
+        // a wipe is the nozzle sliding along plastic it already laid down.
+        BoundingBoxf3 m_extruded_bbox;
+        // Set while post-processing when the file contains {gcode_line_count} or
+        // {gcode_command_line_count}. substitute_final_line_counts() consumes it after every pass
+        // that can still insert lines.
+        bool m_substitute_line_counts{false};
         float m_first_layer_height; // mm
         float m_zero_layer_height; // mm
         bool m_processing_start_custom_gcode;
@@ -1714,6 +1742,14 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         // Shift each move's gcode_id by the count of injector lines inserted before it. No-op when the
         // map is empty.
         void handle_offsets_of_second_process(const TimeProcessor::InsertedLinesMap& inserted_operation_lines);
+
+        // Replace {gcode_line_count} and {gcode_command_line_count} in the finished file.
+        // Runs after run_post_process() and, when enabled, run_second_pass_injection(), because those
+        // passes still insert lines. Does nothing when the placeholders were not used, so a file that
+        // never asked for a line count is left byte for byte as the earlier passes wrote it.
+        // The replacement stays on the same line, so the counts include the header and every inserted
+        // line and do not change when the token becomes a number.
+        void substitute_final_line_counts();
 
         //BBS: different path_type is only used for arc move
         void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move, bool internal_only = false);

@@ -7220,9 +7220,13 @@ void PrintConfigDef::init_fff_params()
     def = this->add("file_start_gcode", coString);
     def->label = L("File header G-code");
     def->tooltip = L("G-code written at the very top of the output file, before any other content. "
-                     "Useful for adding metadata that printer firmware reads from the first lines of the file "
-                     "(e.g. estimated print time, filament usage). "
-                     "Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}.");
+                     "Useful for metadata that printer firmware reads from the first lines of the file. "
+                     "Placeholders for results that are known only after the file is generated are filled in during post-processing, including here. "
+                     "Time, normal mode: {print_time_total_sec} (seconds), {print_time} (formatted), {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec}. "
+                     "Filament: {used_filament} and {used_filament_length} (meters), {used_filament_mm} (millimeters), {total_weight} (grams), {filament_used_mm} and {filament_used_g} (per filament, comma-separated). "
+                     "File: {gcode_line_count} (every line of the finished file, this header included), {gcode_command_line_count} (lines that are not blank or a full-line comment), {total_layer_count}. "
+                     "Nozzle bounds of extruding moves, mm: {extruded_bbox_min_x}, {extruded_bbox_min_y}, {extruded_bbox_min_z}, {extruded_bbox_max_x}, {extruded_bbox_max_y}, {extruded_bbox_max_z}. "
+                     "These result placeholders can be printed, but not used in a calculation. When none of them is used, the file is unchanged.");
     def->multiline = true;
     def->full_width = true;
     def->height = 8;
@@ -13668,7 +13672,8 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
 
     def = this->add("total_layer_count", coInt);
     def->label = L("Total layer count");
-    def->tooltip = L("Number of layers in the entire print.");
+    def->tooltip = L("Number of layers in the entire print. Known before the G-code file is written, so it can be used "
+                     "in the file header as well as in other custom G-code.");
 
     def = this->add("normal_print_time", coString);
     def->label = L("Print time (normal mode)");
@@ -13733,6 +13738,78 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
     def = this->add("used_filament_length", coString);
     def->label = L("Filament length (meters)");
     def->tooltip = L("Total filament length used in meters. Replaced with actual value during post-processing.");
+
+    // The placeholders below are tags until post-processing. They are strings for that reason, even
+    // when the value that replaces the tag is a number. A template may print them, including from
+    // File header G-code; a calculation or a comparison on them fails, because the number does not
+    // exist yet. See GCodeProcessor::process_inline_placeholders() and substitute_final_line_counts().
+
+    def = this->add("used_filament_mm", coString);
+    def->label = L("Filament length (millimeters)");
+    def->tooltip = L("Total filament length used, in millimeters. Same filament as used_filament, which is in meters. "
+                     "Replaced with the final value during post-processing, so it is valid in the file header.");
+
+    def = this->add("filament_used_mm", coString);
+    def->label = L("Filament length per filament (millimeters)");
+    def->tooltip = L("Filament length used by each filament, in millimeters, separated by a comma and a space. "
+                     "One value per configured filament, in filament index order. Filaments that did not extrude are 0. "
+                     "The same list as the \"; filament used [mm]\" comment. Replaced during post-processing.");
+
+    def = this->add("filament_used_g", coString);
+    def->label = L("Filament weight per filament (grams)");
+    def->tooltip = L("Filament weight used by each filament, in grams, separated by a comma and a space. "
+                     "One value per configured filament, in filament index order. Filaments that did not extrude are 0. "
+                     "Calculated from filament_density. The total is total_weight. Replaced during post-processing.");
+
+    def = this->add("gcode_line_count", coString);
+    def->label = L("G-code line count");
+    def->tooltip = L("Number of lines in the finished G-code file, including the file header and any lines inserted "
+                     "during post-processing. A line is counted whether or not the file ends with a newline. "
+                     "Replaced after the file is complete, so the number includes itself.");
+
+    def = this->add("gcode_command_line_count", coString);
+    def->label = L("G-code command line count");
+    def->tooltip = L("Number of command lines in the finished G-code file. Blank lines and full-line comments "
+                     "(optional leading space, then ';') are not counted. A command with a trailing comment is counted. "
+                     "Includes the file header and lines inserted during post-processing. Replaced after the file is complete.");
+
+    // Three decimals, like the coordinates written to the file. Each axis is its own placeholder so a
+    // header can place them without parsing a vector.
+    def = this->add("extruded_bbox_min_x", coString);
+    def->label = L("Extruded bounding box minimum X");
+    def->tooltip = L("Minimum X of the nozzle while it is depositing filament, in mm. Travels, retractions and wipes "
+                     "are not included. The coordinate is the one written to the G-code file. 0 when nothing is extruded. "
+                     "Replaced during post-processing.");
+
+    def = this->add("extruded_bbox_min_y", coString);
+    def->label = L("Extruded bounding box minimum Y");
+    def->tooltip = L("Minimum Y of the nozzle while it is depositing filament, in mm. Travels, retractions and wipes "
+                     "are not included. The coordinate is the one written to the G-code file. 0 when nothing is extruded. "
+                     "Replaced during post-processing.");
+
+    def = this->add("extruded_bbox_min_z", coString);
+    def->label = L("Extruded bounding box minimum Z");
+    def->tooltip = L("Minimum Z of the nozzle while it is depositing filament, in mm. Travels, retractions and wipes "
+                     "are not included. The coordinate is the one written to the G-code file. 0 when nothing is extruded. "
+                     "Replaced during post-processing.");
+
+    def = this->add("extruded_bbox_max_x", coString);
+    def->label = L("Extruded bounding box maximum X");
+    def->tooltip = L("Maximum X of the nozzle while it is depositing filament, in mm. Travels, retractions and wipes "
+                     "are not included. The coordinate is the one written to the G-code file. 0 when nothing is extruded. "
+                     "Replaced during post-processing.");
+
+    def = this->add("extruded_bbox_max_y", coString);
+    def->label = L("Extruded bounding box maximum Y");
+    def->tooltip = L("Maximum Y of the nozzle while it is depositing filament, in mm. Travels, retractions and wipes "
+                     "are not included. The coordinate is the one written to the G-code file. 0 when nothing is extruded. "
+                     "Replaced during post-processing.");
+
+    def = this->add("extruded_bbox_max_z", coString);
+    def->label = L("Extruded bounding box maximum Z");
+    def->tooltip = L("Maximum Z of the nozzle while it is depositing filament, in mm. Travels, retractions and wipes "
+                     "are not included. The coordinate is the one written to the G-code file. 0 when nothing is extruded. "
+                     "Replaced during post-processing.");
 }
 
 ObjectsInfoConfigDef::ObjectsInfoConfigDef()

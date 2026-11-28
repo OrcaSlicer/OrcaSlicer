@@ -4141,14 +4141,42 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         this->placeholder_parser().set("hold_chamber_temp_for_flat_print", new ConfigOptionBool(hold_chamber_temp_for_flat_print));
     }
 
+    // Values known only after the whole file exists. Each placeholder is written now as a reserved
+    // tag and replaced in GCodeProcessor's post-processing, so a script at the top of the file
+    // (file_start_gcode) gets the same final number as one at the end. The running extruded_*
+    // counters are left as live numbers; profiles use them in arithmetic.
+    //
+    // print_time_total_sec is the normal-mode estimate in seconds. print_time / normal_print_time
+    // (set just below) are that estimate formatted for display. The day/hour/minute/sec placeholders
+    // are the integer parts of the same estimate, so a header can assemble its own format.
     this->placeholder_parser().set_deferred("print_time_total_sec", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Total_Sec_Placeholder));
     this->placeholder_parser().set_deferred("print_time_day", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Day_Placeholder));
     this->placeholder_parser().set_deferred("print_time_hour", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Hour_Placeholder));
     this->placeholder_parser().set_deferred("print_time_minute", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Minute_Placeholder));
     this->placeholder_parser().set_deferred("print_time_sec", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder));
+    // used_filament and used_filament_length are the total length in meters, matching filename_format.
     this->placeholder_parser().set_deferred("used_filament_length", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder));
-    // The final print statistics are known only after the whole G-code is generated, so they are filled in during post-processing too.
-    // The running extruded_* totals are left alone; profiles use them as numbers.
+    // Same filament, in millimeters, plus the per-filament lists (one number per configured filament,
+    // index order, unused filaments as 0). total_weight below is the total grams.
+    this->placeholder_parser().set_deferred("used_filament_mm", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Mm_Placeholder));
+    this->placeholder_parser().set_deferred("filament_used_mm", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Filament_Used_Mm_Placeholder));
+    this->placeholder_parser().set_deferred("filament_used_g", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Filament_Used_G_Placeholder));
+    // Nozzle bounds of moves that deposit filament (positive extrusion with XY travel), in mm.
+    // Not the mesh bounding box, and not travels or wipes.
+    this->placeholder_parser().set_deferred("extruded_bbox_min_x", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Extruded_BBox_Min_X_Placeholder));
+    this->placeholder_parser().set_deferred("extruded_bbox_min_y", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Extruded_BBox_Min_Y_Placeholder));
+    this->placeholder_parser().set_deferred("extruded_bbox_min_z", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Extruded_BBox_Min_Z_Placeholder));
+    this->placeholder_parser().set_deferred("extruded_bbox_max_x", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Extruded_BBox_Max_X_Placeholder));
+    this->placeholder_parser().set_deferred("extruded_bbox_max_y", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Extruded_BBox_Max_Y_Placeholder));
+    this->placeholder_parser().set_deferred("extruded_bbox_max_z", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Extruded_BBox_Max_Z_Placeholder));
+    // Line counts cannot be filled with the other tags. M73 lines, and on some printers pre-heat
+    // commands, are inserted after this expansion. A later pass counts the finished file, header
+    // included, and replaces these tokens without adding or removing a line. gcode_line_count is
+    // every line; gcode_command_line_count skips blank lines and full-line comments.
+    this->placeholder_parser().set_deferred("gcode_line_count", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::GCode_Line_Count_Placeholder));
+    this->placeholder_parser().set_deferred("gcode_command_line_count", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::GCode_Command_Line_Count_Placeholder));
+    // total_layer_count is not deferred: the sliced layer count is known before the file is written
+    // and is already set on the parser above. It is valid in the file header as a plain number.
     this->placeholder_parser().set_deferred("used_filament", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder));
     this->placeholder_parser().set_deferred("print_time", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Normal_Print_Time_Placeholder));
     this->placeholder_parser().set_deferred("normal_print_time", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Normal_Print_Time_Placeholder));
@@ -4258,8 +4286,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (!imex_active_mode_gcode.empty())
         imex_processed_gcode = this->placeholder_parser_process(
             "imex_mode_gcode", imex_active_mode_gcode, initial_extruder_id);
-    // Expand the file header only after the start-up placeholders and writer state are ready.
-    // Use the regular custom G-code path so invalid placeholders report the template name.
+    // Expand the file header only after the start-up placeholders and the deferred tags above are
+    // ready. Slicing results that do not exist yet (time, filament, the extruding-move box, line
+    // counts) are written as tokens and filled in during post-processing; everything else expands
+    // now, the same way machine_start_gcode does. Invalid placeholders report the template name.
     if (!print.config().file_start_gcode.value.empty())
         file.writeln(this->placeholder_parser_process("file_start_gcode", print.config().file_start_gcode.value, initial_extruder_id));
 
