@@ -3,16 +3,23 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <cmath>
 #include <sstream>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/GCode/AdaptivePAProcessor.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintBase.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
 #include "test_helpers.hpp"
 
 using namespace Slic3r;
@@ -75,6 +82,96 @@ TEST_CASE("Adaptive pressure advance reads the speed of an extrusion that inheri
         for (const double speed : speeds)
             CHECK_THAT(speed, Catch::Matchers::WithinAbs(150.0, 0.01));
     }
+}
+
+// The pressure advance change tags inside gap fill, and the gap fill runs whose start they mark.
+struct GapFillPAMarks
+{
+    int changes = 0;
+    int runs    = 0;
+};
+
+// A gap fill run is a continuous stretch of gap fill extrusion. Classic gap fill splits each run into one path per width change, without a travel between them.
+static GapFillPAMarks gap_fill_pa_marks(const std::string &gcode)
+{
+    const std::string_view gap_fill_role = "TYPE:Gap infill";
+    GapFillPAMarks         marks;
+    bool                   in_gap_fill     = false;
+    bool                   in_gap_fill_run = false;
+    GCodeReader            reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view comment = line.comment();
+        if (comment.rfind("TYPE:", 0) == 0) {
+            in_gap_fill = comment == gap_fill_role;
+            if (! in_gap_fill)
+                in_gap_fill_run = false;
+            return;
+        }
+        if (comment.rfind(" PA_CHANGE:", 0) == 0) {
+            if (in_gap_fill)
+                ++marks.changes;
+            return;
+        }
+        if (! line.cmd_is("G0") && ! line.cmd_is("G1") && ! line.cmd_is("G2") && ! line.cmd_is("G3"))
+            return;
+        // An unretraction has positive E but lays down nothing and must not break a run.
+        const bool deposits = line.extruding(self) && (line.dist_XY(self) > EPSILON || std::abs(line.dist_Z(self)) > EPSILON);
+        if (in_gap_fill && deposits) {
+            if (! in_gap_fill_run) {
+                ++marks.runs;
+                in_gap_fill_run = true;
+            }
+        } else if (line.dist_XY(self) > EPSILON || std::abs(line.dist_Z(self)) > EPSILON) {
+            in_gap_fill_run = false;
+        }
+    });
+    return marks;
+}
+
+// A plate whose width tapers along its length, so the classic gap fill between its two walls changes width along a single run and is split into one path per width change. A plate of constant width would leave a gap fill run made of a single path, which exercises nothing.
+static TriangleMesh tapered_plate(double length, double narrow_width, double wide_width, double height)
+{
+    indexed_triangle_set plate = its_make_cube(length, 1., height);
+    for (Vec3f &vertex : plate.vertices)
+        vertex.y() *= float(vertex.x() > 0.f ? wide_width : narrow_width);
+    return TriangleMesh(std::move(plate));
+}
+
+TEST_CASE("Adaptive pressure advance changes once at the start of each gap fill run", "[AdaptivePressureAdvance]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor",                    "marlin2" },
+        // the pressure advance change tag is kept only in commented G-code
+        { "gcode_comments",                  1 },
+        { "enable_pressure_advance",         "1" },
+        { "adaptive_pressure_advance",       "1" },
+        { "adaptive_pressure_advance_model", "0.08,1,4000\n0.04,20,4000\n0.08,1,100000\n0.04,20,100000" },
+        { "pressure_advance",                "0.08" },
+        // classic walls leave gap fill between them in a thin plate
+        { "wall_generator",                  "classic" },
+        { "wall_loops",                      2 },
+        { "skirt_loops",                     0 },
+        { "brim_type",                       "no_brim" },
+        { "wipe",                            "0" },
+        { "retraction_length",               "0" },
+        { "z_hop",                           "0" },
+    });
+    // A 20mm plate tapering from 1.5mm to 2.1mm wide leaves classic gap fill between its two walls, split into one path per width change along a run.
+    const TriangleMesh plate = tapered_plate(20., 1.5, 2.1, 5.);
+    const GapFillPAMarks within_features_off = gap_fill_pa_marks(slice({ plate }, config));
+    INFO("gap fill changes: " << within_features_off.changes << ", runs: " << within_features_off.runs);
+    REQUIRE(within_features_off.runs > 0);
+    // A width change inside a gap fill run keeps the pressure advance of the run.
+    CHECK(within_features_off.changes == within_features_off.runs);
+
+    // Within-features adaptation evaluates the pressure advance on every width path instead.
+    config.set_deserialize_strict({ { "adaptive_pressure_advance_overhangs", "1" } });
+    const GapFillPAMarks within_features_on = gap_fill_pa_marks(slice({ plate }, config));
+    INFO("gap fill changes within features: " << within_features_on.changes << ", runs: " << within_features_on.runs);
+    // Both slices have the same geometry, so within-features adaptation must now change PA inside the split runs too.
+    REQUIRE(within_features_on.runs == within_features_off.runs);
+    CHECK(within_features_on.changes > within_features_on.runs);
 }
 
 TEST_CASE("The adaptive pressure advance model validator ignores whitespace around the values", "[AdaptivePressureAdvance]")
