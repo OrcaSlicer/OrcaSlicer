@@ -27,6 +27,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -414,4 +415,233 @@ TEST_CASE("The anchor of a bridge in another filament follows the settings it is
     const auto [fresh_deck_area, fresh_bridge_length] = summary(fresh_print);
     CHECK_THAT(deck_area, Catch::Matchers::WithinRel(fresh_deck_area, 1e-6));
     CHECK_THAT(bridge_length, Catch::Matchers::WithinRel(fresh_bridge_length, 1e-6));
+}
+
+TEST_CASE("Bridge anchor walls extend a bridge over that many walls of the layer below", "[Bridge]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    // Two 10x20x6mm pillars 10mm apart, bridged at z=[5,9] by a 30x20mm deck over both of them, all in one object. The
+    // deck is bridged across the gap on its first layer (print_z 5.2), with the pillars around it filled sparsely beyond
+    // their vertical shells: the deck is thick enough for its top shells not to reach down to it.
+    DynamicPrintConfig config = multifilament_config(1, {
+        { "wall_generator",             wall_generator },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "wall_loops",                 3 },
+        { "sparse_infill_density",      "15%" },
+        { "bottom_shell_layers",        3 },
+        { "top_shell_layers",           3 },
+        { "top_shell_thickness",        0 },
+        { "outer_wall_line_width",      0.42 },
+        { "inner_wall_line_width",      0.45 },
+        { "enable_support",             false },
+    });
+
+    // The shortest reach of the bridge lines past the gap, on either side, measured to the edge of the extrusion.
+    const auto shortest_anchor = [&config](int anchor_walls, double &perimeter_spacing, double &anchor_expected) {
+        config.set_deserialize_strict("bridge_anchor_walls", std::to_string(anchor_walls));
+        TriangleMesh mesh = make_cube(10., 20., 6.);
+        TriangleMesh far_pillar = make_cube(10., 20., 6.);
+        far_pillar.translate(20.f, 0.f, 0.f);
+        mesh.merge(far_pillar);
+        TriangleMesh deck = make_cube(30., 20., 4.);
+        deck.translate(0.f, 0.f, 5.f);
+        mesh.merge(deck);
+        Print print;
+        Model model;
+        init_print({ mesh }, print, model, config);
+        print.process();
+        const Layer *layer = nullptr;
+        for (const Layer *l : print.objects().front()->layers())
+            if (std::abs(l->print_z - 5.2) < EPSILON)
+                layer = l;
+        REQUIRE(layer != nullptr);
+        REQUIRE(! layer->regions().empty());
+        const LayerRegion *layerm = layer->regions().front();
+        perimeter_spacing = layerm->flow(frPerimeter).spacing();
+        anchor_expected   = layerm->flow(frExternalPerimeter).spacing() + perimeter_spacing * (anchor_walls - 1);
+        const BoundingBox gap = get_extents(diff_ex(layer->lslices, layer->lower_layer->lslices));
+        double shortest = std::numeric_limits<double>::max();
+        size_t anchored = 0;
+        for (const LayerRegion *region : layer->regions())
+            for_each_extrusion_path(region->fills, [&](const ExtrusionPath &path) {
+                if (path.role() != erBridgeInfill)
+                    return;
+                for (const Line &line : path.polyline.to_polyline().lines()) {
+                    // Only the lines across the gap, away from the walls along the outline.
+                    if (std::abs(line.b.x() - line.a.x()) < gap.size().x() ||
+                        std::abs(line.a.y() - gap.center().y()) > gap.size().y() / 2 - scaled(3.))
+                        continue;
+                    shortest = std::min(shortest, unscale<double>(gap.min.x() - std::min(line.a.x(), line.b.x())) + path.width / 2.);
+                    shortest = std::min(shortest, unscale<double>(std::max(line.a.x(), line.b.x()) - gap.max.x()) + path.width / 2.);
+                    ++ anchored;
+                }
+            });
+        REQUIRE(anchored > 10);
+        return shortest;
+    };
+
+    double perimeter_spacing = 0.;
+    double anchor_expected   = 0.;
+    const double default_anchor = shortest_anchor(0, perimeter_spacing, anchor_expected);
+    const double long_anchor    = shortest_anchor(6, perimeter_spacing, anchor_expected);
+    CAPTURE(default_anchor, long_anchor, anchor_expected);
+    // By default the bridge reaches over the vertical shell of the pillars next to the gap and about one wall into the
+    // sparse infill beyond it.
+    CHECK(default_anchor < 0.75 * anchor_expected);
+    // With 6 anchor walls it reaches farther, over 6 walls of the pillars.
+    CHECK(long_anchor > 0.75 * anchor_expected);
+    CHECK(long_anchor > default_anchor + perimeter_spacing);
+}
+
+TEST_CASE("Bridge anchor walls extend the sacrificial bridge of a counterbore hole", "[Bridge]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    DynamicPrintConfig config = multifilament_config(1, {
+        { "wall_generator",             wall_generator },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "wall_loops",                 4 },
+        { "sparse_infill_density",      "15%" },
+        { "outer_wall_line_width",      0.42 },
+        { "inner_wall_line_width",      0.45 },
+        { "counterbore_hole_bridging",  "sacrificiallayer" },
+        { "enable_support",             false },
+    });
+
+    // A 30x30x6mm block with a square counterbore: a 12x12mm pocket at z=[0,3], continued by a 5x5mm hole at z=[3,6].
+    // Both are built of four bars around the opening. The first layer of the upper part (print_z 3.2) is the sacrificial
+    // bridge over the pocket.
+    const auto frame = [](double size, double opening, double z, double height) {
+        const double bar = (size - opening) / 2.;
+        TriangleMesh mesh = make_cube(size, bar, height);
+        TriangleMesh other = make_cube(size, bar, height);
+        other.translate(0.f, float(size - bar), 0.f);
+        mesh.merge(other);
+        other = make_cube(bar, opening, height);
+        other.translate(0.f, float(bar), 0.f);
+        mesh.merge(other);
+        other = make_cube(bar, opening, height);
+        other.translate(float(size - bar), float(bar), 0.f);
+        mesh.merge(other);
+        mesh.translate(0.f, 0.f, float(z));
+        return mesh;
+    };
+
+    // The width of the bridge lines extruded on the sacrificial layer, along x (between the centers of the end lines).
+    const auto bridge_width = [&config, &frame](int anchor_walls, double &anchor_expected) {
+        config.set_deserialize_strict("bridge_anchor_walls", std::to_string(anchor_walls));
+        TriangleMesh mesh = frame(30., 12., 0., 3.);
+        mesh.merge(frame(30., 5., 3., 3.));
+        Print print;
+        Model model;
+        init_print({ mesh }, print, model, config);
+        print.process();
+        const Layer *layer = nullptr;
+        for (const Layer *l : print.objects().front()->layers())
+            if (std::abs(l->print_z - 3.2) < EPSILON)
+                layer = l;
+        REQUIRE(layer != nullptr);
+        REQUIRE(! layer->regions().empty());
+        const LayerRegion *layerm = layer->regions().front();
+        anchor_expected = layerm->flow(frExternalPerimeter).spacing() + layerm->flow(frPerimeter).spacing() * (anchor_walls - 1);
+        BoundingBox bbox;
+        for (const LayerRegion *region : layer->regions())
+            for_each_extrusion_path(region->fills, [&bbox](const ExtrusionPath &path) {
+                if (path.role() == erBridgeInfill)
+                    bbox.merge(BoundingBox(path.polyline.to_polyline().points));
+            });
+        REQUIRE(bbox.defined);
+        return unscale<double>(bbox.size().x());
+    };
+
+    double anchor_expected = 0.;
+    const double default_width = bridge_width(0, anchor_expected);
+    const double long_width    = bridge_width(4, anchor_expected);
+    CAPTURE(default_width, long_width, anchor_expected);
+    // The bridge spans the 12mm pocket. With 4 anchor walls it reaches on both sides over the walls of the pocket, which
+    // are more than one wall farther than by default.
+    CHECK(default_width > 11.);
+    CHECK(long_width > 12. + 2. * 0.75 * anchor_expected);
+    CHECK(long_width > default_width + 2. * 0.45);
+
+    // However long, the anchor stays inside the 4 walls along the outline of the 30mm block and never replaces them.
+    const double longest_width = bridge_width(20, anchor_expected);
+    CAPTURE(longest_width);
+    CHECK(longest_width > long_width);
+    CHECK(longest_width < 30. - 2. * (0.42 + 3 * 0.4) + 2. * 0.45);
+}
+
+TEST_CASE("Bridge anchor walls print the anchor of a thick bridge at the layer height", "[Bridge]")
+{
+    // The pillars and the deck of the test above, bridged with thick bridges.
+    DynamicPrintConfig config = multifilament_config(1, {
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "wall_loops",                 3 },
+        { "sparse_infill_density",      "15%" },
+        { "top_shell_layers",           3 },
+        { "top_shell_thickness",        0 },
+        { "thick_bridges",              true },
+        { "enable_support",             false },
+    });
+
+    // The heights of all the bridge paths, of those over the gap (grown by about a line width) and of those over the
+    // pillars (outside of the gap shrunk by about a line width).
+    const auto bridge_heights = [&config](int anchor_walls, std::vector<float> &all, std::vector<float> &over_gap, std::vector<float> &over_pillars) {
+        config.set_deserialize_strict("bridge_anchor_walls", std::to_string(anchor_walls));
+        TriangleMesh mesh = make_cube(10., 20., 6.);
+        TriangleMesh far_pillar = make_cube(10., 20., 6.);
+        far_pillar.translate(20.f, 0.f, 0.f);
+        mesh.merge(far_pillar);
+        TriangleMesh deck = make_cube(30., 20., 4.);
+        deck.translate(0.f, 0.f, 5.f);
+        mesh.merge(deck);
+        Print print;
+        Model model;
+        init_print({ mesh }, print, model, config);
+        print.process();
+        const Layer *layer = nullptr;
+        for (const Layer *l : print.objects().front()->layers())
+            if (std::abs(l->print_z - 5.2) < EPSILON)
+                layer = l;
+        REQUIRE(layer != nullptr);
+        const ExPolygons gap        = diff_ex(layer->lslices, layer->lower_layer->lslices);
+        const ExPolygons inner_gap  = offset_ex(gap, -scaled<float>(0.5));
+        const ExPolygons outer_gap  = offset_ex(gap, scaled<float>(0.5));
+        for (const LayerRegion *region : layer->regions())
+            for_each_extrusion_path(region->fills, [&](const ExtrusionPath &path) {
+                if (path.role() != erBridgeInfill)
+                    return;
+                const Polyline polyline = path.polyline.to_polyline();
+                all.push_back(path.height);
+                if (diff_pl(Polylines{ polyline }, outer_gap).empty())
+                    over_gap.push_back(path.height);
+                else if (intersection_pl(Polylines{ polyline }, inner_gap).empty())
+                    over_pillars.push_back(path.height);
+            });
+    };
+
+    std::vector<float> all, over_gap, over_pillars;
+    // By default the whole thick bridge is as high as the nozzle diameter, its anchor too.
+    bridge_heights(0, all, over_gap, over_pillars);
+    REQUIRE(! all.empty());
+    for (float height : all)
+        CHECK(std::abs(height - 0.4f) < 0.001f);
+
+    // With anchor walls, the part over the pillars is printed at the layer height, the part over the gap as before.
+    all.clear();
+    over_gap.clear();
+    over_pillars.clear();
+    bridge_heights(6, all, over_gap, over_pillars);
+    REQUIRE(! over_gap.empty());
+    REQUIRE(! over_pillars.empty());
+    for (float height : over_gap)
+        CHECK(std::abs(height - 0.4f) < 0.001f);
+    for (float height : over_pillars)
+        CHECK(std::abs(height - 0.2f) < 0.001f);
 }

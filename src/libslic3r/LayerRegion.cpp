@@ -564,6 +564,29 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
         ExpansionZone{std::move(top_expolygons), expansion_params_into_solid_infill},
     };
 
+    // ORCA: Bridge anchor walls. By default a bridge reaches only one wall into the sparse infill around it, and no farther
+    // than the solid infill of the vertical shell when the shell is next to it, as each zone is expanded into from the bridge
+    // on its own. So with more walls its ends rest on the innermost walls of the layer below only. Let the user anchor it
+    // over more walls, as wide as the walls of the layer below: the outer wall next to the void plus the inner walls,
+    // expanding through the shells and the sparse infill as one zone. Never shorter than the default.
+    float expansion_bridge_anchor = 0.f;
+    if (const int anchor_walls = this->region().config().bridge_anchor_walls.value; anchor_walls > 0)
+        expansion_bridge_anchor = this->flow(frExternalPerimeter).scaled_spacing() +
+                                  this->flow(frPerimeter).scaled_spacing() * float(anchor_walls - 1);
+    const bool long_bridge_anchor = expansion_bridge_anchor > expansion_min;
+    std::vector<ExpansionZone> bridge_expansion_zones;
+    if (long_bridge_anchor) {
+        // Keep the number of waves per mm as by default, so that a longer anchor still follows the boundary closely.
+        const size_t nr_steps = std::max(max_nr_expansion_steps, size_t(std::ceil(unscaled<double>(expansion_bridge_anchor) / 0.5)));
+        // The shells are expanded into as by default too, so that the anchor is never shorter than the default one.
+        bridge_expansion_zones = {
+            ExpansionZone{union_ex(expansion_zones[0].expolygons, expansion_zones[1].expolygons),
+                          RegionExpansionParameters::build(expansion_bridge_anchor, expansion_step, nr_steps)},
+            ExpansionZone{expansion_zones[0].expolygons, expansion_params_into_solid_infill},
+            ExpansionZone{expansion_zones[2].expolygons, expansion_params_into_solid_infill},
+        };
+    }
+
     SurfaceCollection bridges;
     {
         BOOST_LOG_TRIVIAL(trace) << "Processing external surface, detecting bridges. layer" << this->layer()->print_z;
@@ -587,8 +610,15 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                     polygons_append(other_regions_anchors, intersection(other->slices.surfaces, lower_layer->lslices));
 
         bridges.surfaces = (custom_angle_deg > 0.0 && !relative_angle) ?
-            expand_merge_surfaces(this->fill_surfaces.surfaces, stBottomBridge, expansion_zones, closing_radius, custom_angle_rad + align_offset_rad) :
-            expand_bridges_detect_orientations(this->fill_surfaces.surfaces, expansion_zones, closing_radius, other_regions_anchors);
+            expand_merge_surfaces(this->fill_surfaces.surfaces, stBottomBridge, long_bridge_anchor ? bridge_expansion_zones : expansion_zones, closing_radius, custom_angle_rad + align_offset_rad) :
+            expand_bridges_detect_orientations(this->fill_surfaces.surfaces, long_bridge_anchor ? bridge_expansion_zones : expansion_zones, closing_radius, other_regions_anchors);
+        if (long_bridge_anchor) {
+            // ORCA: Bridge anchor walls, trim the shells and the sparse infill by the bridges, as done for the joint zone.
+            const ExPolygons expanded_bridges = to_expolygons(bridges.surfaces);
+            expansion_zones[0].expolygons     = diff_ex(expansion_zones[0].expolygons, expanded_bridges);
+            expansion_zones[1].expolygons     = diff_ex(expansion_zones[1].expolygons, expanded_bridges);
+            expansion_zones[2].expolygons     = std::move(bridge_expansion_zones[2].expolygons);
+        }
         if (custom_angle_deg > 0.0 && relative_angle) {
             for (Surface &bridge_surface : bridges.surfaces) {
                 if (bridge_surface.bridge_angle >= 0)
