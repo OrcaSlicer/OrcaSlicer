@@ -499,3 +499,100 @@ TEST_CASE("Arachne generates no toolpaths from an unrepairable Voronoi diagram",
             junctions += line.size();
     CHECK(junctions == 0);
 }
+
+namespace {
+// The perimeter settings of a 0.6 mm nozzle with 0.62 mm walls at 0.3 mm layers and one wall left, as on a
+// tapering tip where only the outer wall still fits.
+struct SingleWallSetup
+{
+    static constexpr double nozzle_mm = 0.6, width_mm = 0.62, layer_height = 0.3;
+    const coord_t           width   = scaled<coord_t>(width_mm);
+    const coord_t           spacing = scaled<coord_t>(Flow::rounded_rectangle_extrusion_spacing(float(width_mm), float(layer_height)));
+    WallToolPathsParams     params;
+
+    explicit SingleWallSetup(bool keep_last_printed_line)
+    {
+        params.min_bead_width                   = static_cast<float>(0.85 * nozzle_mm);
+        params.min_feature_size                 = static_cast<float>(0.25 * nozzle_mm);
+        params.wall_transition_length           = static_cast<float>(nozzle_mm);
+        params.wall_transition_angle            = 10.f;
+        params.wall_transition_filter_deviation = static_cast<float>(0.25 * nozzle_mm);
+        params.wall_distribution_count          = 1;
+        params.keep_last_printed_line           = keep_last_printed_line;
+    }
+
+    // Generates one wall for the outline and returns its printed lines; zero-width contour lines are not printed.
+    std::vector<ExtrusionLine> printed_lines(const Polygon &shape) const
+    {
+        // WallToolPaths keeps a reference to its outline, so the outline must outlive it.
+        const Polygons outline{shape};
+        WallToolPaths  wall_tool_paths(outline, spacing, spacing, 1, -coord_t(width / 2 - spacing / 2), layer_height, params);
+        std::vector<ExtrusionLine> lines;
+        for (const VariableWidthLines &inset : wall_tool_paths.getToolPaths())
+            for (const ExtrusionLine &line : inset)
+                if (std::any_of(line.begin(), line.end(), [](const ExtrusionJunction &j) { return j.w > 0; }))
+                    lines.push_back(line);
+        return lines;
+    }
+};
+
+Polygon rectangle(coord_t short_side, coord_t long_side)
+{
+    // Away from the origin, like a part on the bed.
+    const Point o = Point::new_scale(100., 100.);
+    return Polygon{o, o + Point(long_side, 0), o + Point(long_side, short_side), o + Point(0, short_side)};
+}
+
+Polygon rotated_regular_polygon(size_t sides, double diameter_mm, double phase)
+{
+    Polygon polygon;
+    for (size_t i = 0; i < sides; ++i) {
+        const double a = phase + 2. * M_PI * double(i) / double(sides);
+        polygon.points.emplace_back(Point(scaled<double>(100. + diameter_mm / 2. * std::cos(a)), scaled<double>(100. + diameter_mm / 2. * std::sin(a))));
+    }
+    return polygon;
+}
+} // anonymous namespace
+
+// Narrower than about 1.7 line widths an island prints as one centre bead. A near-square island's bead runs
+// along its short central medial-axis edge, as long as the two sides differ, which is too short to print as a line.
+TEST_CASE("Arachne keeps the only bead of a near-square island", "[Arachne][Regression]") {
+    const double  side_mm = GENERATE(0.4, 0.6, 0.8, 0.9);
+    const coord_t side    = scaled<coord_t>(side_mm);
+    const coord_t excess  = GENERATE_COPY(coord_t(0), coord_t(6), coord_t(1000), side / 20, side / 5);
+    const bool    top     = GENERATE(false, true);
+    CAPTURE(side_mm, excess, top);
+
+    SingleWallSetup setup(true);
+    setup.params.is_top_or_bottom_layer = top;
+    CHECK(setup.printed_lines(rectangle(side, side + excess)).size() == 1);
+}
+
+TEST_CASE("Arachne keeps the only bead of a small rotated polygon", "[Arachne][Regression]") {
+    // Each of these lost its bead with a 0.1234 rad rotation, and printed one unrotated.
+    const auto [sides, diameter_mm] = GENERATE(table<size_t, double>({{12, 0.45}, {12, 0.5}, {12, 0.75}, {64, 0.75}}));
+    CAPTURE(sides, diameter_mm);
+
+    const SingleWallSetup setup(true);
+    CHECK(setup.printed_lines(rotated_regular_polygon(sides, diameter_mm, 0.1234)).size() == 1);
+}
+
+TEST_CASE("Arachne keeps the only bead as a line when it is long enough to print as one", "[Arachne][Regression]") {
+    // A 0.9 x 1.8 mm island's bead is a straight line about 0.9 mm long. A large minimum wall length would remove
+    // it; it must stay a line rather than shrink to a dot.
+    SingleWallSetup setup(true);
+    setup.params.min_length_factor = 5.f;
+    const coord_t side             = scaled<coord_t>(0.9);
+
+    const std::vector<ExtrusionLine> lines = setup.printed_lines(rectangle(side, 2 * side));
+    REQUIRE(lines.size() == 1);
+    // A dot would be 5/8 of the bead width, about 0.56 mm.
+    CHECK(lines.front().getLength() > side * 3 / 4);
+}
+
+TEST_CASE("Arachne removes a near-square island's short bead unless asked to keep the last line", "[Arachne]") {
+    // The option is off for fills and inner walls, where the outline is already surrounded by printed walls.
+    const SingleWallSetup setup(false);
+    const coord_t         side = scaled<coord_t>(0.9);
+    CHECK(setup.printed_lines(rectangle(side, side + side / 20)).empty());
+}

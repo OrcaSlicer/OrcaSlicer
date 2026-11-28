@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <math.h>
 #include <vector>
 
 #include "ExtrusionLine.hpp"
@@ -27,6 +28,21 @@ namespace Slic3r::Arachne
 {
 
 ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd) : inset_idx(inset_idx), is_odd(is_odd), is_closed(false) {}
+
+void ExtrusionLine::make_dot(const Point centre, const coord_t width)
+{
+    // total area to be extruded is pi*(w/2)^2 = pi*w*w/4
+    // Width a constant extrusion width w, that would be a length of pi*w/4
+    // If we make a small circle to fill up the hole, then that circle would have a circumference of 2*pi*r
+    // So our circle needs to be such that r=w/8
+    const coord_t     r          = width / 8;
+    constexpr coord_t n_segments = 6;
+    junctions.clear();
+    for (coord_t segment = 0; segment < n_segments; segment++) {
+        float a = 2.0 * M_PI / n_segments * segment;
+        junctions.emplace_back(centre + Point(r * cos(a), r * sin(a)), width, inset_idx);
+    }
+}
 
 int64_t ExtrusionLine::getLength() const
 {

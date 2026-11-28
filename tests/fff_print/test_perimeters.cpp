@@ -1727,3 +1727,64 @@ TEST_CASE("Changing the brim updates the wall order of the first layer", "[Perim
     REQUIRE(before != fresh);
     CHECK(after == fresh);
 }
+
+namespace {
+
+// A spike tapering from a 2.0 x 2.1 mm foot to a 0.6 x 0.63 mm tip over 12 mm. Its layers are near-square
+// rectangles, which Arachne prints as a single centre bead once they are narrower than about 1.7 line widths.
+TriangleMesh near_square_spike()
+{
+    const float height = 12.f, foot = 2.f, tip = 0.6f, stretch = 1.05f;
+    const float inset  = (foot - tip) / 2.f;
+    indexed_triangle_set its;
+    its.vertices = {
+        { 0.f, 0.f, 0.f }, { foot * stretch, 0.f, 0.f }, { foot * stretch, foot, 0.f }, { 0.f, foot, 0.f },
+        { inset * stretch, inset, height }, { (inset + tip) * stretch, inset, height },
+        { (inset + tip) * stretch, inset + tip, height }, { inset * stretch, inset + tip, height },
+    };
+    its.indices = { { 0, 2, 1 }, { 0, 3, 2 }, { 4, 5, 6 }, { 4, 6, 7 } };
+    for (int i = 0; i < 4; ++i) {
+        const int next = (i + 1) % 4;
+        its.indices.emplace_back(i, next, next + 4);
+        its.indices.emplace_back(i, next + 4, i + 4);
+    }
+    return TriangleMesh(std::move(its));
+}
+
+} // namespace
+
+TEST_CASE("A tapering near-square spike has walls on every layer", "[Perimeters][Regression]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "wall_generator",             wall_generator },
+        { "nozzle_diameter",            "0.6" },
+        { "line_width",                 0.62 },
+        { "outer_wall_line_width",      0.62 },
+        { "inner_wall_line_width",      0.62 },
+        { "layer_height",               0.3 },
+        { "initial_layer_print_height", 0.3 },
+        { "wall_loops",                 2 },
+        { "min_length_factor",          0.5 },
+        { "min_feature_size",           "25%" },
+        { "min_bead_width",             "85%" },
+    });
+    Print print;
+    init_and_process_print({ near_square_spike() }, print, config);
+    REQUIRE_FALSE(print.objects().empty());
+
+    // 12 mm at 0.3 mm layers.
+    const auto layers = print.objects().front()->layers();
+    REQUIRE(layers.size() == 40);
+    for (const Layer *layer : layers) {
+        bool has_walls = false;
+        for (const LayerRegion *region : layer->regions())
+            if (!region->perimeters.empty())
+                has_walls = true;
+        CAPTURE(layer->print_z);
+        CHECK(has_walls);
+    }
+}
