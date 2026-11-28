@@ -852,13 +852,6 @@ bool NetworkAgent::supports_feature(const std::string& expected_agent_id, const 
     return m_printer_agent->supports_feature(dev_id, feature);
 }
 
-void NetworkAgent::note_mqtt_alive_support(const std::string& expected_agent_id, const std::string& dev_id, bool supported)
-{
-    if (!owns_agent(expected_agent_id))
-        return;
-    m_printer_agent->note_mqtt_alive_support(dev_id, supported);
-}
-
 bool NetworkAgent::uses_filament_mapping(const std::string& expected_agent_id) const
 {
     if (!owns_agent(expected_agent_id))

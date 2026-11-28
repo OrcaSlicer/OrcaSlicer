@@ -3266,7 +3266,6 @@ void MoonrakerPrinterAgent::start_status_stream(const std::string& dev_id, Conne
 
 void MoonrakerPrinterAgent::stop_status_stream()
 {
-    ws_connected.store(false);
     std::thread stopped;
     {
         std::lock_guard<std::mutex> lock(ws_abort_mutex);
@@ -3337,7 +3336,6 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, ConnectionSett
 
     while (!ws_stop.load()) {
         bool connection_lost = false; // Flag to distinguish clean shutdown from unexpected disconnect
-        ws_connected.store(false);
 
         tcp::resolver                     resolver{ioc};
         std::unique_ptr<AsyncWebsocket>   ws;  // Created inside the try so a TLS context failure is caught and retried
@@ -3499,7 +3497,6 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, ConnectionSett
             if (const auto ec = run([&](auto&& handler) { ws->async_write(subscribe_payload, handler); })) {
                 throw beast::system_error{ec};
             }
-            ws_connected.store(true);
 
             // Eager fetch so AMS data is available immediately after connecting,
             // without waiting on the loop's own refresh clock below.
@@ -3563,7 +3560,6 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, ConnectionSett
             connection_lost = true;
         }
 
-        ws_connected.store(false);
         close_politely(ws_stop.load() ? websocket::close_code::going_away : websocket::close_code::normal);
         ioc.restart();
         // Both handlers refer to this connection, so neither may be left queued for the next one

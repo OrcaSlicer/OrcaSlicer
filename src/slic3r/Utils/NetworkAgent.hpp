@@ -157,9 +157,6 @@ public:
     bool owns_agent(const std::string& expected_agent_id) const;
     bool supports_command(const std::string& expected_agent_id, const std::string& dev_id, const std::string& command) const;
     bool supports_feature(const std::string& expected_agent_id, const std::string& dev_id, const std::string& feature) const;
-    // Forward a printer-reported capability to its owning agent. Fire-and-forget: the
-    // shared contract does not depend on whether, or how, an agent uses it.
-    void note_mqtt_alive_support(const std::string& expected_agent_id, const std::string& dev_id, bool supported);
     bool uses_filament_mapping(const std::string& expected_agent_id) const;
     int command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode);
     int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode);
