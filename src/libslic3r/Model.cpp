@@ -1611,7 +1611,10 @@ bool ModelObject::sync_painted_modifiers()
         if (v->mesh_ptr() != host->mesh_ptr()) {
             const indexed_triangle_set &its_old = v->mesh().its;
             const indexed_triangle_set &its_new = host->mesh().its;
-            if (! v->painted_modifier_facets.empty() && (its_old.vertices != its_new.vertices || its_old.indices != its_new.indices))
+            // The old mesh is the host's mesh at the last sync, so with the same triangle list (as after a texture displacement
+            // smooth, which only moves vertices) every face is still the same face and keeps its paint. Remapping it
+            // geometrically would lose paint where vertices moved.
+            if (! v->painted_modifier_facets.empty() && its_old.indices != its_new.indices)
                 v->painted_modifier_facets.set_data(TriangleSelector::remap_painting(its_old, v->painted_modifier_facets.get_data(), its_new,
                                                                                      v->get_matrix().inverse() * host->get_matrix(), {}));
             v->m_mesh        = host->m_mesh;

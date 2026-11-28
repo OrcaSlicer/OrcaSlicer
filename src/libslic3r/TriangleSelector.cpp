@@ -1,6 +1,7 @@
 #include "TriangleSelector.hpp"
 #include "Geometry.hpp"
 #include "AABBTreeIndirect.hpp"
+#include "KDTreeIndirect.hpp"
 #include "Point.hpp"
 #include "libslic3r.h"
 #include "Utils.hpp"
@@ -2375,13 +2376,17 @@ public:
                             float radius_world,
                             const Transform3d& trafo_,
                             const TriangleSelector::ClippingPlane& clipping_plane_,
-                            const std::array<const Vec3f, 3>& vertices)
+                            const std::array<const Vec3f, 3>& vertices,
+                            const std::vector<bool>& locked_facets)
         : TriangleSelector::SinglePointCursor(center_, source_, radius_world, trafo_, clipping_plane_)
         , barycentric_(vertices[0], vertices[1], vertices[2])
+        , locked_facets_(locked_facets)
     {}
     ~TriangleCursor() override = default;
 
-    static std::unique_ptr<Cursor> build_cursor(const TriangleSelector& source_selector, const TriangleSelector::Triangle& tri)
+    // Painting does not spread into `locked_facets`, which have their final paint already.
+    static std::unique_ptr<Cursor> build_cursor(const TriangleSelector& source_selector, const TriangleSelector::Triangle& tri,
+                                                const std::vector<bool>& locked_facets)
     {
         const Vec3f& pv0 = source_selector.m_vertices[tri.verts_idxs[0]].v;
         const Vec3f& pv1 = source_selector.m_vertices[tri.verts_idxs[1]].v;
@@ -2398,7 +2403,7 @@ public:
                                       point_to_line_dist(center, pv1, pv2)), 0.1f);
 
         return std::make_unique<TriangleCursor>(center, center + norm, radius, Transform3d::Identity(), TriangleSelector::ClippingPlane(),
-                                                std::array<const Vec3f, 3>{pv0, pv1, pv2});
+                                                std::array<const Vec3f, 3>{pv0, pv1, pv2}, locked_facets);
     }
 
     bool is_mesh_point_inside(const Vec3f& point) const override
@@ -2470,7 +2475,7 @@ public:
     {
         const Vec3f& n = face_normals[facet_idx];
 
-        return check_normal(n, this->dir);
+        return !locked_facets_[facet_idx] && check_normal(n, this->dir);
     }
 
     static bool check_normal(const Vec3f& facet_norm, const Vec3f& camera_dir)
@@ -2483,6 +2488,7 @@ public:
 
 private:
     const Barycentric barycentric_;
+    const std::vector<bool>& locked_facets_;
     static const double facet_angle_limit;
 
     static float point_to_line_dist(const Vec3f& p, const Vec3f& a, const Vec3f& b)
@@ -2493,6 +2499,84 @@ private:
 };
 const double TriangleCursor::facet_angle_limit = cos(Geometry::deg2rad(5.0));
 
+// For each target face that is a source face, possibly with its vertices rotated, returns the source face
+// and the rotation: vertex i of the target face is vertex (i + rotation) % 3 of the source face.
+// Returns {-1, 0} for every other target face. Vertices closer than a fraction of a micron are the same.
+static std::vector<std::pair<int, int>> match_unchanged_faces(const indexed_triangle_set& source_its, const indexed_triangle_set& target_its)
+{
+    constexpr float max_dist_sqr = 1e-4f * 1e-4f;
+
+    auto coord_fn = [&source_its](size_t idx, size_t dim) { return source_its.vertices[idx][dim]; };
+    const KDTreeIndirect<3, float, decltype(coord_fn)> source_tree{coord_fn, source_its.vertices.size()};
+    std::vector<int> source_vertex(target_its.vertices.size(), -1);
+    tbb::parallel_for(size_t(0), target_its.vertices.size(), [&](size_t i) {
+        const size_t closest = find_closest_point(source_tree, target_its.vertices[i]);
+        if (closest != source_tree.npos && (source_its.vertices[closest] - target_its.vertices[i]).squaredNorm() <= max_dist_sqr)
+            source_vertex[i] = int(closest);
+    });
+
+    const VertexFaceIndex source_vertex_faces(source_its);
+    std::vector<std::pair<int, int>> out(target_its.indices.size(), {-1, 0});
+    tbb::parallel_for(size_t(0), target_its.indices.size(), [&](size_t i) {
+        const stl_triangle_vertex_indices& face = target_its.indices[i];
+        const int a = source_vertex[face(0)], b = source_vertex[face(1)], c = source_vertex[face(2)];
+        if (a < 0 || b < 0 || c < 0)
+            return;
+        for (const size_t source_face : source_vertex_faces[a]) {
+            const stl_triangle_vertex_indices& sf = source_its.indices[source_face];
+            for (int rotation = 0; rotation < 3; ++rotation)
+                if (sf(rotation) == a && sf((rotation + 1) % 3) == b && sf((rotation + 2) % 3) == c) {
+                    out[i] = {int(source_face), rotation};
+                    return;
+                }
+        }
+    });
+    return out;
+}
+
+// Copies the serialized paint tree of a triangle starting at bit `ibit` of `src` to `dst`, rewritten for the same
+// triangle with its vertices rotated: vertex i of the new triangle is vertex (i + rotation) % 3 of the old one.
+// Advances `ibit` past the tree. With `dst` null the tree is skipped.
+static void copy_rotated_paint_tree(const std::vector<bool>& src, size_t& ibit, std::vector<bool>* dst, int rotation)
+{
+    auto read  = [&src, &ibit](int bits) { int v = 0; for (int i = 0; i < bits; ++i) v |= int(src[ibit++]) << i; return v; };
+    auto write = [dst](int v, int bits) { if (dst) for (int i = 0; i < bits; ++i) dst->push_back((v >> i) & 1); };
+
+    const int split_sides = read(2);
+    const int side_or_state = read(2);
+    write(split_sides, 2);
+    if (split_sides == 0) {
+        // Leaf. State 3 and above follows in one nibble, or in two when the first one is 0b1111.
+        write(side_or_state, 2);
+        if (side_or_state == 3) {
+            const int nibble = read(4);
+            write(nibble, 4);
+            if (nibble == 0b1111)
+                write(read(4), 4);
+        }
+    } else if (split_sides < 3) {
+        // The children start at the special side, so moving the special side keeps them as they are.
+        write((side_or_state - rotation + 3) % 3, 2);
+        for (int child = 0; child <= split_sides; ++child)
+            copy_rotated_paint_tree(src, ibit, dst, 0);
+    } else {
+        // Three corner children and the middle one, see perform_split(). Rotating the parent reorders the corner
+        // children and rotates their vertices too. The children are stored in reverse order.
+        static constexpr int source_child[3][4]   = {{0, 1, 2, 3}, {1, 2, 0, 3}, {2, 0, 1, 3}};
+        static constexpr int child_rotation[3][4] = {{0, 0, 0, 0}, {1, 0, 2, 1}, {1, 2, 0, 2}};
+        write(side_or_state, 2);
+        std::array<size_t, 4> child_start;
+        for (int child = 3; child >= 0; --child) {
+            child_start[child] = ibit;
+            copy_rotated_paint_tree(src, ibit, nullptr, 0);
+        }
+        if (dst)
+            for (int child = 3; child >= 0; --child) {
+                size_t child_bit = child_start[source_child[rotation][child]];
+                copy_rotated_paint_tree(src, child_bit, dst, child_rotation[rotation][child]);
+            }
+    }
+}
 
 // Remap painting data from source mesh to target mesh using spatial mapping.
 TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
@@ -2568,14 +2652,50 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
         return false;
     };
 
-    // 4. For each painted face, we find the nearest target face, and apply the TriangleCursor to paint it
     TriangleSelector target_selector(target_mesh);
+    std::vector<bool> has_existing_paint(target_mesh.its.indices.size(), false);
     if (existing_painting) {
         // Restore existing painting first, if given
         target_selector.deserialize(existing_painting->get(), false);
+        // deserialize() drops the whole stream if any index is out of range, so treat it as no paint then.
+        const auto& existing = existing_painting->get().triangles_to_split;
+        if (std::all_of(existing.begin(), existing.end(), [&](const TriangleBitStreamMapping& m) {
+                return m.triangle_idx >= 0 && size_t(m.triangle_idx) < has_existing_paint.size();
+            }))
+            for (const TriangleBitStreamMapping& m : existing)
+                has_existing_paint[m.triangle_idx] = true;
     }
+
+    // 4. Most faces are left unchanged by a repair, a split or a cut. Copy their paint tree as it is, which is
+    // exact and much faster than painting them again below. Faces with existing paint are painted over below instead.
+    const TriangleSplittingData source_data = source_selector.serialize();
+    std::vector<int> source_tree_start(source_its.indices.size(), -1);
+    for (const TriangleBitStreamMapping& m : source_data.triangles_to_split)
+        source_tree_start[m.triangle_idx] = m.bitstream_start_idx;
+
+    const std::vector<std::pair<int, int>> unchanged_faces = match_unchanged_faces(source_its, target_mesh.its);
+    std::vector<bool> source_copied(source_its.indices.size(), false);
+    std::vector<bool> target_copied(target_mesh.its.indices.size(), false);
+    TriangleSplittingData copied;
+    for (size_t face_idx = 0; face_idx < unchanged_faces.size(); ++face_idx) {
+        const auto [source_face, rotation] = unchanged_faces[face_idx];
+        if (source_face < 0 || has_existing_paint[face_idx])
+            continue;
+        source_copied[source_face] = true;
+        target_copied[face_idx]    = true;
+        if (source_tree_start[source_face] >= 0) {
+            size_t ibit = size_t(source_tree_start[source_face]);
+            copied.triangles_to_split.emplace_back(int(face_idx), int(copied.bitstream.size()));
+            copy_rotated_paint_tree(source_data.bitstream, ibit, &copied.bitstream, rotation);
+        }
+    }
+    target_selector.deserialize(copied, false);
+
+    // 5. For each other painted face, we find the overlapping target faces, and apply the TriangleCursor to paint them
     for (auto tri_ref : painted_triangles) {
         const Triangle& tri = tri_ref.get();
+        if (source_copied[tri.source_triangle])
+            continue;
         const Vec3f& pv0    = source_selector.m_vertices[tri.verts_idxs[0]].v;
         const Vec3f& pv1    = source_selector.m_vertices[tri.verts_idxs[1]].v;
         const Vec3f& pv2    = source_selector.m_vertices[tri.verts_idxs[2]].v;
@@ -2591,7 +2711,7 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
 
         AABBTreeIndirect::traverse(target_tree, AABBTreeIndirect::intersecting(pt_bbox), [&](const AABBTreeIndirect::Tree3f::Node& node) -> bool {
             size_t face_idx = node.idx;
-            if (face_idx >= target_mesh.its.indices.size())
+            if (face_idx >= target_mesh.its.indices.size() || target_copied[face_idx])
                 return true;
 
             const Vec3f& norm_a = source_selector.m_face_normals[tri.source_triangle];
@@ -2604,7 +2724,7 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
 
             if (TriangleCursor::check_normal(norm_b, -norm_a) && check_overlap(pv0, pv1, pv2, ta, tb, tc)) {
                 // Paint this face
-                target_selector.select_patch(face_idx, TriangleCursor::build_cursor(source_selector, tri), tri.get_state(),
+                target_selector.select_patch(face_idx, TriangleCursor::build_cursor(source_selector, tri, target_copied), tri.get_state(),
                                              Transform3d::Identity(), true, 0.f, Vec3f::UnitZ(), true);
             }
             return true; // continue traversal

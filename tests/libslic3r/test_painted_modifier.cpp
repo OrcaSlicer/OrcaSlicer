@@ -23,6 +23,7 @@
 
 #include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r;
@@ -194,6 +195,25 @@ TEST_CASE("A painted modifier follows the transformation and the mesh of its hos
     CHECK(scene.painted_modifier->mesh_ptr() == scene.part->mesh_ptr());
     CHECK(scene.painted_modifier->painted_modifier_facets.get_data() == data);
     CHECK_FALSE(scene.object->sync_painted_modifiers());
+}
+
+TEST_CASE("A painted modifier keeps its paint when its host's vertices move but its triangles stay", "[PaintedModifier]")
+{
+    Scene scene;
+    const auto data = scene.painted_modifier->painted_modifier_facets.get_data();
+    REQUIRE(! data.bitstream.empty());
+
+    // Move the painted side 2 mm outward, clear of where it was, without changing the triangles.
+    indexed_triangle_set its      = scene.part->mesh().its;
+    const float          center_x = float(scene.part->mesh().bounding_box().center().x());
+    for (Vec3f &vertex : its.vertices)
+        if (vertex.x() > center_x)
+            vertex.x() += 2.f;
+    scene.part->set_mesh(std::move(its));
+
+    REQUIRE(scene.object->sync_painted_modifiers());
+    CHECK(scene.painted_modifier->mesh_ptr() == scene.part->mesh_ptr());
+    CHECK(scene.painted_modifier->painted_modifier_facets.get_data() == data);
 }
 
 TEST_CASE("A painted modifier stays on its host when the host gets a new ID", "[PaintedModifier]")
