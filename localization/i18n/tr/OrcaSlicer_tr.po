@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:06-0600\n"
+"POT-Creation-Date: 2026-11-17 13:42+0100\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -19237,8 +19237,9 @@ msgstr "Küçük dolgu alanları için akış telafisini etkinleştirin."
 msgid "Flow Compensation Model"
 msgstr "Akış telafisi modeli"
 
-msgid "Flow Compensation Model, used to adjust the flow for small infill areas. The model is expressed as a comma separated pair of values for extrusion length and flow correction factor. Each pair is on a separate line, followed by a semicolon, in the following format: \"1.234, 5.678;\""
-msgstr "Küçük dolgu alanlarında akışı ayarlamak için kullanılan Akış Telafi Modeli. Model, ekstrüzyon uzunluğu ve akış düzeltme faktörü için virgülle ayrılmış bir değer çifti olarak ifade edilir. Her çift, aşağıdaki formatta, noktalı virgülle işaretlenmiş ayrı bir satırda yer alır: \"1.234, 5.678;\""
+# AI Translated
+msgid "Flow Compensation Model, used to adjust the flow for small infill areas. The model is a curve through points, each a pair of an extrusion length in mm and a flow correction factor. An extrusion gets the factor the curve gives for its length. The points are edited on a graph or in a table in the editor that the button opens."
+msgstr "Küçük dolgu alanlarında akışı ayarlamak için kullanılan Akış Telafi Modeli. Model, noktalardan geçen bir eğridir; her nokta, mm cinsinden bir ekstrüzyon uzunluğu ile bir akış düzeltme faktöründen oluşan bir çifttir. Her ekstrüzyon, eğrinin kendi uzunluğu için verdiği faktörü alır. Noktalar, düğmenin açtığı düzenleyicide bir grafik üzerinde veya bir tabloda düzenlenir."
 
 msgid "Maximum speed X"
 msgstr "Maksimum hız X"
@@ -38794,6 +38795,226 @@ msgstr "Tahmini süre:"
 # AI Translated
 msgid "Remaining time:"
 msgstr "Kalan süre:"
+
+# AI Translated
+msgid "Visible range"
+msgstr "Grafik aralığı"
+
+# AI Translated
+msgid "Minimum"
+msgstr "En az"
+
+# AI Translated
+msgid "Maximum"
+msgstr "En çok"
+
+# AI Translated
+msgid "Show range"
+msgstr "Aralık"
+
+# AI Translated
+msgid "Show table"
+msgstr "Tablo"
+
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"Dokunmatik yüzey: iki parmak grafiği her yönde taşır.\n"
+"Kıstırma ve açma, iki ekseni işaretçi çevresinde ölçekler."
+
+# AI Translated
+#. TRN The four %s are names of modifier keys, in this order: Shift (move vertically), Ctrl (zoom horizontally),
+#. then Ctrl and Shift (zoom vertically). Ctrl is the Command key on macOS. Keep the placeholders in this order.
+#, c-format, boost-format
+msgid ""
+"Drag a point to move it, or edit its values in the table.\n"
+"\n"
+"Mouse wheel: move horizontally.\n"
+"%s + mouse wheel: move vertically.\n"
+"%s + mouse wheel: zoom horizontally.\n"
+"%s + %s + mouse wheel: zoom vertically.\n"
+"\n"
+"Show range: enter exact bounds and press Enter or Apply.\n"
+"Show table: show or hide the point values.\n"
+"Reset View: show the full curve.\n"
+"Reset to defaults: restore the model's default points."
+msgstr ""
+"Noktayı sürükleyin veya değerlerini tabloda düzenleyin.\n"
+"\n"
+"Fare tekerleği: yatay kaydır.\n"
+"%s + tekerlek: dikey kaydır.\n"
+"%s + tekerlek: yatay ölçekle.\n"
+"%s + %s + tekerlek: dikey ölçekle.\n"
+"\n"
+"Aralık: kesin sınırları girip Enter veya “Uygula”ya basın.\n"
+"Tablo: nokta değerlerini göster veya gizle.\n"
+"Tüm eğri: tüm eğriyi göster.\n"
+"Varsayılanlar: modelin varsayılan noktalarını geri yükle."
+
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Orta fare düğmesi: iki ekseni sürükleyin."
+
+# AI Translated
+msgid "Graph controls"
+msgstr "Grafik kontrol"
+
+# AI Translated
+msgid "Reset View"
+msgstr "Tüm eğri"
+
+# AI Translated
+msgid "Show the full curve."
+msgstr "Tüm eğriyi göster."
+
+# AI Translated
+msgid "Export CSV"
+msgstr "CSV dışa aktar"
+
+# AI Translated
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr "Noktaları CSV olarak kaydeder. Ön ayar değişikliklerini kaydetmez."
+
+msgid "Import CSV"
+msgstr "CSV içe aktar"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "En fazla nokta: %d."
+
+# AI Translated
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr "Noktaları tablo sırasıyla iki CSV sütunundan alır. Ayırıcı: virgül veya noktalı virgül."
+
+# AI Translated
+msgid "Add point"
+msgstr "Nokta ekle"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Noktayı kaldır"
+
+# AI Translated
+msgid "Reset to defaults"
+msgstr "Varsayılanlar"
+
+# AI Translated
+msgid "CSV files (*.csv)|*.csv"
+msgstr "CSV dosyaları (*.csv)|*.csv"
+
+# AI Translated
+msgid "Could not read the CSV file."
+msgstr "CSV dosyası okunamadı."
+
+# AI Translated
+#. TRN %d is a one-based line number of the CSV text, %s is the error found in that line.
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr "CSV satırı %d: %s"
+
+# AI Translated
+msgid "Could not write the CSV file."
+msgstr "CSV dosyası yazılamadı."
+
+# AI Translated
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "Tablo satırı %d: %s"
+
+# AI Translated
+#. TRN A line of the tooltip of a graph point. %1% is the name of an axis, e.g. "Extrusion length (mm)", %2% is the point's value on that axis.
+#, boost-format
+msgid "%1%: %2%"
+msgstr "%1%: %2%"
+
+# AI Translated
+msgid "Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."
+msgstr "Yalnızca grafik aralığını değiştirir, modeli değil. Enter veya “Uygula” ile güncelleyin."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Allowed range: %s to %s."
+msgstr "İzinli aralık: %s – %s."
+
+# AI Translated
+msgid ""
+"Drag points on the graph or edit their extrusion length and flow correction factor in the table.\n"
+"Lengths and factors must strictly increase. The first length must be 0 and the last factor must be 1."
+msgstr ""
+"Grafikteki noktaları sürükleyin veya ekstrüzyon boyu ve akış düzeltme katsayısını tabloda düzenleyin.\n"
+"Boylar ve katsayılar kesin artmalı. İlk boy 0, son katsayı 1 olmalı."
+
+# AI Translated
+msgid "Extrusion length (mm)"
+msgstr "Ekstrüzyon boyu (mm)"
+
+# AI Translated
+msgid "Flow correction factor"
+msgstr "Akış düzeltme kats."
+
+# AI Translated
+msgid "CSV must contain exactly two columns per line."
+msgstr "Her CSV satırında iki sütun olmalı."
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "Eğride çok fazla nokta var."
+
+# AI Translated
+msgid "The CSV file contains no points."
+msgstr "CSV dosyasında nokta yok."
+
+# AI Translated
+msgid "Enter finite bounds with minimum less than maximum."
+msgstr "Sonlu sınırlar girin: en az değeri en çoktan küçük."
+
+# AI Translated
+msgid "Visible range bounds are outside the allowed limits."
+msgstr "Görünür aralık izin verilen sınırların dışında."
+
+# AI Translated
+msgid "The visible range is too small."
+msgstr "Görünür aralık çok küçük."
+
+# AI Translated
+msgid "Enter a finite number in each cell."
+msgstr "Her hücreye sonlu bir sayı girin."
+
+# AI Translated
+msgid "The model must contain at least two points."
+msgstr "Modelde en az iki nokta olmalı."
+
+# AI Translated
+msgid "The first extrusion length must be 0."
+msgstr "İlk ekstrüzyon boyu 0 olmalı."
+
+# AI Translated
+msgid "Extrusion lengths must strictly increase."
+msgstr "Ekstrüzyon boyları kesin artmalı."
+
+# AI Translated
+msgid "Flow correction factors must strictly increase."
+msgstr "Akış düzeltme katsayıları kesin artmalı."
+
+# AI Translated
+msgid "The last flow correction factor must be 1."
+msgstr "Son akış düzeltme katsayısı 1 olmalı."
+
+# AI Translated
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
+msgstr "Ekstrüzyon uzunluğu sınırı, mevcut yazıcının yatak boyutuna ve model noktalarına bağlıdır."
+
+# AI Translated
+msgid "The model is empty. No flow compensation will be applied."
+msgstr "Model boş. Akış telafisi uygulanmayacak."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "Akış telafisi modeli: %s"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""

@@ -6,7 +6,12 @@
 #include <string>
 #include <ios>
 
+#include <algorithm>
 #include <charconv>
+#include <cmath>
+#include <cstdlib>
+#include <limits>
+#include <locale>
 #include <iomanip>
 #include <sstream>
 #include <system_error>
@@ -118,16 +123,60 @@ double strtod_decimal_point(const char *str, char **endptr)
     return out;
 }
 
+bool try_parse_double_decimal_point(std::string_view str, double& value)
+{
+    if (!str.empty() && str.front() == '+') {
+        str.remove_prefix(1);
+        if (!str.empty() && (str.front() == '-' || str.front() == '+')) return false;
+    }
+    if (str.empty()) return false;
+    double parsed = 0;
+    const auto result = fast_float::from_chars(str.data(), str.data() + str.size(), parsed);
+    if (result.ec != std::errc() || result.ptr != str.data() + str.size() || !std::isfinite(parsed)) return false;
+    value = parsed;
+    return true;
+}
+
 std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
+{
+    return float_to_string_decimal_point(value, precision, false);
+}
+
+std::string shortest_float_to_string_decimal_point(double value)
+{
+    std::stringstream buf;
+    buf.imbue(std::locale::classic());
+    const int max_digits = std::numeric_limits<double>::max_digits10;
+    for (int digits = 1; digits <= max_digits; ++digits) {
+        buf.str("");
+        buf << std::scientific << std::setprecision(digits - 1) << value;
+        const std::string text = buf.str();
+        double parsed;
+        if (digits < max_digits && !(try_parse_double_decimal_point(text, parsed) && parsed == value))
+            continue;
+        // The general format of to_chars prints exponents from -4 to 5 in fixed notation.
+        const int exponent = std::atoi(text.c_str() + text.find('e') + 1);
+        if (exponent < -4 || exponent >= 6)
+            return text;
+        buf.str("");
+        buf << std::fixed << std::setprecision(std::max(0, digits - 1 - exponent)) << value;
+        break;
+    }
+    return buf.str();
+}
+
+std::string float_to_string_decimal_point(double value, int precision, bool shortest)
 {
     // Every branch prints the same digits in the classic locale as the stream at the end, which takes over when a branch
     // is compiled out or the value is too long for the buffer.
 #if defined(SLIC3R_FLOAT_TO_CHARS)
-    constexpr size_t SIZE = 20;
+    constexpr size_t SIZE = 64;
     char out[SIZE] = "";
     std::to_chars_result res;
     if (precision >=0)
         res = std::to_chars(out, out+SIZE, value, std::chars_format::fixed, precision);
+    else if (shortest)
+        res = std::to_chars(out, out+SIZE, value, std::chars_format::general);
     else
         res = std::to_chars(out, out+SIZE, value, std::chars_format::general, 6);
     if (res.ec == std::errc())
@@ -135,7 +184,7 @@ std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
 #elif defined(__APPLE__)
     // Formats in the C locale, as libc++'s stream does, switching only this thread's locale for the call.
     static const locale_t c_locale = newlocale(LC_NUMERIC_MASK, "C", (locale_t) 0);
-    if (c_locale != (locale_t) 0) {
+    if (!shortest && c_locale != (locale_t) 0) {
         constexpr size_t SIZE = 20;
         char           out[SIZE];
         const locale_t previous = uselocale(c_locale);
@@ -145,7 +194,11 @@ std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
             return std::string(out, length);
     }
 #endif
+    // Older libc++ lacks the floating-point to_chars.
+    if (shortest && precision < 0 && std::isfinite(value))
+        return shortest_float_to_string_decimal_point(value);
     std::stringstream buf;
+    buf.imbue(std::locale::classic());
     if (precision >= 0)
         buf << std::fixed << std::setprecision(precision);
     buf << value;

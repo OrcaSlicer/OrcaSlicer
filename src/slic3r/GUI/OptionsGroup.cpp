@@ -860,6 +860,7 @@ void ConfigOptionsGroup::back_to_config_value(const DynamicPrintConfig& config, 
     }
 
     // BBS: restore all pages in preset
+    // An option without a Field (a page not built yet, or a widget row) takes the config value as it is.
     if (set_value(opt_key, value))
         on_change_OG(opt_key, get_value(opt_key));
     else if (m_opt_map.find(opt_key) != m_opt_map.end()) {

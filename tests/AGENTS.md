@@ -10,6 +10,7 @@ Rules for writing tests under `tests/`. [CATCH2.md](CATCH2.md) is the Catch2 ref
 - `libnest2d`: 2D nesting and packing.
 - `slic3rutils`: the Python plugin system and its slicing-pipeline bindings.
 - `automation`: the automation core: the command catalog's type, the dispatch core, the MCP protocol and transport, the replay model; no GUI library.
+- `curve_editor_gui` (in `slic3rutils/curve_editor_gui/`): the curve editor's graph panel, driven with native wxWidgets events. Its window tests carry the `RequiresDisplay` label and need a display, or `xvfb-run` on Linux; see [docs/HLSD/curve-editor.md](../docs/HLSD/curve-editor.md).
 - `filament_group`: filament-to-extruder grouping, checked against golden files.
 - `cli`: end-to-end runs of the built `orca-slicer` binary, Linux only. These tests carry the `RequiresApp` label, which the CI unit-test job excludes because it receives only `build/tests`; run them with `ctest --test-dir build/tests -C Release -L RequiresApp`.
 

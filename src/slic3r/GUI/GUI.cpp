@@ -212,9 +212,11 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 				}
 			}
 			else if (config.def()->get(opt_key)->gui_flags.compare("serialized") == 0) {
-				std::string str = boost::any_cast<std::string>(value);
                 std::vector<std::string> values {};
-                if (!str.empty()) {
+                // An option without a text field hands over its entries as they are.
+                if (const auto* entries = boost::any_cast<std::vector<std::string>>(&value))
+                    values = *entries;
+                else if (std::string str = boost::any_cast<std::string>(value); !str.empty()) {
 				    if (str.back() == ';') str.pop_back();
 				    // Split a string to multiple strings by a semi - colon.This is the old way of storing multi - string values.
 				    // Currently used for the post_process config value only.

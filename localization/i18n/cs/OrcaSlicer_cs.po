@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:06-0600\n"
+"POT-Creation-Date: 2026-11-17 13:42+0100\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -19528,8 +19528,9 @@ msgstr "Povolit kompenzaci průtoku pro malé výplňové oblasti."
 msgid "Flow Compensation Model"
 msgstr "Model kompenzace průtoku"
 
-msgid "Flow Compensation Model, used to adjust the flow for small infill areas. The model is expressed as a comma separated pair of values for extrusion length and flow correction factor. Each pair is on a separate line, followed by a semicolon, in the following format: \"1.234, 5.678;\""
-msgstr "Model kompenzace průtoku, který slouží k úpravě průtoku pro malé oblasti výplně. Model je vyjádřen jako čárkou oddělené dvojice hodnot délky extruze a korekčního faktoru průtoku. Každá dvojice je na samostatném řádku, následovaná středníkem ve formátu: \"1.234, 5.678;\""
+# AI Translated
+msgid "Flow Compensation Model, used to adjust the flow for small infill areas. The model is a curve through points, each a pair of an extrusion length in mm and a flow correction factor. An extrusion gets the factor the curve gives for its length. The points are edited on a graph or in a table in the editor that the button opens."
+msgstr "Model kompenzace průtoku, který slouží k úpravě průtoku pro malé oblasti výplně. Model je křivka procházející body, z nichž každý tvoří dvojice délky extruze v mm a korekčního faktoru průtoku. Každá extruze dostane faktor, který křivka udává pro její délku. Body se upravují v grafu nebo v tabulce v editoru, který otevírá tlačítko."
 
 msgid "Maximum speed X"
 msgstr "Maximální rychlost X"
@@ -39171,6 +39172,226 @@ msgstr "Odhadovaný čas:"
 # AI Translated
 msgid "Remaining time:"
 msgstr "Zbývající čas:"
+
+# AI Translated
+msgid "Visible range"
+msgstr "Rozsah grafu"
+
+# AI Translated
+msgid "Minimum"
+msgstr "Min."
+
+# AI Translated
+msgid "Maximum"
+msgstr "Max."
+
+# AI Translated
+msgid "Show range"
+msgstr "Rozsah"
+
+# AI Translated
+msgid "Show table"
+msgstr "Tabulka"
+
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"Touchpad: dvěma prsty posuňte graf v obou směrech.\n"
+"Sevřením či roztažením měňte měřítko os u ukazatele."
+
+# AI Translated
+#. TRN The four %s are names of modifier keys, in this order: Shift (move vertically), Ctrl (zoom horizontally),
+#. then Ctrl and Shift (zoom vertically). Ctrl is the Command key on macOS. Keep the placeholders in this order.
+#, c-format, boost-format
+msgid ""
+"Drag a point to move it, or edit its values in the table.\n"
+"\n"
+"Mouse wheel: move horizontally.\n"
+"%s + mouse wheel: move vertically.\n"
+"%s + mouse wheel: zoom horizontally.\n"
+"%s + %s + mouse wheel: zoom vertically.\n"
+"\n"
+"Show range: enter exact bounds and press Enter or Apply.\n"
+"Show table: show or hide the point values.\n"
+"Reset View: show the full curve.\n"
+"Reset to defaults: restore the model's default points."
+msgstr ""
+"Přetáhněte bod nebo upravte jeho hodnoty v tabulce.\n"
+"\n"
+"Kolečko myši: posun vodorovně.\n"
+"%s + kolečko: posun svisle.\n"
+"%s + kolečko: vodorovné přiblížení.\n"
+"%s + %s + kolečko: svislé přiblížení.\n"
+"\n"
+"Rozsah: zadejte přesné meze a stiskněte Enter nebo „Použít“.\n"
+"Tabulka: zobrazit či skrýt hodnoty bodů.\n"
+"Celý graf: zobrazit celou křivku.\n"
+"Výchozí body: obnovit výchozí body modelu."
+
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Prostřední tlačítko: tažením posuňte osy."
+
+# AI Translated
+msgid "Graph controls"
+msgstr "Ovládání grafu"
+
+# AI Translated
+msgid "Reset View"
+msgstr "Celý graf"
+
+# AI Translated
+msgid "Show the full curve."
+msgstr "Ukázat celou křivku."
+
+# AI Translated
+msgid "Export CSV"
+msgstr "Uložit CSV"
+
+# AI Translated
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr "Export bodů do CSV. Změny předvolby se neuloží."
+
+msgid "Import CSV"
+msgstr "Načíst CSV"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "Max. počet bodů: %d."
+
+# AI Translated
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr "Import bodů ze dvou sloupců CSV v pořadí tabulky. Oddělovač: čárka nebo středník."
+
+# AI Translated
+msgid "Add point"
+msgstr "Přidat bod"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Odstranit bod"
+
+# AI Translated
+msgid "Reset to defaults"
+msgstr "Výchozí body"
+
+# AI Translated
+msgid "CSV files (*.csv)|*.csv"
+msgstr "Soubory CSV (*.csv)|*.csv"
+
+# AI Translated
+msgid "Could not read the CSV file."
+msgstr "Nelze číst soubor CSV."
+
+# AI Translated
+#. TRN %d is a one-based line number of the CSV text, %s is the error found in that line.
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr "Řádek CSV %d: %s"
+
+# AI Translated
+msgid "Could not write the CSV file."
+msgstr "Nelze zapsat soubor CSV."
+
+# AI Translated
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "Řádek tabulky %d: %s"
+
+# AI Translated
+#. TRN A line of the tooltip of a graph point. %1% is the name of an axis, e.g. "Extrusion length (mm)", %2% is the point's value on that axis.
+#, boost-format
+msgid "%1%: %2%"
+msgstr "%1%: %2%"
+
+# AI Translated
+msgid "Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."
+msgstr "Mění jen rozsah grafu, ne hodnoty modelu. Aktualizujte klávesou Enter nebo tlačítkem „Použít“."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Allowed range: %s to %s."
+msgstr "Povoleno: %s až %s."
+
+# AI Translated
+msgid ""
+"Drag points on the graph or edit their extrusion length and flow correction factor in the table.\n"
+"Lengths and factors must strictly increase. The first length must be 0 and the last factor must be 1."
+msgstr ""
+"Přetáhněte body grafu nebo upravte délku extruze a faktor korekce průtoku v tabulce.\n"
+"Délky a faktory musí přísně růst. První délka musí být 0 a poslední faktor 1."
+
+# AI Translated
+msgid "Extrusion length (mm)"
+msgstr "Délka extruze (mm)"
+
+# AI Translated
+msgid "Flow correction factor"
+msgstr "Faktor korekce průtoku"
+
+# AI Translated
+msgid "CSV must contain exactly two columns per line."
+msgstr "Každý řádek CSV musí mít dva sloupce."
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "Křivka obsahuje příliš mnoho bodů."
+
+# AI Translated
+msgid "The CSV file contains no points."
+msgstr "Soubor CSV neobsahuje body."
+
+# AI Translated
+msgid "Enter finite bounds with minimum less than maximum."
+msgstr "Zadejte konečné meze: minimum menší než maximum."
+
+# AI Translated
+msgid "Visible range bounds are outside the allowed limits."
+msgstr "Viditelný rozsah přesahuje povolené meze."
+
+# AI Translated
+msgid "The visible range is too small."
+msgstr "Viditelný rozsah je moc malý."
+
+# AI Translated
+msgid "Enter a finite number in each cell."
+msgstr "V každé buňce musí být konečné číslo."
+
+# AI Translated
+msgid "The model must contain at least two points."
+msgstr "Model musí mít alespoň dva body."
+
+# AI Translated
+msgid "The first extrusion length must be 0."
+msgstr "První délka extruze musí být 0."
+
+# AI Translated
+msgid "Extrusion lengths must strictly increase."
+msgstr "Délky extruze musí přísně růst."
+
+# AI Translated
+msgid "Flow correction factors must strictly increase."
+msgstr "Faktory korekce průtoku musí přísně růst."
+
+# AI Translated
+msgid "The last flow correction factor must be 1."
+msgstr "Poslední faktor korekce průtoku má být 1."
+
+# AI Translated
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
+msgstr "Limit délky extruze závisí na velikosti podložky aktuální tiskárny a bodech modelu."
+
+# AI Translated
+msgid "The model is empty. No flow compensation will be applied."
+msgstr "Model je prázdný. Průtok se nebude kompenzovat."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "Model kompenzace průtoku: %s"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
