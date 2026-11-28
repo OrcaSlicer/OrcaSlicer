@@ -43,7 +43,6 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
@@ -292,16 +291,6 @@ void IMSlider::SetTicksValues(const Info &custom_gcode_per_print_z)
             post_ticks_changed_event();
         }
     }
-
-    const PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
-    const bool spiral_vase = plate->get_spiral_vase_mode();
-    // Switching plates can change the effective mode without changing either plate's settings.
-    if (plate->id() == m_ticks_plate_id && spiral_vase != m_ticks_spiral_vase && !m_ticks.empty()) {
-        m_ticks.ticks.clear();
-        post_ticks_changed_event();
-    }
-    m_ticks_plate_id = plate->id();
-    m_ticks_spiral_vase = spiral_vase;
 
     //auto has_tick_execpt = [this](CustomGCode::Type type) {
     //    for (const TickCode& tick : m_ticks.ticks)

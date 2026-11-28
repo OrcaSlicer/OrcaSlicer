@@ -8,7 +8,6 @@
 #include <imgui/imgui.h>
 #include <vector>
 #include "libslic3r/CustomGCode.hpp"
-#include "libslic3r/ObjectID.hpp"
 #include <string>
 #include <wx/event.h>
 #include <wx/slider.h>
@@ -221,8 +220,6 @@ private:
     bool m_show_go_to_layer_dialog = false; //menu
     bool m_force_mode_apply   = true;
     bool m_is_wipe_tower      = false; // This flag indicates that there is multiple extruder print with wipe tower
-    ObjectID m_ticks_plate_id;
-    bool m_ticks_spiral_vase  = false;
 
     /* BBS slider images */
     void *m_one_layer_on_id;
