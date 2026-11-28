@@ -337,16 +337,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
-        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
-            if (m_vertical_only) {
-                m_horizontal_only = false;
-            }
-        }
-        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
-            if (m_horizontal_only) {
-                m_vertical_only = false;
-            }
-        }
+        render_ortho_switch(scale);
     } else if (m_current_tool == ImGui::SphereButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::SPHERE;
         m_tool_type = ToolType::BRUSH;
@@ -360,16 +351,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
-        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
-            if (m_vertical_only) {
-                m_horizontal_only = false;
-            }
-        }
-        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
-            if (m_horizontal_only) {
-                m_vertical_only = false;
-            }
-        }
+        render_ortho_switch(scale);
     } else if (m_current_tool == ImGui::FillButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type = ToolType::SMART_FILL;
@@ -418,6 +400,8 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         }
     }
 
+    ImGui::Separator();
+
     if (m_current_tool != ImGui::GapFillIcon) {
         m_imgui->bbl_checkbox(m_desc["on_overhangs_only"], m_paint_on_overhangs_only);
         if (ImGui::IsItemHovered())
@@ -425,8 +409,6 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
                              max_tooltip_width);
     }
 
-
-    ImGui::Separator();
     float position_before_text_y = ImGui::GetCursorPos().y;
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["highlight_by_angle"]);

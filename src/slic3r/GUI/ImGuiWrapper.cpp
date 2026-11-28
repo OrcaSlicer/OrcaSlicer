@@ -2189,6 +2189,64 @@ void ImGuiWrapper::search_list(const ImVec2& size_, bool (*items_getter)(int, co
     //    check_box(_L("Search in English"), view_params.english);
 }
 
+// ORCA: Row of labeled segments in one rounded track, exactly one of them selected.
+bool ImGuiWrapper::multi_switch(const char* id, const std::vector<std::string>& labels, int& selected)
+{
+    if (labels.empty())
+        return false;
+
+    const ImGuiStyle& style  = ImGui::GetStyle();
+    const float       gap    = style.FrameBorderSize;
+    const float       item_h = ImGui::GetTextLineHeight() + style.FramePadding.y;
+    // Minimum segment width, so a two-character label (common in Chinese) is not too narrow.
+    const float       min_w  = ImGui::CalcTextSize("0000000").x;
+
+    std::vector<float> widths;
+    float total_w = gap;
+    for (const std::string& label : labels) {
+        widths.push_back(std::max(ImGui::CalcTextSize(label.c_str()).x, min_w) + style.FramePadding.x * 2.f);
+        total_w += widths.back() + gap;
+    }
+
+    const ImVec2 origin = ImGui::GetCursorScreenPos();
+    const ImVec2 track(total_w, item_h + gap * 2.f);
+    ImDrawList*  draw = ImGui::GetWindowDrawList();
+    draw->AddRectFilled(origin, origin + track, ImGui::GetColorU32(ImGuiCol_FrameBg), track.y * 0.5f);
+
+    // The segments are positioned by hand, so the group is what the layout sees: one item the size of the track.
+    ImGui::BeginGroup();
+    ImGui::PushID(id);
+    const int shown = selected; // a click moves the highlight on the next frame, so that no frame shows two or none
+    ImVec2    pos   = origin + ImVec2(gap, gap);
+    for (int i = 0; i < static_cast<int>(labels.size()); ++i) {
+        const ImVec2 size(widths[i], item_h);
+        // A real item, so that a popup or another window over the segment takes the click, and a disabled switch ignores it.
+        ImGui::SetCursorScreenPos(pos);
+        ImGui::PushID(i);
+        if (ImGui::InvisibleButton("##segment", size))
+            selected = i;
+        // Automation finds a segment by the label it shows, as it finds a labelled button, and reads which one is on.
+        record_named_item(labels[i], "toggle", i == shown ? 1 : 0);
+        ImGui::PopID();
+
+        if (i == shown)
+            draw->AddRectFilled(pos, pos + size, ImGui::GetColorU32(ImGui::IsItemHovered() ? ImGuiCol_ButtonHovered : ImGuiCol_Button), item_h * 0.5f);
+        // Drawn as styled text, the white label takes the style alpha too, and dims with the rest of a disabled switch.
+        ImGui::PushStyleColor(ImGuiCol_Text, i == shown ? ImVec4(1.f, 1.f, 1.f, 1.f) : style.Colors[ImGuiCol_Text]);
+        ImGui::RenderTextClipped(pos, pos + size, labels[i].c_str(), nullptr, nullptr, ImVec2(0.5f, 0.5f));
+        ImGui::PopStyleColor();
+
+        pos.x += size.x + gap;
+    }
+    ImGui::PopID();
+
+    ImGui::SetCursorScreenPos(origin);
+    ImGui::Dummy(track);
+    ImGui::EndGroup();
+
+    return selected != shown;
+}
+
 void ImGuiWrapper::bold_text(const std::string& str)
 {
     if (bold_font){
