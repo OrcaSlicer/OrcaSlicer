@@ -9,7 +9,10 @@
 #include <admesh/stl.h>
 
 #include <array>
+#include <limits>
+#include <optional>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 #include <utility>
 
@@ -27,6 +30,14 @@ enum class BuildVolume_Type : char {
   Convex,
   // Some non convex shape.
   Custom
+};
+
+// A bed edge the containment tests ignore, because a belt with an infinite axis carries the part past it.
+// axis is 0 for X and 1 for Y; at_max selects the edge at the axis maximum.
+struct BedOpenEdge
+{
+    int  axis;
+    bool at_max;
 };
 
 // For collision detection of objects and G-code (extrusion paths) against the build volume.
@@ -67,6 +78,22 @@ public:
     const std::vector<std::vector<Vec2d>>& extruder_areas() const { return m_extruder_shapes; }
     const std::vector<double>& extruder_heights() const { return m_extruder_printable_height; }
     const BuildSharedVolume& get_shared_volume() const { return m_shared_volume; }
+
+    // The containment tests ignore this edge of a rectangular bed. The opposite edge, where printing starts,
+    // and the bed geometry itself stay as they are.
+    void                        set_open_edge(std::optional<BedOpenEdge> edge) { m_open_edge = edge; }
+    // Removes the open edge, if any, from a containment box.
+    template<typename Box>
+    static void                 open_edge(Box &box, const std::optional<BedOpenEdge> &edge)
+    {
+        using Coord = std::decay_t<decltype(box.min(0))>;
+        if (!edge)
+            return;
+        if (edge->at_max)
+            box.max(edge->axis) = std::numeric_limits<Coord>::max();
+        else
+            box.min(edge->axis) = std::numeric_limits<Coord>::lowest();
+    }
 
     // Derived data
     BuildVolume_Type                        type()              const { return m_type; }
@@ -142,6 +169,7 @@ private:
     BuildSharedVolume m_shared_volume;  //used for rendering
     // Source definition of the print volume height (PrintConfig::printable_height)
     double              m_max_print_height { 0.f };
+    std::optional<BedOpenEdge> m_open_edge;
     std::vector<double> m_extruder_printable_height;
 
     // Derived values.
