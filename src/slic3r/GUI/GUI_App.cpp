@@ -118,6 +118,7 @@
 #include <wx/localedefs.h>
 #include <wx/eventfilter.h>
 #include <wx/toplevel.h>
+#include <wx/window.h>
 
 // Localization headers: include libslic3r version first so everything in this file
 // uses the slic3r/GUI version (the macros will take precedence over the functions).
@@ -3256,6 +3257,30 @@ bool GUI_App::on_init_inner()
     // TODO: Find workaround for GTK4
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
     g_object_set (gtk_settings_get_default (), "gtk-menu-images", TRUE, NULL);
+#endif
+
+#ifdef __WXGTK3__
+    // ORCA: wx sends no DPI change when the text scaling changes (GNOME "Large Text", text scaling factor, Xft.dpi),
+    // so text is drawn with the new font resolution while every size stays measured with the old one and gets clipped.
+    // Rescale every window as on a DPI change, after GTK has updated the widgets' Pango contexts.
+    g_signal_connect(gtk_settings_get_default(), "notify::gtk-xft-dpi", G_CALLBACK(+[](GObject*, GParamSpec*, gpointer) {
+        wxGetApp().CallAfter([] {
+            if (wxGetApp().is_closing())
+                return;
+            auto rescale = [](auto* win) {
+                win->enable_force_rescale();
+                win->WXNotifyDPIChange(win->scale_factor(), win->scale_factor());
+            };
+            for (wxWindow* win : wxTopLevelWindows) {
+                if (win->IsBeingDeleted())
+                    continue;
+                if (auto* frame = dynamic_cast<DPIFrame*>(win))
+                    rescale(frame);
+                else if (auto* dialog = dynamic_cast<DPIDialog*>(win))
+                    rescale(dialog);
+            }
+        });
+    }), nullptr);
 #endif
 
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
