@@ -2625,6 +2625,7 @@ void MachineObject::reset()
     subscribe_counter = SUBSCRIBE_RETRY_COUNT;
     m_push_count = 0;
     m_full_msg_count = 0;
+    m_filament_snapshot_ready = false;
     is_220V_voltage = false;
     get_version_retry = 0;
     camera_recording = false;

@@ -877,6 +877,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/CrealityHostDiscovery.hpp
     Utils/Duet.cpp
     Utils/Duet.hpp
+    Utils/ElegooCC2PrinterAgent.cpp
+    Utils/ElegooCC2PrinterAgent.hpp
     Utils/ElegooLink.cpp
     Utils/ElegooLink.hpp
     Utils/EmbossStyleManager.cpp
@@ -924,6 +926,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/MoonrakerPrinterAgent.hpp
     Utils/Moonraker.cpp
     Utils/Moonraker.hpp
+    Utils/MqttWebSocketClient.cpp
+    Utils/MqttWebSocketClient.hpp
     Utils/BBLCloudServiceAgent.cpp
     Utils/BBLCloudServiceAgent.hpp
     Utils/BBLPrinterAgent.cpp
@@ -965,6 +969,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/WxFontUtils.hpp
     Utils/FileTransferUtils.cpp
     Utils/FileTransferUtils.hpp
+    Utils/FilamentSync.cpp
+    Utils/FilamentSync.hpp
     Utils/wxInspectorPlugins/DPIAwarePlugin.hpp
     Utils/wxInspectorPlugins/DPIAwarePlugin.cpp
     Utils/wxInspectorPlugins/CustomWidgetsPlugin.hpp

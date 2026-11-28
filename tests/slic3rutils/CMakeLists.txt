@@ -12,7 +12,9 @@ add_executable(${_TEST_NAME}_tests
     test_dev_mapping.cpp
     test_dev_extruder_system.cpp
     test_device_access.cpp
+    test_elegoo_cc2_printer_agent.cpp
     test_moonraker_printer_agent.cpp
+    test_mqtt_websocket_client.cpp
     test_moonraker_filament_sources.cpp
     test_snapmaker_filament_match.cpp
     test_network_discovery.cpp
@@ -20,6 +22,7 @@ add_executable(${_TEST_NAME}_tests
     test_colour_picker_field.cpp
     test_field_number_text.cpp
     test_filament_color_picker.cpp
+    test_filament_sync.cpp
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
     # The reduced toolpath set's end bands, from libvgcode's layer table.

@@ -176,6 +176,21 @@ provider and other agents map to the Orca cloud provider. The generation check p
 selection from races; it does not make cloud-provider ownership intrinsic to an agent. Cloud-printer
 ownership and the broader Orca cloud services are therefore still separate architectural concerns.
 
+## Filament snapshots from pull agents
+
+A pull agent (`FilamentSyncMode::pull`) reads the printer's filament slots when the user synchronizes
+filaments, through `fetch_filament_info()`, instead of receiving them with status pushes. Such an agent
+has no push stream, so `MachineObject::is_info_ready()`, which depends on firmware versions,
+push counters and the time of the last push, stays false. After a complete read the agent calls
+`MachineObject::set_filament_snapshot_ready(true)`, and the AMS mapping dialog checks
+`is_filament_info_ready()`, which accepts either the snapshot or a full status. The agent does not
+fake push counters or firmware data instead, because other code reads those as real printer status.
+A failed read and `MachineObject::reset()` clear the flag.
+
+`FilamentSync` holds the vendor-neutral part of such an agent: it builds the AMS document that
+`DevFilaSystemParser::ParseV1_0` reads from per-slot data, and matches a reported spool (vendor,
+product and type) to a visible, compatible filament preset. A vendor agent keeps only its protocol.
+
 ## Python printer agents
 
 `PrinterAgentPluginCapability` implements `IPrinterAgent` directly. The live capability object is
@@ -233,6 +248,8 @@ inside the Bambu agent and the Orca agent's v1 sink adapter can be removed as a 
   cloud camera contract
 - [`NetworkAgent`](../../src/slic3r/Utils/NetworkAgent.hpp) — façade and dispatch between active agents
 - [`NetworkAgentFactory`](../../src/slic3r/Utils/NetworkAgentFactory.hpp) — built-in and Python agent registry
+- [`FilamentSync`](../../src/slic3r/Utils/FilamentSync.hpp) — vendor-neutral AMS document builder and filament
+  preset matcher for pull agents
 - [`DeviceManager`](../../src/slic3r/GUI/DeviceCore/DevManager.cpp) — device ownership, filtering, and
   stale-response checks
 - [`PrinterAgentPluginCapability`](../../src/slic3r/plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.cpp)

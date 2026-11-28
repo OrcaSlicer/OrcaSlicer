@@ -2254,7 +2254,7 @@ void SyncAmsInfoDialog::on_timer(wxTimerEvent &event)
     MachineObject *obj_ = dev->get_selected_machine();
     if (!obj_) return;
 
-    if (!m_check_flag && obj_->is_info_ready()) {
+    if (!m_check_flag && obj_->is_filament_info_ready()) {
         update_select_layout(obj_);
         m_check_flag = true;
     }
@@ -2316,7 +2316,7 @@ void SyncAmsInfoDialog::update_show_status()
         }
     }
 
-    if (!obj_->is_info_ready()) {
+    if (!obj_->is_filament_info_ready()) {
         if (is_timeout()) {
             BOOST_LOG_TRIVIAL(error) << "check error:machine timeout";
             m_ams_mapping_result.clear();
@@ -2369,6 +2369,9 @@ void SyncAmsInfoDialog::update_show_status()
         }
     }
 
+    // A filament snapshot from a pull agent reports no storage, and syncing does not print.
+    // is_info_ready() itself requires m_push_count > 0; checking it first only skips the "not ready" log on every timer tick.
+    const bool has_status_push = obj_->m_push_count > 0 && obj_->is_info_ready();
     if (is_blocking_printing(obj_)) {
         show_status(PrintDialogStatus::PrintStatusUnsupportedPrinter);
         return;
@@ -2381,13 +2384,13 @@ void SyncAmsInfoDialog::update_show_status()
     } else if (obj_->is_in_printing() || obj_->ams_status_main == AMS_STATUS_MAIN_FILAMENT_CHANGE) {
         show_status(PrintDialogStatus::PrintStatusInPrinting);
         return;
-    } else if (!obj_->GetConfig()->SupportPrintWithoutSD() && (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD)) {
+    } else if (has_status_push && !obj_->GetConfig()->SupportPrintWithoutSD() && (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD)) {
         show_status(PrintDialogStatus::PrintStatusNoSdcard);
         return;
     }
 
     // check sdcard when if lan mode printer
-    if (obj_->is_lan_mode_printer()) {
+    if (has_status_push && obj_->is_lan_mode_printer()) {
         if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD) {
             show_status(PrintDialogStatus::PrintStatusLanModeNoSdcard);
             return;
