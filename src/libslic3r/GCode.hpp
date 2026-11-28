@@ -416,6 +416,8 @@ protected:
 
         bool is_open() const { return f; }
         bool is_error() const;
+        // The OS error of the first failed write or flush, empty if none.
+        std::string last_error() const;
 
         void flush();
         void close();
@@ -435,6 +437,7 @@ protected:
     private:
         FILE *f = nullptr;
         GCodeProcessor &m_processor;
+        int m_write_errno = 0;
     };
 
     // Virtual hooks for belt printer subclass (BeltGCode).

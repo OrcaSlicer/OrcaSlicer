@@ -797,3 +797,88 @@ TEST_CASE("Inward wipe remains valid after wipe on loops moves the nozzle", "[Wi
     }
     REQUIRE(start_changed);
 }
+
+TEST_CASE("A wipe retracts the full length on a first layer with Hilbert curve bottom surfaces", "[Wipe][RetractionSplit][Regression]")
+{
+    DynamicPrintConfig config = wipe_config("classic", false);
+    config.set_deserialize_strict({
+        {"gcode_flavor", "marlin2"},
+        {"use_relative_e_distances", "1"},
+        {"bottom_surface_pattern", "hilbertcurve"},
+        {"retraction_minimum_travel", "0"},
+        {"retraction_length", "0.8"},
+        {"retract_before_wipe", "0%"},
+        {"retract_after_wipe", "50%"},
+        {"retraction_speed", "25.5"},
+        {"role_based_wipe_speed", "0"},
+        {"wipe_speed", "100"},
+        {"wipe_distance", "2"},
+    });
+    // Two cubes, so each layer travels between them and retracts with a wipe.
+    const std::string output = slice({make_cube(10., 10., 1.), make_cube(10., 10., 1.)}, config);
+    const auto &start_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start);
+    bool wipe_seen = false;
+    double retracted = 0.;
+    size_t wipes = 0;
+    size_t first_layer_wipes = 0;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(start_tag) == 0) {
+            wipe_seen = true;
+        } else if (line.retracting(self)) {
+            retracted -= line.dist_E(self);
+        } else if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            if (wipe_seen) {
+                CAPTURE(self.z());
+                // The 50% left for after the wipe counts too.
+                CHECK_THAT(retracted, Catch::Matchers::WithinAbs(0.8, 0.0001));
+                ++wipes;
+                if (self.z() < 0.2 + EPSILON)
+                    ++first_layer_wipes;
+            }
+            retracted = 0.;
+            wipe_seen = false;
+        }
+    });
+    REQUIRE(first_layer_wipes > 0);
+    REQUIRE(wipes > first_layer_wipes);
+}
+
+TEST_CASE("A toolchange retracts on a first layer with Hilbert curve bottom surfaces", "[Wipe][Regression]")
+{
+    // Without a wipe or a prime tower, GCode::set_extruder() retracts for the toolchange.
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "gcode_flavor",              "marlin2" },
+        { "use_relative_e_distances",  1 },
+        { "bottom_surface_pattern",    "hilbertcurve" },
+        { "wipe",                      0 },
+        { "retraction_length",         0.8 },
+        { "retract_length_toolchange", 5 },
+        { "enable_prime_tower",        0 },
+        { "skirt_loops",               0 },
+        { "brim_type",                 "no_brim" },
+    });
+    // The second cube prints with the second filament, so the first layer changes filaments.
+    const std::string gcode = slice_with_object_overrides({ make_cube(10., 10., 1.), make_cube(10., 10., 1.) }, config,
+                                                          { {}, { { "extruder", "2" } } });
+    double retracted = 0.;
+    bool   extruded  = false;
+    bool   changed   = false;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view cmd = line.cmd();
+        if (extruded && cmd.size() > 1 && cmd[0] == 'T') {
+            changed = true;
+            self.quit_parsing();
+        } else if (line.retracting(self)) {
+            retracted -= line.dist_E(self);
+        } else if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            extruded  = true;
+            retracted = 0.;
+        }
+    });
+    REQUIRE(changed);
+    CHECK_THAT(retracted, Catch::Matchers::WithinAbs(5., 1e-4));
+}

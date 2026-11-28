@@ -1043,3 +1043,89 @@ TEST_CASE("Resonance avoidance keeps outer walls within their volumetric speed l
         CHECK_THAT(speed, Catch::Matchers::WithinAbs(expected_speed, 0.5));
     }
 }
+
+TEST_CASE("The layer count leaves out layers that print nothing", "[GCode][Regression]")
+{
+    const std::string sequence = GENERATE(as<std::string>{}, "by layer", "by object");
+    CAPTURE(sequence);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"print_sequence", sequence},
+                                   {"layer_height", 0.2},
+                                   {"initial_layer_print_height", 0.2},
+                                   {"wall_generator", "classic"},
+                                   {"detect_thin_wall", false},
+                                   {"extruder_clearance_radius", 20},
+                                   {"machine_start_gcode", ";TOTAL_LAYERS=[total_layer_count]\n"}});
+    Print print;
+    Model model;
+    // The top layer of each 10 mm cone slices to a circle 0.2 mm wide, too narrow for a wall, so it prints nothing.
+    Slic3r::Test::init_print({make_cone(10., 10.), make_cone(10., 10.)}, print, model, config, nullptr, false);
+    model.objects[0]->instances.front()->set_offset(Vec3d(60., 100., 0.));
+    model.objects[1]->instances.front()->set_offset(Vec3d(140., 100., 0.));
+    print.apply(model, config);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    long layer_changes = 0;
+    long placeholder   = -1;
+    long trailer       = -1;
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line);) {
+        if (line.rfind(";LAYER_CHANGE", 0) == 0)
+            ++layer_changes;
+        else if (line.rfind(";TOTAL_LAYERS=", 0) == 0)
+            placeholder = std::stol(line.substr(14));
+        else if (line.rfind("; total layers count = ", 0) == 0)
+            trailer = std::stol(line.substr(23));
+    }
+    const long object_layers = long(print.objects().front()->layer_count()) * (sequence == "by object" ? 2 : 1);
+    REQUIRE(layer_changes > 0);
+    REQUIRE(layer_changes < object_layers);
+    CHECK(placeholder == layer_changes);
+    CHECK(trailer == layer_changes);
+}
+
+TEST_CASE("Layer changes leave no fan speed marker in the G-code", "[GCode][Regression]")
+{
+    // Nothing reads the marker that Bambu Studio's cooling buffer took out again.
+    const std::string gcode = Test::slice({ Test::cube(5) }, DynamicPrintConfig::full_print_config());
+    CHECK(gcode.find("_SET_FAN_SPEED_CHANGING_LAYER") == std::string::npos);
+}
+
+TEST_CASE("A filament change lifts the way the Z hop type says", "[GCode][Regression]")
+{
+    // Without a prime tower GCode::set_extruder() changes the filament, here between two objects printed one by one.
+    const std::string z_hop_type = GENERATE(as<std::string>{}, "Normal Lift", "Slope Lift", "Spiral Lift");
+    CAPTURE(z_hop_type);
+    DynamicPrintConfig config = Test::multifilament_config(2, {
+        { "z_hop_types",        z_hop_type },
+        { "z_hop",              0.4 },
+        { "gcode_comments",     1 },
+        // Around the objects, which are not arranged, so a spiral lift fits.
+        { "printable_area",     "-100x-100,100x-100,100x100,-100x100" },
+        { "enable_prime_tower", 0 },
+        { "print_sequence",     "by object" },
+        { "skirt_loops",        0 },
+        { "brim_type",          "no_brim" },
+    });
+    const std::string gcode = Test::slice_with_object_overrides({ Test::cube(20), Test::cube(20) }, config,
+        { {}, { { "outer_wall_filament_id", "2" }, { "inner_wall_filament_id", "2" } } });
+    // The G-code writer comments every spiral lift it writes.
+    const bool spiral = gcode.find("spiral lift Z") != std::string::npos;
+    CHECK(spiral == (z_hop_type == "Spiral Lift"));
+}
+
+TEST_CASE("A timelapse frame on a bed slinger lifts straight up with slope lift", "[GCode][Regression]")
+{
+    // A bed slinger with Timelapse G-code takes a frame every layer, after a lift with no travel.
+    const std::string gcode = Test::slice({ Test::cube(20) }, {
+        { "z_hop_types",       "Slope Lift" },
+        { "z_hop",             0.4 },
+        { "gcode_comments",    1 },
+        { "printer_structure", "i3" },
+        { "time_lapse_gcode",  ";timelapse frame" },
+        // Around the object, which is not arranged, so a spiral lift fits.
+        { "printable_area",    "-100x-100,100x-100,100x100,-100x100" },
+    });
+    REQUIRE(gcode.find(";timelapse frame") != std::string::npos);
+    CHECK(gcode.find("spiral lift Z") == std::string::npos);
+}

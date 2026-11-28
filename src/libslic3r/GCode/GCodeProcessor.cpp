@@ -42,6 +42,7 @@
 #include <exception>
 #include <deque>
 #include <cstdio>
+#include <cerrno>
 #include <cstring>
 #include <cctype>
 #include <cstdlib>
@@ -885,11 +886,17 @@ public:
     {
         if (m_buffer.empty())
             return;
+        errno = 0;
         fwrite(m_buffer.data(), 1, m_buffer.size(), m_out.f);
         if (ferror(m_out.f)) {
+            // Below the message, the system error says what went wrong.
+            const int   error   = errno;
+            std::string message = m_error_message;
+            if (error != 0)
+                message += (message.back() == '\n' ? "" : "\n") + std::string(::strerror(error)) + "\n";
             m_out.close();
             boost::nowide::remove(m_out_path.c_str());
-            throw Slic3r::RuntimeError(m_error_message);
+            throw Slic3r::RuntimeError(message);
         }
         m_file_pos += m_buffer.size();
         m_buffer.clear();

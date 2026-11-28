@@ -289,6 +289,52 @@ TEST_CASE("Tower consumption is classified separately for each printer kind", "[
     }
 }
 
+// The points of the first wipe after each prime tower region, in G-code coordinates.
+static std::vector<Vec2d> wipes_after_tower(const std::string &gcode)
+{
+    const std::string &tower_start = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_Start);
+    const std::string &tower_end   = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End);
+    const std::string &wipe_start  = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start);
+    const std::string &wipe_end    = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End);
+    std::vector<Vec2d> points;
+    for (size_t pos = gcode.find(tower_end); pos != std::string::npos; pos = gcode.find(tower_end, pos + 1)) {
+        const size_t start = gcode.find(wipe_start, pos);
+        const size_t end   = gcode.find(wipe_end, start);
+        if (start == std::string::npos || end == std::string::npos || gcode.find(tower_start, pos) < start)
+            continue;
+        GCodeReader reader;
+        reader.parse_buffer(gcode.substr(start, end - start), [&points](GCodeReader &, const GCodeReader::GCodeLine &line) {
+            if (line.has_x() && line.has_y())
+                points.emplace_back(double(line.x()), double(line.y()));
+        });
+    }
+    return points;
+}
+
+TEST_CASE("A Type1 tower wipes the same way after a toolchange on every plate", "[WipeTower][Regression]")
+{
+    DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+    config.set_deserialize_strict({ { "wipe_tower_type", "type1" }, { "wipe", "1" }, { "wipe_distance", "2" } });
+    auto tower_wipes = [&config](const Vec3d &plate_origin) {
+        Print print;
+        Model model;
+        init_print({ cube(10) }, print, model, config);
+        print.apply(model, config);
+        // The tower position is relative to the plate, so its G-code is the same on every plate.
+        print.set_plate_origin(plate_origin);
+        return wipes_after_tower(gcode(print));
+    };
+    const std::vector<Vec2d> first_plate = tower_wipes(Vec3d::Zero());
+    const std::vector<Vec2d> other_plate = tower_wipes(Vec3d(300., 300., 0.));
+    REQUIRE_FALSE(first_plate.empty());
+    REQUIRE(other_plate.size() == first_plate.size());
+    for (size_t i = 0; i < first_plate.size(); ++i) {
+        CAPTURE(i);
+        CHECK_THAT(other_plate[i].x(), Catch::Matchers::WithinAbs(first_plate[i].x(), 0.01));
+        CHECK_THAT(other_plate[i].y(), Catch::Matchers::WithinAbs(first_plate[i].y(), 0.01));
+    }
+}
+
 TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", "[WipeTower]")
 {
     SECTION("klipper") {
@@ -1119,6 +1165,26 @@ TEST_CASE("Only a cone wall gives the tower a stabilization cone", "[WipeTower]"
         CHECK(unscaled(footprint.min.y()) > plate_max_y);
         CHECK_FALSE(print.get_conflict_result().has_value());
     }
+}
+
+TEST_CASE("The conflict check finds a Type 2 tower over an object on every plate", "[WipeTower][Regression]")
+{
+    const double plate_offset = GENERATE(0., 300.);
+    CAPTURE(plate_offset);
+    DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+    config.set_deserialize_strict({ { "wipe_tower_type", "type2" } });
+    // The cube stands on the tower, which is at (50, 50) on the plate.
+    TriangleMesh cube = make_cube(20., 20., 10.);
+    cube.translate(float(plate_offset) + 55.f, float(plate_offset) + 55.f, 0.f);
+
+    Print print;
+    Model model;
+    init_print({ std::move(cube) }, print, model, config, nullptr, false);
+    print.apply(model, config);
+    print.set_plate_origin(Vec3d(plate_offset, plate_offset, 0.));
+    print.process();
+    REQUIRE(print.has_wipe_tower());
+    CHECK(print.get_conflict_result().has_value());
 }
 
 TEST_CASE("Without sparse layers the filament change starts at the tallest printed layer", "[WipeTower]")
