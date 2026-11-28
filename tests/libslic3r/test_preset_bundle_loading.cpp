@@ -1050,6 +1050,47 @@ TEST_CASE("Selected printer uses its default or saved bed type", "[Preset][Bundl
     }
 }
 
+TEST_CASE("Switching the variant of a user printer preset selects a preset of that variant", "[Preset][Bundle][Regression]")
+{
+    PresetBundle bundle;
+    // Presets with a parent are user presets. A loaded preset's alias is its name.
+    const auto add_printer = [&bundle](const std::string& name, const std::string& variant, const std::string& inherits = {}) {
+        Preset& printer   = add_inmemory_preset(bundle.printers, name, inherits);
+        printer.is_system = inherits.empty();
+        printer.alias     = name;
+        printer.config.option<ConfigOptionString>("printer_model")->value   = "TEST-MODEL";
+        printer.config.option<ConfigOptionString>("printer_variant")->value = variant;
+    };
+    add_printer("Test Printer 0.4 nozzle", "0.4");
+    add_printer("Test Printer 0.6 nozzle", "0.6");
+    add_printer("Test Printer 0.8 nozzle", "0.8");
+    add_printer("Alt Printer 0.6 nozzle", "0.6");
+    add_printer("Alt Draft", "0.6", "Alt Printer 0.6 nozzle");
+    add_printer("Custom", "0.4", "Test Printer 0.4 nozzle");
+    add_printer("Draft 0.4", "0.4", "Test Printer 0.4 nozzle");
+    add_printer("Draft 0.6", "0.6", "Test Printer 0.6 nozzle");
+    add_printer("No Variant", "", "Test Printer 0.4 nozzle");
+
+    const auto switch_variant = [&bundle](const std::string& selected, const std::string& variant) {
+        REQUIRE(bundle.printers.select_preset_by_name(selected, true));
+        const Preset* similar = bundle.get_similar_printer_preset({}, variant);
+        REQUIRE(similar != nullptr);
+        return similar->name;
+    };
+
+    // A user preset named after its variant has its own counterpart.
+    CHECK(switch_variant("Draft 0.4", "0.6") == "Draft 0.6");
+    CHECK(switch_variant("Draft 0.6", "0.4") == "Draft 0.4");
+    // Otherwise a user preset based on the system preset next to its parent is selected.
+    CHECK(switch_variant("Custom", "0.6") == "Draft 0.6");
+    CHECK(switch_variant("No Variant", "0.6") == "Draft 0.6");
+    // Without such a user preset, that system preset is selected.
+    CHECK(switch_variant("Custom", "0.8") == "Test Printer 0.8 nozzle");
+    CHECK(switch_variant("No Variant", "0.8") == "Test Printer 0.8 nozzle");
+    // A system preset switches to a system preset.
+    CHECK(switch_variant("Test Printer 0.4 nozzle", "0.6") == "Test Printer 0.6 nozzle");
+}
+
 TEST_CASE("Installed slot filaments keep their slots when selections reload", "[Preset][Bundle]")
 {
     VendorProfile vendor("TestVendor");
