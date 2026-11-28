@@ -580,6 +580,18 @@ protected:
     std::string extrude_multi_path(const ExtrusionMultiPath& multipath, const std::string& description = "", double speed = -1.);
     std::string extrude_path(const ExtrusionPath& path, const std::string& description = "", double speed = -1.);
 
+    // BBS: smooth speed of discontinuity areas, ported from Bambu Studio.
+    // Ramps the wall speed across the step between adjacent speed groups, so
+    // enable_arc_fitting stays available (unlike extrusion rate smoothing).
+    void            smooth_speed_discontinuity_area(ExtrusionPaths &paths);
+    std::vector<ExtrusionPaths> merge_same_speed_paths(const ExtrusionPaths &paths);
+    ExtrusionPaths  set_speed_transition(std::vector<ExtrusionPaths> &paths);
+    void            split_and_mapping_speed(double other_path_v, double final_v, ExtrusionPaths &this_path, double max_smooth_length, ExtrusionPaths &interpolated_paths, bool split_from_left = true);
+    // Nominal speed of a wall path, kept in sync with the speed resolution in _extrude_piece().
+    double          get_path_speed(const ExtrusionPath &path);
+    double          mapping_speed(double dist);
+    double          get_speed_coor_x(double speed);
+
     // Orca: Adaptive PA variables
     // Used for adaptive PA when extruding paths with multiple, varying flow segments.
     // This contains the sum of the mm3_per_mm values weighted by the length of each path segment.
@@ -739,6 +751,9 @@ protected:
     Vec2d                               m_origin;
     FullPrintConfig                     m_config;
     DynamicConfig                       m_calib_config;
+    // Parabola factor for the speed transition curve of smooth speed discontinuity areas:
+    // speed = m_smooth_coefficient * distance^2. 0 disables smoothing.
+    double                              m_smooth_coefficient{0.0};
     // scaled G-code resolution
     double                              m_scaled_resolution;
     GCodeWriter                         m_writer;

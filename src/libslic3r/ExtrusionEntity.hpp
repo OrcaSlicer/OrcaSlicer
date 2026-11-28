@@ -322,6 +322,8 @@ public:
     void set_extrusion_role(ExtrusionRole extrusion_role) { m_role = extrusion_role; }
     void set_reverse() override { m_can_reverse = false; }
     bool can_reverse() const override { return m_can_reverse; }
+    // BBS: used when merging equal-speed paths for smooth speed discontinuity areas
+    bool can_merge(const ExtrusionPath& other);
 
 private:
     void _inflate_collection(const Polylines &polylines, ExtrusionEntityCollection* collection) const;
@@ -499,6 +501,7 @@ public:
     bool is_clockwise() { return this->polygon().is_clockwise(); }
     bool is_counter_clockwise() { return this->polygon().is_counter_clockwise(); }
     void reverse() override;
+    bool is_set_speed_discontinuity_area() const { return this->role() == erExternalPerimeter || this->role() == erPerimeter || this->role() == erOverhangPerimeter; }
     Point first_point() const override { return this->paths.front().polyline.points.front().to_point(); }
     const Point3& first_point3() const override { return this->paths.front().polyline.points.front(); }
     Point last_point() const override { assert(this->first_point() == this->paths.back().polyline.points.back().to_point()); return this->first_point(); }

@@ -818,6 +818,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
                      "inner_wall_volumetric_flow", "outer_wall_volumetric_flow" })
         toggle_field(el, have_perimeters, variant_index, wall_loops_reason);
 
+    // Speed discontinuity smoothing only runs on walls, and only when overhang wall detection is on.
+    const bool have_overhang_wall_detection = config->opt_bool("detect_overhang_wall");
+    const wxString overhang_detection_reason = _L("Enable detect overhang walls to use this setting.");
+    for (auto el : { "smooth_speed_discontinuity_area", "smooth_coefficient" })
+        toggle_field(el, have_overhang_wall_detection, -1, overhang_detection_reason);
+
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament_id uses the same logic as in Print::extruders()
     for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",

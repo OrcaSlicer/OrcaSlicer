@@ -63,6 +63,19 @@ double ExtrusionPath::length() const
 {
     return this->polyline.length();
 }
+// BBS: paths merge into one equal-speed group only when every property that
+// affects the emitted move matches, including the assigned smooth speed.
+bool ExtrusionPath::can_merge(const ExtrusionPath& other)
+{
+    return  curve_degree==other.curve_degree &&
+            mm3_per_mm == other.mm3_per_mm &&
+            width == other.width &&
+            height == other.height &&
+            m_can_reverse == other.m_can_reverse &&
+            m_role == other.m_role &&
+            m_no_extrusion == other.m_no_extrusion &&
+            smooth_speed == other.smooth_speed;
+}
 
 void ExtrusionPath::collect_points(Points &dst) const
 {
