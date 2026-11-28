@@ -2089,3 +2089,30 @@ TEST_CASE("effective_physical_extruder_map - degenerate nozzle count still yield
     // Never hand back an empty map: several consumers index it as a raw vector.
     REQUIRE(effective_physical_extruder_map(nullptr, 0).values == std::vector<int>{0});
 }
+
+TEST_CASE("Arrange skirt distance leaves room for draft shield serpentines", "[Config]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "skirt_loops",                   1 },
+        { "skirt_distance",                2 },
+        { "initial_layer_line_width",      0.5 },
+        { "draft_shield",                  "enabled" },
+        { "draft_shield_serpentine_pitch", 6 },
+    });
+    // One skirt loop of 0.5 mm, 2 mm from the object.
+    const float plain = get_real_skirt_dist(config);
+    CHECK_THAT(plain, Catch::Matchers::WithinAbs(2.5, 1e-4));
+    SECTION("serpentines reach out by their depth") {
+        config.set_deserialize_strict({ { "draft_shield_serpentine_depth", 5 } });
+        CHECK_THAT(get_real_skirt_dist(config), Catch::Matchers::WithinAbs(plain + 5., 1e-4));
+    }
+    SECTION("serpentines reach out by at least half their pitch") {
+        config.set_deserialize_strict({ { "draft_shield_serpentine_depth", 1 } });
+        CHECK_THAT(get_real_skirt_dist(config), Catch::Matchers::WithinAbs(plain + 3., 1e-4));
+    }
+    SECTION("serpentines need the draft shield") {
+        config.set_deserialize_strict({ { "draft_shield_serpentine_depth", 5 }, { "draft_shield", "disabled" } });
+        CHECK_THAT(get_real_skirt_dist(config), Catch::Matchers::WithinAbs(plain, 1e-4));
+    }
+}
