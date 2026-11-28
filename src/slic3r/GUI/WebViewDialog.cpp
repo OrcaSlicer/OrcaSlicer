@@ -573,6 +573,8 @@ void WebViewPanel::set_cloud_mode(bool on, const wxString& url, const wxString& 
         // Closing keeps the pane alive with its session, so re-opening does not have to sign in
         // again (guide §10). Nothing is cleared here.
         m_cloud_browser->Hide();
+        // A bundle subscribed in the pane never takes the focus from the main window, so ask for it here.
+        wxGetApp().request_subscriptions_fetch();
     }
     apply_cloud_layout(on && m_cloud_browser != nullptr);
 }

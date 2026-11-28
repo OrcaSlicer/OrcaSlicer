@@ -374,6 +374,7 @@ private:
     std::atomic<bool>    m_restart_sync_pending {false};
     std::atomic<bool>    m_sync_user_preset_dlg_active {false}; // a manual "Sync Presets" progress dialog is on screen (see restart_sync_user_preset)
     std::atomic<bool>    m_sync_user_presets_now {false}; // request the sync loop to push user presets on its next tick
+    std::atomic<bool>    m_subscriptions_fetch_requested {false}; // focus, the cloud pane or an unsubscribe asked the sync loop to fetch the subscribed bundles
     bool                 m_user_preset_pull_pending {false}; // set when a sync thread starts, cleared once its pull is applied; a failed pull or a stopped sync leaves it set
     bool                 m_legacy_filament_check_due {false}; // the startup check waits for that pull
     bool                 m_legacy_filament_check_running {false}; // a check is in progress, its dialog may be open
@@ -662,6 +663,9 @@ public:
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
     void            restart_sync_user_preset();
+    // Ask the sync loop to fetch the subscribed bundles, so a bundle subscribed on the web or in the cloud pane shows up
+    // when the user comes back. The loop fetches at most once a minute.
+    void            request_subscriptions_fetch() { m_subscriptions_fetch_requested.store(true, std::memory_order_release); }
     // Resolve a cloud sync 409 by force-pushing the conflicting preset: clears the "hold"
     // state the conflict left behind and queues it to be re-uploaded with force=true.
     void            force_push_conflicting_preset(const std::string& setting_id);

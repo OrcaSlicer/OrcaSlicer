@@ -14,6 +14,7 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <thread>
 #include <unordered_map>
 #include <utility>
@@ -335,6 +336,23 @@ public:
     bool unsubscribe_bundle(const std::string& bundle_id);
     std::string get_bundle_url(const std::string& bundle_id) const;
     int get_subscribed_bundles(std::vector<std::pair<std::string, std::string>>* bundles,std::vector<std::string>& notfound, std::vector<std::string>& unauthorized);
+    // Whether the preset sync loop fetches the subscribed bundles now. It always fetches on its first pass (no
+    // last_fetch), which covers startup, sign-in and Sync Presets. After that it fetches when asked (the main window
+    // gained focus, the user left the cloud pane, or a bundle was unsubscribed), at most once a minute, and every 30
+    // minutes for a user who has subscribed bundles. has_subscribed_bundles is only called when the 30 minutes are up.
+    static bool subscriptions_fetch_due(std::optional<std::chrono::steady_clock::time_point> last_fetch,
+                                        std::chrono::steady_clock::time_point                now,
+                                        bool                                                 fetch_requested,
+                                        const std::function<bool()>&                         has_subscribed_bundles)
+    {
+        using namespace std::chrono_literals;
+        if (!last_fetch)
+            return true;
+        const auto since_last_fetch = now - *last_fetch;
+        if (fetch_requested && since_last_fetch >= 1min)
+            return true;
+        return since_last_fetch >= 30min && has_subscribed_bundles();
+    }
     int get_shared_bundle(const std::string& bundle_id, std::map<std::string, std::map<std::string, std::string>>* presets, BundleMetadata* bundle_metadata);
 
     // ========================================================================

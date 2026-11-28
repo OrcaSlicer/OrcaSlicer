@@ -8055,7 +8055,12 @@ void GUI_App::check_bundle_updates()
 bool GUI_App::unsubscribe_bundle(const std::string& id)
 {
     auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());
-    return orca_agent->unsubscribe_bundle(id);
+    if (!orca_agent->unsubscribe_bundle(id))
+        return false;
+    // The local copy is removed by the sync loop's next subscriptions fetch, which nothing else asks for while the
+    // Preset Bundle dialog is open.
+    request_subscriptions_fetch();
+    return true;
 }
 
 void GUI_App::start_sync_user_preset(bool with_progress_dlg)
@@ -8180,24 +8185,51 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
             std::unordered_set<std::string> bundles_synced;
 
             std::unordered_set<std::string> known_available_updates;
+            // Local to this thread, so a restarted sync (Sync Presets) fetches the subscribed bundles straight away.
+            std::optional<std::chrono::steady_clock::time_point> last_subscriptions_fetch;
+            bool subscriptions_fetch_requested = false;
+            const auto has_subscribed_bundles = [this] {
+                if (!preset_bundle)
+                    return false;
+                preset_bundle->bundles.ReadLock();
+                const bool found = std::any_of(preset_bundle->bundles.m_bundles.begin(), preset_bundle->bundles.m_bundles.end(),
+                                               [](const auto& entry) { return entry.second.bundle_type == BundleType::Subscribed; });
+                preset_bundle->bundles.ReadUnlock();
+                return found;
+            };
 
             bool update_available = false;
-            // Sync once immediately, then every 60 seconds.
             while (!t.expired()) {
                 ++tick_tock;
-                // Sync once immediately, then every 60s, or right away when a force-push or a preset migration asked
-                // for it. The request is consumed on every tick, so one made before a scheduled pass is served by it
-                // instead of running a second pass straight after.
+                // Push user presets once immediately, then every 60s, or right away when a force-push or a preset
+                // migration asked for it. The request is consumed on every tick, so one made before a scheduled pass is
+                // served by it instead of running a second pass straight after.
                 const bool push_now = m_sync_user_presets_now.exchange(false, std::memory_order_acq_rel);
-                if (tick_tock % 120 == 0 || push_now) {
-                    tick_tock = 0;
+                const bool push_due = tick_tock % 120 == 0 || push_now;
+                // Fetch the subscribed bundles on their own schedule (see subscriptions_fetch_due). A request made within
+                // a minute of the last fetch is kept until the minute is up.
+                if (m_subscriptions_fetch_requested.exchange(false, std::memory_order_acq_rel))
+                    subscriptions_fetch_requested = true;
+                const auto now       = std::chrono::steady_clock::now();
+                const bool fetch_due = orca_agent && OrcaCloudServiceAgent::subscriptions_fetch_due(
+                                                         last_subscriptions_fetch, now, subscriptions_fetch_requested, has_subscribed_bundles);
+                if (push_due || fetch_due) {
+                    if (push_due)
+                        tick_tock = 0;
+                    // Counted before the checks below, so a skipped or failed fetch waits for the next one instead of
+                    // being retried on every tick.
+                    if (fetch_due) {
+                        last_subscriptions_fetch      = now;
+                        subscriptions_fetch_requested = false;
+                    }
                     if (m_agent) {
                         if (!m_agent->is_user_login()) {
                             continue;
                         }
-                        //sync preset
                         if (!preset_bundle) continue;
-
+                    }
+                    //sync preset
+                    if (m_agent && push_due) {
                         int total_count = 0;
                         sync_count = preset_bundle->prints.get_user_presets(preset_bundle, presets_to_sync);
 
@@ -8252,7 +8284,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                     }
 
                     // sync subscribed bundles, if orca
-                    if (orca_agent)
+                    if (fetch_due)
                     {
                         bundles_to_sync.clear();
                         bundles_synced.clear();
