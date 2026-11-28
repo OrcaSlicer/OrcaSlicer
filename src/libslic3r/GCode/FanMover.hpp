@@ -51,6 +51,9 @@ private:
     // in unit/second
     double m_current_speed = 1000 / 60.0;
     bool m_is_custom_gcode = false;
+    // ORCA: set by the ";_FAN_MOVER_OVERHANG" marker CoolingBuffer writes right before an overhang fan command.
+    // It applies to the next line only.
+    bool m_next_fan_is_overhang = false;
     uint16_t m_currrent_extruder = 0;
 
     // variable for when you add a line (front of the buffer)

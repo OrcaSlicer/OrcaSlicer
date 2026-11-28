@@ -301,6 +301,11 @@ void FanMover::_process_T(const std::string_view command)
 
 void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCodeLine& line)
 {
+    // ORCA: the overhang fan marker only applies to the line right after it, so it can't carry over to an unrelated
+    // fan command when CoolingBuffer writes none.
+    const bool is_overhang_fan = m_next_fan_is_overhang;
+    m_next_fan_is_overhang = false;
+
     // processes 'normal' gcode lines
     bool need_flush = false;
     std::string cmd(line.cmd());
@@ -339,7 +344,11 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
                 if (!m_is_custom_gcode) {
                     // if slow down => put in the queue. if not =>
                     if (m_back_buffer_fan_speed < fan_speed) {
-                        if (nb_seconds_delay > 0 && (!only_overhangs || current_role == ExtrusionRole::erOverhangPerimeter)) {
+                        // ORCA: Also speed up the overhang fan of walls that keep their "Outer wall"/"Inner wall" role.
+                        // Bridges also turn the overhang fan on, but aren't overhangs.
+                        // if (nb_seconds_delay > 0 && (!only_overhangs || current_role == ExtrusionRole::erOverhangPerimeter)) {
+                        if (nb_seconds_delay > 0 && (!only_overhangs || current_role == ExtrusionRole::erOverhangPerimeter ||
+                                                     (is_overhang_fan && is_perimeter(current_role)))) {
                             //don't put this command in the queue
                             time = -1;
                             // this M106 need to go in the past
@@ -453,6 +462,11 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
             if (line.raw().rfind(";_FAN_MOVER_SKIP_", 0) == 0) {
                 // Internal markers: read here, then dropped from the output.
                 m_is_custom_gcode = line.raw().rfind(";_FAN_MOVER_SKIP_START", 0) == 0;
+                time = -1;
+            }
+            // ORCA: Internal marker from CoolingBuffer for the overhang fan command that follows, dropped from the output.
+            if (line.raw().rfind(";_FAN_MOVER_OVERHANG", 0) == 0) {
+                m_next_fan_is_overhang = true;
                 time = -1;
             }
             if (line.raw().size() > 16) {
