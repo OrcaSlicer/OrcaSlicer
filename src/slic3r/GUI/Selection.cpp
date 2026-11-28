@@ -3330,7 +3330,8 @@ void Selection::paste_objects_from_clipboard()
     if (src_objects.empty())
         return;
 
-    PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+    PartPlateList& plates = wxGetApp().plater()->get_partplate_list();
+    PartPlate* plate      = plates.get_curr_plate();
 
     BoundingBoxf3 bbox_all;
     for (const ModelObject *src_object : src_objects) {
@@ -3338,13 +3339,28 @@ void Selection::paste_objects_from_clipboard()
             bbox_all.merge(src_object->instance_convex_hull_bounding_box(inst_idx));
     }
 
-    const bool  in_current  = plate->intersects(bbox_all);
-    const Vec3d start_point = in_current ? bbox_all.center() : plate->get_build_volume().center();
+    // Determine the start_point
+    Vec3d start_point     = bbox_all.center();
+    const bool in_current = plate->intersects(bbox_all);
 
+    if (in_current == false) {
+        const int src_plate_idx = plates.find_instance(bbox_all);
+        PartPlate* src_plate    = src_plate_idx >= 0 ? plates.get_plate(src_plate_idx) : nullptr;
+
+        if (src_plate != nullptr) {
+            const Vec3d keep_offset_in_new_plate = Vec3d(bbox_all.center() - src_plate->get_origin() + plate->get_origin());
+            start_point = keep_offset_in_new_plate;
+        } else {
+            start_point = plate->get_build_volume().center();
+        }
+    }
+
+    // Determine spacing and steps for get_nearest_empty_cell
     const double arrange_spacing = wxGetApp().plater()->canvas3D()->get_arrange_settings().distance;
     const double spacing         = arrange_spacing > 0.0 ? arrange_spacing : 1.0;
     const Vec2f step(bbox_all.size()(0) + spacing, bbox_all.size()(1) + spacing);
 
+    // Determine the nearest empty cell to place the new objects
     const Vec2f empty_cell  = m_model->objects.empty()
         ? Vec2f(start_point(0), start_point(1))
         : wxGetApp().plater()->canvas3D()->get_nearest_empty_cell(
@@ -3353,13 +3369,14 @@ void Selection::paste_objects_from_clipboard()
                       empty_cell.y() - bbox_all.center().y(),
                       0.0);
 
+    // Execute the paste operation for each object 
     for (const ModelObject *src_object : src_objects) {
         ModelObject *dst_object = m_model->add_object(*src_object);
 
         for (ModelInstance *inst : dst_object->instances) {
             inst->set_offset(inst->get_offset() + delta);
 
-            // init asssmble transformation
+            // init assemble transformation
             Geometry::Transformation t = inst->get_transformation();
             inst->set_assemble_transformation(t);
         }
