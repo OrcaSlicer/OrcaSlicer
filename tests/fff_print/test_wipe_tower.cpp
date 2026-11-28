@@ -1473,3 +1473,58 @@ TEST_CASE("The travel to the Type 1 tower keeps the axis the filament change G-c
         CHECK(off_line < 1.);
     }
 }
+
+TEST_CASE("The Type 2 tower takes its line width from the nozzle its filaments are mapped to", "[WipeTower][Regression]")
+{
+    // Two extruders with different nozzles, both filaments mapped to the 0.4 mm first one, so the
+    // 0.2 mm second extruder prints nothing. Filament 2's own index is the 0.2 mm nozzle: reading
+    // the nozzle by filament id rather than through filament_map sized the tower for that one.
+    const double used_nozzle = 0.4, unused_nozzle = 0.2;
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    config.set_num_extruders(2);
+    config.set_deserialize_strict({
+        { "wipe_tower_type",                "type2" },
+        { "wipe_tower_x",                   "30" },
+        { "wipe_tower_y",                   "80" },
+        { "single_extruder_multi_material", "0" },
+        { "nozzle_diameter",                "0.4,0.2" },
+        { "printer_extruder_id",            "1,2" },
+        { "printer_extruder_variant",       "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_printable_height",      "0,0" },
+        { "filament_map_mode",              "Manual" },
+        { "filament_map",                   "1,1" } });
+    size_flush_to_nozzles(config);
+
+    TriangleMesh first = cube(20);
+    first.translate(120.f, 120.f, 0.f);
+    TriangleMesh second = cube(20);
+    second.translate(150.f, 120.f, 0.f);
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides = { {}, { { "extruder", "2" } } };
+    Print print;
+    Model model;
+    init_print({ std::move(first), std::move(second) }, print, model, config, &overrides, false);
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.has_wipe_tower());
+
+    std::string tower_gcode;
+    for (const auto &layer : print.wipe_tower_data().tool_changes)
+        for (const auto &change : layer)
+            tower_gcode += change.gcode;
+
+    // Every tower line is at least as wide as the nozzle that prints it; a tower sized for the
+    // unused nozzle draws narrower lines than that.
+    const std::string width_tag = ";WIDTH:";
+    size_t widths = 0;
+    std::istringstream lines(tower_gcode);
+    for (std::string line; std::getline(lines, line);) {
+        if (line.compare(0, width_tag.size(), width_tag) != 0)
+            continue;
+        ++widths;
+        const double width = std::stod(line.substr(width_tag.size()));
+        INFO(line);
+        CHECK(width >= used_nozzle - EPSILON);
+    }
+    INFO("unused nozzle " << unused_nozzle);
+    CHECK(widths > 0);
+}
