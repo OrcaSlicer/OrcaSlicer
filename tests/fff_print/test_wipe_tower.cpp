@@ -193,13 +193,84 @@ static DynamicPrintConfig wipe_tower_toolchange_config(const std::string &gcode_
 // counts one filament in use, and DynamicPrintConfig::normalize_fdm_2's single-filament rule then
 // clears `enable_prime_tower`. A second apply, once init_print's regions have settled, sees both
 // filaments and the tower survives.
-static std::string slice_with_prime_tower(const DynamicPrintConfig &config)
+static std::string slice_with_prime_tower(const DynamicPrintConfig &config, bool is_bbl_printer = false)
 {
     Print print;
     Model model;
+    print.is_BBL_printer() = is_bbl_printer;
     init_print({ cube(10) }, print, model, config);
     print.apply(model, config);
     return gcode(print);
+}
+
+TEST_CASE("A Bambu manual change pauses at the tower and returns there after a custom move", "[WipeTower][Regression]")
+{
+    const std::string_view custom_move = GENERATE("", "change", "start");
+    const bool route_around_wall = GENERATE(false, true);
+    DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+    config.set_deserialize_strict({
+        { "manual_filament_change", true },
+        { "single_extruder_multi_material", true },
+        { "prime_tower_skip_points", route_around_wall },
+        { "change_filament_gcode", custom_move == "change" ? "M400 U1 ; MANUAL_CHANGE_TEST\nG1 X2 Y2" : "M400 U1 ; MANUAL_CHANGE_TEST" },
+    });
+    if (custom_move == "start")
+        config.set_key_value("filament_start_gcode", new ConfigOptionStrings({"G1 X2 Y2", "G1 X2 Y2"}));
+    const std::string gcode = slice_with_prime_tower(config, true);
+
+    GCodeReader reader;
+    Vec2d pause_xy = Vec2d::Zero();
+    bool paused = false;
+    bool moved_after_pause = false;
+    size_t changes = 0;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view raw = line.raw();
+        if (line.cmd_is("M400") && raw.find("; MANUAL_CHANGE_TEST") != std::string_view::npos) {
+            pause_xy = Vec2d(self.x(), self.y());
+            paused = true;
+            moved_after_pause = false;
+        } else if (paused && raw.rfind("; CP_TOOLCHANGE_WIPE", 0) == 0) {
+            CHECK_THAT(double(self.x()), Catch::Matchers::WithinAbs(pause_xy.x(), 0.01));
+            CHECK_THAT(double(self.y()), Catch::Matchers::WithinAbs(pause_xy.y(), 0.01));
+            CHECK(moved_after_pause == !custom_move.empty());
+            paused = false;
+            ++changes;
+        } else if (paused && (line.cmd_is("G0") || line.cmd_is("G1") || line.cmd_is("G2") || line.cmd_is("G3"))) {
+            moved_after_pause |= line.dist_X(self) != 0.f || line.dist_Y(self) != 0.f;
+        }
+    });
+    CHECK(changes > 0);
+    CHECK_FALSE(paused);
+}
+
+TEST_CASE("A Type 2 tower loads filament only during automatic in-layer changes", "[WipeTower][Regression]")
+{
+    const bool manual = GENERATE(false, true);
+    DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+    config.set_deserialize_strict({
+        { "wipe_tower_type", "type2" },
+        { "manual_filament_change", manual },
+        { "single_extruder_multi_material", true },
+        { "enable_filament_ramming", true },
+        { "parking_pos_retraction", 92 },
+        { "extra_loading_move", -2 },
+        { "change_filament_gcode", "M400 ; CHANGE_TEST" },
+    });
+    const std::string gcode = slice_with_prime_tower(config);
+    const std::string_view output = gcode;
+    size_t changes = 0;
+    for (size_t start = output.find("; CP TOOLCHANGE START"); start != std::string_view::npos;
+         start = output.find("; CP TOOLCHANGE START", start + 1)) {
+        const size_t end = output.find("; CP TOOLCHANGE END", start);
+        REQUIRE(end != std::string_view::npos);
+        const std::string_view block = output.substr(start, end - start);
+        if (block.find("M400 ; CHANGE_TEST") == std::string_view::npos)
+            continue;
+        CHECK((block.find("; CP TOOLCHANGE LOAD") != std::string_view::npos) == !manual);
+        CHECK(block.find("; CP TOOLCHANGE WIPE") != std::string_view::npos);
+        ++changes;
+    }
+    CHECK(changes > 0);
 }
 
 // change_filament_gcode for the Klipper sections: a marker comment, so no slicer output changes.

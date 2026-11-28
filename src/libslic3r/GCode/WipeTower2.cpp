@@ -1041,6 +1041,7 @@ bool WipeTower2::wait_for_temp_enabled(const PrintConfig& config)
 
 WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& default_region_config,int plate_idx, Vec3d plate_origin, const std::vector<std::vector<float>>& wiping_matrix, size_t initial_tool) :
     m_semm(config.single_extruder_multi_material.value),
+    m_manual_filament_change(config.manual_filament_change.value && !config.change_filament_gcode.value.empty()),
     m_enable_filament_ramming(config.enable_filament_ramming.value),
     m_wipe_tower_filament(config.wipe_tower_filament.value),
     m_wipe_tower_pos(config.wipe_tower_x.get_at(plate_idx), config.wipe_tower_y.get_at(plate_idx)),
@@ -1416,7 +1417,9 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
                                 m_filpar[tool].interface_print_temperature :
                                 (is_first_layer() || m_filpar[tool].temperature == 0 ? m_filpar[tool].first_layer_temperature : m_filpar[tool].temperature);
         toolchange_Change(writer, tool, m_filpar[tool].material, wait_for_temp, true); // Change the tool, set a speed override for soluble and flex materials.
-        toolchange_Load(writer, cleaning_box);
+        // The operator or firmware loads the incoming filament during a manual swap.
+        if (!m_manual_filament_change)
+            toolchange_Load(writer, cleaning_box);
         writer.travel(writer.x(), writer.y()-m_perimeter_width); // cooling and loading were done a bit down the road
         int base_temp = is_first_layer() ? m_filpar[tool].first_layer_temperature : m_filpar[tool].temperature;
         if (interface_layer) {
