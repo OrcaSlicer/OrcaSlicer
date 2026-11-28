@@ -4405,6 +4405,35 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
 
     std::string machine_start_gcode = this->placeholder_parser_process("machine_start_gcode", print.config().machine_start_gcode.value, initial_extruder_id);
+
+    auto emit_z_clearance = [this, &file, initial_extruder_id]() {
+        const double height = m_config.initial_z_clearance_height.value;
+        if (height <= 0.)
+            return;
+
+        const size_t nozzle_config_index = m_print->get_nozzle_config_index(static_cast<int>(initial_extruder_id), 0);
+        const double z_travel_speed = m_config.travel_speed_z.get_at(nozzle_config_index);
+        const double speed = z_travel_speed > 0.
+            ? z_travel_speed
+            : m_config.travel_speed.get_at(nozzle_config_index);
+
+        file.write("G21\n; Raise Z for clearance\nG91\n");
+        if (m_config.belt_printer.value) {
+            // Relative moves need the difference between two mapped points so
+            // any remap offset is excluded from the machine-frame vector.
+            const auto &kinematics = m_writer.kinematics();
+            const Vec3d machine_clearance = kinematics.to_machine(Vec3d(0., 0., height)) -
+                                            kinematics.to_machine(Vec3d::Zero());
+            GCodeG1Formatter w(m_config.high_precision_gcode.value);
+            w.emit_xyz(machine_clearance);
+            w.emit_f(speed * 60.);
+            file.write(w.string());
+        } else {
+            file.write_format("G1 Z%.3f F%.0f\n", height, speed * 60.);
+        }
+        file.write("G90\n");
+    };
+
     if (print.config().gcode_flavor != gcfKlipper) {
         // Set bed temperature if the start G-code does not contain any bed temp control G-codes.
         this->_print_first_layer_bed_temperature(file, print, machine_start_gcode, initial_extruder_id, true);
@@ -4442,6 +4471,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     //BBS: gcode writer doesn't know where the real position of extruder is after inserting custom gcode
     m_writer.set_current_position_clear(false);
     m_start_gcode_filament = GCodeProcessor::get_gcode_last_filament(machine_start_gcode);
+
+    emit_z_clearance();
 
     if (is_bbl_printers) {
         m_writer.init_extruder(initial_non_support_extruder_id);

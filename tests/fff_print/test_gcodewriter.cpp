@@ -351,12 +351,14 @@ TEST_CASE("Forced standard precision writes extrusions and XY travels as without
 }
 
 SCENARIO("z_hop lifts the nozzle when a lift is requested", "[GCodeWriter]") {
-    GIVEN("A writer with the nozzle parked at Z = 10") {
+    GIVEN("A writer with a known nozzle position at Z = 10") {
         GCodeWriter writer;
         std::vector<unsigned int> extruder_ids { 0 };
         writer.set_extruders(extruder_ids);
         writer.set_extruder(0);
-        writer.travel_to_z(10.0);
+        // Establish a known position through the normal travel path.
+        writer.travel_to_xyz(Vec3d(0.0, 0.0, 10.0));
+        REQUIRE(writer.is_current_position_clear());
 
         WHEN("z_hop is 1 and an eager lift is requested") {
             writer.config.z_hop.values = { 1.0 };
@@ -1782,12 +1784,11 @@ SCENARIO("Axis remap: no lift is commanded through the uninitialised origin", "[
             writer.lazy_lift(LiftType::NormalLift);
             const std::string gcode = writer.travel_to_xyz(Vec3d(10.0, 10.0, 5.0));
 
-            THEN("behaviour is unchanged: the lift is still emitted") {
-                // Three moves, not two: with no remap and an unknown position the
-                // destination is emitted as a separate XY move followed by its own
-                // Z move, on top of the lift. That split is the pre-existing
-                // identity-mapping path and must not change.
-                REQUIRE(count_g1(gcode) == 3);
+            THEN("no speculative lift is emitted before the first position is established") {
+                // With an unknown position, a z-hop derived from m_pos could lower
+                // the physical nozzle. The initial travel establishes XY, followed by
+                // the requested Z; no separate lift is safe here.
+                REQUIRE(count_g1(gcode) == 2);
             }
         }
     }
@@ -1824,9 +1825,29 @@ SCENARIO("Axis remap: eager_lift does not lift, or record a lift, at an unknown 
         WHEN("an eager lift is requested") {
             const std::string lift = writer.eager_lift(LiftType::NormalLift);
 
-            THEN("behaviour is unchanged: the lift is emitted and can be undone") {
-                REQUIRE_FALSE(lift.empty());
-                REQUIRE_FALSE(writer.unlift().empty());
+            THEN("no move is emitted") {
+                REQUIRE(lift.empty());
+            }
+            THEN("no lift is recorded, so unlift does not descend from it") {
+                REQUIRE(writer.unlift().empty());
+            }
+        }
+    }
+}
+
+SCENARIO("Axis remap: spiral-vase lazy_lift does not lift at an unknown position", "[GCodeWriter][remap]")
+{
+    GIVEN("an identity-mapping writer with an unknown position") {
+        GCodeWriter writer;
+        configure_lift_writer(writer);
+        REQUIRE_FALSE(writer.is_current_position_clear());
+
+        WHEN("a spiral-vase lift is requested") {
+            const std::string lift = writer.lazy_lift(LiftType::NormalLift, true);
+
+            THEN("no move is emitted or recorded") {
+                REQUIRE(lift.empty());
+                REQUIRE(writer.unlift().empty());
             }
         }
     }

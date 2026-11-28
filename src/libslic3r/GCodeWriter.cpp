@@ -46,15 +46,6 @@ namespace Slic3r {
 
 bool GCodeWriter::full_gcode_comment = true;
 
-// A lift emitted through _travel_to_z() re-emits the stored logical X/Y under a
-// mapping that must emit every axis. While the position is unknown that X/Y is
-// the uninitialised origin, which maps to a real but wrong machine point, so the
-// lift has to be skipped rather than commanded.
-bool GCodeWriter::must_skip_lift_now() const
-{
-    return m_kinematics->suppress_lift_at_unknown_position() && ! this->is_current_position_clear();
-}
-
 bool GCodeWriter::point_on_first_layer(const Vec3d &point_logical) const
 {
     if (m_first_layer_point_test)
@@ -916,7 +907,7 @@ std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
     // BBS
     if (m_lifted == 0 && m_to_lift == 0 && target_lift > 0) {
         if (spiral_vase) {
-            if (this->must_skip_lift_now())
+            if (!this->is_current_position_clear())
                 // Record no lift, so a later unlift() does not descend from a
                 // height that was never commanded.
                 return "";
@@ -963,9 +954,9 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
             lift_move = _travel_to_z(m_pos(2) + target_lift, "normal lift Z");
         }
     }
-    //BBS: if position is unknown use normal lift
+    // Use a normal lift when a spiral lift is unavailable.
     else if (target_lift > 0) {
-        if (this->must_skip_lift_now())
+        if (!this->is_current_position_clear())
             // Skipped, not deferred: leave m_lifted at zero below so unlift()
             // does not descend from a height that was never commanded.
             target_lift = 0.;
@@ -1016,11 +1007,11 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
         Vec3d target = { dest_point(0) - m_x_offset, dest_point(1) - m_y_offset, dest_point(2) };
         Vec3d delta = target - source;
         Vec2d delta_no_z = { delta(0), delta(1) };
-        //BBS: don'need slope travel because we don't know where is the source position the first time
+        //Orca: Only attempt slope/spiral/normal lift if current position is known
         //BBS: Also don't need to do slope move or spiral lift if x-y distance is absolute zero
-        if (delta(2) > 0 && delta_no_z.norm() != 0.0f)    {
+        if (delta(2) > 0 && delta_no_z.norm() != 0.0f && this->is_current_position_clear()) {
             //BBS: SpiralLift
-            if (m_to_lift_type == LiftType::SpiralLift && this->is_current_position_clear()) {
+            if (m_to_lift_type == LiftType::SpiralLift) {
                 //BBS: todo: check the arc move all in bed area, if not, then use lazy lift
                 double radius = delta(2) / (2 * PI * atan(this->filament()->travel_slope()));
                 Vec2d ij_offset = radius * delta_no_z.normalized();
@@ -1037,7 +1028,6 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
             }
             //BBS: SlopeLift
             else if (m_to_lift_type == LiftType::SlopeLift &&
-                this->is_current_position_clear() &&
                 atan2(delta(2), delta_no_z.norm()) < this->filament()->travel_slope()) {
                 //BBS: check whether we can make a travel like
                 //   _____
@@ -1054,14 +1044,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 w0.emit_comment(GCodeWriter::full_gcode_comment, comment);
                 slop_move = w0.string();
             }
-            else if (m_to_lift_type == LiftType::NormalLift && ! this->must_skip_lift_now()) {
-                // Only lift in place when the current position is known, for a mapping
-                // that makes _travel_to_z re-emit logical X/Y: at print start (and after
-                // custom gcode) m_pos.xy is still the uninitialised origin, which would
-                // map to a bogus machine point. The xy_z_move below then travels straight
-                // to the destination with full XYZ and establishes the correct position.
-                // Mappings that do not need this (the historical Cartesian behaviour)
-                // report false and keep lifting unconditionally.
+            else if (m_to_lift_type == LiftType::NormalLift) {
                 slop_move = _travel_to_z(target.z(), "normal lift Z");
             }
         }
