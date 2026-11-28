@@ -2456,6 +2456,8 @@ void GUI_App::init_networking_callbacks()
                                     text += L"\n\u2022 " + _L("Check that the printer is on the same network as this computer and that its IP address is correct.");
                                     text += L"\n\u2022 " + _L("If the connection still fails, try a different network plug-in version in Preferences.");
                                     text += L"\n\u2022 " + _L("A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error.");
+                                    if (const std::string ca_file = obj->get_ca_file(); !ca_file.empty())
+                                        text += L"\n\u2022 " + ca_file_failure_hint(ca_file);
                                     wxGetApp().show_dialog(text);
                                 } else {
                                     text = wxString::Format(_L("Connect %s failed! [SN:%s, code=%s]"), from_u8(obj->get_dev_name()), obj->get_dev_id(), msg);

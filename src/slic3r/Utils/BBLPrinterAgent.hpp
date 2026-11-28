@@ -113,6 +113,15 @@ public:
     static std::string to_orca_payload(std::string json_text);
     static std::string from_orca_payload(std::string json_text);
 
+    // A CA file is usable only if every certificate in it is a CA.
+    enum class CaFileError { None, Unreadable, NoCertificate, Damaged, NotCa };
+    struct CaFileCheck
+    {
+        CaFileError              error = CaFileError::None;
+        std::vector<std::string> certificates; // PEM, only for None
+    };
+    static CaFileCheck check_ca_file(const std::string& path);
+
     // The plug-in checks LAN MQTT and FTPS certificates against <cert folder>/printer.cer. A printer
     // behind a proxy with its own CA (the "HTTPS CA File" of the connect dialog) needs that CA there
     // too. Writes out_dir/printer.cer as bundled_dir/printer.cer plus the certificates of every file
