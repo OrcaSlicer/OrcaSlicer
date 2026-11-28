@@ -249,6 +249,9 @@ bool SimplyPrint::do_api_call(std::function<Http(bool)>                         
                         if (r.success) {
                             BOOST_LOG_TRIVIAL(info) << "SimplyPrint: Successfully refreshed access token";
                             this->save_oauth_credential(r);
+                            // The old refresh token is revoked, later calls of this upload must use the new pair
+                            cred["access_token"]  = r.access_token;
+                            cred["refresh_token"] = r.refresh_token;
 
                             // Run the api call again
                             create_request(r.access_token, true)
