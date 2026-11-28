@@ -1291,7 +1291,7 @@ void sample_overhang_area(
     assert(dtt_roof <= layer_idx);
     if (dtt_roof >= layer_idx && large_horizontal_roof)
         // Reached buildplate when generating contact, interface and base interface layers.
-        placement.roofs.push_back({ std::move(overhang_area), 0, std::min(dtt_roof, interface_placer.support_parameters.num_top_interface_layers) });
+        placement.roofs.push_back({ std::move(overhang_area), 0, std::min(dtt_roof, interface_placer.top_layers()) });
     else {
         // normal trees have to be generated
         const bool roof_enabled = num_support_roof_layers > 0;
@@ -3704,6 +3704,8 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
         trim_support_layers_by_exclusion_volumes(
             print_object, raft_layers, bottom_contacts, top_contacts, intermediate_layers,
             interface_layers, base_interface_layers);
+        schedule_support_layers(print_object, support_params, layer_storage, bottom_contacts, top_contacts,
+                                intermediate_layers, interface_layers, base_interface_layers);
         SupportGeneratorLayersPtr layers_sorted = generate_support_layers(print_object, raft_layers, bottom_contacts, top_contacts, intermediate_layers, interface_layers, base_interface_layers);
 
         // BBS: This is a hack to avoid the support being generated outside the bed area. See #4769.
@@ -3792,7 +3794,7 @@ static void recover_pending_branch_roofs(
             continue;
         if (slices[size_t(slice_idx)].empty())
             continue;
-        if (el.state.roof_recovery_dtt > interface_placer.support_parameters.num_top_interface_layers)
+        if (el.state.roof_recovery_dtt > interface_placer.top_layers())
             continue;
 
         interface_placer.add_roof(std::move(slices[size_t(slice_idx)]), el.state.layer_idx, el.state.roof_recovery_dtt);

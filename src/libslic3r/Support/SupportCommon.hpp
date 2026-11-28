@@ -39,6 +39,18 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
     SupportGeneratorLayersPtr         &intermediate_layers,
     SupportGeneratorLayerStorage      &layer_storage);
 
+// Subdivide classified support slabs for the tool that actually extrudes them.
+// Geometry and contact Z boundaries stay fixed; base and interface can have different schedules.
+void split_support_layers(SupportGeneratorLayersPtr &layers, SupportGeneratorLayerStorage &storage,
+                          double height, double minimum, double first_layer_z, const std::vector<double> &boundaries = {});
+
+// Apply per-tool deposition schedules after support geometry and contacts are classified.
+void schedule_support_layers(const PrintObject &object, const SupportParameters &support_params,
+                             SupportGeneratorLayerStorage &layer_storage,
+                             SupportGeneratorLayersPtr &bottom_contacts, SupportGeneratorLayersPtr &top_contacts,
+                             SupportGeneratorLayersPtr &intermediate_layers, SupportGeneratorLayersPtr &interface_layers,
+                             SupportGeneratorLayersPtr &base_interface_layers);
+
 // Generate raft layers, also expand the 1st support layer
 // in case there is no raft layer to improve support adhesion.
 SupportGeneratorLayersPtr generate_raft_base(
@@ -81,6 +93,10 @@ void trim_support_layers_by_exclusion_volumes(
     const SupportGeneratorLayersPtr       &intermediate_layers,
     const SupportGeneratorLayersPtr       &interface_layers,
     const SupportGeneratorLayersPtr       &base_interface_layers);
+
+// Recombine continuous support columns without filling contact gaps or excluded regions.
+void combine_support_layers(SupportGeneratorLayersPtr &layers, SupportGeneratorLayerStorage &storage,
+                            double height, double first_layer_z, double minimum_width);
 
 // returns sorted layers
 SupportGeneratorLayersPtr generate_support_layers(

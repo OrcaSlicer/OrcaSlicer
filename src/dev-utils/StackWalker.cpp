@@ -196,6 +196,10 @@ LPMODULE_INFO CStackWalker::GetModulesTH32()
 		hToolhelp = LoadLibrary(dllname[i]);
 		if (hToolhelp == NULL)
 			continue;
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#endif
 		CreateToolhelp32Snapshot = (pfnCreateToolhelp32Snapshot)GetProcAddress(hToolhelp, "CreateToolhelp32Snapshot");
 #ifdef UNICODE
 		Module32First = (pfnModule32First)GetProcAddress(hToolhelp, "Module32FirstW");
@@ -205,6 +209,9 @@ LPMODULE_INFO CStackWalker::GetModulesTH32()
 		Module32Next = (pfnModule32Next)GetProcAddress(hToolhelp, "Module32NextA");
 #endif
 
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 		if ((CreateToolhelp32Snapshot != NULL) && (Module32First != NULL) && (Module32Next != NULL))
 			break;
 
@@ -282,6 +289,10 @@ LPMODULE_INFO CStackWalker::GetModulesPSAPI()
 		return pHead;
 	}
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#endif
 	EnumProcessModules = (pfnEnumProcessModules)GetProcAddress(hPsapi, "EnumProcessModules");
 #ifdef UNICODE
 	GetModuleFileNameEx = (pfnGetModuleFileNameEx)GetProcAddress(hPsapi, "GetModuleFileNameExW");
@@ -291,6 +302,9 @@ LPMODULE_INFO CStackWalker::GetModulesPSAPI()
 	GetModuleBaseName = (pfnGetModuleBaseName)GetProcAddress(hPsapi, "GetModuleBaseNameA");
 #endif
 	GetModuleInformation = (pfnGetModuleInformation)GetProcAddress(hPsapi, "GetModuleInformation");
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 	if ((EnumProcessModules == NULL) || (GetModuleFileNameEx == NULL) || (GetModuleBaseName == NULL) || (GetModuleInformation == NULL))
 	{
 		FreeLibrary(hPsapi);

@@ -6,6 +6,7 @@
 #include "libslic3r/FilamentGroup.hpp"
 #include "Print.hpp"
 #include "ToolOrdering.hpp"
+#include "../AdaptiveLayerMerge.hpp"
 #include "Layer.hpp"
 #include "ClipperUtils.hpp"
 #include "ParameterUtils.hpp"
@@ -450,6 +451,50 @@ bool ToolOrdering::insert_wipe_tower_extruder()
     return changed;
 }
 
+// A column that starts high on the model still needs a foundation at bed level.
+// Schedule the owning nozzle while the surrounding print is at that height.
+static bool schedule_column_foundations(const Print &print, std::vector<LayerTools> &layers)
+{
+    const auto &config = print.config();
+    if (!print.has_wipe_tower() || print.wipe_tower_type() != WipeTowerType::Type2 ||
+        config.single_extruder_multi_material.value || !has_extruder_layer_heights(config))
+        return false;
+
+    std::map<unsigned, size_t> first_use;
+    for (size_t i = 0; i < layers.size(); ++i)
+        for (unsigned tool : layers[i].extruders)
+            first_use.emplace(tool, i);
+    const double fallback = print.default_object_config().layer_height.value;
+    double min_height = std::numeric_limits<double>::max(), max_height = 0.;
+    for (const auto &[tool, first] : first_use) {
+        const double height = extruder_layer_height_for_filament(config, tool + 1, fallback);
+        min_height = std::min(min_height, height);
+        max_height = std::max(max_height, height);
+    }
+    if (max_height - min_height <= 1e-3)
+        return false;
+
+    bool changed = false;
+    for (const auto &[tool, first] : first_use) {
+        const double height = extruder_layer_height_for_filament(config, tool + 1, fallback);
+        double next_z = 0.;
+        for (size_t i = 0; i < first; ++i) {
+            auto &layer = layers[i];
+            if (!layer.has_wipe_tower || layer.extruders.empty() || layer.wipe_tower_print_z + EPSILON < next_z)
+                continue;
+            layer.extruders.push_back(tool);
+            layer.foundation_tools.push_back(tool);
+            changed = true;
+            if (next_z == 0.)
+                next_z = layer.wipe_tower_print_z;
+            do {
+                next_z += height;
+            } while (next_z <= layer.wipe_tower_print_z + EPSILON);
+        }
+    }
+    return changed;
+}
+
 void ToolOrdering::sort_and_build_data(const Print& print, unsigned int first_extruder, bool prime_multi_material)
 {
     // if first extruder is -1, we can decide the first layer tool order before doing reorder function
@@ -483,6 +528,8 @@ void ToolOrdering::sort_and_build_data(const Print& print, unsigned int first_ex
         this->fill_wipe_tower_partitions(print.config(), object_bottom_z, max_layer_height);
     }
 
+    if (schedule_column_foundations(print, m_layer_tools))
+        this->fill_wipe_tower_partitions(print.config(), object_bottom_z, max_layer_height);
     this->collect_extruder_statistics(prime_multi_material);
 }
 
@@ -507,6 +554,8 @@ void ToolOrdering::sort_and_build_data(const PrintObject& object , unsigned int 
         this->fill_wipe_tower_partitions(object.print()->config(), object.layers().front()->print_z - object.layers().front()->height, max_layer_height);
     }
 
+    if (schedule_column_foundations(*object.print(), m_layer_tools))
+        this->fill_wipe_tower_partitions(object.print()->config(), object.layers().front()->print_z - object.layers().front()->height, max_layer_height);
     this->collect_extruder_statistics(prime_multi_material);
 }
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <algorithm> //For std::partition_copy and std::min_element.
+#include <algorithm> //For std::partition_copy.
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -44,13 +44,12 @@
 namespace Slic3r::Arachne
 {
 
-WallToolPathsParams make_paths_params(const int layer_id, const PrintObjectConfig &print_object_config, const PrintConfig &print_config)
+WallToolPathsParams make_paths_params(const int layer_id, const PrintObjectConfig &print_object_config, double nozzle_diameter)
 {
     WallToolPathsParams input_params;
     {
-        const double min_nozzle_diameter = *std::min_element(print_config.nozzle_diameter.values.begin(), print_config.nozzle_diameter.values.end());
         if (const auto &min_feature_size_opt = print_object_config.min_feature_size)
-            input_params.min_feature_size = min_feature_size_opt.value * 0.01 * min_nozzle_diameter;
+            input_params.min_feature_size = min_feature_size_opt.value * 0.01 * nozzle_diameter;
 
         if (const auto &min_wall_length_factor_opt = print_object_config.min_length_factor)
             input_params.min_length_factor = min_wall_length_factor_opt.value;
@@ -59,17 +58,17 @@ WallToolPathsParams make_paths_params(const int layer_id, const PrintObjectConfi
 
         if (layer_id == 0) {
             if (const auto &initial_layer_min_bead_width_opt = print_object_config.initial_layer_min_bead_width)
-                input_params.min_bead_width = initial_layer_min_bead_width_opt.value * 0.01 * min_nozzle_diameter;
+                input_params.min_bead_width = initial_layer_min_bead_width_opt.value * 0.01 * nozzle_diameter;
         } else {
             if (const auto &min_bead_width_opt = print_object_config.min_bead_width)
-                input_params.min_bead_width = min_bead_width_opt.value * 0.01 * min_nozzle_diameter;
+                input_params.min_bead_width = min_bead_width_opt.value * 0.01 * nozzle_diameter;
         }
 
         if (const auto &wall_transition_filter_deviation_opt = print_object_config.wall_transition_filter_deviation)
-            input_params.wall_transition_filter_deviation = wall_transition_filter_deviation_opt.value * 0.01 * min_nozzle_diameter;
+            input_params.wall_transition_filter_deviation = wall_transition_filter_deviation_opt.value * 0.01 * nozzle_diameter;
 
         if (const auto &wall_transition_length_opt = print_object_config.wall_transition_length)
-            input_params.wall_transition_length = wall_transition_length_opt.value * 0.01 * min_nozzle_diameter;
+            input_params.wall_transition_length = wall_transition_length_opt.value * 0.01 * nozzle_diameter;
 
         input_params.wall_transition_angle   = print_object_config.wall_transition_angle.value;
         input_params.wall_distribution_count = print_object_config.wall_distribution_count.value;

@@ -53,6 +53,33 @@
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
+TEST_CASE("Recorded tower clearance is held until the printing destination", "[GCodeWriter][WipeTower]")
+{
+    const double target_z = GENERATE(0.6, 0.7, 0.8);
+    PrintConfig config;
+    GCodeWriter writer;
+    writer.apply_print_config(config);
+    writer.set_extruders({0});
+    writer.set_extruder(0);
+    writer.set_current_position_clear(true);
+    std::string output = writer.travel_to_xyz(Vec3d(210., 200., 1.35));
+    writer.set_lifted_z(0.7);
+    CHECK_THAT(writer.get_zhop(), Catch::Matchers::WithinAbs(0.65, 1e-6));
+    output += writer.travel_to_xyz(Vec3d(50., 50., target_z));
+    output += writer.unlift();
+    size_t descents = 0;
+    GCodeReader reader;
+    reader.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.has_z() && line.new_Z(self) < self.z()) {
+            ++descents;
+            CHECK_THAT(self.x(), Catch::Matchers::WithinAbs(50., 1e-6));
+            CHECK_THAT(self.y(), Catch::Matchers::WithinAbs(50., 1e-6));
+        }
+    });
+    CHECK(descents == 1);
+    CHECK_THAT(reader.z(), Catch::Matchers::WithinAbs(target_z, 1e-6));
+}
+
 TEST_CASE("Belt machine coordinates retain a non-45-degree slicing angle", "[GCodeWriter][belt]")
 {
     PrintConfig config;

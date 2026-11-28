@@ -1,0 +1,26 @@
+# OCCT forces /EHa after accepting CMAKE_CXX_FLAGS, so expose an override
+# inside its flag setup. The patch is independent of the selected compiler.
+set(_file "${OCCT_SOURCE_DIR}/adm/cmake/occt_defs_flags.cmake")
+file(READ "${_file}" _contents)
+if (_contents MATCHES "ORCA_OCCT_USE_EHSC")
+    return()
+endif ()
+set(_original [=[# enable structured exceptions for MSVC
+string (REGEX MATCH "EHsc" ISFLAG "${CMAKE_CXX_FLAGS}")
+if (ISFLAG)
+  string (REGEX REPLACE "EHsc" "EHa" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+elseif (MSVC)
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHa")
+endif()]=])
+set(_replacement [=[# clang-cl /EHsc avoids unresolved std::variant destructors with /EHa.
+if (ORCA_OCCT_USE_EHSC)
+  string (REGEX REPLACE "/EH[a-z]+" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+else()
+]=])
+string(FIND "${_contents}" "${_original}" _position)
+if (_position EQUAL -1)
+    message(FATAL_ERROR "OCCT exception flag setup changed; cannot apply /EHsc override")
+endif ()
+string(REPLACE "${_original}" "${_replacement}${_original}\nendif()" _contents "${_contents}")
+file(WRITE "${_file}" "${_contents}")

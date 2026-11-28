@@ -37,7 +37,10 @@ struct SlicingParameters
          const PrintObjectConfig         &object_config,
          coordf_t                         object_height,
          const std::vector<unsigned int> &object_extruders,
-         const Vec3d                     &object_shrinkage_compensation);
+         const Vec3d                     &object_shrinkage_compensation,
+         const std::vector<unsigned int> *print_filaments = nullptr);
+
+    bool use_extruder_layer_heights = false;
 
     // Has any raft layers?
     bool        has_raft() const { return raft_layers() > 0; }

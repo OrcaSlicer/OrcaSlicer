@@ -658,6 +658,8 @@ private:
     void clip_fill_surfaces();
     void discover_horizontal_shells();
     void combine_infill();
+    void compute_adaptive_merge_groups();
+    void combine_adaptive_infill();
     void _generate_support_material();
     FillAdaptive::RegionOctrees prepare_adaptive_infill_data(
         const std::vector<std::pair<const Surface*, const Layer*>>& surfaces_w_layer) const;
@@ -1132,6 +1134,8 @@ public:
     std::vector<unsigned int> object_extruders() const;
     std::vector<unsigned int> support_material_extruders() const;
     std::vector<unsigned int> extruders(bool conside_custom_gcode = false) const;
+    // Zero-based logical filaments contributing to the shared layer grid.
+    std::vector<unsigned int> layer_height_filaments() const;
     double              max_allowed_layer_height() const;
     bool                has_support_material() const;
     // Make sure the background processing has no access to this model_object during this call!

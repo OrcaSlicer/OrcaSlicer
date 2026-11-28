@@ -1,3 +1,4 @@
+#include "libslic3r/AdaptiveLayerMerge.hpp"
 #include <algorithm>
 #include <assert.h>
 #include <regex>
@@ -1082,6 +1083,13 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 					//Orca: enable thick bridge based on config
 					layerm.bridging_flow(extrusion_role, is_thick_bridge) :
 					layerm.flow(extrusion_role, (surface.thickness == -1) ? layer.height : surface.thickness);
+
+                // A thin bridge must fill the whole merged slab; rounded thick bridges already
+                // span their nozzle diameter and keep their existing flow when that is sufficient.
+                if (has_extruder_layer_heights(*layer.object()) &&
+                    params.bridge && surface.thickness > layer.height + EPSILON &&
+                    (!is_thick_bridge || params.flow.height() + EPSILON < surface.thickness))
+                    params.flow = layerm.flow(extrusion_role, surface.thickness).with_flow_ratio(region_config.bridge_flow);
 
 				params.role_speed = 0;
                 const size_t role_extruder_id = layer.get_extruder_id(params.extruder);

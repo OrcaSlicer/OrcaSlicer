@@ -1,3 +1,4 @@
+#include "libslic3r/AdaptiveLayerMerge.hpp"
 #ifndef slic3r_SupportParameters_hpp_
 #define slic3r_SupportParameters_hpp_
 
@@ -69,8 +70,8 @@ struct SupportParameters {
             }
 	    }
         this->first_layer_flow = Slic3r::support_material_1st_layer_flow(&object, float(slicing_params.first_print_layer_height));
-        this->support_material_flow = Slic3r::support_material_flow(&object, float(slicing_params.layer_height));
-        this->support_material_interface_flow = Slic3r::support_material_interface_flow(&object, float(slicing_params.layer_height));
+        this->support_material_flow = Slic3r::support_material_flow(&object, float(extruder_layer_height_for_filament(print_config, object_config.support_filament.value, slicing_params.layer_height)));
+        this->support_material_interface_flow = Slic3r::support_material_interface_flow(&object, float(extruder_layer_height_for_filament(print_config, object_config.support_interface_filament.value, slicing_params.layer_height)));
     	this->raft_interface_flow                = support_material_interface_flow;
 
         this->ironing = object_config.support_ironing;
@@ -197,7 +198,8 @@ struct SupportParameters {
         support_extrusion_width        = object_config.support_line_width.get_abs_value(nozzle_diameter);
         support_extrusion_width        = support_extrusion_width > 0 ? support_extrusion_width : extrusion_width;
 
-        independent_layer_height = print_config.independent_support_layer_height;
+        independent_layer_height = independent_support_layers(print_config, slicing_params);
+        use_extruder_layer_heights = slicing_params.use_extruder_layer_heights;
 
         // force double walls everywhere if wall count is larger than 1        
         tree_branch_diameter_double_wall_area_scaled = object_config.tree_support_wall_count.value > 1  ? 0.1 :
@@ -220,6 +222,11 @@ struct SupportParameters {
                 support_style = smsGrid;
             }
         }
+        if (support_style == smsTreeOrganic && use_extruder_layer_heights) {
+            // Add adhesion layers at the base tool's height outside the requested interface depth.
+            num_top_interface_layers += num_top_base_interface_layers;
+            num_bottom_interface_layers += num_bottom_base_interface_layers;
+        }
     }
     // Zero-gap interface flags for top / bottom contact.
     bool                    zero_gap_interface_top;
@@ -229,9 +236,9 @@ struct SupportParameters {
     bool                    has_top_contacts;
     // Is there at least a bottom contact layer extruded below support base?
     bool                    has_bottom_contacts;
-    // User-configured number of top interface layers, including the contact layer.
+    // Total number of top interface layers, including the contact and base interface layers.
     size_t                  num_top_interface_layers;
-    // User-configured number of bottom interface layers, including the contact layer.
+    // Total number of bottom interface layers, including the contact and base interface layers.
     size_t                  num_bottom_interface_layers;
     // Number of top base interface layers.
     size_t                  num_top_base_interface_layers;
@@ -328,6 +335,7 @@ struct SupportParameters {
         }
 		
     bool independent_layer_height = false;
+    bool use_extruder_layer_heights = false;
     const double thresh_big_overhang = Slic3r::sqr(scale_(10));
 
 	bool          ironing;
