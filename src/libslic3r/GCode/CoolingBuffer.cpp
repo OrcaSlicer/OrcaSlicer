@@ -989,6 +989,9 @@ std::string CoolingBuffer::apply_layer_cooldown(
     // ORCA: per-printer minimum non-zero fan PWM. Applied at every part-cooling fan emission below so any
     // non-zero command is raised to at least this percent (0 disables the clamp).
     const unsigned int part_cooling_fan_min_pwm = static_cast<unsigned int>(std::max(0, m_config.part_cooling_fan_min_pwm.value));
+    // ORCA: FanMover runs whenever fan_speedup_time is set and reads (then drops) the overhang fan marker below.
+    // Only "Only overhangs" needs it, so it is written in that case alone.
+    const bool mark_overhang_fan = m_config.fan_speedup_time.value != 0 && m_config.fan_speedup_overhangs.value;
     bool overhang_fan_control= false;
     int  overhang_fan_speed   = 0;
     bool internal_bridge_fan_control= false; // ORCA: Add support for separate internal bridge fan speed control
@@ -1319,6 +1322,10 @@ std::string CoolingBuffer::apply_layer_cooldown(
                 set_fan(0);
                 fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] = false;
             } else if (fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START]){
+                // ORCA: Tell FanMover this command starts the overhang fan. Most overhangs are walls that keep
+                // their "Outer wall"/"Inner wall" role, so FanMover can't tell them apart by ";TYPE:" alone.
+                if (mark_overhang_fan && m_current_fan_speed != overhang_fan_speed)
+                    new_gcode += ";_FAN_MOVER_OVERHANG\n";
                 set_fan(overhang_fan_speed);
             } else if (fan_speed_change_requests[CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START]){ // ORCA: Add support for separate internal bridge fan speed control
                 set_fan(internal_bridge_fan_speed);
