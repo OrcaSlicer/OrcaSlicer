@@ -7590,7 +7590,8 @@
        "temperature",
        "pressure_advance",
        "acceleration",
-       "jerk"
+       "jerk",
+       "overhang"
       ],
       "type": "string"
      },

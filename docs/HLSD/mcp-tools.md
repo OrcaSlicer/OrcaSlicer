@@ -498,7 +498,7 @@ How the server sees and drives the GUI is in mcp-server.md, GUI automation. What
 | `view_set` | `camera` | iso, top, bottom, front, rear, left, right, default, fit_bed, fit_objects, fit_selection, sketch_normal |
 | `view_set` | `canvas` | 3d, preview, assemble |
 | `view_set` | `projection` | perspective, orthographic, toggle |
-| `view_set` | `view_type` | the Preview legend's color schemes: summary, feature_type, color_print, speed, actual_speed, height, width, volumetric_flow_rate, actual_volumetric_flow_rate, layer_time_linear, layer_time_logarithmic, fan_speed, temperature, pressure_advance, acceleration, jerk |
+| `view_set` | `view_type` | the Preview legend's color schemes: summary, feature_type, color_print, speed, actual_speed, height, width, volumetric_flow_rate, actual_volumetric_flow_rate, layer_time_linear, layer_time_logarithmic, fan_speed, temperature, pressure_advance, acceleration, jerk, overhang (only for G-code with overhang metadata) |
 | `window_open` | `window` | preferences, plugins, action_replay, preset_bundle, keyboard_shortcuts, setup_wizard, network_test, troubleshoot, tip_of_the_day, about |
 | `window_set` | `state` | normal, maximized, minimized |
 | `recording_start` | `target` | main, canvas |
@@ -982,9 +982,12 @@ set as it is):
   so a tool that numbers layers by the slider's label joins on it. `view`, and `app_state.preview`, are null for a
   plate the Preview has not loaded. `view_set` changes the Preview as the legend's own controls do, so a `view_type`
   it picks is also saved as the "Last used" preview default (`preview_last_view_type`), and before a slice it only
-  sets the type the next toolpaths show. Every legend key and the time mode are checked before anything changes, and
-  a row the print lacks is ignored, so a caller can hide everything but one feature by naming rows from the whole
-  list.
+  sets the type the next toolpaths show. `overhang` is the exception: the legend offers that view only for G-code with
+  overhang metadata, so it is refused unless the Preview holds the current plate's toolpaths and they carry it: also
+  before a slice, while the Preview still holds another plate's, and in a call whose `tab` or `canvas` opens the
+  Preview before it holds them, as it loads them only after the call. Every legend key and the time mode are
+  checked before anything changes, and a row the print lacks is ignored, so a caller can hide everything but one
+  feature by naming rows from the whole list.
 - **Scripts.** `script_run` returns at most 256 KiB of output. A `result` that is not JSON makes code sent as text
   `raised`; in a file run, where a standalone script may well have a variable of that name, it is no result, and the
   output says so. `SystemExit` with code 0 or None finishes the run. `timeout_s` and `job_cancel` don't interrupt a

@@ -12,11 +12,14 @@
 #include <cfloat>
 #include <algorithm>
 #include <string>
+#include <string_view>
+#include <utility>
 
 #include "../PrintConfig.hpp"
 #include "../GCode.hpp"
 
 #include "PressureEqualizer.hpp"
+#include "GCodeProcessor.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Exception.hpp"
 #include "fast_float/fast_float.h"
@@ -41,9 +44,10 @@ static constexpr int max_look_back_limit = 128;
 // lines where some extruder pressure will remain (so we should equalize between these small travels)
 static constexpr long max_ignored_gap_between_extruding_segments = 3;
 
-PressureEqualizer::PressureEqualizer(const Slic3r::GCodeConfig &config)
+PressureEqualizer::PressureEqualizer(const Slic3r::GCodeConfig &config, bool overhang_metadata)
     : m_use_relative_e_distances(config.use_relative_e_distances.value),
-      m_high_precision(config.high_precision_gcode.value)
+      m_high_precision(config.high_precision_gcode.value),
+      m_overhang_metadata_enabled(overhang_metadata)
 {
     // Preallocate some data, so that output_buffer.data() will return an empty string.
     output_buffer.assign(32, 0);
@@ -99,6 +103,19 @@ PressureEqualizer::PressureEqualizer(const Slic3r::GCodeConfig &config)
 #endif
 }
 
+// Orca: Whether the line is an overhang metadata comment, which only the preview reads.
+static bool is_overhang_metadata(const char *line, const char *line_end)
+{
+    if (line == line_end || *line != ';')
+        return false;
+    const std::string_view comment(line + 1, size_t(line_end - line - 1));
+    for (const GCodeProcessor::ETags tag : {GCodeProcessor::ETags::Overhang, GCodeProcessor::ETags::Overhang_Z_Distance,
+                                           GCodeProcessor::ETags::Overhang_Line, GCodeProcessor::ETags::Overhang_Arc})
+        if (boost::starts_with(comment, GCodeProcessor::reserved_tag(tag)))
+            return true;
+    return false;
+}
+
 void PressureEqualizer::process_layer(const std::string &gcode)
 {
     if (!gcode.empty()) {
@@ -109,10 +126,17 @@ void PressureEqualizer::process_layer(const std::string &gcode)
             // Slic3r always generates end of lines in a Unix style.
             for (; *gcode_end != 0 && *gcode_end != '\n'; ++gcode_end);
 
-            m_gcode_lines.emplace_back();
-            if (!this->process_line(gcode_begin, gcode_end, m_gcode_lines.back())) {
-                // The line has to be forgotten. It contains comment marks, which shall be filtered out of the target g-code.
-                m_gcode_lines.pop_back();
+            if (m_overhang_metadata_enabled && is_overhang_metadata(gcode_begin, gcode_end)) {
+                // Orca: Overhang metadata rides with the line after it. As lines of their own they would shift the
+                // look-back windows below, which count lines, so turning the metadata on would change the ramps.
+                m_overhang_metadata.append(gcode_begin, gcode_end).push_back('\n');
+            } else {
+                m_gcode_lines.emplace_back();
+                if (!this->process_line(gcode_begin, gcode_end, m_gcode_lines.back())) {
+                    // The line has to be forgotten. It contains comment marks, which shall be filtered out of the target g-code.
+                    m_gcode_lines.pop_back();
+                } else
+                    m_gcode_lines.back().overhang_metadata = std::exchange(m_overhang_metadata, {});
             }
             gcode_begin = gcode_end;
             if (*gcode_begin == '\n')
@@ -206,6 +230,9 @@ LayerResult PressureEqualizer::process_layer(LayerResult &&input)
     for (size_t line_idx = 0; line_idx < next_layer_first_idx; ++line_idx)
         output_gcode_line(line_idx);
     m_gcode_lines.erase(m_gcode_lines.begin(), m_gcode_lines.begin() + int(next_layer_first_idx));
+    // Orca: Overhang metadata closing the last layer has no line after it to ride with.
+    if (input.nop_layer_result && !m_overhang_metadata.empty())
+        push_to_output(std::exchange(m_overhang_metadata, {}), false);
 
     if (output_buffer_length > 0)
         prev_layer_result->gcode = std::string(output_buffer.data());
@@ -484,6 +511,8 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
 {
     GCodeLine &line = m_gcode_lines[line_idx];
     if (!line.modified) {
+        if (!line.overhang_metadata.empty())
+            push_to_output(line.overhang_metadata, false);
         push_to_output(line.raw.data(), line.raw_length, true);
         return;
     }
@@ -494,6 +523,13 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
     while (*comment != ';' && *comment != 0) ++comment;
     if (*comment != ';')
         comment = nullptr;
+    // Orca: The preview spreads a line's overhang profile over every piece the line is split into, so the
+    // pieces after the first keep the profile's marker.
+    std::string piece_marker;
+    if (m_overhang_metadata_enabled && comment != nullptr &&
+        GCodeProcessor::has_inline_tag(comment + 1, GCodeProcessor::ETags::Overhang_Line_Apply))
+        piece_marker = " ;" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Line_Apply);
+    const char *piece_comment = piece_marker.empty() ? nullptr : piece_marker.c_str();
 
     // get the gcode line length
     float l = line.dist_xyz();
@@ -606,7 +642,7 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                     }
                     // Interpolate the feed rate at the center of the segment.
                     push_line_to_output(line_idx, pos_start[4] + (target_max_feedrate - pos_start[4]) * (float(i) - 0.5f) / float(nSegments), comment);
-                    comment = nullptr;
+                    comment = piece_comment;
                     memcpy(line.pos_start, line.pos_end, sizeof(float)*5);
                 }
 
@@ -616,7 +652,7 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                     line.pos_end[i] = pos_start[i] + (pos_end_bak[i] - pos_start[i]) * t;
                 }
                 // emit the steady feed rate segment
-                push_line_to_output(line_idx, target_max_feedrate, nullptr);
+                push_line_to_output(line_idx, target_max_feedrate, piece_comment);
                 memcpy(line.pos_start, line.pos_end, sizeof(float) * 5);
 
                 // calculate the start pos of the decl slope
@@ -632,7 +668,7 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                         line.pos_end[j] = pos_start[j] + (pos_end_bak[j] - pos_start[j]) * t;
                     } 
                     // Interpolate the feed rate at the center of the segment.
-                    push_line_to_output(line_idx, pos_start[4] + (pos_end_bak[4] - pos_start[4]) * (float(i) - 0.5f) / float(nSegments), nullptr);
+                    push_line_to_output(line_idx, pos_start[4] + (pos_end_bak[4] - pos_start[4]) * (float(i) - 0.5f) / float(nSegments), piece_comment);
                     memcpy(line.pos_start, line.pos_end, sizeof(float)*5);
                 }
 
@@ -640,7 +676,7 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                 for (int i = 0; i < 4; ++i) {
                     line.pos_end[i] = pos_end_bak[i];
                 }
-                push_line_to_output(line_idx, pos_end_bak[4], nullptr);
+                push_line_to_output(line_idx, pos_end_bak[4], piece_comment);
 
                 return;
             }
@@ -692,7 +728,7 @@ single_slope_fallback:
                     line.pos_provided[i] = true;
                 }
                 push_line_to_output(line_idx, pos_start[4], comment);
-                comment = nullptr;
+                comment = piece_comment;
 
                 float new_pos_start_feedrate = pos_start[4];
 
@@ -712,7 +748,7 @@ single_slope_fallback:
             } 
             // Interpolate the feed rate at the center of the segment.
             push_line_to_output(line_idx, pos_start[4] + (pos_end[4] - pos_start[4]) * (float(i) - 0.5f) / float(nSegments), comment);
-            comment = nullptr;
+            comment = piece_comment;
             memcpy(line.pos_start, line.pos_end, sizeof(float)*5);
         }
 		if (l_steady > 0.f && accelerating) {
@@ -944,6 +980,10 @@ void PressureEqualizer::push_line_to_output(const size_t line_idx, float new_fee
             push_to_output(EXTRUDE_END_TAG.data(), EXTRUDE_END_TAG.length(), true);
     } else
         push_to_output(EXTRUDE_END_TAG.data(), EXTRUDE_END_TAG.length(), true);
+    // Orca: The overhang metadata of a split line goes before its first piece, after the set-speed line was dropped
+    // or closed, as it does when the metadata is off.
+    if (!m_gcode_lines[line_idx].overhang_metadata.empty())
+        push_to_output(std::exchange(m_gcode_lines[line_idx].overhang_metadata, {}), false);
 
     // Supports keep the standard precision, see GCode::extrude_support().
     const bool high_precision = m_high_precision && !is_support(line.extrusion_role);

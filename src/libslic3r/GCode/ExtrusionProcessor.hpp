@@ -18,6 +18,8 @@
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "../Circle.hpp"
+#include "libslic3r/GCode/OverhangMetadata.hpp"
 
 #include <Eigen/Core>
 #include <algorithm>
@@ -451,18 +453,47 @@ struct PrecomputedOverhangLayer
     std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>>     lower_boundaries;
     std::shared_ptr<const AABBTreeLines::LinesDistancer<CurledLine>> lower_curled_lines;
     std::unordered_map<Point3, double, Point3Hash>                   distances;
+    // Orca: The printed footprint of the layer below, for the opt-in infill overhang metadata.
+    std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>>     lower_infill_footprint;
+    // Orca: The outline of the layer itself, for the opt-in wall overhang metadata.
+    std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>>     boundaries;
 };
 
-// `layer` must have a layer below it; leave out `curled_lines` only when no region of `layer` slows down for curled
-// perimeters.
-inline PrecomputedOverhangLayer precompute_overhang_layer(const PrintObject *object, const Layer &layer, bool curled_lines = true)
+// Orca: Overhang metadata measures infill against the material actually printed below it. Slice outlines include the
+// empty space inside sparse infill, so use the widths of the layer's extrusion paths instead.
+inline std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>> infill_support_footprint(const Layer *layer)
 {
+    Polygons covered;
+    const auto add_path = [&covered](const ExtrusionPath &path) {
+        if (!path.is_force_no_extrusion() && path.mm3_per_mm > 0.0 && path.width > EPSILON)
+            path.polygons_covered_by_width(covered, 0.f);
+    };
+    if (layer != nullptr)
+        for (const LayerRegion *region : layer->regions()) {
+            for_each_extrusion_path(region->perimeters, add_path);
+            for_each_extrusion_path(region->fills, add_path);
+        }
+    return std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(to_unscaled_linesf3(union_ex(covered)));
+}
+
+// `layer` must have a layer below it. `speed_data` computes what the speed and fan estimate needs: the distances, and
+// the curled-edge tree unless `curled_lines` says no region of `layer` slows down for curled perimeters. `metadata`
+// computes what overhang metadata needs: the layer's own outline and the printed footprint below it.
+inline PrecomputedOverhangLayer precompute_overhang_layer(const PrintObject *object, const Layer &layer, bool curled_lines = true,
+                                                          bool metadata = false, bool speed_data = true)
+{
+    using Boundaries = AABBTreeLines::LinesDistancer<Linef3>;
     PrecomputedOverhangLayer out{object, &layer,
-                                 std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(to_unscaled_linesf3(layer.lower_layer->lslices)),
-                                 curled_lines ? std::make_shared<const AABBTreeLines::LinesDistancer<CurledLine>>(layer.lower_layer->curled_lines) :
-                                                nullptr,
-                                 {}};
-    const AABBTreeLines::LinesDistancer<Linef3> &lower = *out.lower_boundaries;
+                                 std::make_shared<const Boundaries>(to_unscaled_linesf3(layer.lower_layer->lslices)),
+                                 speed_data && curled_lines ?
+                                     std::make_shared<const AABBTreeLines::LinesDistancer<CurledLine>>(layer.lower_layer->curled_lines) :
+                                     nullptr,
+                                 {},
+                                 metadata ? infill_support_footprint(layer.lower_layer) : nullptr,
+                                 metadata ? std::make_shared<const Boundaries>(to_unscaled_linesf3(layer.lslices)) : nullptr};
+    if (!speed_data)
+        return out;
+    const Boundaries &lower = *out.lower_boundaries;
     auto add_path = [&out, &lower](const ExtrusionPath &path) {
         if (!is_bridge(path.role()) && !is_perimeter(path.role()))
             return;
@@ -492,10 +523,14 @@ class ExtrusionQualityEstimator
     using Boundaries   = AABBTreeLines::LinesDistancer<Linef3>;
     using CurledLines  = AABBTreeLines::LinesDistancer<CurledLine>;
     std::unordered_map<const PrintObject*, std::shared_ptr<const Boundaries>>  prev_layer_boundaries;
+    std::unordered_map<const PrintObject*, std::shared_ptr<const Boundaries>>  next_layer_boundaries;
     std::unordered_map<const PrintObject*, std::shared_ptr<const CurledLines>> prev_curled_extrusions;
-    // The layers the trees above are built from.
+    // The layers the trees above are built from, and the layers prepared last.
     std::unordered_map<const PrintObject*, const Layer*>                      prev_layer_sources;
+    std::unordered_map<const PrintObject*, const Layer*>                      last_prepared_layers;
     std::vector<PrecomputedOverhangLayer>                                     precomputed_layers;
+    // Orca: Infill support footprints by the layer they describe, built at most once per printed layer.
+    std::unordered_map<const Layer*, std::shared_ptr<const Boundaries>>        infill_footprints;
     const PrintObject                                                        *current_object;
 
     const PrecomputedOverhangLayer *precomputed_for(const PrintObject *object) const
@@ -511,6 +546,246 @@ class ExtrusionQualityEstimator
         return tree ? *tree : empty;
     }
 
+    // The lower layer's outline, built on first use when prepare_for_lower_layer() was not handed one: a layer with
+    // nothing to measure never needs it. prepare_for_new_layer() always builds it.
+    const Boundaries &lower_outline()
+    {
+        auto &tree = prev_layer_boundaries[current_object];
+        const Layer *lower = prev_layer_sources[current_object];
+        if (!tree && lower != nullptr)
+            tree = std::make_shared<const Boundaries>(to_unscaled_linesf3(lower->lslices));
+        return or_empty(tree);
+    }
+
+    // Build the current contour only when opt-in preview metadata needs it.
+    const Boundaries &current_boundaries()
+    {
+        auto &tree = next_layer_boundaries[current_object];
+        const Layer *layer = last_prepared_layers[current_object];
+        if (!tree && layer != nullptr)
+            tree = std::make_shared<const Boundaries>(to_unscaled_linesf3(layer->lslices));
+        return or_empty(tree);
+    }
+
+    struct BoundaryProjection
+    {
+        double signed_distance;
+        size_t line_id;
+        Vec3d position;
+    };
+
+    // Orca: Resolve corner ties in favor of a contour segment parallel to the extrusion. Pure nearest
+    // distance may associate a horizontal move with an adjacent vertical edge and report that edge's
+    // layer-to-layer displacement instead of the displacement of the wall being printed.
+    BoundaryProjection boundary_projection_at(const AABBTreeLines::LinesDistancer<Linef3> &boundaries,
+                                               const Vec3d &position, float width,
+                                               const Vec2d &path_direction)
+    {
+        auto [signed_distance, line_id, boundary_position] =
+            boundaries.distance_from_lines_extra<true>(position);
+        constexpr size_t no_line = size_t(-1);
+        const double direction_length = path_direction.norm();
+        if (line_id == no_line || direction_length <= EPSILON)
+            return {signed_distance, line_id, boundary_position};
+
+        const Vec2d unit_direction = path_direction / direction_length;
+        double best_score = std::numeric_limits<double>::infinity();
+        const int side = boundaries.outside(position);
+        for (const size_t candidate_id : boundaries.all_lines_in_radius(position, 1.1 * width)) {
+            const Linef3 &line = boundaries.get_line(candidate_id);
+            const Vec2d line_direction = (line.b - line.a).head<2>();
+            const double line_length = line_direction.norm();
+            if (line_length <= EPSILON)
+                continue;
+            const double alignment = std::abs(unit_direction.dot(line_direction / line_length));
+            Vec3d candidate_position;
+            const double candidate_distance =
+                std::sqrt(line_alg::distance_to_squared(line, position, &candidate_position));
+            const double score = candidate_distance + width * (1.0 - alignment);
+            if (score < best_score) {
+                best_score = score;
+                signed_distance = candidate_distance * side;
+                line_id = candidate_id;
+                boundary_position = candidate_position;
+            }
+        }
+        return {signed_distance, line_id, boundary_position};
+    }
+
+    // Orca: Whether the layer below has an edge under the wall whose contour point is `position` on current line
+    // `line_id`: the wall's inward normal must meet the lower contour before leaving the current layer's material,
+    // within the metadata cap. Contours run counterclockwise and holes clockwise, so the material is on the left.
+    bool has_own_lower_edge(size_t line_id, const Vec3d &position, float width)
+    {
+        const Vec3d direction = current_boundaries().get_line(line_id).unit_vector();
+        const Vec3d inward(-direction.y(), direction.x(), 0.);
+        const Linef3 reach(position + inward * (1e-3 * width),
+                           position + inward * (0.01 * MAX_OVERHANG_PERCENTAGE * width));
+        const auto lower = lower_outline().intersections_with_line<true>(reach);
+        if (lower.empty())
+            return false;
+        const auto current = current_boundaries().intersections_with_line<true>(reach);
+        return current.empty() || (current.front().first - reach.a).squaredNorm() >= (lower.front().first - reach.a).squaredNorm();
+    }
+
+    // Orca: The share of the bead's cross-section at `position` that has no material below it: of the segment one
+    // width long across `path_direction`, the part outside the lower outline. Only the outline's lines within half a
+    // width can cross the segment, and the pieces between the crossings alternate sides. One point-in-outline test
+    // tells the side of the longest piece at its middle, away from the crossings and from the ends, which often lie on
+    // the edges of a lower bead. A line that runs along the segment, up to rounding, crosses it anywhere along it as
+    // rounding says, and a corner or an edge along the segment can lie under that middle: the whole segment is then
+    // measured again a hair behind along the path, its crossings and its side both. Both lines of a corner on the
+    // segment take the same side of it, so the corner moves their crossings only within rounding and matters only under
+    // that middle, more than a hair from the segment's ends; past them it crosses nothing on it. An edge along the
+    // segment's line that reaches no more than a hair onto the segment cuts off no more than that hair either. So a
+    // corner the segment passes through is one crossing, a corner that only touches it two or none, and an edge along
+    // more than a hair of it lies ahead of it.
+    float unsupported_cross_section_percentage(const Vec3d &position, float width, const Vec2d &path_direction)
+    {
+        const Boundaries &lower = lower_outline();
+        const Vec2d along = path_direction.normalized();
+        const Vec2d across(-along.y(), along.x());
+        // Also holds the lines that cross the segment moved a hair behind.
+        const std::vector<size_t> near_lines = lower.all_lines_in_radius(position, 0.5 * width + EPSILON);
+        // A line running along the segment, or ending on it while the middle lies on the outline, up to rounding, sends
+        // the whole segment a hair behind. The sides are distances from the segment's line.
+        constexpr double on_outline = 1e-9;
+        // Off the outline's nanometre grid, so that the segment moved off an edge along it lands on no other.
+        constexpr double hair = 1e-7;
+        // A line along the segment can cross it only where they overlap, so an overlap within a hair of either end cuts
+        // off no more than a hair, and the segment keeps its reading. The band also covers the rounding of the float
+        // width, which moves the segment's ends picometres off a lower edge that ends where they should.
+        const double end_band = hair / width;
+        // The segment's ends and the parameters of its crossings, from 0 to 1.
+        std::vector<double> cuts;
+        size_t longest = 0;
+        Vec3d middle;
+        for (double behind = 0.;; behind = hair) {
+            const Vec2d start = position.head<2>() - across * (0.5 * width) - along * behind;
+            cuts.assign(1, 0.);
+            bool along_segment   = false;
+            bool ends_on_segment = false;
+            for (const size_t line_id : near_lines) {
+                const Linef3 &line = lower.get_line(line_id);
+                const double side_a = cross2(across, Vec2d(line.a.head<2>() - start));
+                const double side_b = cross2(across, Vec2d(line.b.head<2>() - start));
+                const bool a_on_line = std::abs(side_a) < on_outline;
+                const bool b_on_line = std::abs(side_b) < on_outline;
+                if (a_on_line || b_on_line) {
+                    // Where the ends on the line lie along the segment, from 0 to 1: one end counts where it lies on
+                    // the segment, a line along the segment where it overlaps it, in both cases beyond the band at the
+                    // segment's ends.
+                    const double t_a        = (line.a.head<2>() - start).dot(across) / width;
+                    const double t_b        = (line.b.head<2>() - start).dot(across) / width;
+                    const double first      = a_on_line ? t_a : t_b;
+                    const double last       = b_on_line ? t_b : t_a;
+                    const bool   on_segment = std::max(first, last) > end_band && std::min(first, last) < 1. - end_band;
+                    if (a_on_line && b_on_line)
+                        along_segment |= on_segment;
+                    else
+                        ends_on_segment |= on_segment;
+                }
+                if ((side_a > 0.) == (side_b > 0.))
+                    continue;
+                const Vec2d crossing = line.a.head<2>() + (line.b - line.a).head<2>() * (side_a / (side_a - side_b));
+                const double t = (crossing - start).dot(across) / width;
+                if (t > 0. && t < 1.)
+                    cuts.push_back(t);
+            }
+            cuts.push_back(1.);
+            std::sort(cuts.begin(), cuts.end());
+            longest = 0;
+            for (size_t i = 1; i + 1 < cuts.size(); ++i)
+                if (cuts[i + 1] - cuts[i] > cuts[longest + 1] - cuts[longest])
+                    longest = i;
+            const Vec2d point = start + across * (0.5 * (cuts[longest] + cuts[longest + 1]) * width);
+            middle = Vec3d(point.x(), point.y(), 0.);
+            // The crossings and the middle lie on the line measured, so its sides agree. Only a line along the segment
+            // can leave a crossing to rounding, and only it or an end on the segment can put the middle on the outline.
+            // A hair behind, the segment is taken as it is: off the nanometre grid, an end lies on it only by chance,
+            // as on any section off the axes.
+            const auto middle_on_outline = [&]() {
+                return std::any_of(near_lines.begin(), near_lines.end(), [&](size_t id) {
+                    return line_alg::distance_to_squared(lower.get_line(id), middle) < on_outline * on_outline;
+                });
+            };
+            if (behind > 0. || !(along_segment || (ends_on_segment && middle_on_outline())))
+                break;
+        }
+        const bool longest_unsupported = lower.outside(middle) > 0;
+        double unsupported_share = 0.;
+        for (size_t i = 0; i + 1 < cuts.size(); ++i)
+            if (((i + longest) % 2 == 0) == longest_unsupported)
+                unsupported_share += cuts[i + 1] - cuts[i];
+        return float(100. * unsupported_share);
+    }
+
+    // Orca: Measure displacement from the current contour instead of assuming every path center is
+    // exactly half a width inside it. Arachne width and placement changes otherwise make identical
+    // consecutive contours look unsupported; fitted arcs need the same correction for their curves.
+    // A wall reports how far its bead's outer edge reaches past the lower contour, up to the metadata cap: for the
+    // external wall that is the contour offset, which the angle preview converts. Bridges and infill are measured up
+    // to a full bead, which already means bridging.
+    float overhang_percentage_at(Vec3d position, float width, const Vec2d &path_direction,
+                                 bool associate_current_contour)
+    {
+        constexpr double max_widths = 0.01 * MAX_OVERHANG_PERCENTAGE;
+        // Slice boundaries lie in XY. Z-contoured paths carry an extrusion-height offset which
+        // must not become part of the horizontal unsupported-width measurement.
+        position.z() = 0.0;
+        // Orca: Bridges may run through a current-layer solid region whose outer contour says nothing
+        // about support below the bridge. They and infill read the unsupported part of their own cross-section, which
+        // the material below can leave on both sides.
+        if (!associate_current_contour && path_direction.squaredNorm() > 0.)
+            return unsupported_cross_section_percentage(position, width, path_direction);
+        const auto [previous_distance, previous_line_id, previous_position] =
+            lower_outline().distance_from_lines_extra<true>(position);
+        // A move with no direction has no cross-section: the nearest lower edge alone gives its unsupported part.
+        if (!associate_current_contour)
+            return float(100.0 * std::clamp((previous_distance + 0.5 * width) / width, 0.0, 1.0));
+        const BoundaryProjection current = boundary_projection_at(
+            current_boundaries(), position, width, path_direction);
+        constexpr size_t no_line = size_t(-1);
+        // Orca: An opposite-facing lower boundary belongs to the other side of a thin wall or a
+        // nearby hole, not the current wall's support contour. Its unsupported area must survive
+        // even if the current outer boundary itself is unchanged between layers.
+        if (current.line_id != no_line && previous_line_id != no_line) {
+            const Linef3 &current_line = current_boundaries().get_line(current.line_id);
+            const Linef3 &previous_line = lower_outline().get_line(previous_line_id);
+            if ((current_line.b - current_line.a).dot(previous_line.b - previous_line.a) < 0.0) {
+                // Orca: Retain placement correction against the nearest current boundary so an
+                // identical thin contour still reads zero, but do not cap by outer-wall displacement.
+                const double current_distance = current_boundaries().distance_from_lines<true>(position);
+                const double inset_error = std::isfinite(current_distance) ?
+                    std::max(0.0, current_distance + 0.5 * width) : 0.0;
+                // From a full bead on, the distance to the far side of a hole or thin wall is no slope of this wall.
+                const double widths = (previous_distance + 0.5 * width - inset_error) / width;
+                return widths >= 1.0 ? MAX_OVERHANG_PERCENTAGE : float(100.0 * std::max(0.0, widths));
+            }
+        }
+        // Orca: Correct only a path center closer than half a width to its own contour. Deeper inner
+        // walls need no correction, and a missing current contour retains the conservative estimate.
+        const double current_inset_error = std::isfinite(current.signed_distance) ?
+            std::max(0.0, current.signed_distance + 0.5 * width) : 0.0;
+        double unsupported_width = previous_distance + 0.5 * width - current_inset_error;
+        // Orca: Near an outer contour, cap the unsupported width by the displacement of the associated
+        // current boundary point. This rejects a perpendicular neighboring edge as the lower layer's
+        // nearest support at a corner. Deeper paths, including bridge interiors, keep the area-based
+        // distance because their support cannot be inferred from the outer contour displacement.
+        if (current.line_id != no_line && std::isfinite(current.signed_distance) &&
+            current.signed_distance >= -0.55 * width) {
+            const BoundaryProjection previous = boundary_projection_at(
+                lower_outline(), current.position, width, path_direction);
+            if (std::isfinite(previous.signed_distance))
+                unsupported_width = std::min(unsupported_width, std::max(0.0, previous.signed_distance));
+            // Orca: A fully unsupported wall slopes only from a lower edge of its own. Without one, as at the side of
+            // a shelf or on an island across a gap from the body, it reads horizontal.
+            if (unsupported_width >= width && !has_own_lower_edge(current.line_id, current.position, width))
+                return MAX_OVERHANG_PERCENTAGE;
+        }
+        return float(100.0 * std::clamp(unsupported_width / width, 0.0, max_widths));
+    }
+
 public:
     void set_current_object(const PrintObject *object) { current_object = object; }
 
@@ -524,6 +799,8 @@ public:
         if (layer == nullptr) return;
         const PrintObject *object = obj;
         const Layer *prev = layer->lower_layer;
+        last_prepared_layers[object] = layer;
+        next_layer_boundaries[object].reset();
         prev_layer_sources[object] = prev;
         const PrecomputedOverhangLayer *precomputed = precomputed_for(object);
         if (prev == nullptr) {
@@ -536,6 +813,91 @@ public:
             prev_layer_boundaries[object]  = std::make_shared<const Boundaries>(to_unscaled_linesf3(prev->lslices));
             prev_curled_extrusions[object] = std::make_shared<const CurledLines>(prev->curled_lines);
         }
+    }
+
+    // Orca: Overhang metadata measures a wall against the layer directly below it like prepare_for_new_layer(), but for
+    // every layer and without the curled-edge trees. `lower_boundaries` and `boundaries` may hand over the outlines of
+    // that layer and of `layer` computed ahead.
+    void prepare_for_lower_layer(const PrintObject *object, const Layer *layer,
+                                 std::shared_ptr<const Boundaries> lower_boundaries = nullptr,
+                                 std::shared_ptr<const Boundaries> boundaries = nullptr)
+    {
+        if (layer == nullptr) return;
+        last_prepared_layers[object] = layer;
+        next_layer_boundaries[object] = std::move(boundaries);
+        prev_layer_sources[object] = layer->lower_layer;
+        prev_layer_boundaries[object] = layer->lower_layer == nullptr ? nullptr : std::move(lower_boundaries);
+    }
+
+    // The data the generator computed ahead for `layer` of `object`, if any.
+    const PrecomputedOverhangLayer *precomputed_layer(const PrintObject *object, const Layer *layer) const
+    {
+        const PrecomputedOverhangLayer *precomputed = precomputed_for(object);
+        return precomputed != nullptr && precomputed->layer == layer ? precomputed : nullptr;
+    }
+
+    // Preview-only material reference, kept apart from the speed/fan contour trees: measures the infill of `object`
+    // against the printed footprint of `support_layer`. Each footprint is built once until forget_infill_footprints().
+    void prepare_for_infill_layer(const PrintObject *object, const Layer *support_layer,
+                                  std::shared_ptr<const Boundaries> footprint = nullptr)
+    {
+        std::shared_ptr<const Boundaries> &cached = infill_footprints[support_layer];
+        if (footprint)
+            cached = std::move(footprint);
+        else if (!cached)
+            cached = infill_support_footprint(support_layer);
+        prev_layer_boundaries[object] = cached;
+        // A footprint, not a layer's outline. The tree is always set here; without a source, lower_outline() could
+        // never replace it by the layer's outline if it were reset.
+        prev_layer_sources[object] = nullptr;
+    }
+
+    // Measures the current object's infill against `support_layer`, as prepare_for_infill_layer() does.
+    void select_infill_support(const Layer *support_layer) { prepare_for_infill_layer(current_object, support_layer); }
+
+    // Drops the footprints of the previous printed layer.
+    void forget_infill_footprints() { infill_footprints.clear(); }
+
+    // Sample equal-length cells independently instead of attributing their maximum to the whole G1.
+    // These percentages describe preview spans; the original extrusion remains one printer move.
+    std::vector<float> estimate_overhang_line_percentages(const Vec3d &start, const Vec3d &end, float width,
+                                                          size_t intervals, bool associate_current_contour = false)
+    {
+        if (width <= EPSILON || intervals == 0)
+            return {};
+        std::vector<float> percentages(intervals);
+        const Vec2d direction = (end - start).head<2>();
+        for (size_t i = 0; i < intervals; ++i)
+            percentages[i] = overhang_percentage_at(start + (end - start) * ((double(i) + 0.5) / intervals),
+                width, direction, associate_current_contour);
+        return percentages;
+    }
+
+    // Orca: Sample the fitted circle itself, not its source chords. Samples include both endpoints
+    // and are uniformly spaced in arc progress, so they can be mapped onto any preview tessellation.
+    // The caller bounds the interval count; sampling must never modify the fitted printer move.
+    std::vector<float> estimate_overhang_arc_percentages(const ArcSegment &arc, float width, size_t intervals,
+                                                         bool associate_current_contour = true)
+    {
+        if (!arc.is_valid() || width <= EPSILON || intervals == 0)
+            return {};
+        std::vector<float> percentages(intervals + 1);
+        const Vec2d center = unscaled(arc.center);
+        const double radius = arc.radius * SCALING_FACTOR;
+        // The salvage branch of ArcSegment::try_create_arc flips the direction and corrects the length but keeps
+        // angle_radians of the rejected direction, so take the sweep of the emitted G2/G3 from those two.
+        const double sweep = (arc.direction == ArcDirection::Arc_Dir_CW ? -1.0 : 1.0) * arc.length / arc.radius;
+        // The direction of travel, which an infill sample on an edge of the material below looks behind along.
+        const double turn = sweep < 0. ? -1. : 1.;
+        // Orca: The shared current-contour baseline also cancels the apparent protrusion caused by
+        // replacing the current layer's polygonal chords with the fitted curve.
+        for (size_t i = 0; i <= intervals; ++i) {
+            const double angle = arc.polar_start_theta + sweep * (double(i) / intervals);
+            const Vec3d position(center.x() + radius * std::cos(angle), center.y() + radius * std::sin(angle), 0.0);
+            const Vec2d tangent = turn * Vec2d(-std::sin(angle), std::cos(angle));
+            percentages[i] = overhang_percentage_at(position, width, tangent, associate_current_contour);
+        }
+        return percentages;
     }
 
     std::vector<ProcessedPoint> estimate_extrusion_quality(const ExtrusionPath                &path,
@@ -624,7 +986,7 @@ public:
         if (const PrecomputedOverhangLayer *precomputed = precomputed_for(current_object);
             precomputed != nullptr && precomputed->layer->lower_layer == prev_layer_sources[current_object])
             known = &precomputed->distances;
-        const Boundaries  &prev_boundaries = or_empty(prev_layer_boundaries[current_object]);
+        const Boundaries  &prev_boundaries = lower_outline();
         const CurledLines &prev_curled     = or_empty(prev_curled_extrusions[current_object]);
         auto known_distance = [known](const Point3 &point) -> const double * {
             if (known == nullptr)
