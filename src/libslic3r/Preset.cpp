@@ -23,6 +23,7 @@
 #include <functional>
 #include <optional>
 #include <deque>
+#include <numeric>
 #include <regex>
 #include <initializer_list>
 
@@ -1950,6 +1951,10 @@ PresetCollection::UserPresetLoad PresetCollection::resolve_user_preset(
         else {
             auto inherits_config2 = dynamic_cast<ConfigOptionString *>(inherits_config);
             if ((inherits_config2 && !inherits_config2->value.empty())) {
+                //ORCA: the parent may be a sibling of this pass that has not joined the
+                //      collection yet, so say which failure this is and let load_presets()
+                //      decide whether to retry or to report.
+                out.missing_parent = true;
                 out.errors.push_back((boost::format("can not find parent %1% for config %2%!") % inherits_config2->value % preset.file).str());
                 return out;
             }
@@ -2101,48 +2106,111 @@ void PresetCollection::load_presets(
         }
     }
 
-    resolve_then_commit<CNumericLocalesSetter>(files.size(),
-        [&](size_t i) {
-            return this->resolve_user_preset(files[i].path, files[i].canonical_name, resolved_origin, substitution_rule,
-                                             extruder_id_name, extruder_variant_name, key_set1, key_set2, read_only);
-        },
-        [&](size_t i, UserPresetLoad &&loaded) {
-            // Resolve read the files without the lock, so another instance may have saved
-            // over them since. A file that changed is resolved again under the lock before
-            // commit removes or rewrites it, which also keeps its .json and .info from two
-            // different saves apart. Without the lock nothing is checked, so commit leaves
-            // the files alone.
-            const std::string lock_path = user_presets_lock_path(read_only);
-            InstanceLock      instance_lock(lock_path);
-            if (instance_lock.locked()) {
-                const PresetFilesOnDisk   on_disk = PresetFilesOnDisk::read(files[i].path);
-                boost::system::error_code ec;
-                // The link itself, and a stat error counts as present, so a file that is
-                // there but cannot be read is still counted and removed by commit.
-                if (! on_disk.json && fs::symlink_status(files[i].path, ec).type() == fs::file_not_found)
-                    return; // removed by another instance since it was read
-                if (! (on_disk == loaded.on_disk)) {
-                    CNumericLocalesSetter locales_setter;
-                    loaded = this->resolve_user_preset(files[i].path, files[i].canonical_name, resolved_origin, substitution_rule,
-                                                       extruder_id_name, extruder_variant_name, key_set1, key_set2, read_only);
+    //ORCA: directory_iterator hands these back in whatever order the filesystem keeps them --
+    //      hash order on ext4, XFS and btrfs, not name order. Sorting fixes the order presets
+    //      are committed in, and with it the order of their aliases and log lines, so a
+    //      directory loads the same way on every machine. It is not what makes the retry
+    //      below correct: a pass resolves against m_presets while its own presets wait in
+    //      presets_loaded, so a sibling parent is invisible within a pass whatever the order.
+    std::sort(files.begin(), files.end(),
+              [](const UserPresetFile &l, const UserPresetFile &r) { return l.path < r.path; });
+
+    //ORCA: a preset may inherit another preset from this very directory. A pass resolves
+    //      against m_presets while its own presets wait in presets_loaded, so a child whose
+    //      parent is a sibling could not see it and was dropped with "can not find parent".
+    //      Defer those, publish the pass, and retry, repeating while a pass still resolves
+    //      something, so a chain of any depth loads whatever order the directory lists it in.
+    //      A pass that resolves nothing has only genuinely missing parents left, and the last
+    //      pass reports them exactly as before.
+    std::vector<size_t> pending(files.size());
+    std::iota(pending.begin(), pending.end(), size_t(0));
+    size_t presets_loaded_total = 0;
+    while (! pending.empty()) {
+        std::vector<size_t>         deferred;
+        // A deque: UserPresetLoad is move-only (its substitutions hold unique_ptrs), and a
+        // vector would want to copy them when it grows.
+        std::deque<UserPresetLoad>  deferred_loads;
+        resolve_then_commit<CNumericLocalesSetter>(pending.size(),
+            [&](size_t k) {
+                const size_t i = pending[k];
+                return this->resolve_user_preset(files[i].path, files[i].canonical_name, resolved_origin, substitution_rule,
+                                                 extruder_id_name, extruder_variant_name, key_set1, key_set2, read_only);
+            },
+            [&](size_t k, UserPresetLoad &&loaded) {
+                const size_t i = pending[k];
+                // Resolve read the files without the lock, so another instance may have saved
+                // over them since. A file that changed is resolved again under the lock before
+                // commit removes or rewrites it, which also keeps its .json and .info from two
+                // different saves apart. Without the lock nothing is checked, so commit leaves
+                // the files alone.
+                const std::string lock_path = user_presets_lock_path(read_only);
+                InstanceLock      instance_lock(lock_path);
+                if (instance_lock.locked()) {
+                    const PresetFilesOnDisk   on_disk = PresetFilesOnDisk::read(files[i].path);
+                    boost::system::error_code ec;
+                    // The link itself, and a stat error counts as present, so a file that is
+                    // there but cannot be read is still counted and removed by commit.
+                    if (! on_disk.json && fs::symlink_status(files[i].path, ec).type() == fs::file_not_found)
+                        return; // removed by another instance since it was read
+                    if (! (on_disk == loaded.on_disk)) {
+                        CNumericLocalesSetter locales_setter;
+                        loaded = this->resolve_user_preset(files[i].path, files[i].canonical_name, resolved_origin, substitution_rule,
+                                                           extruder_id_name, extruder_variant_name, key_set1, key_set2, read_only);
+                    }
+                }
+                //ORCA: the parent it named may be a sibling that this pass is about to publish,
+                //      so hand it back for a retry instead of counting it as an error. Keeping
+                //      the load lets a pass that resolves nothing report these without reading
+                //      the same files again; it returned before a config was built, so what it
+                //      holds is the file text it was read from.
+                if (loaded.missing_parent) {
+                    deferred.push_back(i);
+                    deferred_loads.push_back(std::move(loaded));
+                    return;
+                }
+                const bool leave_files = read_only || (! lock_path.empty() && ! instance_lock.locked());
+                // Committing can remove an unreadable preset's file, and a filesystem error
+                // there is reported without stopping the rest of the directory.
+                try {
+                    this->commit_user_preset(std::move(loaded), presets_loaded, substitutions, preset_loaded_fn, leave_files);
+                } catch (const std::runtime_error &err) {
+                    errors_cummulative += err.what();
+                    errors_cummulative += "\n";
+                }
+            });
+
+        // A pass that deferred everything it tried resolved no new parent, so no later pass
+        // could either: what is left are genuinely missing parents. Report them from the loads
+        // this pass already produced, exactly as commit would have.
+        if (deferred.size() == pending.size()) {
+            for (UserPresetLoad &orphan : deferred_loads) {
+                try {
+                    // Its files stay: a missing parent never sets discard_file.
+                    this->commit_user_preset(std::move(orphan), presets_loaded, substitutions, preset_loaded_fn, true);
+                } catch (const std::runtime_error &err) {
+                    errors_cummulative += err.what();
+                    errors_cummulative += "\n";
                 }
             }
-            const bool leave_files = read_only || (! lock_path.empty() && ! instance_lock.locked());
-            // Committing can remove an unreadable preset's file, and a filesystem error
-            // there is reported without stopping the rest of the directory.
-            try {
-                this->commit_user_preset(std::move(loaded), presets_loaded, substitutions, preset_loaded_fn, leave_files);
-            } catch (const std::runtime_error &err) {
-                errors_cummulative += err.what();
-                errors_cummulative += "\n";
-            }
-        });
+            break;
+        }
+        pending = std::move(deferred);
+        // Publish what this pass loaded, so the retry can inherit from it. find_preset()
+        // binary searches m_presets, so it has to be sorted before the next pass reads it.
+        if (! pending.empty() && ! presets_loaded.empty()) {
+            presets_loaded_total += presets_loaded.size();
+            m_presets.insert(m_presets.end(), std::make_move_iterator(presets_loaded.begin()), std::make_move_iterator(presets_loaded.end()));
+            presets_loaded.clear();
+            sort_presets();
+        }
+    }
 
+    presets_loaded_total += presets_loaded.size();
     if (presets_loaded.size() > 0)
         m_presets.insert(m_presets.end(), std::make_move_iterator(presets_loaded.begin()), std::make_move_iterator(presets_loaded.end()));
     sort_presets();
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": loaded %1% presets from %2%, type %3%")%presets_loaded.size() %dir %Preset::get_type_string(m_type);
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": loaded %1% presets from %2%, type %3%")%presets_loaded_total %dir %Preset::get_type_string(m_type);
     //this->select_preset(first_visible_idx());
     if (! errors_cummulative.empty())
         throw Slic3r::RuntimeError(errors_cummulative);
