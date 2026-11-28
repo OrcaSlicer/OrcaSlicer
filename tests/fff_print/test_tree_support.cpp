@@ -24,6 +24,7 @@
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/Support/TreeSupport.hpp"
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
@@ -62,6 +63,27 @@ TriangleMesh slab_with_two_wings_mesh()
     mesh.merge(slab);
     mesh.merge(front);
     mesh.merge(back);
+    return mesh;
+}
+
+// Four 60 mm slabs in a 2x2 grid, each on a thin column and at its own height. With a 1 mm branch
+// distance each slab seeds a few hundred contact nodes, past the 200 per layer that switches the
+// branches to squares turned to the nodes' fitted angle, and on four layers the contact search
+// spreads over several threads.
+TriangleMesh staggered_slabs_mesh()
+{
+    TriangleMesh mesh;
+    for (int i = 0; i < 4; ++i) {
+        const float  x      = 65.f * float(i % 2);
+        const float  y      = 65.f * float(i / 2);
+        const float  height = 4.f + 3.f * float(i);
+        TriangleMesh column = make_cube(4, 4, height + 0.1);
+        TriangleMesh slab   = make_cube(60, 60, 2);
+        column.translate(x + 28.f, y + 28.f, 0.f);
+        slab.translate(x, y, height);
+        mesh.merge(column);
+        mesh.merge(slab);
+    }
     return mesh;
 }
 
@@ -211,6 +233,25 @@ TEST_CASE("Tree support toolpaths do not depend on thread scheduling", "[TreeSup
     // nodes, so it is the only style that exercises the overhang merge.
     SECTION("resting on the model") { sliced_twice_matches(two_tier_mesh(), 0); }
     SECTION("hybrid on the model")  { sliced_twice_matches(two_tier_mesh(), 0, "tree_hybrid"); }
+}
+
+// Past 200 contact nodes per layer the branches are squares turned to an angle fitted through every
+// node. The contact search runs in parallel, so the nodes have to be counted and summed in layer
+// order for the same model to give the same angle each time.
+TEST_CASE("Tree support fits the same branch angle on every run", "[TreeSupport][Regression]")
+{
+    Slic3r::Print print;
+    slice_with_tree_support(staggered_slabs_mesh(), print, "tree_slim", 30, 0, 0, { { "tree_support_branch_distance", 1.0 } });
+    PrintObject &object = *print.get_object(0);
+    std::vector<float> angles;
+    for (int run = 0; run < 5; ++run) {
+        TreeSupport tree_support(object, object.slicing_parameters());
+        tree_support.generate();
+        REQUIRE(tree_support.avg_node_per_layer > 200);
+        angles.push_back(tree_support.nodes_angle);
+    }
+    for (const float angle : angles)
+        CHECK(angle == angles.front()); // exactly
 }
 
 // Prim breaks equal-distance ties by heap address. A 1 mm branch diameter puts neighbours close
