@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Tough+ @System",
+	"inherits": "NOVTAU PLA Tough+ @base",
+	"from": "system",
+	"setting_id": "zEIdrZmUgdvRMBzN",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Tough+ @System"
+	],
+	"compatible_printers": []
+}

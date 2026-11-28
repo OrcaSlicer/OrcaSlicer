@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Silk+ @System",
+	"inherits": "NOVTAU PLA Silk+ @base",
+	"from": "system",
+	"setting_id": "5M1ljcZEGdZ5ZQo0",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Silk+ @System"
+	],
+	"compatible_printers": []
+}

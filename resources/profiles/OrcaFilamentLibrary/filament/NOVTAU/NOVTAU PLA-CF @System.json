@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA-CF @System",
+	"inherits": "NOVTAU PLA-CF @base",
+	"from": "system",
+	"setting_id": "gf9VBc8wqZ7mperw",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA-CF @System"
+	],
+	"compatible_printers": []
+}

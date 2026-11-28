@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PETG Translucent @System",
+	"inherits": "NOVTAU PETG Translucent @base",
+	"from": "system",
+	"setting_id": "09NUKrytJQ8U40Ll",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PETG Translucent @System"
+	],
+	"compatible_printers": []
+}

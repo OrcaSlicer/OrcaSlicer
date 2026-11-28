@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU ABS-GF @System",
+	"inherits": "NOVTAU ABS-GF @base",
+	"from": "system",
+	"setting_id": "AopGx1sRvsHPdlzj",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU ABS-GF @System"
+	],
+	"compatible_printers": []
+}
