@@ -200,7 +200,10 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow* parent,
 
 void MixedFilamentDialog::on_dpi_changed(const wxRect&)
 {
-    resize_keeping_centre();
+    // The icon buttons hold bitmaps rasterized for the old scale; re-rasterize them before fitting.
+    if (m_btn_add_material)    m_btn_add_material->msw_rescale();
+    if (m_btn_remove_material) m_btn_remove_material->msw_rescale();
+    fit_within_display();
     Refresh();
 }
 
@@ -276,7 +279,7 @@ void MixedFilamentDialog::apply_uniform_label_width(wxStaticText* lbl)
     const wxString text = lbl->GetLabel();
     int w = 0;
     for (int i = 1; i <= MAX_COMPONENTS; ++i) {
-        lbl->SetLabel(wxString::Format(_L("%d"), i));
+        lbl->SetLabel(std::to_string(i));
         lbl->InvalidateBestSize();
         w = std::max(w, lbl->GetBestSize().x);
     }
@@ -288,8 +291,7 @@ void MixedFilamentDialog::apply_uniform_label_width(wxStaticText* lbl)
 void MixedFilamentDialog::append_material_row()
 {
     auto* row = new wxBoxSizer(wxHORIZONTAL);
-    auto* lbl = new wxStaticText(this, wxID_ANY,
-                                 wxString::Format(_L("%d"), (int)(m_combo_filaments.size() + 1)));
+    auto* lbl = new wxStaticText(this, wxID_ANY, std::to_string(m_combo_filaments.size() + 1));
     lbl->SetFont(::Label::Body_14);
     lbl->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
     apply_uniform_label_width(lbl);
@@ -817,11 +819,15 @@ wxBoxSizer* MixedFilamentDialog::create_material_selection()
 
     title_sizer->Add(sel_label, 1, wxALIGN_CENTER_VERTICAL, FromDIP(8));
 
+    // Icon-only buttons: the greyed icon marks the disabled state and the tooltip, which
+    // update_component_count_ui() keeps set in both states, says what the button does or why it can't.
     m_btn_remove_material = new ScalableButton(this, wxID_ANY, "delete_filament");
+    m_btn_remove_material->SetToolTip(_L("Remove the third material"));
     m_btn_remove_material->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_remove_material(); });
     title_sizer->Add(m_btn_remove_material, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
 
     m_btn_add_material = new ScalableButton(this, wxID_ANY, "add_filament");
+    m_btn_add_material->SetToolTip(_L("Add material"));
     m_btn_add_material->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_add_material(); });
     title_sizer->Add(m_btn_add_material, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
 
@@ -1374,7 +1380,7 @@ void MixedFilamentDialog::on_gradient_toggled()
     // Toggling the curve editor changes the right column height (and width when
     // turning gradient on), so the dialog must follow or the recommendation list
     // gets squeezed off-screen. Same trick as 2-color -> 3-color switching.
-    resize_keeping_centre();
+    fit_within_display();
 
     Layout();
     Refresh();
@@ -1746,25 +1752,6 @@ void MixedFilamentDialog::update_gradient_direction_items()
         m_combo_gradient_dir->SetSelection(0);
 }
 
-wxSize MixedFilamentDialog::compute_dialog_size() const
-{
-    const bool is_three      = (num_components() >= 3);
-    const bool curve_visible = !is_three && m_result.gradient_enabled;
-
-    int w = FromDIP(439);
-    int h = FromDIP(580);
-    if (is_three) {
-        h = FromDIP(680);
-    } else if (curve_visible) {
-        // Wider so the gradient editor can show "Material Ratio" intact;
-        // +40 over the 3-color height to fit the curve editor while keeping the
-        // recommendation list visible (it can still scroll if needed).
-        w = FromDIP(470);
-        h = FromDIP(720);
-    }
-    return wxSize(w, h);
-}
-
 void MixedFilamentDialog::update_component_count_ui()
 {
     bool is_two   = (num_components() == 2);
@@ -1796,39 +1783,44 @@ void MixedFilamentDialog::update_component_count_ui()
     if (m_btn_add_material) {
         bool can_add = (num_components() < (size_t)MAX_COMPONENTS && m_physical_colors.size() > num_components());
         m_btn_add_material->Enable(can_add);
-        m_btn_add_material->SetToolTip(can_add ? wxString()
+        m_btn_add_material->SetToolTip(can_add ? _L("Add material")
             : (is_three ? _L("Maximum 3 materials for mixing") : _L("Maximum number of components reached")));
     }
 
     if (m_btn_remove_material) {
-        //m_btn_remove_material->Show(is_three);
+        // Always shown, disabled until there is a third material to remove.
         m_btn_remove_material->Enable(is_three);
-        m_btn_remove_material->SetToolTip(is_three ? _L("Remove the third material") : wxString());
+        m_btn_remove_material->SetToolTip(_L("Remove the third material"));
     }
 
-    resize_keeping_centre();
+    fit_within_display();
     Layout();
 }
 
-void MixedFilamentDialog::resize_keeping_centre()
+void MixedFilamentDialog::fit_within_display()
 {
+    // Fit to the content without moving the top-left corner, so the controls the person is using
+    // stay under the mouse when a section appears or goes (gradient curve, third material).
     Fit();
-    return; // ORCA no need to resize/reposition dialog since its already small enough. so controls keeps their position
 
     // Until it is shown the dialog has no display of its own (on Wayland none at all), so use
     // the parent's, which is also where CentreOnParent() places it.
-    const wxRect area     = wxDisplay(IsShown() ? static_cast<wxWindow*>(this) : GetParent()).GetClientArea();
-    wxSize       new_size = compute_dialog_size();
-    new_size.DecTo(area.GetSize()); // never larger than the display
-    if (GetSize() == new_size)
-        return;
-    // Grow or shrink around the current centre, but keep the whole dialog inside its display
-    // so the buttons don't end up under the taskbar.
-    const wxPoint centre = GetPosition() + GetSize() / 2;
-    const int     x      = std::max(area.x, std::min(centre.x - new_size.x / 2, area.GetRight() + 1 - new_size.x));
-    const int     y      = std::max(area.y, std::min(centre.y - new_size.y / 2, area.GetBottom() + 1 - new_size.y));
-    SetSize(x, y, new_size.x, new_size.y, wxSIZE_ALLOW_MINUS_ONE);
+    const wxRect area = wxDisplay(IsShown() ? static_cast<wxWindow*>(this) : GetParent()).GetClientArea();
+    wxSize       size = GetSize();
+    size.DecTo(area.GetSize()); // never larger than the display
+
+    // Before it is shown the position is not final (build_ui() centres it afterwards), so only the
+    // size is clamped. Once shown, keep the whole dialog inside its display so the buttons don't
+    // end up under the taskbar or below the bottom of the screen.
+    wxPoint pos = GetPosition();
+    if (IsShown()) {
+        pos.x = std::max(area.x, std::min(pos.x, area.GetRight() + 1 - size.x));
+        pos.y = std::max(area.y, std::min(pos.y, area.GetBottom() + 1 - size.y));
+    }
+    if (size != GetSize() || pos != GetPosition())
+        SetSize(pos.x, pos.y, size.x, size.y, wxSIZE_ALLOW_MINUS_ONE);
 }
+
 
 } // namespace GUI
 } // namespace Slic3r

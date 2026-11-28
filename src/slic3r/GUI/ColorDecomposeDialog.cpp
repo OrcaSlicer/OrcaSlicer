@@ -368,7 +368,7 @@ wxFlexGridSizer* ColorDecomposeDialog::create_target_color_section()
     auto* label = new wxStaticText(this, wxID_ANY, _L("Target Color"));
     label->SetFont(Label::Body_14);
     label->SetForegroundColour(StateColor::darkModeColorFor(COLOR_TEXT_DARK));
-    sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(19));
+    sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL);
 
     m_target_swatch = create_color_swatch(this, m_target_color, FromDIP(28));
     sizer->Add(m_target_swatch, 0, wxALIGN_CENTER_VERTICAL);
@@ -379,10 +379,10 @@ wxFlexGridSizer* ColorDecomposeDialog::create_target_color_section()
     m_target_rgb_text->SetForegroundColour(StateColor::darkModeColorFor(COLOR_TEXT_DARK));
     sizer->Add(m_target_rgb_text, 0, wxALIGN_CENTER_VERTICAL);
 
-    auto* m_label = new wxStaticText(this, wxID_ANY, _L("Matching Color"));
-    m_label->SetFont(Label::Body_14);
-    m_label->SetForegroundColour(StateColor::darkModeColorFor(COLOR_TEXT_DARK));
-    sizer->Add(m_label, 0, wxALIGN_CENTER_VERTICAL);
+    auto* matched_label = new wxStaticText(this, wxID_ANY, _L("Matching Color"));
+    matched_label->SetFont(Label::Body_14);
+    matched_label->SetForegroundColour(StateColor::darkModeColorFor(COLOR_TEXT_DARK));
+    sizer->Add(matched_label, 0, wxALIGN_CENTER_VERTICAL);
 
     m_matched_swatch = create_color_swatch(this, m_target_color, FromDIP(28));
     sizer->Add(m_matched_swatch, 0, wxALIGN_CENTER_VERTICAL);

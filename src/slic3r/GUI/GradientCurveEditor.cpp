@@ -301,8 +301,7 @@ int GradientCurveEditor::hit_test_curve(int px, int py, int* seg_out) const
 void GradientCurveEditor::on_paint(wxPaintEvent& /*evt*/)
 {
     // Resolve theme colors every paint so dark-mode toggles (no re-construction) take
-    // effect without an explicit listener. Window bg is read from GUI_App, not
-    // GetBackgroundColour(), since the latter is snapshotted at construction time.
+    // effect without an explicit listener.
     const wxColour bg            = GetBackgroundColour();
     const wxColour grid_color    = StateColor::darkModeColorFor(kGridColor);
     const wxColour axis_color    = StateColor::darkModeColorFor(kAxisColor);

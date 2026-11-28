@@ -18,9 +18,9 @@
 
 #include "GUI_Utils.hpp"
 #include "libslic3r/FilamentMixer.hpp"
-#include "wxExtensions.hpp"
 
 class Button;
+class ScalableButton;
 class LabeledCheckBox;
 class ComboBox;
 class wxMouseEvent;
@@ -99,11 +99,9 @@ private:
     void update_ok_button_state();
     void update_gradient_direction_items();
     void update_component_count_ui();
-    // Picks dialog (width, height) based on current state so the gradient curve
-    // editor and the recommendation list stay visible at the same time.
-    wxSize compute_dialog_size() const;
-    // Resizes the dialog to compute_dialog_size() around its centre, clamped to its display.
-    void resize_keeping_centre();
+    // Fits the dialog to its content keeping its top-left corner, so the controls stay where
+    // they are, then clamps its size and position to its display.
+    void fit_within_display();
     void rebuild_all_combos();
     void rebuild_recommendation_items();
     void refresh_curve_editor_colors();
@@ -113,7 +111,7 @@ private:
 
     // Reserves the same width on every material row label so the combo boxes line up.
     static void apply_uniform_label_width(wxStaticText* lbl);
-    // Appends one "Filament N" label + combo row to m_material_rows_sizer.  N follows the
+    // Appends one numbered label + combo row to m_material_rows_sizer.  N follows the
     // number of rows already there, so callers must not renumber anything themselves.
     void append_material_row();
 
