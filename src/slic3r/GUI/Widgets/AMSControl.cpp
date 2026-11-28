@@ -1516,7 +1516,15 @@ void AMSControl::SetAmsStep(std::string ams_id, std::string canid, AMSPassRoadTy
     bool in_same_page = false;
 
     if (amsit != m_ams_item_list.end()) {ams = amsit->second;}
-    else {return;}
+    else {
+        // Printers without a filament switch report "nothing loaded" with no slot to name,
+        // so clear the path still drawn for the last slot
+        if (ams_id.empty() && step == AMSPassRoadSTEP::AMS_ROAD_STEP_NONE && !m_last_ams_id.empty()) {
+            SetAmsStep(m_last_ams_id, m_last_tray_id, type, step);
+            m_last_ams_id.clear();
+        }
+        return;
+    }
     if (ams == nullptr) return;
 
     m_last_ams_id = ams_id;
