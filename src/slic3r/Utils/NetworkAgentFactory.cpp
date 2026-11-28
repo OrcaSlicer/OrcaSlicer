@@ -11,6 +11,7 @@
 #include "slic3r/plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp"
 #include "CrealityPrintAgent.hpp"
 #include <algorithm>
+#include <functional>
 #include <boost/log/trivial.hpp>
 #include <chrono>
 #include <map>
@@ -66,7 +67,7 @@ std::string plugin_printer_agent_full_ref(const PluginDescriptor& descriptor, co
 // Helper to register a printer agent type with the standard factory pattern.
 // AgentTypes that take a log_dir constructor arg use the default; BBLPrinterAgent
 // (no log_dir) is registered separately.
-template<typename T> void register_agent()
+template<typename T> void register_agent(bool scans_on_lan = false)
 {
     auto info = T::get_agent_info_static();
     NetworkAgentFactory::register_printer_agent(info.id, info.name,
@@ -76,16 +77,20 @@ template<typename T> void register_agent()
                                                     if (cloud_agent)
                                                         agent->set_cloud_agent(cloud_agent);
                                                     return agent;
-                                                });
+                                                },
+                                                scans_on_lan);
 }
 
 } // anonymous namespace
 
-bool NetworkAgentFactory::register_printer_agent(const std::string& id, const std::string& display_name, PrinterAgentFactory factory)
+bool NetworkAgentFactory::register_printer_agent(const std::string& id, const std::string& display_name, PrinterAgentFactory factory,
+                                                 bool scans_on_lan)
 {
     std::lock_guard<std::mutex> lock(s_registry_mutex);
     auto& agents = get_printer_agents();
-    return agents.emplace(id, PrinterAgentInfo(id, display_name, std::move(factory))).second;
+    PrinterAgentInfo info(id, display_name, std::move(factory));
+    info.scans_on_lan = scans_on_lan;
+    return agents.emplace(id, std::move(info)).second;
 }
 
 bool NetworkAgentFactory::is_printer_agent_registered(const std::string& id)
@@ -164,6 +169,32 @@ std::shared_ptr<IPrinterAgent> NetworkAgentFactory::create_printer_agent_by_id(c
     return agent;
 }
 
+std::vector<std::shared_ptr<IPrinterAgent>> NetworkAgentFactory::get_discovery_candidates(
+    const std::function<std::shared_ptr<ICloudServiceAgent>(const std::string&)>& cloud_agent_for, const std::string& log_dir)
+{
+    std::vector<std::string> scanning_ids;
+    {
+        std::lock_guard<std::mutex> lock(s_registry_mutex);
+        for (const auto& [id, info] : get_printer_agents()) {
+            if (info.scans_on_lan)
+                scanning_ids.push_back(id);
+        }
+    }
+
+    std::vector<std::shared_ptr<IPrinterAgent>> result;
+    for (const std::string& id : scanning_ids) {
+        if (auto agent = create_printer_agent_by_id(id, cloud_agent_for ? cloud_agent_for(id) : nullptr, log_dir))
+            result.push_back(std::move(agent));
+    }
+
+    std::lock_guard<std::mutex> lock(s_registry_mutex);
+    for (const auto& [id, agent] : get_printer_agent_cache()) {
+        if (agent && std::find(result.begin(), result.end(), agent) == result.end())
+            result.push_back(agent);
+    }
+    return result;
+}
+
 void NetworkAgentFactory::clear_printer_agent_cache()
 {
     // Disconnects and destroys the agents outside the lock, since a destructor waits for its agent's threads
@@ -182,7 +213,7 @@ void NetworkAgentFactory::clear_printer_agent_cache()
 
 void NetworkAgentFactory::register_all_agents()
 {
-    register_agent<OrcaPrinterAgent>();
+    register_agent<OrcaPrinterAgent>(/*scans_on_lan=*/true);
     register_agent<QidiPrinterAgent>();
     register_agent<SnapmakerPrinterAgent>();
     register_agent<CrealityPrintAgent>();  // Must come BEFORE MoonrakerPrinterAgent —
@@ -201,7 +232,8 @@ void NetworkAgentFactory::register_all_agents()
                                    if (cloud_agent)
                                        agent->set_cloud_agent(cloud_agent);
                                    return agent;
-                               });
+                               },
+                               /*scans_on_lan=*/true);
     }
 }
 
@@ -499,6 +531,7 @@ void NetworkAgentFactory::deregister_python_printer_agent(const std::string& plu
     if (!agent_id.empty() && wxTheApp) {
         NetworkAgent* network_agent = GUI::wxGetApp().getAgent();
         if (network_agent) {
+            network_agent->stop_discovery(agent_id);
             const auto active_agent = network_agent->get_printer_agent();
             if (active_agent && active_agent->get_agent_info().id == agent_id)
                 network_agent->set_printer_agent(nullptr);

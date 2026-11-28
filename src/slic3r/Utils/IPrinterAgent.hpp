@@ -307,6 +307,13 @@ public:
      */
     virtual bool start_discovery(bool start, bool sending) = 0;
 
+    /**
+     * Whether start_discovery() scans the LAN for printers, as opposed to reporting a host the
+     * user already configured. Scanning agents are discovered in the background while they are not
+     * the live agent; the others only report while they are live.
+     */
+    virtual bool discovers_on_lan() const { return false; }
+
     // ========================================================================
     // Binding
     // ========================================================================

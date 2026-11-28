@@ -40,6 +40,7 @@
 #include "libslic3r/Preset.hpp"
 #include <cstddef>
 #include <cstring>
+#include <string>
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
@@ -55,11 +56,40 @@
 #include "Notebook.hpp"
 #include "BindDialog.hpp"
 
+#include "DeviceCore/DevAgentOrder.h"
 #include "DeviceCore/DevManager.h"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include <wx/textctrl.h>
 
 namespace Slic3r { namespace GUI {
+
+namespace {
+
+// Printers of the live agent first, then the other agents in registration order; the flag tells
+// whether the current preset can drive the printer.
+std::vector<std::pair<MachineObject*, bool>> order_machines_by_agent(const std::vector<MachineObject*>& machines, const std::string& live_agent_id)
+{
+    std::vector<std::string> agent_ids;
+    agent_ids.reserve(machines.size());
+    for (const MachineObject* mobj : machines)
+        agent_ids.push_back(mobj ? mobj->printer_agent_id : std::string());
+
+    std::vector<std::string> registration_order;
+    for (const auto& info : NetworkAgentFactory::get_registered_printer_agents())
+        registration_order.push_back(info.id);
+
+    std::vector<std::pair<MachineObject*, bool>> ordered;
+    ordered.reserve(machines.size());
+    for (const DevAgentListEntry& entry : order_printers_by_agent(agent_ids, live_agent_id, registration_order))
+        ordered.emplace_back(machines[entry.index], entry.usable);
+    return ordered;
+}
+
+// TRN Tooltip of a printer in the printer picker that belongs to a different printer connection type than the current printer preset.
+wxString other_agent_printer_tooltip() { return _L("Select a preset for this printer to use it."); }
+
+} // namespace
 
 wxDEFINE_EVENT(EVT_UPDATE_WINDOWS_POSITION, wxCommandEvent);
 wxDEFINE_EVENT(EVT_FINISHED_UPDATE_MACHINE_LIST, wxCommandEvent);
@@ -144,6 +174,18 @@ void MachineObjectPanel::show_edit_printer_name(bool show)
     Refresh();
 }
 
+void MachineObjectPanel::set_usable(bool usable)
+{
+    if (m_usable == usable)
+        return;
+    m_usable = usable;
+    if (usable) {
+        m_hover = false;
+        UnsetToolTip();
+    }
+    Refresh();
+}
+
 void MachineObjectPanel::show_printer_bind(bool show, PrinterBindState state)
 {
     m_show_bind   = show;
@@ -192,12 +234,18 @@ void MachineObjectPanel::doRender(wxDC &dc)
     if (m_state == PrinterState::IN_LAN) { dwbitmap = m_printer_in_lan; }
 
     // dc.DrawCircle(left, size.y / 2, 3);
-    dc.DrawBitmap(dwbitmap.bmp(), wxPoint(left, (size.y - dwbitmap.GetBmpSize().y) / 2));
+    const auto draw_icon = [this, &dc](const ScalableBitmap& icon, int x, int y) {
+        if (m_usable)
+            dc.DrawBitmap(icon.bmp(), x, y);
+        else
+            dc.DrawBitmap(icon.bmp().ConvertToDisabled(wxGetApp().dark_mode() ? 80 : 255), x, y);
+    };
+    draw_icon(dwbitmap, left, (size.y - dwbitmap.GetBmpSize().y) / 2);
 
     left += dwbitmap.GetBmpSize().x + 8;
     dc.SetFont(Label::Body_13);
     dc.SetBackgroundMode(wxTRANSPARENT);
-    dc.SetTextForeground(StateColor::darkModeColorFor(SELECT_MACHINE_GREY900));
+    dc.SetTextForeground(StateColor::darkModeColorFor(m_usable ? SELECT_MACHINE_GREY900 : SELECT_MACHINE_GREY600));
     wxString dev_name = "";
     if (m_info) {
         dev_name = from_u8(m_info->get_dev_name());
@@ -231,7 +279,7 @@ void MachineObjectPanel::doRender(wxDC &dc)
     dc.DrawText(finally_name, wxPoint(left, (size.y - sizet.y) / 2));
 
 
-    if (m_hover || m_is_macos_special_version) {
+    if (m_usable && (m_hover || m_is_macos_special_version)) {
 
         if (m_hover && !m_is_macos_special_version) {
             dc.SetPen(SELECT_MACHINE_BRAND);
@@ -263,6 +311,8 @@ void MachineObjectPanel::update_machine_info(MachineObject *info, bool is_my_dev
 
 void MachineObjectPanel::on_mouse_enter(wxMouseEvent &evt)
 {
+    if (!m_usable)
+        return;
     m_hover = true;
     Refresh();
 }
@@ -275,6 +325,8 @@ void MachineObjectPanel::on_mouse_leave(wxMouseEvent &evt)
 
 void MachineObjectPanel::on_mouse_left_up(wxMouseEvent &evt)
 {
+    if (!m_usable)
+        return;
     if (m_is_my_devices) {
         // show edit
         if (m_show_edit) {
@@ -530,21 +582,17 @@ void SelectMachinePopup::update_other_devices()
     DeviceManager* dev = wxGetApp().getDeviceManager();
     if (!dev) return;
     m_free_machine_list = dev->get_local_machinelist();
-    const std::string current_agent_id = dev->get_current_printer_agent_id();
 
     BOOST_LOG_TRIVIAL(trace) << "SelectMachinePopup update_other_devices start";
     this->Freeze();
     m_scrolledWindow->Freeze();
     int i = 0;
 
+    std::vector<MachineObject*> candidates;
     for (auto &elem : m_free_machine_list) {
         MachineObject *     mobj = elem.second;
         /* do not show printer bind state is empty */
         if (!mobj->is_avaliable()) continue;
-
-        /* do not show devices discovered/bound by a different printer agent */
-        if (mobj->printer_agent_id != current_agent_id)
-            continue;
 
         if (!wxGetApp().is_user_login(wxGetApp().get_printer_cloud_provider()) && !mobj->is_lan_mode_printer())
             continue;
@@ -554,6 +602,12 @@ void SelectMachinePopup::update_other_devices()
         if (it != m_bind_machine_list.end())
             continue;
 
+        candidates.push_back(mobj);
+    }
+
+    for (const auto &entry : order_machines_by_agent(candidates, dev->get_current_printer_agent_id())) {
+        MachineObject *mobj   = entry.first;
+        const bool     usable = entry.second;
         MachineObjectPanel* op = nullptr;
         if (i < m_other_list_machine_panel.size()) {
             op = m_other_list_machine_panel[i]->mPanel;
@@ -578,6 +632,7 @@ void SelectMachinePopup::update_other_devices()
         i++;
 
         op->update_machine_info(mobj);
+        op->set_usable(usable);
 
         if (mobj->is_lan_mode_printer()) {
             if (mobj->has_access_right()) {
@@ -595,6 +650,8 @@ void SelectMachinePopup::update_other_devices()
                 op->set_printer_state(IDLE);
             }
         }
+        if (!usable)
+            op->SetToolTip(other_agent_printer_tooltip());
 
         op->Bind(EVT_CONNECT_LAN_PRINT, [mobj](wxCommandEvent &e) {
             if (mobj) {
@@ -668,7 +725,7 @@ void SelectMachinePopup::update_user_devices()
     }
 
     m_bind_machine_list.clear();
-    m_bind_machine_list = dev->get_my_machine_list(dev->get_current_printer_agent_id());
+    m_bind_machine_list = dev->get_my_machine_list("");
 
     //sort list
     std::vector<std::pair<std::string, MachineObject*>> user_machine_list;
@@ -683,13 +740,18 @@ void SelectMachinePopup::update_user_devices()
             return false;
         });
 
+    std::vector<MachineObject*> sorted_machines;
+    for (auto& elem : user_machine_list)
+        sorted_machines.push_back(elem.second);
+
     BOOST_LOG_TRIVIAL(trace) << "SelectMachinePopup update_machine_list start";
     this->Freeze();
     m_scrolledWindow->Freeze();
     int i = 0;
 
-    for (auto& elem : user_machine_list) {
-        MachineObject* mobj = elem.second;
+    for (const auto& entry : order_machines_by_agent(sorted_machines, dev->get_current_printer_agent_id())) {
+        MachineObject* mobj = entry.first;
+        const bool usable = entry.second;
         MachineObjectPanel* op = nullptr;
         if (i < m_user_list_machine_panel.size()) {
             op = m_user_list_machine_panel[i]->mPanel;
@@ -712,9 +774,12 @@ void SelectMachinePopup::update_user_devices()
         }
         i++;
         op->update_machine_info(mobj, true);
+        op->set_usable(usable);
         //set in lan
         if (mobj->is_lan_mode_printer()) {
             if (!mobj->is_online()) {
+                if (!usable)
+                    op->SetToolTip(other_agent_printer_tooltip());
                 continue;
             }
             else {
@@ -776,6 +841,8 @@ void SelectMachinePopup::update_user_devices()
                 }
             }
         }
+        if (!usable)
+            op->SetToolTip(other_agent_printer_tooltip());
 
         op->Bind(EVT_CONNECT_LAN_PRINT, [mobj](wxCommandEvent &e) {
             if (mobj) {
@@ -850,7 +917,14 @@ void SelectMachinePopup::update_machine_list(wxCommandEvent &event)
 
 void SelectMachinePopup::start_ssdp(bool start)
 {
-    if (auto* agent = wxGetApp().getAgent())
+    auto* agent = wxGetApp().getAgent();
+    if (!agent)
+        return;
+    // An open picker asks for devices even when the agent's background scan is disabled.
+    agent->set_live_discovery_requested(start);
+    wxGetApp().refresh_discovery_agents();
+    const auto live = agent->get_printer_agent();
+    if (live && agent->is_discovering(live->get_agent_info().id))
         agent->start_discovery(true, start);
 }
 

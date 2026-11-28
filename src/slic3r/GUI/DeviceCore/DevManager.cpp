@@ -306,7 +306,7 @@ namespace Slic3r
         return obj->request_liveness_probe(now);
     }
 
-    void DeviceManager::on_machine_alive(std::string json_str)
+    void DeviceManager::on_machine_alive(std::string json_str, const std::string& agent_id)
     {
         try {
             json j = json::parse(json_str);
@@ -325,16 +325,23 @@ namespace Slic3r
                 model_report_present ? DevPrinterConfigUtil::resolve_printer_model_id(printer_type_str) : std::string();
             const bool        clear_printer_model   = model_report_present && reported_printer_type.empty();
 
-            // Passive discovery must not replace another agent's saved binding.
-            if (get_current_printer_agent_id() == MOONRAKER_PRINTER_AGENT_ID) {
-                if (AppConfig* config = get_app_config()) {
-                    const auto& machines = config->get_local_machines();
-                    auto it = machines.find(dev_id);
-                    if (it != machines.end() && it->second.printer_agent_id != MOONRAKER_PRINTER_AGENT_ID) {
-                        BOOST_LOG_TRIVIAL(warning) << "Ignoring Moonraker discovery for a device owned by another agent: " << dev_id;
-                        return;
-                    }
+            // Passive discovery must not replace another agent's binding, saved or live. Only a
+            // device nobody owns yet, or the finder's own, is updated; a deliberate rebind goes
+            // through insert_local_device() by the agent the user selected.
+            const auto owned_by_other = [&agent_id](const std::string& owner) { return !owner.empty() && owner != agent_id; };
+            if (AppConfig* config = get_app_config()) {
+                const auto& machines = config->get_local_machines();
+                auto it = machines.find(dev_id);
+                if (it != machines.end() && owned_by_other(it->second.printer_agent_id)) {
+                    BOOST_LOG_TRIVIAL(warning) << "Ignoring discovery from agent " << agent_id << " for a saved device owned by agent "
+                                               << it->second.printer_agent_id << ": " << dev_id;
+                    return;
                 }
+            }
+            if (auto local = localMachineList.find(dev_id); local != localMachineList.end() && owned_by_other(local->second->printer_agent_id)) {
+                BOOST_LOG_TRIVIAL(warning) << "Ignoring discovery from agent " << agent_id << " for a device owned by agent "
+                                           << local->second->printer_agent_id << ": " << dev_id;
+                return;
             }
 
             if (connect_type == "farm") {
@@ -359,11 +366,9 @@ namespace Slic3r
 
             /* update userMachineList info */
             auto it = userMachineList.find(dev_id);
-            if (it != userMachineList.end()) {
-                // A reused entry may have been created while another printer agent was active.
-                // The response was obtained through the current agent, so move ownership with
-                // the entry; otherwise agent-scoped lists hide it after a preset switch.
-                it->second->printer_agent_id = get_current_printer_agent_id();
+            if (it != userMachineList.end() && !owned_by_other(it->second->printer_agent_id)) {
+                // An unowned entry takes the finder as its owner, so agent-scoped lists show it.
+                it->second->printer_agent_id = agent_id;
                 if (it->second->get_dev_ip() != dev_ip ||
                     it->second->bind_state != bind_state ||
                     it->second->bind_sec_link != sec_link ||
@@ -396,11 +401,10 @@ namespace Slic3r
                 // update properties
                 /* ip changed */
                 obj = it->second;
-                // A reused LAN entry may have been discovered while another printer agent was
-                // active. The current discovery message establishes ownership for this agent.
-                if (obj->printer_agent_id != get_current_printer_agent_id())
+                // An unowned entry takes the finder as its owner; its model was not advertised by it.
+                if (obj->printer_agent_id != agent_id)
                     obj->printer_model_advertised = false;
-                obj->printer_agent_id = get_current_printer_agent_id();
+                obj->printer_agent_id = agent_id;
                 const bool model_changed =
                     model_report_present &&
                     (clear_printer_model ? (!obj->printer_type.empty() || obj->printer_model_advertised)
@@ -482,7 +486,7 @@ namespace Slic3r
             else {
                 /* insert a new machine */
                 obj = new MachineObject(this, m_agent, dev_name, dev_id, dev_ip);
-                obj->printer_agent_id          = get_current_printer_agent_id();
+                obj->printer_agent_id          = agent_id;
                 obj->printer_type              = reported_printer_type;
                 obj->printer_model_advertised  = !reported_printer_type.empty();
                 if (clear_printer_model)

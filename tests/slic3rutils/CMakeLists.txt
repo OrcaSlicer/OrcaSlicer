@@ -10,6 +10,7 @@ add_executable(${_TEST_NAME}_tests
     test_creality_cfs_match.cpp
     test_creality_print.cpp
     test_dev_mapping.cpp
+    test_dev_agent_order.cpp
     test_dev_extder_system.cpp
     test_tool_display_order.cpp
     test_device_access.cpp

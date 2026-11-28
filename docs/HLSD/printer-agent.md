@@ -45,7 +45,7 @@ homing, temperature changes, printing, subscriptions, and camera playback.
 
 `MachineObject` remains the shared state model used by the GUI. It does not contain the implementation
 of a printer protocol. When a device is discovered or returned by a cloud query, the device is tagged
-with the active `printer_agent_id`. Device lists and selected-machine operations use that tag to avoid
+with the `printer_agent_id` of the agent that found it. Device lists and selected-machine operations use that tag to avoid
 sending an operation through an agent that does not own the device.
 
 ### `NetworkAgent`
@@ -60,6 +60,8 @@ sending an operation through an agent that does not own the device.
 There is one active printer agent for the currently selected printer preset. Switching the preset
 increments the machine-list generation, disconnects the old printer agent, removes its callbacks, and
 installs the newly selected agent. The façade then forwards printer operations to that agent.
+
+Discovery is not tied to the active agent. See [Discovery](#discovery).
 
 Cloud operations are selected separately using a provider key. `NetworkAgent` forwards a cloud request
 to the matching `ICloudServiceAgent`, and forwards cloud camera operations with a device ID. The
@@ -159,11 +161,48 @@ The methods remain on the common interface so an agent that supports them can ov
 `sequence_id` remains part of the command contract because `DeviceManager` creates and tracks it as
 the command ID.
 
+## Discovery
+
+Every registered printer agent that scans the LAN discovers at the same time, whether or not it is the
+active agent, and each device it finds is recorded under that agent.
+
+`IPrinterAgent::discovers_on_lan()` says whether `start_discovery()` really scans. It defaults to
+false. The Orca agent returns true. The Bambu agent returns true only while the network plug-in is
+loaded, because its discovery runs inside the plug-in. The Moonraker family does not scan: it reports
+the host the user configured in the preset. A Python agent opts in by overriding `discovers_on_lan()`;
+without it, the agent discovers only while it is the active agent, as before.
+
+`NetworkAgent::sync_discovery()` takes the registered agents (taken from the factory's cache, so the
+active agent and the discovering agent are the same object) and makes the discovering set: each agent
+that scans and is not disabled, plus the active agent. Agents that join are started, agents that leave are
+stopped, and the others are left running, so an agent switch never stops or re-registers another
+agent's discovery. `GUI_App::refresh_discovery_agents()` calls it at startup, after an agent switch,
+after the network plug-in is reloaded, and when a Python printer agent is registered or deregistered.
+
+Each discovering agent has its own SSDP callback, which carries the agent's id, and its own session
+token. A callback only queues work onto the UI thread while its session is alive, and the queued work
+checks the session again, so nothing from an agent fires after it was stopped, replaced, deregistered
+or its `NetworkAgent` destroyed. Shutdown clears the listener first and then stops every discovering
+agent.
+
+The `disabled_discovery_agents` app setting turns a scanning agent's background discovery off. It holds
+agent ids joined by `;` and is empty by default, so every scanning agent discovers. It does not affect
+an active agent that only reports its configured host. The Preferences dialog, next to the network
+settings, is where a control for it belongs.
+
+`DeviceManager::on_machine_alive()` receives the id of the agent that found the device and uses it
+instead of the active agent. A discovery never takes over a device that another agent owns, whether the
+device is in the local list or saved in the app config; it is logged and ignored. A device with no owner
+takes the finder as its owner. Changing the owner is deliberate and goes through
+`DeviceManager::insert_local_device()`, called for the agent the user selected. `clear_other_devices()`
+removes only devices with no owner, so an agent switch keeps what the other agents discovered.
+
 ## Device ownership and stale responses
 
 Printer-agent ownership is represented by `printer_agent_id` on device records and `MachineObject`
-instances. The active agent ID is attached when a device is discovered, returned by a cloud list, or
-reused after a preset switch. Local-machine configuration also persists the agent ID so a saved LAN
+instances. The finding agent's ID is attached when a device is discovered, the active agent's ID when
+one is returned by a cloud list, and the active agent's ID replaces the owner when the user selects the
+device through that agent. Local-machine configuration also persists the agent ID so a saved LAN
 device is not silently reused by an unrelated agent.
 
 Cloud printer-list responses carry three pieces of request context added by `NetworkAgent`:

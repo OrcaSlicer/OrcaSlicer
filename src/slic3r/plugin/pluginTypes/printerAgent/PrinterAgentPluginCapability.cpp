@@ -264,6 +264,10 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
              "set_on_ssdp_msg_fn() callable with a JSON string holding dev_id, dev_name, dev_ip, dev_type,\n"
              "dev_signal, connect_type and bind_state, plus optional sec_link, ssdp_version and connection_name.\n"
              "Return True on success.")
+        .def("discovers_on_lan", &PrinterAgentPluginCapability::discovers_on_lan,
+             "Optional. Return True when start_discovery() scans the network for printers, so the host\n"
+             "also runs it in the background while this agent is not the selected one. The default is\n"
+             "False: discovery then runs only while this agent is selected.")
         .def("bind_detect", &PrinterAgentPluginCapability::bind_detect, py::arg("dev_ip"), py::arg("sec_link"),
              py::arg("detect"),
              "Required. Called when the user adds a printer by IP address dev_ip; the host passes\n"

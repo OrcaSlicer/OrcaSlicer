@@ -1185,13 +1185,13 @@ void GUI_App::post_init()
     }
 
     if(!m_networking_need_update && m_agent) {
-        m_agent->set_on_ssdp_msg_fn(
-            [this](std::string json_str) {
+        m_agent->set_on_discovery_fn(
+            [this](const std::string& agent_id, std::string json_str) {
                 // connect_type in this payload is the only source of dev_connection_type, which
                 // is in turn the sole input to every LAN-vs-cloud routing decision in the app.
                 PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("discovery", "ssdp", nlohmann::json::parse(json_str, nullptr, false)));
                 if (!is_closing() && m_device_manager)
-                    m_device_manager->on_machine_alive(json_str);
+                    m_device_manager->on_machine_alive(std::move(json_str), agent_id);
             }
         );
         m_agent->set_on_http_error_fn([this](CloudEvent event, unsigned int status, std::string body) {
@@ -1200,8 +1200,7 @@ void GUI_App::post_init()
                 {{"provider", event.provider}, {"status", status}, {"body", PrinterCommLogger::body_for_log(body, 8192)}}));
             this->handle_http_error(status, body, event.provider);
         });
-        if (should_start_ssdp_discovery())
-            m_agent->start_discovery(true, false);
+        refresh_discovery_agents();
     }
 
     //update the plugin tips
@@ -1320,8 +1319,10 @@ void GUI_App::shutdown()
     set_closing(true);
     Slic3r::PluginManager::instance().set_shutting_down();
 
-    if (m_agent)
+    if (m_agent) {
         m_agent->set_printer_agent(nullptr);
+        m_agent->stop_all_discovery(BBL_PRINTER_AGENT_ID);
+    }
     NetworkAgentFactory::clear_printer_agent_cache();
 
     BOOST_LOG_TRIVIAL(info) << "GUI_App::shutdown exit";
@@ -1885,13 +1886,13 @@ void GUI_App::restart_networking()
     StaticBambuLib::reset();
     if(m_agent) {
         init_networking_callbacks();
-        m_agent->set_on_ssdp_msg_fn(
-            [this](std::string json_str) {
+        m_agent->set_on_discovery_fn(
+            [this](const std::string& agent_id, std::string json_str) {
                 // connect_type in this payload is the only source of dev_connection_type, which
                 // is in turn the sole input to every LAN-vs-cloud routing decision in the app.
                 PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("discovery", "ssdp", nlohmann::json::parse(json_str, nullptr, false)));
                 if (!is_closing() && m_device_manager)
-                    m_device_manager->on_machine_alive(json_str);
+                    m_device_manager->on_machine_alive(std::move(json_str), agent_id);
             }
         );
         m_agent->set_on_http_error_fn([this](CloudEvent event, unsigned int status, std::string body) {
@@ -1900,13 +1901,12 @@ void GUI_App::restart_networking()
                 {{"provider", event.provider}, {"status", status}, {"body", PrinterCommLogger::body_for_log(body, 8192)}}));
             this->handle_http_error(status, body, event.provider);
         });
-        // on_init_network() rebuilt m_agent with a null printer agent, so calling
-        // m_agent->start_discovery() directly would no-op (NetworkAgent::start_discovery
-        // returns false when m_printer_agent is null). Re-establish the printer agent for the
-        // active preset first - switch_printer_agent() installs it and then starts discovery,
-        // mirroring startup - otherwise LAN discovery stays dead after a plugin hot reload
-        // until the user next changes a preset/tab.
+        // on_init_network() rebuilt m_agent with no printer agent and no discovering agents.
+        // Re-establish the printer agent for the active preset, then discover on every scanning
+        // agent (the plug-in may have just been loaded or unloaded), otherwise LAN discovery
+        // stays dead after a plugin hot reload until the user next changes a preset/tab.
         switch_printer_agent();
+        refresh_discovery_agents();
         if (mainframe)
             mainframe->refresh_plugin_tips();
         if (plater_)
@@ -2085,7 +2085,7 @@ bool GUI_App::hot_reload_network_plugin()
 
         // Phase 1: Clear all callbacks (stops new invocations)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Phase 1 - clearing callbacks";
-        m_agent->set_on_ssdp_msg_fn(nullptr);
+        m_agent->set_on_discovery_fn(nullptr);
         m_agent->set_on_printer_connected_fn(nullptr);
         m_agent->set_on_server_connected_fn(nullptr);
         m_agent->set_on_http_error_fn(nullptr);
@@ -2102,10 +2102,10 @@ bool GUI_App::hot_reload_network_plugin()
 
         // Phase 3: Stop operations and verify return values
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Phase 3 - stopping operations";
-        bool discovery_stopped = m_agent->start_discovery(false, false);
+        // Every discovering agent runs its own scan, not only the live one.
+        m_agent->stop_all_discovery();
         int disconnect_result = m_agent->disconnect_printer();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": discovery_stopped=" << discovery_stopped
-                                << ", disconnect_result=" << disconnect_result;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": discovery stopped, disconnect_result=" << disconnect_result;
 
         // Phase 4: Wait for idle with state verification
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Phase 4 - waiting for idle";
@@ -2620,8 +2620,10 @@ GUI_App::~GUI_App()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": enter");
 
-    if (m_agent)
+    if (m_agent) {
         m_agent->set_printer_agent(nullptr);
+        m_agent->stop_all_discovery(BBL_PRINTER_AGENT_ID);
+    }
     NetworkAgentFactory::clear_printer_agent_cache();
 
     Slic3r::PluginManager::instance().shutdown();
@@ -2989,6 +2991,11 @@ int GUI_App::OnExit()
         m_user_manager = nullptr;
     }
 
+    // Stop the scanning agents' threads before the cache is cleared, so they do not outlive it.
+    // The Bambu plug-in scan is left to the Windows-only stop below.
+    if (m_agent)
+        m_agent->stop_all_discovery(BBL_PRINTER_AGENT_ID);
+
     // Clear the printer agent cache before destroying the NetworkAgent.
     // This disconnects all cached agents and releases their shared_ptrs,
     // ensuring clean thread shutdown before the agent is deleted.
@@ -2996,9 +3003,9 @@ int GUI_App::OnExit()
 
     if (m_agent) {
         stop_orca_health_check(m_agent);
-        // BBS avoid a crash on mac platform
+        // BBS avoid a crash on mac platform: only Windows stops the Bambu plug-in scan here
 #ifdef __WINDOWS__
-        m_agent->start_discovery(false, false);
+        m_agent->stop_all_discovery();
 #endif
         delete m_agent;
         m_agent = nullptr;
@@ -3118,8 +3125,10 @@ void GUI_App::init_plugin_gui_wiring()
             if (app->is_closing())
                 return;
 
-            if (provides_printer_connection)
+            if (provides_printer_connection) {
                 app->switch_printer_agent_if_pending();
+                app->refresh_discovery_agents();
+            }
             app->refresh_printer_agent_dropdown();
         });
     };
@@ -3141,6 +3150,7 @@ void GUI_App::init_plugin_gui_wiring()
                 return;
 
             app->switch_printer_agent();
+            app->refresh_discovery_agents();
             app->refresh_printer_agent_dropdown();
         });
     };
@@ -4444,16 +4454,19 @@ std::string GUI_App::resolve_printer_agent_id(const std::string& stored_id) cons
     return (preset_bundle && preset_bundle->is_bbl_vendor()) ? BBL_PRINTER_AGENT_ID : ORCA_PRINTER_AGENT_ID;
 }
 
-bool GUI_App::should_start_ssdp_discovery()
+void GUI_App::refresh_discovery_agents()
 {
-    // Non-Orca agents (BBL, plugins) keep their own discovery; OrcaSonar only scans in the
-    // background when one of its machines is already configured, otherwise the popup drives it.
-    const std::string agent_id = resolve_printer_agent_id(
-        preset_bundle ? preset_bundle->printers.get_edited_preset().config.opt_string("printer_agent")
-                      : std::string());
-    if (agent_id != ORCA_PRINTER_AGENT_ID)
-        return true;
-    return m_device_manager && !m_device_manager->get_my_machine_list(ORCA_PRINTER_AGENT_ID).empty();
+    if (!m_agent || !app_config)
+        return;
+
+    // The factory's cached instances, so the live agent and the discovering one are the same object.
+    // Agents nobody has created yet are not created just to ask whether they scan.
+    const auto candidates = NetworkAgentFactory::get_discovery_candidates(
+        [this](const std::string& agent_id) {
+            return m_agent->get_cloud_agent(agent_id == BBL_PRINTER_AGENT_ID ? BBL_CLOUD_PROVIDER : ORCA_CLOUD_PROVIDER);
+        },
+        data_dir());
+    m_agent->sync_discovery(candidates, app_config->get_disabled_discovery_agents());
 }
 
 std::string GUI_App::canonical_printer_agent_id(const std::string& picked_id)
@@ -4485,6 +4498,7 @@ void GUI_App::switch_printer_agent()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": agent ID '" << effective_agent_id
                                 << "' is unregistered; clearing live printer agent";
         set_live_printer_agent(nullptr);
+        refresh_discovery_agents();
         return;
     }
     const PrinterAgentInfo agent_info = *agent_info_ptr;
@@ -4502,6 +4516,7 @@ void GUI_App::switch_printer_agent()
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to create agent '" << effective_agent_id
                                    << "'; clearing live printer agent";
         set_live_printer_agent(nullptr);
+        refresh_discovery_agents();
         return;
     }
 
@@ -4534,9 +4549,8 @@ void GUI_App::switch_printer_agent()
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
 
-    // Start discovery so Python agents can populate the device list via SSDP callback
-    if (should_start_ssdp_discovery())
-        m_agent->start_discovery(true, false);
+    // The new live agent reports its configured host; the scanning agents keep running untouched.
+    refresh_discovery_agents();
 
     // Auto-switch MachineObject (new agent has empty device_info, so always re-select)
     select_machine(effective_agent_id);

@@ -34,6 +34,7 @@ struct PrinterAgentInfo
     std::string display_name;      // e.g., "Orca Native", "Bambu Lab"
     std::string plugin_identifier; // Empty for built-ins, otherwise <plugin_key>;<uuid>;<capability_name>
     PrinterAgentFactory factory;   // Function to create the agent
+    bool scans_on_lan = false;     // Built-in agent that scans the LAN: discovered before it is first selected
 
     bool is_plugin() const { return !plugin_identifier.empty(); }
     PrinterAgentInfo(const std::string& id_, const std::string& display_name_, PrinterAgentFactory factory_)
@@ -92,7 +93,8 @@ public:
      * @param factory Factory function to create the agent
      * @return true if registration succeeded, false if already registered
      */
-    static bool register_printer_agent(const std::string& id, const std::string& display_name, PrinterAgentFactory factory);
+    static bool register_printer_agent(const std::string& id, const std::string& display_name, PrinterAgentFactory factory,
+                                       bool scans_on_lan = false);
 
     /**
      * Check if an agent registry/config key is registered
@@ -128,6 +130,16 @@ public:
     static std::shared_ptr<IPrinterAgent> create_printer_agent_by_id(const std::string& id,
                                                                      std::shared_ptr<ICloudServiceAgent> cloud_agent,
                                                                      const std::string& log_dir);
+
+    /**
+     * The agents that may discover in the background: the registered ones flagged scans_on_lan
+     * (created if needed) and every other agent already in the cache. An agent nobody has created,
+     * such as a plugin agent that was never selected, is not created to be asked.
+     *
+     * @param cloud_agent_for Cloud agent to hand a newly created agent, by agent id
+     */
+    static std::vector<std::shared_ptr<IPrinterAgent>> get_discovery_candidates(
+        const std::function<std::shared_ptr<ICloudServiceAgent>(const std::string&)>& cloud_agent_for, const std::string& log_dir);
 
     /**
      * Clear the printer agent cache.

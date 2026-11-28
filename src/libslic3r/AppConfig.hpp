@@ -31,6 +31,7 @@
 #define SETTING_NETWORK_PLUGIN_REMIND_LATER "network_plugin_remind_later"
 #define SETTING_USE_ENCRYPTED_TOKEN_FILE "use_encrypted_token_file"
 #define SETTING_CLOUD_PROVIDERS "cloud_providers"
+#define SETTING_DISABLED_DISCOVERY_AGENTS "disabled_discovery_agents"
 #define SETTING_OPENGL_AA_SAMPLES "opengl_antialiasing_samples"
 #define SETTING_OPENGL_FXAA_ENABLED "opengl_fxaa_enabled"
 #define SETTING_OPENGL_FPS_CAP "opengl_fps_cap"
@@ -448,6 +449,10 @@ public:
     // Cloud providers (semicolon-delimited, e.g. "orca;bambu")
     std::vector<std::string> get_cloud_providers() const;
     void set_cloud_providers(const std::vector<std::string>& providers);
+
+    // Printer agents whose background LAN discovery is turned off: ids joined by ';', empty by default.
+    std::set<std::string> get_disabled_discovery_agents() const;
+    void set_disabled_discovery_agents(const std::set<std::string>& agent_ids);
     bool has_cloud_provider(const std::string& provider) const;
     void add_cloud_provider(const std::string& provider);
     void remove_cloud_provider(const std::string& provider);

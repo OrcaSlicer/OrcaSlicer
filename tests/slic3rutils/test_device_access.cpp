@@ -153,6 +153,7 @@ TEST_CASE("Moonraker discovery leaves another agent's saved machine alone", "[De
     config.update_local_machine(saved);
 
     manager.on_machine_alive(R"({"dev_name":"Klipper","dev_id":"192.0.2.10:7125","dev_ip":"192.0.2.10:7125",
-        "dev_type":"","dev_signal":"0","connect_type":"lan","bind_state":"free"})");
+        "dev_type":"","dev_signal":"0","connect_type":"lan","bind_state":"free"})",
+                           MOONRAKER_PRINTER_AGENT_ID);
     REQUIRE((manager.get_local_machine(saved.dev_id) != nullptr) == (owner == MOONRAKER_PRINTER_AGENT_ID));
 }

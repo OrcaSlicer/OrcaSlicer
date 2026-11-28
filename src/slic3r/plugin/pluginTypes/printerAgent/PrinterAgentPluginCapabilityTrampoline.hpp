@@ -158,6 +158,11 @@ public:
         ORCA_PY_AGENT_OVERRIDE(bool, start_discovery, start, sending);
     }
 
+    bool discovers_on_lan() const override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(bool, discovers_on_lan);
+    }
+
     int bind_detect(std::string dev_ip, std::string sec_link, detectResult& detect) override
     {
         // Passed as a pointer: pybind11 copies a reference argument, so the plugin's writes would be lost.

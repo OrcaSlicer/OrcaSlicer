@@ -32,6 +32,7 @@
 #include <libslic3r/PrintConfig.hpp>
 #include "catch2/catch_message.hpp"
 #include "slic3r/Utils/IPrinterAgent.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include <slic3r/Utils/NetworkAgent.hpp>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
@@ -40,6 +41,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <functional>
 #include <memory>
 #include <cstdint>
 #include <chrono>
@@ -102,6 +104,26 @@ public:
     }
 
     using OrcaPrinterAgent::deliver_to_sink;
+
+    // A scanning agent: it reports devices through the callback the host registered.
+    bool discovers_on_lan() const override { return true; }
+    bool start_discovery(bool start, bool) override
+    {
+        discovering = start;
+        return true;
+    }
+    int set_on_ssdp_msg_fn(OnMsgArrivedFn fn) override
+    {
+        discovery_callback = std::move(fn);
+        return 0;
+    }
+    void deliver_discovery(std::string payload) const
+    {
+        if (discovery_callback)
+            discovery_callback(std::move(payload));
+    }
+    bool discovering{false};
+    OnMsgArrivedFn discovery_callback;
 
     int send_message(std::string dev_id, std::string json_str, int, int) override
     {
@@ -435,7 +457,7 @@ TEST_CASE("The selected LAN printer is probed, and loss or deselection stops it"
         "dev_signal":"strong",
         "connect_type":"lan",
         "bind_state":"free"
-    })");
+    })", "integration-agent");
     CHECK(obj->is_online());
     CHECK_FALSE(obj->is_lan_session_open());
     obj->last_update_time = now - std::chrono::seconds(21);
@@ -710,11 +732,94 @@ TEST_CASE("Device manager filters and rehomes devices by printer-agent ownership
         "dev_signal":"strong",
         "connect_type":"lan",
         "bind_state":"free"
-    })");
+    })", "integration-agent-b");
 
+    // Passive discovery does not move the device; the live agent rebinds it explicitly.
+    CHECK(object->printer_agent_id == "integration-agent-a");
+    CHECK(manager.get_my_machine_list("integration-agent-b").empty());
+
+    REQUIRE(manager.insert_local_device(machine, "lan", "free", "", "access-code") == object);
     CHECK(object->printer_agent_id == "integration-agent-b");
     CHECK(manager.get_my_machine_list("integration-agent-a").empty());
     CHECK(manager.get_my_machine_list("integration-agent-b").count(machine.dev_id) == 1);
+}
+
+namespace {
+std::string discovery_payload(const std::string& dev_id, const std::string& ip)
+{
+    return json{{"dev_name", "Discovered " + dev_id}, {"dev_id", dev_id},          {"dev_ip", ip},
+                {"dev_type", ""},                     {"dev_signal", "strong"},    {"connect_type", "lan"},
+                {"bind_state", "free"}}
+        .dump();
+}
+
+// Both agents scan; the first one to see a device owns it. `queue` runs events at once.
+struct TwoDiscoveringAgents
+{
+    ScopedAppConfig app_config;
+    std::shared_ptr<TestPrinterAgent> agent_a = std::make_shared<TestPrinterAgent>("discovery-agent-a");
+    std::shared_ptr<TestPrinterAgent> agent_b = std::make_shared<TestPrinterAgent>("discovery-agent-b");
+    NetworkAgent network{nullptr, agent_a};
+    DeviceManager manager{&network, false, &app_config.config};
+
+    TwoDiscoveringAgents()
+    {
+        network.set_queue_on_main_fn([](std::function<void()> fn) { fn(); });
+        network.set_on_discovery_fn([this](const std::string& agent_id, std::string payload) {
+            manager.on_machine_alive(std::move(payload), agent_id);
+        });
+        network.sync_discovery({agent_a, agent_b}, {});
+    }
+};
+} // namespace
+
+TEST_CASE("Devices discovered by two agents at once are each recorded under their finder", "[DeviceManager][integration]")
+{
+    TwoDiscoveringAgents rig;
+    REQUIRE(rig.network.is_discovering("discovery-agent-a"));
+    REQUIRE(rig.network.is_discovering("discovery-agent-b"));
+
+    rig.agent_a->deliver_discovery(discovery_payload("device-found-by-a", "192.0.2.50"));
+    rig.agent_b->deliver_discovery(discovery_payload("device-found-by-b", "192.0.2.51"));
+
+    MachineObject* from_a = rig.manager.get_local_machine("device-found-by-a");
+    MachineObject* from_b = rig.manager.get_local_machine("device-found-by-b");
+    REQUIRE(from_a != nullptr);
+    REQUIRE(from_b != nullptr);
+    CHECK(from_a->printer_agent_id == "discovery-agent-a");
+    CHECK(from_b->printer_agent_id == "discovery-agent-b");
+}
+
+TEST_CASE("A discovery from another agent does not take over an owned device", "[DeviceManager][integration]")
+{
+    TwoDiscoveringAgents rig;
+    rig.agent_a->deliver_discovery(discovery_payload("contested-device", "192.0.2.52"));
+    rig.agent_b->deliver_discovery(discovery_payload("contested-device", "192.0.2.99"));
+
+    MachineObject* object = rig.manager.get_local_machine("contested-device");
+    REQUIRE(object != nullptr);
+    CHECK(object->printer_agent_id == "discovery-agent-a");
+    CHECK(object->get_dev_ip() == "192.0.2.52");
+    CHECK(rig.manager.get_my_machine_list("discovery-agent-b").empty());
+}
+
+TEST_CASE("An agent switch keeps the devices the other agents discovered", "[DeviceManager][integration]")
+{
+    TwoDiscoveringAgents rig;
+    rig.agent_a->deliver_discovery(discovery_payload("device-found-by-a", "192.0.2.50"));
+    rig.agent_b->deliver_discovery(discovery_payload("device-found-by-b", "192.0.2.51"));
+
+    rig.network.set_printer_agent(rig.agent_b);
+    rig.manager.clear_other_devices();
+
+    CHECK(rig.manager.get_local_machine("device-found-by-a") != nullptr);
+    CHECK(rig.manager.get_local_machine("device-found-by-b") != nullptr);
+
+    // Discovery on the agent that left the live role keeps running and keeps reporting.
+    CHECK(rig.network.is_discovering("discovery-agent-a"));
+    rig.agent_a->deliver_discovery(discovery_payload("late-device-found-by-a", "192.0.2.53"));
+    REQUIRE(rig.manager.get_local_machine("late-device-found-by-a") != nullptr);
+    CHECK(rig.manager.get_local_machine("late-device-found-by-a")->printer_agent_id == "discovery-agent-a");
 }
 
 TEST_CASE("A saved printer model is unverified until the printer advertises it", "[DeviceManager][integration]")
@@ -749,7 +854,7 @@ TEST_CASE("A saved printer model is unverified until the printer advertises it",
         "dev_signal":"strong",
         "connect_type":"lan",
         "bind_state":"free"
-    })");
+    })", agent_id);
     CHECK_FALSE(object->has_advertised_printer_model());
 
     // Any agent can advertise the model; no agent-specific list governs identity.
@@ -761,7 +866,7 @@ TEST_CASE("A saved printer model is unverified until the printer advertises it",
         "dev_signal":"strong",
         "connect_type":"lan",
         "bind_state":"free"
-    })");
+    })", agent_id);
     CHECK(object->printer_type == "C11");
     CHECK(object->has_advertised_printer_model());
 }
@@ -835,7 +940,7 @@ TEST_CASE("An unrecognized advertised model stays unknown and does not block", "
         "dev_signal":"strong",
         "connect_type":"lan",
         "bind_state":"free"
-    })");
+    })", "integration-agent");
     CHECK(known_object->printer_type.empty());
     CHECK_FALSE(known_object->has_advertised_printer_model());
 }

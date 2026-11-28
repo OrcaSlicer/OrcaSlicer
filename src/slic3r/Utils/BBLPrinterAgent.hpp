@@ -58,6 +58,7 @@ public:
 
     // Discovery
     bool start_discovery(bool start, bool sending) override;
+    bool discovers_on_lan() const override;
 
     // Binding
     int ping_bind(std::string ping_code) override;

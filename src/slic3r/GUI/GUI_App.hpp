@@ -449,8 +449,10 @@ public:
     // finishes loading after the startup preset was applied. Otherwise leave the live agent alone.
     void switch_printer_agent_if_pending();
 
-    // Whether the background SSDP scan should run for the effective printer agent.
-    bool should_start_ssdp_discovery();
+    // Discover on every registered printer agent that scans the LAN, except the ones the
+    // "disabled_discovery_agents" setting lists, and on the live agent. Starts the agents that
+    // joined and stops the ones that left, so call it after the registry or the live agent changes.
+    void refresh_discovery_agents();
 
     std::string resolve_printer_agent_id(const std::string& stored_id) const;
     // ORCA TODO: in the future, bbl presets should specify "bbl" printer agent id
