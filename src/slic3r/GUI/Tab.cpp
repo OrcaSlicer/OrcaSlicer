@@ -7774,7 +7774,7 @@ bool Tab::select_preset(
         apply_config_from_cache();
 
         // Orca: update presets for the selected printer
-        if (m_type == Preset::TYPE_PRINTER && wxGetApp().app_config->get_bool("remember_printer_config")) {
+        if (m_type == Preset::TYPE_PRINTER && wxGetApp().app_config->get_bool("remember_printer_config") && wxGetApp().plater()->get_project_filename().IsEmpty()) {
             m_preset_bundle->update_selections(*wxGetApp().app_config);
             const size_t filament_count = m_preset_bundle->filament_presets.size();
             wxGetApp().plater()->sidebar().on_filament_count_change(filament_count);
