@@ -21,6 +21,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 #include "LocalesUtils.hpp"
@@ -359,6 +360,9 @@ private:
 	template<class Archive> void serialize(Archive & ar) { ar(this->value); }
 };
 
+// Logs, once per process, that get_at() read an empty option vector and returned a default value.
+void log_get_at_on_empty_vector();
+
 // Value of a vector valued option (bools, ints, floats, strings, points)
 class ConfigOptionVectorBase : public ConfigOption {
 public:
@@ -673,14 +677,44 @@ public:
             throw ConfigurationError("ConfigOptionVector::set_with_nil(): Assigning an incompatible type");
     }
 
+    // Out-of-range indices are clamped to the first element. On an empty vector the assert flags the
+    // bug in Debug builds; Release builds return a default value instead of reading out of bounds.
     const T& get_at(size_t i) const
     {
         assert(! this->values.empty());
+        if (this->values.empty()) {
+            log_get_at_on_empty_vector();
+            static const T empty_default = default_element();
+            return empty_default;
+        }
         return (i < this->values.size()) ? this->values[i] : this->values.front();
     }
 
-    T& get_at(size_t i) { return const_cast<T&>(std::as_const(*this).get_at(i)); }
+    // The writable overload must not expose a shared object, so an empty vector yields a per-thread
+    // scratch value that is reset on every such call: writes through it are discarded.
+    T& get_at(size_t i)
+    {
+        assert(! this->values.empty());
+        if (this->values.empty()) {
+            log_get_at_on_empty_vector();
+            static thread_local T scratch;
+            scratch = default_element();
+            return scratch;
+        }
+        return (i < this->values.size()) ? this->values[i] : this->values.front();
+    }
 
+protected:
+    // Value returned for an access to an empty vector: zero for arithmetic and Vec2d, T() otherwise.
+    static T default_element()
+    {
+        if constexpr (std::is_same_v<T, Vec2d>)
+            return T::Zero();
+        else
+            return T();
+    }
+
+public:
     // Resize this vector by duplicating the /*last*/first value.
     // If the current vector is empty, the default value is used instead.
     // BBS: support scaler opt_default
@@ -1985,11 +2019,26 @@ public:
 
     bool& get_at(size_t i) {
         assert(! this->values.empty());
+        if (this->values.empty()) {
+            log_get_at_on_empty_vector();
+            // Per-thread scratch, reset on each call, so writes through the reference are discarded.
+            static thread_local unsigned char scratch;
+            scratch = 0;
+            return *reinterpret_cast<bool*>(&scratch);
+        }
         return *reinterpret_cast<bool*>(&((i < this->values.size()) ? this->values[i] : this->values.front()));
     }
 
     //FIXME this smells, the parent class has the method declared returning (unsigned char&).
-    bool get_at(size_t i) const { return ((i < this->values.size()) ? this->values[i] : this->values.front()) != 0; }
+    bool get_at(size_t i) const
+    {
+        assert(! this->values.empty());
+        if (this->values.empty()) {
+            log_get_at_on_empty_vector();
+            return false;
+        }
+        return ((i < this->values.size()) ? this->values[i] : this->values.front()) != 0;
+    }
 
     std::string serialize() const override
     {
