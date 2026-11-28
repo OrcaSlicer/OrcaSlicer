@@ -503,14 +503,15 @@ void Preview::update_layers_slider_mode()
     //             multi-extruder printer profile , but whole model is printed by only one extruder
     //    false -> multi-extruder printer profile , and model is printed by several extruders
     bool one_extruder_printed_model = true;
-    bool can_change_color = true;
+    const PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+    bool can_change_color = !plate->get_spiral_vase_mode();
     // extruder used for whole model for multi-extruder printer profile
     int only_extruder = -1;
 
     // BBS
     if (wxGetApp().filaments_cnt() > 1) {
         //const ModelObjectPtrs& objects = wxGetApp().plater()->model().objects;
-        auto plate_extruders = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_extruders_without_support();
+        auto plate_extruders = plate->get_extruders_without_support();
         for (auto extruder : plate_extruders) {
             if (extruder != plate_extruders[0])
                 can_change_color = false;

@@ -43,6 +43,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
@@ -277,10 +278,6 @@ void IMSlider::SetTicksValues(const Info &custom_gcode_per_print_z)
         return;
     }
 
-    static bool last_spiral_vase_status = false;
-
-    const bool was_empty = m_ticks.empty();
-
     m_ticks.ticks.clear();
     const std::vector<CustomGCode::Item> &heights = custom_gcode_per_print_z.gcodes;
     for (auto h : heights) {
@@ -296,13 +293,15 @@ void IMSlider::SetTicksValues(const Info &custom_gcode_per_print_z)
         }
     }
 
-    if (last_spiral_vase_status != m_is_spiral_vase) {
-        last_spiral_vase_status = m_is_spiral_vase;
-        if (!m_ticks.empty()) {
-            m_ticks.ticks.clear();
-            post_ticks_changed_event();
-        }
+    const PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+    const bool spiral_vase = plate->get_spiral_vase_mode();
+    // Switching plates can change the effective mode without changing either plate's settings.
+    if (plate->id() == m_ticks_plate_id && spiral_vase != m_ticks_spiral_vase && !m_ticks.empty()) {
+        m_ticks.ticks.clear();
+        post_ticks_changed_event();
     }
+    m_ticks_plate_id = plate->id();
+    m_ticks_spiral_vase = spiral_vase;
 
     //auto has_tick_execpt = [this](CustomGCode::Type type) {
     //    for (const TickCode& tick : m_ticks.ticks)
@@ -373,10 +372,7 @@ void IMSlider::SetModeAndOnlyExtruder(const bool is_one_extruder_printed_model, 
 
     m_is_wipe_tower = m_mode != SingleExtruder;
 
-    auto config = wxGetApp().preset_bundle->full_config();
-    m_is_spiral_vase = config.option<ConfigOptionBool>("spiral_mode")->value;
-
-    m_can_change_color = can_change_color && !m_is_spiral_vase;
+    m_can_change_color = can_change_color;
 
     // close opened menu window after reslice
     m_show_menu = false;

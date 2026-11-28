@@ -905,7 +905,7 @@ json set_custom_gcode_at_layer(Plater& plater, int index, const json& args, Cust
     GLCanvas3D&         preview = *plater.get_preview_canvas3D();
     IMSlider&           slider  = *preview.get_gcode_viewer().get_layers_slider();
     const PresetBundle& bundle  = *wxGetApp().preset_bundle;
-    const bool          spiral  = bundle.prints.get_edited_preset().config.opt_bool("spiral_mode");
+    const bool          spiral  = plater.get_partplate_list().get_plate(index)->get_spiral_vase_mode();
     bool                changed = false;
     try {
         changed = edit_layer_gcode(slider, args, int(plater.get_extruder_colors_from_plater_config(nullptr).size()),
