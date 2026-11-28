@@ -120,6 +120,15 @@ public:
     // extra_retract adds a small over-extrusion to the deretract move (PETG pre-extrusion).
     // Default 0 -> byte-identical to the plain deretract.
     std::string unretract(float extra_retract = 0.f);
+    // Toolchange retract that rides on the travel to `point`, so the nozzle never stands still while it pulls back.
+    std::string retract_for_toolchange_to_xy(const Vec2d &point);
+    // Unretract that rides on the travel to `point`. What does not fit under max_e_per_mm is pushed standing,
+    // before the move.
+    std::string unretract_to_xy(const Vec2d &point, double max_e_per_mm);
+    // Largest E per mm of XY travel an unretract can ride on. Klipper aborts the print on a move that
+    // extrudes more than max_extrude_cross_section, 4 x nozzle diameter^2 by default; the margin covers
+    // G-code rounding. Other firmwares have no such limit.
+    static double max_unretract_per_travel_mm(GCodeFlavor flavor, double nozzle_diameter, double filament_area);
     // do lift instantly
     std::string eager_lift(const LiftType type);
     // record a lift request, do realy lift in next travel
@@ -311,6 +320,11 @@ private:
     // Orca: true if a full spiral-lift circle (center in bed coordinates, mm) fits inside the active printable area.
     bool spiral_lift_fits_printable_area(const Vec2d &center, double radius) const;
     std::string _retract(double length, double restart_extra, const std::string &comment);
+    // Travel speed in mm/s for a move ending at point_on_plate.
+    double      travel_speed_to(const Vec2d &point_on_plate) const;
+    // Travel to `point` while moving the filament by dE, written as `emitted_e`. The feedrate is slowed so
+    // the filament moves no faster than e_speed (mm/s).
+    std::string _travel_to_xy_with_e(const Vec2d &point, double dE, double emitted_e, double e_speed, const std::string &comment);
     std::string set_acceleration_internal(Acceleration type, unsigned int acceleration);
 
 };
