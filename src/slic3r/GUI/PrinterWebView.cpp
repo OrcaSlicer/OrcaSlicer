@@ -311,8 +311,7 @@ void PrinterWebView::SendAPIKey()
     // RemoveAllUserScripts causes WebView to forget about our script message handler, 
     // so re-add it here.
     m_browser->RemoveScriptMessageHandler("wx");
-    // Mark before adding: on WKWebView the add yields in RunScript() after registering "wx",
-    // and CreateWebView()'s deferred add, if it runs in that yield, would register it again.
+    // Marked so that CreateWebView()'s deferred add, if it is still queued, skips the duplicate.
     WebView::MarkScriptMessageHandlerAdded(m_browser);
     if (!m_browser->AddScriptMessageHandler("wx"))
         wxLogError("Could not add script message handler");

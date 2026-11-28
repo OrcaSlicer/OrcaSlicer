@@ -30,6 +30,7 @@
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/libslic3r.h"
+#include <initializer_list>
 #include <limits>
 #include <map>
 #include <optional>
@@ -1689,8 +1690,8 @@ TEST_CASE("An IMEX plate whose filament never routes to the Primary tool is bloc
     const StringObjectException err = print.validate(&warnings);
 
     REQUIRE_FALSE(err.string.empty());
-    CHECK(err.string.find("T0") != std::string::npos);   // the declared primary
-    CHECK(err.string.find("T2") != std::string::npos);   // where the filament actually lives
+    CHECK(err.string.find("T1") != std::string::npos);   // the declared primary
+    CHECK(err.string.find("T3") != std::string::npos);   // where the filament actually lives
 }
 
 // A mixed filament is blended at the nozzle by its component toolheads, which a parallel
@@ -2237,6 +2238,33 @@ TEST_CASE("The prime tower follows an object switching filaments within one appl
     }
 }
 
+TEST_CASE("The prime tower follows the number of printable copies in a sequential print", "[MultiFilament][Regression]")
+{
+    auto config = multifilament_config(2, {
+        { "print_sequence", "by object" }, { "enable_prime_tower", 1 }, { "outer_wall_filament_id", 2 },
+        { "timelapse_type", 0 }, { "enable_wrapping_detection", 0 }
+    });
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{cube(10)}, print, model, config, nullptr, true, 2);
+    REQUIRE(print.objects().size() == 1);
+    REQUIRE(print.num_object_instances() == 2);
+    REQUIRE(print.extruders().size() == 2);
+    CHECK_FALSE(print.has_wipe_tower());
+
+    ModelInstance *copy = model.objects.front()->instances.back();
+    copy->printable = false;
+    print.apply(model, config);
+    REQUIRE(print.num_object_instances() == 1);
+    CHECK(print.has_wipe_tower());
+
+    copy->printable = true;
+    config.set_deserialize_strict("print_sequence", "by layer");
+    print.apply(model, config);
+    REQUIRE(print.num_object_instances() == 2);
+    CHECK(print.has_wipe_tower());
+}
+
 // The tower turns independent_support_layer_height off, which rounds the raft gap up to a whole layer
 // and lifts the objects. Objects sliced before the move have to be sliced again.
 TEST_CASE("Objects above a raft are re-sliced when a filament switch turns the prime tower on", "[MultiFilament]")
@@ -2679,5 +2707,203 @@ TEST_CASE("A physical_extruder_map entry outside the nozzle range still exports"
         const std::string gcode = slice({ cube(20) }, two_nozzle_map_config("1,2", map));
         CHECK(gcode.find("; CONFIG_BLOCK_END") != std::string::npos);
         CHECK(gcode.find("; EXECUTABLE_BLOCK_END") != std::string::npos);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Filament-slot / tool-count warning
+// ---------------------------------------------------------------------------
+namespace {
+
+DynamicPrintConfig slot_tool_warning_config(size_t tools, size_t filaments, bool semm = false)
+{
+    std::string nozzle_diameters, extruder_ids, extruder_variants, printable_heights;
+    for (size_t i = 0; i < tools; ++i) {
+        const std::string sep = i ? "," : "";
+        nozzle_diameters  += sep + "0.4";
+        extruder_ids      += sep + std::to_string(i + 1);
+        extruder_variants += sep + "Direct Drive Standard";
+        printable_heights += sep + "0";
+    }
+    DynamicPrintConfig config = multifilament_config(unsigned(filaments), {
+        { "single_extruder_multi_material", semm ? "1" : "0" },
+        { "enable_prime_tower",             "0" },
+        { "layer_change_gcode",             "G92 E0\n" },
+    });
+    config.set_deserialize_strict("nozzle_diameter", nozzle_diameters);
+    config.set_deserialize_strict("printer_extruder_id", extruder_ids);
+    config.set_deserialize_strict("printer_extruder_variant", extruder_variants);
+    config.set_deserialize_strict("extruder_printable_height", printable_heights);
+    size_flush_to_nozzles(config);
+    return config;
+}
+
+std::vector<std::vector<ConfigBase::SetDeserializeItem>> slot_tool_overrides(std::initializer_list<int> extruders)
+{
+    std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides;
+    for (int extruder : extruders)
+        overrides.push_back({ ConfigBase::SetDeserializeItem(std::string("extruder"), std::to_string(extruder)) });
+    return overrides;
+}
+
+void add_slot_tool_custom_change(Model &model, CustomGCode::Mode mode, int extruder)
+{
+    CustomGCode::Info info;
+    info.mode = mode;
+    CustomGCode::Item item;
+    item.print_z  = 1.0;
+    item.type     = CustomGCode::ToolChange;
+    item.extruder = extruder;
+    info.gcodes.push_back(item);
+    model.plates_custom_gcodes[0] = info;
+}
+
+bool has_slot_tool_warning(const std::vector<StringObjectException> &warnings, const std::string &slot)
+{
+    for (const StringObjectException &warning : warnings) {
+        if (warning.string.find("configured tool count") == std::string::npos)
+            continue;
+        if (warning.string.find("(used: " + slot + ";") != std::string::npos ||
+            warning.string.find(" " + slot + ";") != std::string::npos)
+            return true;
+    }
+    return false;
+}
+
+} // namespace
+
+TEST_CASE("Print::validate warns when used filament slots exceed the configured tool count", "[MultiFilament]")
+{
+    SECTION("an assigned slot past the tool count warns") {
+        DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/2, /*filaments=*/3);
+        auto overrides = slot_tool_overrides({ 3 });
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException err = print.validate(&warnings);
+        CHECK(err.string.empty());
+        CHECK(has_slot_tool_warning(warnings, "3"));
+    }
+
+    SECTION("a single-tool printer warns for a second assigned slot") {
+        DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/1, /*filaments=*/2);
+        auto overrides = slot_tool_overrides({ 2 });
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException err = print.validate(&warnings);
+        CHECK(err.string.empty());
+        CHECK(has_slot_tool_warning(warnings, "2"));
+    }
+
+    SECTION("single-tool multi-material does not warn") {
+        DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/1, /*filaments=*/2, /*semm=*/true);
+        auto overrides = slot_tool_overrides({ 2 });
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException err = print.validate(&warnings);
+        CHECK(err.string.empty());
+        CHECK_FALSE(has_slot_tool_warning(warnings, "2"));
+    }
+
+    SECTION("single-extruder multi-material does not warn") {
+        DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/2, /*filaments=*/3, /*semm=*/true);
+        auto overrides = slot_tool_overrides({ 3 });
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException err = print.validate(&warnings);
+        CHECK(err.string.empty());
+        CHECK_FALSE(has_slot_tool_warning(warnings, "3"));
+    }
+
+    SECTION("Bambu Lab does not warn") {
+        DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/2, /*filaments=*/3);
+        auto overrides = slot_tool_overrides({ 3 });
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+        print.is_BBL_printer() = true;
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException err = print.validate(&warnings);
+        CHECK(err.string.empty());
+        CHECK_FALSE(has_slot_tool_warning(warnings, "3"));
+    }
+
+    SECTION("a mixed slot is expanded to its physical components") {
+        DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/2, /*filaments=*/3);
+        config.set_deserialize_strict({
+            { "filament_is_mixed",         "0,0,1" },
+            { "filament_mixed_components", ";;1,2" },
+        });
+        auto overrides = slot_tool_overrides({ 3 });
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException err = print.validate(&warnings);
+        CHECK(err.string.empty());
+        CHECK_FALSE(has_slot_tool_warning(warnings, "3"));
+    }
+
+    SECTION("an applicable plate tool change is included") {
+        DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/2, /*filaments=*/4);
+        auto overrides = slot_tool_overrides({ 1 });
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+        add_slot_tool_custom_change(model, CustomGCode::MultiAsSingle, 4);
+        print.apply(model, config);
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException err = print.validate(&warnings);
+        CHECK(err.string.empty());
+        CHECK(has_slot_tool_warning(warnings, "4"));
+    }
+
+    SECTION("an ignored plate tool change is excluded") {
+        DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/2, /*filaments=*/4);
+        auto overrides = slot_tool_overrides({ 1 });
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+        add_slot_tool_custom_change(model, CustomGCode::SingleExtruder, 4);
+        print.apply(model, config);
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException err = print.validate(&warnings);
+        CHECK(err.string.empty());
+        CHECK_FALSE(has_slot_tool_warning(warnings, "4"));
+    }
+
+    SECTION("the wipe tower filament is included") {
+        DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/2, /*filaments=*/3);
+        config.set_deserialize_strict({
+            { "enable_prime_tower",  "1" },
+            { "wipe_tower_filament", "3" },
+            { "wipe_tower_x",        "150" },
+            { "wipe_tower_y",        "20" },
+        });
+        auto overrides = slot_tool_overrides({ 1, 2 });
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20), cube(20) }, print, model, config, &overrides);
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException err = print.validate(&warnings);
+        INFO(err.string);
+        CHECK(err.string.empty());
+        CHECK(has_slot_tool_warning(warnings, "3"));
     }
 }

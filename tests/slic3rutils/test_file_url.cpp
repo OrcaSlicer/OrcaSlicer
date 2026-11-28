@@ -3,10 +3,13 @@
 
 #include <catch2/catch_message.hpp>
 #include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
 
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 
 #include <string>
+#include <wx/filename.h>
 #include <wx/string.h>
 #include <wx/uri.h>
 
@@ -75,3 +78,20 @@ TEST_CASE("A query appended to a Windows file URL stays separate from its path",
     CHECK(!uri.HasFragment());
 }
 #endif
+
+TEST_CASE("A page's own loads are told from a dropped file and from other pages", "[FileUrl]")
+{
+    const boost::filesystem::path dir     = boost::filesystem::temp_directory_path() / "orca page";
+    const boost::filesystem::path page    = dir / "index.html";
+    const boost::filesystem::path dropped = dir / "replay.json";
+    const wxFileName              page_name(from_path(page));
+
+    CHECK(WebViewHostDialog::own_page_navigation(file_url_from_path(page) + "?lang=de", page_name));
+    CHECK(WebViewHostDialog::own_page_navigation("about:blank", page_name));
+    CHECK_FALSE(WebViewHostDialog::own_page_navigation("https://example.com/", page_name));
+    CHECK_FALSE(WebViewHostDialog::own_page_navigation(file_url_from_path(dropped), page_name));
+
+    const boost::filesystem::path file = WebViewHostDialog::dropped_file(file_url_from_path(dropped));
+    CHECK(wxFileName(from_path(file)).SameAs(wxFileName(from_path(dropped))));
+    CHECK(WebViewHostDialog::dropped_file("https://example.com/replay.json").empty());
+}

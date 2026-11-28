@@ -49,6 +49,10 @@ PrimitiveSizeDialog::PrimitiveSizeDialog(wxWindow* parent, const wxString& title
 {
     SetBackgroundColour(*wxWHITE);
     SetFont(Label::Body_14);
+    // The sizes it opens with, which a dialog ended with OK without its button (a pre-answered
+    // one) returns.
+    for (const Field& field : fields)
+        m_values.push_back(field.value);
 
     auto grid = new wxFlexGridSizer(2, FromDIP(8), FromDIP(20));
     for (size_t i = 0; i < fields.size(); ++i) {

@@ -1,4 +1,5 @@
 #include "IMSlider.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "NotificationManager.hpp"
@@ -536,12 +537,12 @@ void IMSlider::post_ticks_changed_event(Type type, int tick)
     m_is_need_post_tick_changed_event = true;
 }
 
-void IMSlider::add_custom_gcode(std::string custom_gcode)
+void IMSlider::add_custom_gcode(std::string custom_gcode, int tick)
 {
-    if (m_selection == ssUndef || !m_menu_enable) return;
-    const int tick = GetActiveValue();
-
-    if (is_sequential() && !instance_layer(tick).instance_id) return;
+    if (tick < 0)
+        tick = GetActiveValue();
+    if (tick < 0 || !m_menu_enable || (is_sequential() && !instance_layer(tick).instance_id))
+        return;
 
     const auto it = m_ticks.ticks.find(TickCode{ tick });
 
@@ -553,16 +554,16 @@ void IMSlider::add_custom_gcode(std::string custom_gcode)
     post_ticks_changed_event(Custom, tick);
 }
 
-void IMSlider::add_code_as_tick(Type type, int selected_extruder)
+bool IMSlider::add_code_as_tick(Type type, int selected_extruder, int tick)
 {
-    if (m_selection == ssUndef || !m_menu_enable) return;
-    const int tick = GetActiveValue();
+    if (tick < 0)
+        tick = GetActiveValue();
+    if (tick < 0 || !m_menu_enable || (is_sequential() && !instance_layer(tick).instance_id))
+        return false;
 
-    if (is_sequential() && !instance_layer(tick).instance_id) return;
-
-    if ((type == ToolChange && !can_change_filament(tick)) || !check_ticks_changed_event(type)) {
+    if ((type == ToolChange && is_sequential() && !can_change_filament(tick)) || !check_ticks_changed_event(type)) {
         BOOST_LOG_TRIVIAL(trace) << "check ticks change event false";
-        return;
+        return false;
     }
 
     if (type == ColorChange && gcode(ColorChange).empty()) GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::NotificationType::EmptyColorChangeCode);
@@ -572,14 +573,15 @@ void IMSlider::add_code_as_tick(Type type, int selected_extruder)
 
     if (it == m_ticks.ticks.end()) {
         // try to add tick
-        if (!m_ticks.add_tick(tick, type, extruder, m_values[tick])) return;
+        if (!m_ticks.add_tick(tick, type, extruder, m_values[tick])) return false;
     } else if (type == ToolChange || type == ColorChange) {
         // try to switch tick code to ToolChange or ColorChange accordingly
-        if (!m_ticks.switch_code_for_tick(it, type, extruder)) return;
+        if (!m_ticks.switch_code_for_tick(it, type, extruder)) return false;
     } else
-        return;
+        return false;
 
     post_ticks_changed_event(type, tick);
+    return true;
 }
 
 void IMSlider::delete_tick(const TickCode& tick) {
@@ -1842,14 +1844,14 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
     wheel = wheel > 0 ? 1.0f : -1.0f;
 
 #ifdef __WXOSX__
-    if (wxGetKeyState(WXK_SHIFT)) {
+    if (Slic3r::GUI::get_key_state(WXK_SHIFT)) {
         wheel *= -5;
     }
-    else if (wxGetKeyState(WXK_RAW_CONTROL)) {
+    else if (Slic3r::GUI::get_key_state(WXK_RAW_CONTROL)) {
         wheel *= 5;
     }
 #else
-    if (wxGetKeyState(WXK_COMMAND) || wxGetKeyState(WXK_SHIFT))
+    if (Slic3r::GUI::get_key_state(WXK_COMMAND) || Slic3r::GUI::get_key_state(WXK_SHIFT))
         wheel *= 5;
 #endif
     if (is_horizontal()) {
@@ -1975,9 +1977,9 @@ double IMSlider::get_double_value(const SelectedSlider &selection)
     return m_values[selection == ssLower ? m_lower_value : m_higher_value];
 }
 
-int IMSlider::get_tick_from_value(double value, bool force_lower_bound /* = false*/)
+int IMSlider::get_tick_from_value(double value, bool force_lower_bound /* = false*/) const
 {
-    std::vector<double>::iterator it;
+    std::vector<double>::const_iterator it;
     if (m_is_wipe_tower && !force_lower_bound)
         it = std::find_if(m_values.begin(), m_values.end(), [value](const double &val) { return fabs(value - val) <= epsilon(); });
     else

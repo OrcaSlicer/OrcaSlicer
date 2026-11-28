@@ -8,6 +8,7 @@
 #include "Gizmos/GLGizmoBase.hpp"
 #include "Camera.hpp"
 #include "Plater.hpp"
+#include "Operations/ObjectOps.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 
 #include "libslic3r/LocalesUtils.hpp"
@@ -36,6 +37,7 @@
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/Geometry/Circle.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <functional>
 #include <map>
 #include "slic3r/GUI/OpenGLManager.hpp"
 #include <array>
@@ -535,16 +537,19 @@ void Selection::remove_curr_plate()
     erase();
 }
 
-void Selection::clone(int numbers)
+bool Selection::clone(int numbers, const std::function<bool(int done)>& pasted)
 {
     if (numbers <= 0)
-        return;
+        return true;
 
     wxGetApp().plater()->take_snapshot(std::string("Selection-clone"));
     copy_to_clipboard();
     for (int i = 0; i < numbers; i++) {
         paste_from_clipboard();
+        if (pasted && !pasted(i + 1))
+            return false;
     }
+    return true;
 }
 
 void Selection::center()
@@ -685,22 +690,12 @@ void Selection::set_auto_drop(bool enabled)
     if (!m_valid)
         return;
 
-    std::set<int> object_idxs;
-    for (const auto& [obj_idx, inst_list] : m_cache.content) {
-        object_idxs.insert(obj_idx);
-    }
-
-    std::string snapshot_text = (boost::format("%1%") % (enabled ? "Set Selection Auto-Drop Enabled" : "Set Selection Auto-Drop Disabled")).str();
-    wxGetApp().plater()->take_snapshot(snapshot_text);
-
     // auto_drop is shared by all instances of an object.
-    for (int obj_idx : object_idxs) {
-        ModelObject* object = m_model->objects[obj_idx];
-        object->auto_drop = enabled;
-    }
-
-    // update scene
-    wxGetApp().plater()->update();
+    Ops::SetAutoDropArgs args;
+    for (const auto& [obj_idx, inst_list] : m_cache.content)
+        args.targets.objects.push_back(obj_idx);
+    args.auto_drop = enabled;
+    Ops::set_objects_auto_drop(args);
 }
 
 void Selection::add_all()

@@ -41,6 +41,7 @@
 #include <BRepBuilderAPI_Transform.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRepOffsetAPI_MakePipe.hxx>
+#include <BRepOffsetAPI_MakePipeShell.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAdaptor_Surface.hxx>
@@ -404,6 +405,19 @@ TopoDS_Shape SketchEngine::make_sweep(const TopoDS_Wire& profile, const TopoDS_W
     BRepOffsetAPI_MakePipe pipe(path, face);
     pipe.Build();
     if (!pipe.IsDone())
+        throw std::runtime_error(_u8L("Failed to sweep profile along path"));
+    return pipe.Shape();
+}
+
+TopoDS_Shape SketchEngine::make_sweep(const TopoDS_Wire& profile, const TopoDS_Wire& path, const gp_Dir& binormal)
+{
+    if (!BRepBuilderAPI_MakeFace(profile).IsDone())   // a closed planar profile, as above
+        throw std::runtime_error(_u8L("Failed to make face from sweep profile"));
+    BRepOffsetAPI_MakePipeShell pipe(path);
+    pipe.SetMode(binormal);
+    pipe.Add(profile);
+    pipe.Build();
+    if (!pipe.IsDone() || !pipe.MakeSolid())
         throw std::runtime_error(_u8L("Failed to sweep profile along path"));
     return pipe.Shape();
 }
@@ -991,15 +1005,14 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
         // Reversing it here only works when the sketch happened to wind both loops the same
         // way: a circle drawn clockwise inside a counter-clockwise rectangle comes out matching
         // the outer boundary, OCCT sweeps it as a second contour, and the prism is the plate
-        // with the bore FILLED and the disc's volume counted twice. Measured on the rig:
-        // bbox 67.17 x 219.67 x 10 (the whole plate) with volume 152088 mm3 against a solid-box
-        // 147520 — a body larger than its own bounding box, which is the signature of it.
+        // with the bore FILLED and the disc's volume counted twice: a bbox of 67.17 x 219.67 x 10
+        // (the whole plate) with a volume of 152088 mm3 against the solid box's 147520 — a body
+        // larger than its own bounding box, which is the signature of it.
         fm.Add(wires[i]);
     }
     if (!fm.IsDone()) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
     // Winding-independent classification of outer vs holes — the same idiom make_extrude_regions
-    // already uses for imported glyphs, which is why holed TEXT extruded correctly all along
-    // while a holed SKETCH did not.
+    // uses for imported glyphs, so a holed sketch extrudes as holed text does.
     ShapeFix_Face sff(fm.Face());
     sff.FixOrientation();
     return checked_profile_face(sff.Face());
@@ -1077,8 +1090,8 @@ std::vector<SketchEntity> SketchEngine::mirror_entities(
                 // Reflection reverses orientation. Like the Arc branch above, this pass keeps
                 // each angle with ITS point (start with p0) and lets the sweep run clockwise;
                 // the reversal pass below then swaps points and angles together, giving a CCW
-                // arc whose start is p0. Pairing them crosswise here, as this used to, was
-                // undone by that same swap and produced the complementary arc.
+                // arc whose start is p0. Pairing them crosswise here would be undone by that
+                // same swap and produce the complementary arc.
                 auto param = [&](const Vec2d& P) {
                     const Vec2d d  = P - m.center;
                     const double cu = std::cos(m.rotation), su = std::sin(m.rotation);
@@ -1262,8 +1275,8 @@ bool off_one(const SketchEntity& e, double d, SketchEntity& out)
     }
     case SketchEntity::Type::Circle: {
         // A circle runs CCW (it is what a 360° CCW arc chain closes into), so the rule below
-        // applies to it too: +d is the left side, the inside, and the radius SHRINKS. It used to
-        // grow, so a full circle and the same outline drawn as arcs offset opposite ways.
+        // applies to it too: +d is the left side, the inside, and the radius SHRINKS. Were it to
+        // grow, a full circle and the same outline drawn as arcs would offset opposite ways.
         const double r = e.radius - d;
         if (r <= 1e-9) return false;
         out = e; out.radius = r; out.p0 = out.center;
@@ -2437,8 +2450,8 @@ ConstraintPlan plan_entity_constraint(const std::vector<SketchEntity>& ents,
     }
     case T::Angle: {
         // Angle between two line segments. "Line segments" is a check, not an assumption:
-        // p1-p0 on a Circle is (0,0)-centre, so two circles used to pre-fill with the angle
-        // between their centre POSITION vectors.
+        // p1-p0 on a Circle is (0,0)-centre, so without it two circles would pre-fill with the
+        // angle between their centre POSITION vectors.
         if (ents[e0].type != SketchEntity::Type::Line ||
             ents[e1].type != SketchEntity::Type::Line) {
             plan.kind = ConstraintPlan::Kind::Reject;
@@ -2572,6 +2585,12 @@ ConstraintPlan plan_entity_constraint(const std::vector<SketchEntity>& ents,
     }
     plan.defs.push_back(def);
     return plan;
+}
+
+void write_plan_value(std::vector<SketchEntityConstraintDef>& defs, double v)
+{
+    for (auto& d : defs)
+        d.value = (d.type == SketchConstraintType::Angle) ? v * M_PI / 180.0 : v;
 }
 
 } // namespace Slic3r
