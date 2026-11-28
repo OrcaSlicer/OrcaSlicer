@@ -312,6 +312,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "filament_max_external_volumetric_speed",
         "reduce_fan_stop_start_freq",
         "dont_slow_down_outer_wall",
+        "cooling_slowdown_logic",
+        "cooling_perimeter_transition_distance",
         "fan_cooling_layer_time",
         "full_fan_speed_layer",
         "initial_layer_fan_speed",
