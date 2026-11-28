@@ -37,6 +37,22 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
     return false;
 }
 
+// Find the filament_id of the visible, compatible base preset with the slot's filament name and type, or "" if none.
+std::string find_filament_id_by_name(const PresetCollection& filaments, const std::string& filament_name, const std::string& filament_type)
+{
+    // Numeric-slot firmware reports no name, so nothing can match
+    if (filament_name.empty())
+        return "";
+    for (const auto& p : filaments.get_presets()) {
+        if (p.is_visible && p.is_compatible
+            && filaments.get_preset_base(p) == &p
+            && !p.filament_id.empty()
+            && QidiPrinterAgent::preset_matches_slot(p.name, p.config.opt_string("filament_type", 0u), filament_name, filament_type))
+            return p.filament_id;
+    }
+    return "";
+}
+
 } // anonymous namespace
 
 const std::string QidiPrinterAgent_VERSION = "0.0.1";
@@ -249,20 +265,35 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
             if (filament_it != dict.filaments.end()) {
                 filament_name = filament_it->second;
             }
+            // Newer firmware reports the slot's material, vendor and product name in multi_color_controller
+            std::string box_filament_name;
+            std::string box_filament_type; // Raw type (e.g. "PETG-CF"), before normalize_filament_type
             if (filament_value.is_string()) {
-                const nlohmann::json::json_pointer decoded_type("/multi_color_controller/box/box" + std::to_string(i / 4) +
-                                                                "_filament_info_" + std::to_string(i % 4) + "_filament_type");
+                const std::string field_prefix = "/multi_color_controller/box/box" + std::to_string(i / 4) +
+                                                 "_filament_info_" + std::to_string(i % 4) + "_";
+                auto box_field = [&](const std::string& field) {
+                    const nlohmann::json::json_pointer ptr(field_prefix + field);
+                    return status.contains(ptr) && status[ptr].is_string() ? status[ptr].get<std::string>() : std::string();
+                };
+                const nlohmann::json::json_pointer decoded_type(field_prefix + "filament_type");
                 if (status.contains(decoded_type) && status[decoded_type].is_string()) {
-                    filament_name = status[decoded_type].get<std::string>();
+                    box_filament_type = status[decoded_type].get<std::string>();
+                    filament_name     = box_filament_type;
                 }
+                const std::string vendor = box_field("vendor_str");
+                const std::string product = box_field("filament_str");
+                if (!vendor.empty() && !product.empty())
+                    box_filament_name = vendor + " " + product; // e.g. "QIDI PETG Tough"
             }
             tray.tray_type = normalize_filament_type(filament_name);
 
-            // Try Qidi-specific setting ID first; fall back to visible preset by type
+            // Try the preset named after the slot's filament, then the Qidi-specific setting ID; fall back to visible preset by type
             std::string setting_id = build_setting_id(filament_type, vendor_type, tray.tray_type);
             auto* bundle = GUI::wxGetApp().preset_bundle;
             if (!bundle) {
                 tray.tray_info_idx = setting_id;
+            } else if (auto id = find_filament_id_by_name(bundle->filaments, box_filament_name, box_filament_type); !id.empty()) {
+                tray.tray_info_idx = id;
             } else if (!setting_id.empty() && has_visible_base_preset(bundle->filaments, setting_id)) {
                 tray.tray_info_idx = setting_id;
             } else {
@@ -402,6 +433,22 @@ void QidiPrinterAgent::parse_filament_sections(const std::string& content, std::
             }
         }
     }
+}
+
+bool QidiPrinterAgent::preset_matches_slot(const std::string& preset_name,
+                                           const std::string& preset_type,
+                                           const std::string& slot_name,
+                                           const std::string& slot_type)
+{
+    if (slot_name.empty() || slot_type.empty())
+        return false;
+    // Never sync a preset for a different material, even when the names agree
+    if (!boost::iequals(boost::trim_copy(preset_type), boost::trim_copy(slot_type)))
+        return false;
+    // Drop the "@<printer> <nozzle>" suffix that per-printer system presets carry
+    std::string bare = preset_name.substr(0, preset_name.find('@'));
+    boost::trim(bare);
+    return boost::iequals(bare, boost::trim_copy(slot_name));
 }
 
 std::string QidiPrinterAgent::map_filament_type_to_setting_id(const std::string& filament_type)
