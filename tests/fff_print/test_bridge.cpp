@@ -575,3 +575,73 @@ TEST_CASE("Bridge anchor walls extend the sacrificial bridge of a counterbore ho
     CHECK(longest_width > long_width);
     CHECK(longest_width < 30. - 2. * (0.42 + 3 * 0.4) + 2. * 0.45);
 }
+
+TEST_CASE("Bridge anchor walls print the anchor of a thick bridge at the layer height", "[Bridge]")
+{
+    // The pillars and the deck of the test above, bridged with thick bridges.
+    DynamicPrintConfig config = multifilament_config(1, {
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "wall_loops",                 3 },
+        { "sparse_infill_density",      "15%" },
+        { "top_shell_layers",           3 },
+        { "top_shell_thickness",        0 },
+        { "thick_bridges",              true },
+        { "enable_support",             false },
+    });
+
+    // The heights of all the bridge paths, of those over the gap (grown by about a line width) and of those over the
+    // pillars (outside of the gap shrunk by about a line width).
+    const auto bridge_heights = [&config](int anchor_walls, std::vector<float> &all, std::vector<float> &over_gap, std::vector<float> &over_pillars) {
+        config.set_deserialize_strict("bridge_anchor_walls", std::to_string(anchor_walls));
+        TriangleMesh mesh = make_cube(10., 20., 6.);
+        TriangleMesh far_pillar = make_cube(10., 20., 6.);
+        far_pillar.translate(20.f, 0.f, 0.f);
+        mesh.merge(far_pillar);
+        TriangleMesh deck = make_cube(30., 20., 4.);
+        deck.translate(0.f, 0.f, 5.f);
+        mesh.merge(deck);
+        Print print;
+        Model model;
+        init_print({ mesh }, print, model, config);
+        print.process();
+        const Layer *layer = nullptr;
+        for (const Layer *l : print.objects().front()->layers())
+            if (std::abs(l->print_z - 5.2) < EPSILON)
+                layer = l;
+        REQUIRE(layer != nullptr);
+        const ExPolygons gap        = diff_ex(layer->lslices, layer->lower_layer->lslices);
+        const ExPolygons inner_gap  = offset_ex(gap, -scaled<float>(0.5));
+        const ExPolygons outer_gap  = offset_ex(gap, scaled<float>(0.5));
+        for (const LayerRegion *region : layer->regions())
+            for_each_extrusion_path(region->fills, [&](const ExtrusionPath &path) {
+                if (path.role() != erBridgeInfill)
+                    return;
+                const Polyline polyline = path.polyline.to_polyline();
+                all.push_back(path.height);
+                if (diff_pl(Polylines{ polyline }, outer_gap).empty())
+                    over_gap.push_back(path.height);
+                else if (intersection_pl(Polylines{ polyline }, inner_gap).empty())
+                    over_pillars.push_back(path.height);
+            });
+    };
+
+    std::vector<float> all, over_gap, over_pillars;
+    // By default the whole thick bridge is as high as the nozzle diameter, its anchor too.
+    bridge_heights(0, all, over_gap, over_pillars);
+    REQUIRE(! all.empty());
+    for (float height : all)
+        CHECK(std::abs(height - 0.4f) < 0.001f);
+
+    // With anchor walls, the part over the pillars is printed at the layer height, the part over the gap as before.
+    all.clear();
+    over_gap.clear();
+    over_pillars.clear();
+    bridge_heights(6, all, over_gap, over_pillars);
+    REQUIRE(! over_gap.empty());
+    REQUIRE(! over_pillars.empty());
+    for (float height : over_gap)
+        CHECK(std::abs(height - 0.4f) < 0.001f);
+    for (float height : over_pillars)
+        CHECK(std::abs(height - 0.2f) < 0.001f);
+}

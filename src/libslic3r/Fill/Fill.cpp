@@ -1368,6 +1368,77 @@ void export_group_fills_to_svg(const char *path, const std::vector<SurfaceFill> 
 #endif
 
 // friend to Layer
+// ORCA: Bridge anchor walls. A thick bridge is extruded as high as the nozzle diameter, which fits only over the void.
+// Over its anchor, on the layer below, there is room for the layer height only, and the extra material of a long anchor
+// is squeezed out and may be hit by the nozzle on the next layers. Split the bridge lines where they cross the edge of
+// the supported area, and extrude the parts over it with the flow of a line of the same width at the layer height,
+// keeping each line one path without travels.
+static void reduce_thick_bridge_anchor_flow(ExtrusionEntitiesPtr &entities, const ExPolygons &supported, float layer_height)
+{
+    if (supported.empty())
+        return;
+    const Lines edges = to_lines(supported);
+    const auto  is_supported = [&supported](const Point &pt) {
+        return std::any_of(supported.begin(), supported.end(), [&pt](const ExPolygon &expoly) { return expoly.contains(pt); });
+    };
+    for (ExtrusionEntity *&entity : entities) {
+        auto *path = dynamic_cast<ExtrusionPath *>(entity);
+        if (path == nullptr || path->role() != erBridgeInfill || !path->can_reverse() || path->height <= layer_height + EPSILON)
+            continue;
+        const Polyline polyline = path->polyline.to_polyline();
+        if (polyline.points.size() < 2)
+            continue;
+        // Runs of the line over the void and over the supported area, in order.
+        std::vector<std::pair<Polyline, bool>> runs;
+        const auto add_point = [&runs](const Point &pt, bool over_support) {
+            if (runs.empty() || runs.back().second != over_support) {
+                Polyline run;
+                if (!runs.empty())
+                    run.points.push_back(runs.back().first.points.back());
+                runs.emplace_back(std::move(run), over_support);
+            }
+            runs.back().first.points.push_back(pt);
+        };
+        for (size_t i = 1; i < polyline.points.size(); ++i) {
+            const Line          line(polyline.points[i - 1], polyline.points[i]);
+            const BoundingBox   line_bbox(line.a, line.b);
+            std::vector<double> params{0., 1.};
+            for (const Line &edge : edges) {
+                if (std::max(edge.a.x(), edge.b.x()) < line_bbox.min.x() || std::min(edge.a.x(), edge.b.x()) > line_bbox.max.x() ||
+                    std::max(edge.a.y(), edge.b.y()) < line_bbox.min.y() || std::min(edge.a.y(), edge.b.y()) > line_bbox.max.y())
+                    continue;
+                Point ip;
+                if (line.intersection(edge, &ip))
+                    params.push_back((ip - line.a).cast<double>().dot((line.b - line.a).cast<double>()) / std::max(1., (line.b - line.a).cast<double>().squaredNorm()));
+            }
+            std::sort(params.begin(), params.end());
+            const auto point_at = [&line](double t) { return Point((line.a.cast<double>() + t * (line.b - line.a).cast<double>()).cast<coord_t>()); };
+            if (runs.empty())
+                add_point(line.a, is_supported(point_at(params[1] / 2.)));
+            for (size_t j = 1; j < params.size(); ++j)
+                if (params[j] > params[j - 1] + EPSILON)
+                    add_point(point_at(params[j]), is_supported(point_at((params[j - 1] + params[j]) / 2.)));
+        }
+        if (std::none_of(runs.begin(), runs.end(), [](const auto &run) { return run.second; }))
+            continue;
+        const Flow          anchor_flow(path->width, layer_height, path->width);
+        ExtrusionMultiPath *multi_path = new ExtrusionMultiPath();
+        for (std::pair<Polyline, bool> &run : runs) {
+            if (run.first.points.size() < 2 || run.first.length() < SCALED_EPSILON)
+                continue;
+            ExtrusionPath part(*path);
+            part.polyline = Polyline3(std::move(run.first));
+            if (run.second) {
+                part.mm3_per_mm = std::min(path->mm3_per_mm, anchor_flow.mm3_per_mm());
+                part.height     = layer_height;
+            }
+            multi_path->paths.emplace_back(std::move(part));
+        }
+        delete entity;
+        entity = multi_path;
+    }
+}
+
 void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLightning::Generator* lightning_generator)
 {
 	for (LayerRegion *layerm : m_regions)
@@ -1540,6 +1611,16 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
 			f->fill_surface_extrusion(&surface_fill.surface,
 				params,
 				m_regions[surface_fill.region_id]->fills.entities);
+            // ORCA: Bridge anchor walls, print the long anchor of a thick external bridge at the layer height.
+            if (params.extrusion_role == erBridgeInfill && this->lower_layer != nullptr &&
+                layerm->region().config().bridge_anchor_walls.value > 0 && f->print_object_config->thick_bridges &&
+                !m_regions[surface_fill.region_id]->fills.entities.empty()) {
+                if (auto *eec = dynamic_cast<ExtrusionEntityCollection *>(m_regions[surface_fill.region_id]->fills.entities.back()))
+                    // Only where the whole width of the line is over the layer below.
+                    reduce_thick_bridge_anchor_flow(eec->entities,
+                                                    offset_ex(this->lower_layer->lslices, -0.5f * float(params.flow.scaled_width())),
+                                                    float(this->height));
+            }
 		}
     }
 
