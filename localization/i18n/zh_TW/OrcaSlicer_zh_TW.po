@@ -17477,8 +17477,14 @@ msgstr ""
 "此外，如果停用了「翹邊處降速」，則對支撐率低於 13% 的懸空牆（無論是橋接的一部分還是懸空結構）將使用該列印速度。"
 
 # AI Translated
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "內部橋接的速度。如果以百分比表示，將以 bridge_speed 為基準計算。預設值為 150%。"
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"內部橋接的速度。如果以百分比表示，將以 bridge_speed 為基準計算。\n"
+"\n"
+"最終速度會受線材的「最大體積流量」限制。"
 
 # AI Translated
 msgid "This is the distance from the model to the outermost brim line."
@@ -18091,8 +18097,8 @@ msgid "Small perimeters threshold"
 msgstr "微小部位周長臨界值"
 
 # AI Translated
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "設定微小部位周長的臨界值。預設臨界值為 0mm。"
+msgid "This sets the threshold for small perimeter length."
+msgstr "設定微小部位周長的臨界值。"
 
 # AI Translated
 msgid "Small support perimeters"
@@ -18107,8 +18113,8 @@ msgid "Small support perimeters threshold"
 msgstr "支撐微小部位臨界值"
 
 # AI Translated
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "設定支撐微小部位周長的臨界值。預設臨界值為 0mm。"
+msgid "This sets the threshold for small support perimeter length."
+msgstr "設定支撐微小部位周長的臨界值。"
 
 msgid "Walls printing order"
 msgstr "牆列印順序"
@@ -20585,16 +20591,17 @@ msgstr "mm³/s²"
 msgid "Smoothing segment length"
 msgstr "平滑段長度"
 
+# AI Translated
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "較低的設定值能讓擠出速率變化更平滑，但會導致 G-code 檔案變大，並增加列印裝置的運算負擔。\n"
 "\n"
-"預設值為 3，適用於大多數情況。如果您的列印裝置在列印時出現停頓或卡頓，請提高此數值，以減少擠出速率的頻繁調整。\n"
+"值為 3，適用於大多數情況。如果您的列印裝置在列印時出現停頓或卡頓，請提高此數值，以減少擠出速率的頻繁調整。\n"
 "\n"
 "可設定範圍：0.5-5"
 
@@ -21172,10 +21179,10 @@ msgstr "接縫間隔"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "為了降低閉環擠出中接縫的可見度，閉環會中斷並縮短指定的長度。\n"
-"此長度可設定為毫米或噴嘴直徑的百分比，預設值為 10%。"
+"此長度可設定為毫米或噴嘴直徑的百分比。"
 
 msgid "Scarf joint seam (beta)"
 msgstr "斜拼接縫（Beta）"
@@ -21198,10 +21205,10 @@ msgstr "條件式角度臨界值"
 # AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "此選項設定套用條件式斜拼接縫的角度臨界值。\n"
-"若牆迴圈內的最大角度超過此值（表示沒有尖角），將使用斜拼接縫。預設值為 155°。"
+"若牆迴圈內的最大角度超過此值（表示沒有尖角），將使用斜拼接縫。"
 
 # AI Translated
 msgid "Conditional overhang threshold"
@@ -21209,8 +21216,8 @@ msgstr "條件式懸空臨界值"
 
 # AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "此選項設定套用斜拼接縫的懸空臨界值。若牆未受支撐的部分小於此臨界值，將套用斜拼接縫。預設臨界值為外牆寬度的 40%。基於效能考量，懸空程度為估算值。"
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "此選項設定套用斜拼接縫的懸空臨界值。若牆未受支撐的部分小於此臨界值，將套用斜拼接縫。此臨界值為外牆寬度的百分比。基於效能考量，懸空程度為估算值。"
 
 msgid "Scarf joint speed"
 msgstr "斜拼接縫速度"
@@ -21219,11 +21226,11 @@ msgstr "斜拼接縫速度"
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "此選項設定斜拼接縫的列印速度。建議以較慢的速度（小於 100 mm/s）列印斜拼接縫。若設定的速度與外牆或內牆速度差異較大，也建議啟用「平滑擠出率」。\n"
 "\n"
-"若此處設定的速度高於外牆或內牆速度，列印裝置會採用兩者中較慢的速度。以百分比（例如 80%）指定時，速度將以對應的外牆或內牆速度為基準計算。預設值為 100%。"
+"若此處設定的速度高於外牆或內牆速度，列印裝置會採用兩者中較慢的速度。以百分比（例如 80%）指定時，速度將以對應的外牆或內牆速度為基準計算。"
 
 # AI Translated
 msgid "Scarf joint flow ratio"
@@ -21238,10 +21245,10 @@ msgstr "斜拼接縫起始高度"
 # AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "斜拼接縫的起始高度。\n"
-"此值可用毫米或目前層高的百分比表示。此參數的預設值為 0。"
+"此值可用毫米或目前層高的百分比表示。"
 
 msgid "Scarf around entire wall"
 msgstr "環繞整個牆體的斜拼接縫"
@@ -21338,8 +21345,8 @@ msgid "Wipe speed"
 msgstr "擦拭速度"
 
 # AI Translated
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "擦拭速度由此處設定的速度決定。如果以百分比表示（例如 80%），將以上方的空駛速度設定為基準計算。此參數的預設值為 80%。"
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "擦拭速度由此處設定的速度決定。如果以百分比表示（例如 80%），將以上方的空駛速度設定為基準計算。"
 
 msgid "Skirt distance"
 msgstr "Skirt 距離"
@@ -21969,8 +21976,8 @@ msgid "Loop pattern interface"
 msgstr "支撐面採用圈形圖案"
 
 # AI Translated
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "使用圈形走線覆蓋支撐的頂部支撐面。預設關閉。"
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "使用圈形走線覆蓋支撐的頂部支撐面。"
 
 # AI Translated
 msgid "Support/raft interface"
@@ -22880,8 +22887,8 @@ msgid "Use relative E distances"
 msgstr "使用相對 E 距離"
 
 # AI Translated
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "使用 \"label_objects\" 選項時，建議使用相對擠出。部分擠出機在取消勾選此選項（絕對擠出模式）時效果較好。換料塔僅相容於相對模式。大多數列印裝置都建議使用此選項。預設為勾選。"
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "使用 \"label_objects\" 選項時，建議使用相對擠出。部分擠出機在取消勾選此選項（絕對擠出模式）時效果較好。換料塔僅相容於相對模式。大多數列印裝置都建議使用此選項。"
 
 # AI Translated
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
@@ -22942,11 +22949,11 @@ msgstr "最短牆長"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "調整此參數以避免列印短小且未封閉的牆體，這可能會延長列印時間。此值為牆寬的倍數。參數值越高，移除的牆體會越多且越長。\n"
 "\n"
-"注意：為避免模型外表面出現視覺裂縫，此設定不會影響頂面和底面。若需調整頂面判定的靈敏度，可修改下方「牆與表面」設定中的「單層牆臨界值」。「單層牆臨界值」僅在此設定超過預設值 0.5 或啟用了單層牆頂面功能時可用。"
+"注意：為避免模型外表面出現視覺裂縫，此設定不會影響頂面和底面。若需調整頂面判定的靈敏度，可修改下方「牆與表面」設定中的「單層牆臨界值」。「單層牆臨界值」僅在此設定超過 0.5 或啟用了單層牆頂面功能時可用。"
 
 msgid "Maximum wall resolution"
 msgstr "最大牆解析度"
@@ -23237,8 +23244,8 @@ msgid "Ensure on bed"
 msgstr "確保位於列印板上"
 
 # AI Translated
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "物件有部分位於列印板下方時，將其提升到列印板上方。預設停用。"
+msgid "Lift the object above the bed when it is partially below."
+msgstr "物件有部分位於列印板下方時，將其提升到列印板上方。"
 
 # AI Translated
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."

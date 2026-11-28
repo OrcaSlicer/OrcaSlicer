@@ -17025,8 +17025,15 @@ msgstr ""
 "\n"
 "Крім того, якщо параметр «Уповільнення для нависаючих периметрів» вимкнено, ця швидкість буде використовуватися для друку стінок з нависанням, які підтримуються менш ніж на 13%, незалежно від того, чи є вони частиною мосту або звичайного нависання."
 
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "Швидкість внутрішніх мостів. Якщо значення вказано у відсотках, воно буде розраховане на основі bridge_speed. Значення за замовчуванням: 150%."
+# AI Translated
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"Швидкість внутрішніх мостів. Якщо значення вказано у відсотках, воно буде розраховане на основі bridge_speed.\n"
+"\n"
+"Кінцева швидкість обмежується значенням \"Максимальна обʼємна швидкість\" філамента."
 
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Відстань від моделі до останньої зовнішньої лінії кайми"
@@ -17602,8 +17609,9 @@ msgstr "Це окреме налаштування впливає на швид�
 msgid "Small perimeters threshold"
 msgstr "Поріг малих периметрів"
 
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "При цьому встановлюється поріг для невеликої довжини периметра. Порігове за замовчуванням - 0 мм"
+# AI Translated
+msgid "This sets the threshold for small perimeter length."
+msgstr "При цьому встановлюється поріг для невеликої довжини периметра."
 
 # AI Translated
 msgid "Small support perimeters"
@@ -17618,8 +17626,8 @@ msgid "Small support perimeters threshold"
 msgstr "Поріг малих периметрів підтримок"
 
 # AI Translated
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "Задає поріг довжини малого периметра підтримок. Типовий поріг — 0 мм."
+msgid "This sets the threshold for small support perimeter length."
+msgstr "Задає поріг довжини малого периметра підтримок."
 
 msgid "Walls printing order"
 msgstr "Послідовність друку стінок"
@@ -20038,16 +20046,17 @@ msgstr "мм³/с²"
 msgid "Smoothing segment length"
 msgstr "Довжина сегмента згладжування"
 
+# AI Translated
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "Нижче значення призводить до більш плавних переходів швидкості екструзії. Однак це значно збільшує розмір файлу G-code і кількість команд, які потрібно обробити принтеру.\n"
 "\n"
-"Типове значення 3 добре підходить для більшості випадків. Якщо ваш принтер працює ривками, збільште це значення, щоб зменшити кількість коригувань.\n"
+"3 добре підходить для більшості випадків. Якщо ваш принтер працює ривками, збільште це значення, щоб зменшити кількість коригувань.\n"
 "\n"
 "Допустимі значення: 0.5-5"
 
@@ -20580,10 +20589,10 @@ msgstr "Зазор шва"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "Щоб зменшити видимість шва при екструзії із замкнутим контуром, контур переривається і коротшає на задану величину.\n"
-"Ця кількість може бути вказана в міліметрах або у відсотках від діаметра сопла. Стандартне значення для цього параметра становить 10%."
+"Ця кількість може бути вказана в міліметрах або у відсотках від діаметра сопла."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Шарфовий шов (бета)"
@@ -20600,31 +20609,34 @@ msgstr "Застосовувати шарфове зʼєднання лише н
 msgid "Conditional angle threshold"
 msgstr "Умовний поріг кута"
 
+# AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "Ця опція встановлює поріговий кут для застосування умовного з’єднання шарфом.\n"
-"Якщо максимальний кут в межах периметрового контуру перевищує це значення (що свідчить про відсутність гострих кутів), використовується з’єднання шарфом. Значення за замовчуванням - 155°."
+"Якщо максимальний кут в межах периметрового контуру перевищує це значення (що свідчить про відсутність гострих кутів), використовується з’єднання шарфом."
 
 msgid "Conditional overhang threshold"
 msgstr "Умовний поріг нависань"
 
+# AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Ця опція визначає поріг нависання для застосування стрічкових швів. Якщо непідтримувана частина периметра менша за цей поріг, будуть застосовані стрічкові шви. За замовчуванням поріг встановлюється на рівні 40% від ширини зовнішньої стіни. З міркувань продуктивності оцінюється ступінь нависання."
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "Ця опція визначає поріг нависання для застосування стрічкових швів. Якщо непідтримувана частина периметра менша за цей поріг, будуть застосовані стрічкові шви. Поріг задається у відсотках від ширини зовнішньої стіни. З міркувань продуктивності оцінюється ступінь нависання."
 
 msgid "Scarf joint speed"
 msgstr "Швидкість шарфового зʼєднання"
 
+# AI Translated
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "Цей параметр задає швидкість друку швів. Рекомендується друкувати зʼєднувальні стрічки на повільній швидкості (менше 100 мм/с).  Також рекомендується ввімкнути \"Згладжування швидкості екструзії\", якщо задана швидкість значно відрізняється від швидкості зовнішньої або внутрішньої стінок.\n"
 "\n"
-"Якщо вказана тут швидкість вища за швидкість зовнішньої або внутрішньої стінок, принтер за замовчуванням працюватиме на повільнішій з двох швидкостей. Якщо значення вказано у відсотках (наприклад, 80%), швидкість розраховується на основі відповідної швидкості зовнішньої або внутрішньої стінки. За замовчуванням встановлено значення 100%."
+"Якщо вказана тут швидкість вища за швидкість зовнішньої або внутрішньої стінок, принтер за замовчуванням працюватиме на повільнішій з двох швидкостей. Якщо значення вказано у відсотках (наприклад, 80%), швидкість розраховується на основі відповідної швидкості зовнішньої або внутрішньої стінки."
 
 msgid "Scarf joint flow ratio"
 msgstr "Коефіцієнт потоку шарфового шва"
@@ -20635,12 +20647,13 @@ msgstr "Цей фактор впливає на кількість матері�
 msgid "Scarf start height"
 msgstr "Початкова висота шарфа"
 
+# AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "Початкова висота шарфа.\n"
-"Ця величина може бути вказана в міліметрах або як відсоток від поточної висоти шару. Значення за замовчуванням для цього параметра - 0."
+"Ця величина може бути вказана в міліметрах або як відсоток від поточної висоти шару."
 
 msgid "Scarf around entire wall"
 msgstr "Шарф вздовж всієї стіни"
@@ -20731,8 +20744,9 @@ msgstr ""
 msgid "Wipe speed"
 msgstr "Швидкість протирання"
 
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "Швидкість протирання визначається налаштуванням швидкості, зазначеної в данійконфігурації. Якщо це значення виражено у відсотках (наприклад, 80%), то воно буде розраховано на основі наведеної вище установки швидкості руху. За замовчуванням для цього параметра - 80%"
+# AI Translated
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "Швидкість протирання визначається налаштуванням швидкості, зазначеної в данійконфігурації. Якщо це значення виражено у відсотках (наприклад, 80%), то воно буде розраховано на основі наведеної вище установки швидкості руху."
 
 msgid "Skirt distance"
 msgstr "Відступ спідниці"
@@ -21332,8 +21346,9 @@ msgstr "Ширина лінії підтримки. Якщо вона вираж
 msgid "Loop pattern interface"
 msgstr "Інтерфейс використовує шаблон контуру"
 
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "Накрийте петлями верхній контактний шар опор. Вимкнено за замовчуванням."
+# AI Translated
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "Накрийте петлями верхній контактний шар опор."
 
 msgid "Support/raft interface"
 msgstr "Інтерфейс підтримки/підкладки"
@@ -22205,8 +22220,9 @@ msgstr "Формат мініатюр G-code: PNG для найкращої як
 msgid "Use relative E distances"
 msgstr "Використовуйте відносні відстані E екструдера"
 
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "Відносна екструзія рекомендується при використанні опції \"label_objects\". Деякі екструдери працюють краще, якщо ця опція не включена (режим абсолютної екструзії). Витираюча вежа сумісна лише з відносним режимом. Він рекомендується для більшості принтерів. За замовчуванням увімкнено"
+# AI Translated
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "Відносна екструзія рекомендується при використанні опції \"label_objects\". Деякі екструдери працюють краще, якщо ця опція не включена (режим абсолютної екструзії). Витираюча вежа сумісна лише з відносним режимом. Він рекомендується для більшості принтерів."
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "Класичний генератор стін виробляє стіни з постійною шириною екструзії, а для дуже тонких ділянок використовується заповнення прогалин. Двигун Arachne виробляє стіни зі змінною шириною екструзії."
@@ -22263,11 +22279,11 @@ msgstr "Мінімальна довжина стінок"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "Налаштуйте це значення, щоб запобігти друкуванню коротких незакритих стін, що може збільшити час друку. Значення задається як множник ширини стінки. Вищі значення видаляють більше і довші стіни.\n"
 "\n"
-"ПРИМІТКА: нижні та верхні поверхні не зазнають впливу цього значення, щоб уникнути видимих прогалин зовні моделі. Налаштуйте «Поріг в одну стіну» в налаштуваннях «Стінки та поверхні» нижче, щоб змінити чутливість визначення верхньої поверхні. «Поріг в одну стіну» видимий лише тоді, коли це налаштування вище за типове значення 0.5 або коли ввімкнено «Тільки одна стінка на верхніх поверхнях»."
+"ПРИМІТКА: нижні та верхні поверхні не зазнають впливу цього значення, щоб уникнути видимих прогалин зовні моделі. Налаштуйте «Поріг в одну стіну» в налаштуваннях «Стінки та поверхні» нижче, щоб змінити чутливість визначення верхньої поверхні. «Поріг в одну стіну» видимий лише тоді, коли це налаштування вище 0.5 або коли ввімкнено «Тільки одна стінка на верхніх поверхнях»."
 
 # AI Translated
 msgid "Maximum wall resolution"
@@ -22542,8 +22558,9 @@ msgstr "Кількість повторень всієї моделі"
 msgid "Ensure on bed"
 msgstr "Переконайтеся, що на столі"
 
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "Підніміть обʼєкт над ліжком, коли він частково знаходиться під ним. За замовчуванням вимкнено"
+# AI Translated
+msgid "Lift the object above the bed when it is partially below."
+msgstr "Підніміть обʼєкт над ліжком, коли він частково знаходиться під ним."
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "Розташувати поставлені моделі на платформі та об’єднати їх в одну модель, щоб виконати дії один раз."

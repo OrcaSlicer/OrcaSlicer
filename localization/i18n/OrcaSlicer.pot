@@ -14799,7 +14799,10 @@ msgid ""
 "In addition, if Slow down for curled perimeters is disabled, it will be the print speed of overhang walls that are supported by less than 13%, whether they are part of a bridge or an overhang."
 msgstr ""
 
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
 msgstr ""
 
 msgid "This is the distance from the model to the outermost brim line."
@@ -15254,7 +15257,7 @@ msgstr ""
 msgid "Small perimeters threshold"
 msgstr ""
 
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
+msgid "This sets the threshold for small perimeter length."
 msgstr ""
 
 msgid "Small support perimeters"
@@ -15266,7 +15269,7 @@ msgstr ""
 msgid "Small support perimeters threshold"
 msgstr ""
 
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgid "This sets the threshold for small support perimeter length."
 msgstr ""
 
 msgid "Walls printing order"
@@ -17236,7 +17239,7 @@ msgstr ""
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
@@ -17717,7 +17720,7 @@ msgstr ""
 
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 
 msgid "Scarf joint seam (beta)"
@@ -17737,14 +17740,14 @@ msgstr ""
 
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 
 msgid "Conditional overhang threshold"
 msgstr ""
 
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
 msgstr ""
 
 msgid "Scarf joint speed"
@@ -17753,7 +17756,7 @@ msgstr ""
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 
 msgid "Scarf joint flow ratio"
@@ -17767,7 +17770,7 @@ msgstr ""
 
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 
 msgid "Scarf around entire wall"
@@ -17841,7 +17844,7 @@ msgstr ""
 msgid "Wipe speed"
 msgstr ""
 
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
 msgstr ""
 
 msgid "Skirt distance"
@@ -18333,7 +18336,7 @@ msgstr ""
 msgid "Loop pattern interface"
 msgstr ""
 
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
+msgid "This covers the top contact layer of the supports with loops."
 msgstr ""
 
 msgid "Support/raft interface"
@@ -19037,7 +19040,7 @@ msgstr ""
 msgid "Use relative E distances"
 msgstr ""
 
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
 msgstr ""
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
@@ -19087,7 +19090,7 @@ msgstr ""
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 
 msgid "Maximum wall resolution"
@@ -19329,7 +19332,7 @@ msgstr ""
 msgid "Ensure on bed"
 msgstr ""
 
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
+msgid "Lift the object above the bed when it is partially below."
 msgstr ""
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."

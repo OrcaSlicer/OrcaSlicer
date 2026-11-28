@@ -17920,8 +17920,14 @@ msgstr ""
 "Als bovendien Afremmen voor omgekrulde perimeters is uitgeschakeld, is dit de printsnelheid van overhangende wanden met een ondersteuning van minder dan 13%, ongeacht of ze deel uitmaken van een brug of een overhang."
 
 # AI Translated
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "Snelheid van interne bruggen. Als de waarde als percentage wordt uitgedrukt, wordt deze berekend op basis van bridge_speed. De standaardwaarde is 150%."
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"Snelheid van interne bruggen. Als de waarde als percentage wordt uitgedrukt, wordt deze berekend op basis van bridge_speed.\n"
+"\n"
+"De resulterende snelheid wordt begrensd door de \"Maximale volumetrische snelheid\" van het filament."
 
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Dit is de afstand van het model tot de buitenste randlijn."
@@ -18538,8 +18544,9 @@ msgstr "Deze afzonderlijke instelling beïnvloedt de snelheid van perimeters met
 msgid "Small perimeters threshold"
 msgstr "Drempel voor kleine perimeters"
 
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "Dit stelt de drempel voor kleine omtreklengte in. De standaarddrempel is 0 mm"
+# AI Translated
+msgid "This sets the threshold for small perimeter length."
+msgstr "Dit stelt de drempel voor kleine omtreklengte in."
 
 # AI Translated
 msgid "Small support perimeters"
@@ -18554,8 +18561,8 @@ msgid "Small support perimeters threshold"
 msgstr "Drempel voor kleine ondersteuningsperimeters"
 
 # AI Translated
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "Hiermee stelt u de drempel voor de lengte van kleine ondersteuningsperimeters in. De standaarddrempel is 0 mm."
+msgid "This sets the threshold for small support perimeter length."
+msgstr "Hiermee stelt u de drempel voor de lengte van kleine ondersteuningsperimeters in."
 
 # AI Translated
 msgid "Walls printing order"
@@ -21126,13 +21133,13 @@ msgstr "Segmentlengte voor afvlakking"
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "Een lagere waarde geeft vloeiendere overgangen in de extrusiesnelheid. Dit levert echter een aanzienlijk groter G-code-bestand op en meer instructies die de printer moet verwerken.\n"
 "\n"
-"De standaardwaarde van 3 werkt in de meeste gevallen goed. Als uw printer hapert, verhoog deze waarde dan om het aantal aanpassingen te verminderen.\n"
+"3 werkt in de meeste gevallen goed. Als uw printer hapert, verhoog deze waarde dan om het aantal aanpassingen te verminderen.\n"
 "\n"
 "Toegestane waarden: 0,5-5"
 
@@ -21711,10 +21718,10 @@ msgstr "Naadopening"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "Om de zichtbaarheid van de naad bij een gesloten lusextrusie te verminderen, wordt de lus onderbroken en met een opgegeven hoeveelheid ingekort.\n"
-"Deze hoeveelheid kan worden opgegeven in millimeters of als percentage van de mondstukdiameter. De standaardwaarde voor deze parameter is 10%."
+"Deze hoeveelheid kan worden opgegeven in millimeters of als percentage van de mondstukdiameter."
 
 # AI Translated
 msgid "Scarf joint seam (beta)"
@@ -21739,10 +21746,10 @@ msgstr "Voorwaardelijke hoekdrempel"
 # AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "Deze optie stelt de drempelhoek in voor het toepassen van een voorwaardelijke schuine naad.\n"
-"Als de maximale hoek binnen de perimeterlus deze waarde overschrijdt (wat wijst op het ontbreken van scherpe hoeken), wordt er een schuine naad gebruikt. De standaardwaarde is 155°."
+"Als de maximale hoek binnen de perimeterlus deze waarde overschrijdt (wat wijst op het ontbreken van scherpe hoeken), wordt er een schuine naad gebruikt."
 
 # AI Translated
 msgid "Conditional overhang threshold"
@@ -21750,8 +21757,8 @@ msgstr "Voorwaardelijke overhangdrempel"
 
 # AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Deze optie bepaalt de overhangdrempel voor het toepassen van schuine naden. Als het niet-ondersteunde deel van de perimeter kleiner is dan deze drempel, worden er schuine naden toegepast. De standaarddrempel is 40% van de breedte van de buitenwand. Om prestatieredenen wordt de mate van overhang geschat."
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "Deze optie bepaalt de overhangdrempel voor het toepassen van schuine naden. Als het niet-ondersteunde deel van de perimeter kleiner is dan deze drempel, worden er schuine naden toegepast. De drempel is een percentage van de breedte van de buitenwand. Om prestatieredenen wordt de mate van overhang geschat."
 
 # AI Translated
 msgid "Scarf joint speed"
@@ -21761,11 +21768,11 @@ msgstr "Snelheid voor schuine naad"
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "Deze optie stelt de printsnelheid voor schuine naden in. Het is aan te raden schuine naden op lage snelheid te printen (minder dan 100 mm/s). Het is ook verstandig 'Afvlakking van de extrusiesnelheid' in te schakelen als de ingestelde snelheid sterk afwijkt van de snelheid van de buitenste of binnenste wanden.\n"
 "\n"
-"Als de hier opgegeven snelheid hoger is dan die van de buitenste of binnenste wanden, gebruikt de printer standaard de laagste van de twee snelheden. Bij opgave als percentage (bijv. 80%) wordt de snelheid berekend op basis van de betreffende snelheid van de buitenste of binnenste wand. De standaardwaarde is 100%."
+"Als de hier opgegeven snelheid hoger is dan die van de buitenste of binnenste wanden, gebruikt de printer standaard de laagste van de twee snelheden. Bij opgave als percentage (bijv. 80%) wordt de snelheid berekend op basis van de betreffende snelheid van de buitenste of binnenste wand."
 
 # AI Translated
 msgid "Scarf joint flow ratio"
@@ -21782,10 +21789,10 @@ msgstr "Starthoogte van de schuine naad"
 # AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "Starthoogte van de schuine naad.\n"
-"Deze hoeveelheid kan in millimeters of als percentage van de huidige laaghoogte worden opgegeven. De standaardwaarde voor deze parameter is 0."
+"Deze hoeveelheid kan in millimeters of als percentage van de huidige laaghoogte worden opgegeven."
 
 # AI Translated
 msgid "Scarf around entire wall"
@@ -21889,8 +21896,9 @@ msgstr ""
 msgid "Wipe speed"
 msgstr "Veegsnelheid"
 
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "De veegsnelheid wordt bepaald door de snelheidsinstelling die in deze configuratie is opgegeven. Als de waarde wordt uitgedrukt als percentage (bijv. 80%), wordt deze berekend op basis van de bovenstaande instelling van de rijsnelheid. De standaardwaarde voor deze parameter is 80%."
+# AI Translated
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "De veegsnelheid wordt bepaald door de snelheidsinstelling die in deze configuratie is opgegeven. Als de waarde wordt uitgedrukt als percentage (bijv. 80%), wordt deze berekend op basis van de bovenstaande instelling van de rijsnelheid."
 
 msgid "Skirt distance"
 msgstr "Rand (skirt) afstand"
@@ -22537,8 +22545,9 @@ msgstr "Lijnbreedte van de ondersteuning. Als dit als % wordt uitgedrukt, wordt 
 msgid "Loop pattern interface"
 msgstr "Luspatroon interface"
 
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "Dit bedekt de bovenste laag van de support met lussen. Het is standaard uitgeschakeld."
+# AI Translated
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "Dit bedekt de bovenste laag van de support met lussen."
 
 # AI Translated
 msgid "Support/raft interface"
@@ -23467,8 +23476,9 @@ msgstr "Bestandstype van G-code-voorbeelden: PNG voor de beste kwaliteit, JPG vo
 msgid "Use relative E distances"
 msgstr "Relatieve E-afstanden gebruiken"
 
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "Relatieve extrusie wordt aanbevolen bij gebruik van de optie \"label_objects\". Sommige extruders werken beter als deze optie niet is aangevinkt (absolute extrusiemodus). Wipe tower is alleen compatibel met relatieve modus. Het wordt aanbevolen op de meeste printers. Standaard is aangevinkt"
+# AI Translated
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "Relatieve extrusie wordt aanbevolen bij gebruik van de optie \"label_objects\". Sommige extruders werken beter als deze optie niet is aangevinkt (absolute extrusiemodus). Wipe tower is alleen compatibel met relatieve modus. Het wordt aanbevolen op de meeste printers."
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "De klassieke wandgenerator produceert wanden met constante extrusiebreedte en voor zeer dunne gebieden wordt gap-fill gebruikt. De Arachne generator produceert wanden met variabele extrusiebreedte."
@@ -23524,11 +23534,11 @@ msgstr "Minimale wandlengte"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "Pas deze waarde aan om te voorkomen dat korte, niet-gesloten wanden worden geprint, wat de printtijd kan verlengen. De waarde is een veelvoud van de wandbreedte. Hogere waarden verwijderen meer en langere wanden.\n"
 "\n"
-"LET OP: onder- en bovenoppervlakken worden niet door deze waarde beïnvloed, om zichtbare gaten aan de buitenzijde van het model te voorkomen. Pas 'Drempel voor één wand' in de instellingen 'Wanden en oppervlakten' hieronder aan om de gevoeligheid van wat als bovenoppervlak wordt beschouwd aan te passen. 'Drempel voor één wand' is alleen zichtbaar als deze instelling boven de standaardwaarde van 0,5 staat of als bovenoppervlakken met één wand zijn ingeschakeld."
+"LET OP: onder- en bovenoppervlakken worden niet door deze waarde beïnvloed, om zichtbare gaten aan de buitenzijde van het model te voorkomen. Pas 'Drempel voor één wand' in de instellingen 'Wanden en oppervlakten' hieronder aan om de gevoeligheid van wat als bovenoppervlak wordt beschouwd aan te passen. 'Drempel voor één wand' is alleen zichtbaar als deze instelling boven 0,5 staat of als bovenoppervlakken met één wand zijn ingeschakeld."
 
 # AI Translated
 msgid "Maximum wall resolution"
@@ -23808,8 +23818,8 @@ msgid "Ensure on bed"
 msgstr "Plaats op bed"
 
 # AI Translated
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "Til het object boven het bed als het er gedeeltelijk onder ligt. Standaard uitgeschakeld."
+msgid "Lift the object above the bed when it is partially below."
+msgstr "Til het object boven het bed als het er gedeeltelijk onder ligt."
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "Schik de toegevoegde modellen en combineer ze tot één model om eenmalig acties uit te voeren."

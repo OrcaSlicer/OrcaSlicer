@@ -2077,7 +2077,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("internal_bridge_speed", coFloatsOrPercents);
     def->label = L("Internal");
     def->category = L("Speed");
-    def->tooltip = L("Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
+    def->tooltip = L("Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n\nThe resulting speed is limited by the filament's \"Max volumetric speed\".");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "bridge_speed";
     def->min = 1;
@@ -2756,7 +2756,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("small_perimeter_threshold", coFloats);
     def->label = L("Small perimeters threshold");
     def->category = L("Speed");
-    def->tooltip = L("This sets the threshold for small perimeter length. Default threshold is 0mm.");
+    def->tooltip = L("This sets the threshold for small perimeter length.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -2778,7 +2778,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("small_support_perimeter_threshold", coFloats);
     def->label = L("Small support perimeters threshold");
     def->category = L("Speed");
-    def->tooltip = L("This sets the threshold for small support perimeter length. The default threshold is 0mm.");
+    def->tooltip = L("This sets the threshold for small support perimeter length.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -5882,7 +5882,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Smoothing segment length");
     def->tooltip = L("A lower value results in smoother extrusion rate transitions. "
                      "However, this results in a significantly larger G-code file and more instructions for the printer to process.\n\n"
-                     "Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n\n"
+                     "A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n\n"
                      "Allowed values: 0.5-5");
     def->min = 0.5;
     def->max = 5;
@@ -6760,7 +6760,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Seam gap");
     def->category = L("Quality");
     def->tooltip = L("In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-                     "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%.");
+                     "This amount can be specified in millimeters or as a percentage of the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->min = 0;
     def->mode = comAdvanced;
@@ -6792,7 +6792,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Quality");
     def->tooltip = L(
         "This option sets the threshold angle for applying a conditional scarf joint seam.\nIf the maximum angle within the perimeter loop "
-        "exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°.");
+        "exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used.");
     def->mode = comAdvanced;
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
@@ -6804,7 +6804,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Quality");
     // xgettext:no-c-format, no-boost-format
     def->tooltip  = L("This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion "
-                       "of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% "
+                       "of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage "
                        "of the external wall's width. Due to performance considerations, the degree of overhang is estimated.");
     def->sidetext = "%";
     def->min = 0;
@@ -6819,7 +6819,7 @@ void PrintConfigDef::init_fff_params()
          "mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the "
          "outer or inner walls.\n\nIf the speed specified here is higher than the speed of the outer or inner walls, the printer will default "
          "to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective "
-         "outer or inner wall speed. The default value is set to 100%.");
+         "outer or inner wall speed.");
     def->sidetext = L("mm/s or %");
     def->min = 1;
     def->mode = comAdvanced;
@@ -6838,7 +6838,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Scarf start height");
     def->category = L("Quality");
     def->tooltip = L("Start height of the scarf.\n"
-                     "This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0.");
+                     "This amount can be specified in millimeters or as a percentage of the current layer height.");
     def->sidetext = L("mm or %");
     def->ratio_over = "layer_height";
     def->min = 0;
@@ -6949,8 +6949,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Wipe speed");
     def->category = L("Speed");
     def->tooltip = L("The wipe speed is determined by the speed setting specified in this configuration. "
-                     "If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. "
-                     "The default value for this parameter is 80%.");
+                     "If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "travel_speed";
     def->min = 0;
@@ -7701,7 +7700,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_interface_loop_pattern", coBool);
     def->label = L("Loop pattern interface");
     def->category = L("Support");
-    def->tooltip = L("This covers the top contact layer of the supports with loops. It is disabled by default.");
+    def->tooltip = L("This covers the top contact layer of the supports with loops.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -8859,7 +8858,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Relative extrusion is recommended when using \"label_objects\" option. "
                    "Some extruders work better with this option unchecked (absolute extrusion mode). "
                    "Wipe tower is only compatible with relative mode. It is recommended on "
-                   "most printers. Default is checked.");
+                   "most printers.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -8939,7 +8938,7 @@ void PrintConfigDef::init_fff_params()
     "The value is a multiple of the wall width. Higher values remove more and longer walls.\n\n"
     "NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. "
     "Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. "
-    "'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled.");
+    "'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled.");
     def->mode = comAdvanced;
     def->min = 0.0;
     def->max = 25.0;
@@ -13195,7 +13194,7 @@ CLITransformConfigDef::CLITransformConfigDef()
 
     def = this->add("ensure_on_bed", coBool);
     def->label = L("Ensure on bed");
-    def->tooltip = L("Lift the object above the bed when it is partially below. Disabled by default.");
+    def->tooltip = L("Lift the object above the bed when it is partially below.");
     def->set_default_value(new ConfigOptionBool(false));
 
     /*def = this->add("copy", coInt);

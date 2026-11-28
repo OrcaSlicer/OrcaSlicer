@@ -17386,8 +17386,14 @@ msgstr ""
 "さらに、「カールした外周のスローダウン」が無効な場合、ブリッジかオーバーハングかに関わらず、支持率13%未満のオーバーハング壁の印刷速度になります。"
 
 # AI Translated
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "内部ブリッジの速度です。値を%で指定した場合、bridge_speedを基準に計算されます。デフォルト値は150%です。"
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"内部ブリッジの速度です。値を%で指定した場合、bridge_speedを基準に計算されます。\n"
+"\n"
+"結果の速度は、フィラメントの「最大体積速度」によって制限されます。"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Ungrammatical.
@@ -17991,8 +17997,8 @@ msgid "Small perimeters threshold"
 msgstr "小さな外周のしきい値"
 
 # AI Translated
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "小さな外周の長さのしきい値を設定します。デフォルトのしきい値は0mmです。"
+msgid "This sets the threshold for small perimeter length."
+msgstr "小さな外周の長さのしきい値を設定します。"
 
 # AI Translated
 msgid "Small support perimeters"
@@ -18007,8 +18013,8 @@ msgid "Small support perimeters threshold"
 msgstr "小さなサポート外周のしきい値"
 
 # AI Translated
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "小さなサポート外周の長さのしきい値を設定します。デフォルトのしきい値は0mmです。"
+msgid "This sets the threshold for small support perimeter length."
+msgstr "小さなサポート外周の長さのしきい値を設定します。"
 
 msgid "Walls printing order"
 msgstr "壁の印刷順序"
@@ -20514,13 +20520,13 @@ msgstr "スムージングセグメント長"
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "値を小さくすると押出レートの移行がより滑らかになります。ただし、G-codeファイルが大幅に大きくなり、プリンターが処理する命令も増えます。\n"
 "\n"
-"デフォルト値の3は多くの場合うまく機能します。プリンターがカクつく場合は、この値を大きくして調整回数を減らしてください。\n"
+"3は多くの場合うまく機能します。プリンターがカクつく場合は、この値を大きくして調整回数を減らしてください。\n"
 "\n"
 "設定できる値: 0.5〜5"
 
@@ -21115,10 +21121,10 @@ msgstr "継ぎ目ギャップ"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "閉ループ押出における継ぎ目を目立たなくするため、ループを途中で止めて指定した量だけ短くします。\n"
-"この量はミリメートル、またはノズル径に対するパーセントで指定できます。このパラメータのデフォルト値は10%です。"
+"この量はミリメートル、またはノズル径に対するパーセントで指定できます。"
 
 # AI Translated
 msgid "Scarf joint seam (beta)"
@@ -21144,10 +21150,10 @@ msgstr "条件付き角度しきい値"
 # AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "このオプションは、条件付きスカーフ継ぎ目を適用する際のしきい値角度を設定します。\n"
-"外周ループ内の最大角度がこの値を超える場合 (鋭角がないことを示します)、スカーフ継ぎ目が使用されます。デフォルト値は155°です。"
+"外周ループ内の最大角度がこの値を超える場合 (鋭角がないことを示します)、スカーフ継ぎ目が使用されます。"
 
 # AI Translated
 msgid "Conditional overhang threshold"
@@ -21155,8 +21161,8 @@ msgstr "条件付きオーバーハングしきい値"
 
 # AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "このオプションは、スカーフ継ぎ目を適用する際のオーバーハングのしきい値を決定します。外周のうち支持されていない部分がこのしきい値未満の場合、スカーフ継ぎ目が適用されます。デフォルトのしきい値は外壁幅の40%です。パフォーマンス上の理由から、オーバーハングの度合いは推定値です。"
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "このオプションは、スカーフ継ぎ目を適用する際のオーバーハングのしきい値を決定します。外周のうち支持されていない部分がこのしきい値未満の場合、スカーフ継ぎ目が適用されます。しきい値は外壁幅に対するパーセントで指定します。パフォーマンス上の理由から、オーバーハングの度合いは推定値です。"
 
 # AI Translated
 msgid "Scarf joint speed"
@@ -21166,11 +21172,11 @@ msgstr "スカーフ継ぎ目の速度"
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "このオプションはスカーフ継ぎ目の印刷速度を設定します。スカーフ継ぎ目は低速 (100 mm/s未満) で印刷することをおすすめします。設定した速度が外壁や内壁の速度と大きく異なる場合は、「押出レートスムージング」の有効化もおすすめします。\n"
 "\n"
-"ここで指定した速度が外壁や内壁の速度より高い場合、プリンターは2つのうち遅い方の速度を使用します。パーセント (例: 80%) で指定した場合、速度はそれぞれの外壁または内壁の速度を基準に計算されます。デフォルト値は100%です。"
+"ここで指定した速度が外壁や内壁の速度より高い場合、プリンターは2つのうち遅い方の速度を使用します。パーセント (例: 80%) で指定した場合、速度はそれぞれの外壁または内壁の速度を基準に計算されます。"
 
 # AI Translated
 msgid "Scarf joint flow ratio"
@@ -21186,10 +21192,10 @@ msgstr "スカーフ開始高さ"
 # AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "スカーフの開始高さです。\n"
-"この量はミリメートル、または現在の積層ピッチに対するパーセントで指定できます。このパラメータのデフォルト値は0です。"
+"この量はミリメートル、または現在の積層ピッチに対するパーセントで指定できます。"
 
 msgid "Scarf around entire wall"
 msgstr "壁全体にスカーフを巻く"
@@ -21294,8 +21300,8 @@ msgid "Wipe speed"
 msgstr "拭き上げ速度"
 
 # AI Translated
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "拭き上げ速度はこの設定で指定した速度によって決まります。値をパーセント (例: 80%) で指定した場合、上の移動速度設定を基準に計算されます。このパラメータのデフォルト値は80%です。"
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "拭き上げ速度はこの設定で指定した速度によって決まります。値をパーセント (例: 80%) で指定した場合、上の移動速度設定を基準に計算されます。"
 
 msgid "Skirt distance"
 msgstr "スカート距離"
@@ -21944,8 +21950,9 @@ msgstr "サポートの線幅です。%で指定した場合、ノズル径に�
 msgid "Loop pattern interface"
 msgstr "接触面は同心パターンにする"
 
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "これにより、サポートの上部接触層がループで覆われます。デフォルトでは無効になっています。"
+# AI Translated
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "これにより、サポートの上部接触層がループで覆われます。"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: used インターフェース; glossary Support interface is サポート接触面
@@ -22858,9 +22865,8 @@ msgid "Use relative E distances"
 msgstr "相対E距離を使用"
 
 # AI Translated
-# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "ワイプタワー"; align it once the term is settled.
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "「label_objects」オプションを使用する場合は相対押出をおすすめします。押出機によっては、このオプションのチェックを外した方 (絶対押出モード) がうまく動作します。ワイプタワーは相対モードにのみ対応しています。ほとんどのプリンターで推奨されます。デフォルトはチェックありです。"
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "「label_objects」オプションを使用する場合は相対押出をおすすめします。押出機によっては、このオプションのチェックを外した方 (絶対押出モード) がうまく動作します。ワイプタワーは相対モードにのみ対応しています。ほとんどのプリンターで推奨されます。"
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "クラシックでは従来通りの壁面を生成しますが、Arachneでは押出線幅が可変になります。"
@@ -22922,11 +22928,11 @@ msgstr "最小壁長さ"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "短く閉じていない壁が印刷されて印刷時間が増えるのを防ぐため、この値を調整します。値は壁幅の倍数です。値を大きくすると、より多くの、より長い壁が取り除かれます。\n"
 "\n"
-"注意: モデル外側に視覚的な隙間が生じるのを防ぐため、底面と上面はこの値の影響を受けません。上面と見なす判定の感度は、下の「壁と表面」の設定にある「1壁しきい値」で調整してください。「1壁しきい値」は、この設定がデフォルト値の0.5より大きい場合、または「上面は壁1本のみ」が有効な場合にのみ表示されます。"
+"注意: モデル外側に視覚的な隙間が生じるのを防ぐため、底面と上面はこの値の影響を受けません。上面と見なす判定の感度は、下の「壁と表面」の設定にある「1壁しきい値」で調整してください。「1壁しきい値」は、この設定が0.5より大きい場合、または「上面は壁1本のみ」が有効な場合にのみ表示されます。"
 
 # AI Translated
 msgid "Maximum wall resolution"
@@ -23220,8 +23226,8 @@ msgid "Ensure on bed"
 msgstr "ベッド上に配置"
 
 # AI Translated
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "オブジェクトの一部がベッドより下にある場合、オブジェクトをベッドの上まで持ち上げます。デフォルトでは無効です。"
+msgid "Lift the object above the bed when it is partially below."
+msgstr "オブジェクトの一部がベッドより下にある場合、オブジェクトをベッドの上まで持ち上げます。"
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "モデルをプレート上に配置し、それらを1つのモデルにマージして、一度で実行できるようにします。"

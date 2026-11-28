@@ -16273,8 +16273,15 @@ msgstr ""
 "\n"
 "Кроме того, если отключена опция «Замедляться на изогнутых периметрах», то скорость печати будет такой же, что и для нависающих периметров, которые имеют поддержку менее 13%, независимо от того, являются ли они частью моста или нависания."
 
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "Скорость печати внутреннего моста. Можно указать процент от скорости внешнего моста (bridge_speed). По умолчанию – 150%."
+# AI Translated
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"Скорость печати внутреннего моста. Можно указать процент от скорости внешнего моста (bridge_speed).\n"
+"\n"
+"Итоговая скорость ограничена значением «Предел объёмного расхода» материала печати."
 
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Расстояние от модели до внешней линии каймы."
@@ -16842,9 +16849,9 @@ msgstr "Ограничение скорости движения головы (�
 msgid "Small perimeters threshold"
 msgstr "Порог коротких периметров"
 
-# Информация о формуле с Вики
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "Пороговое значение (радиус) для расчёта длины коротких периметров (по формуле длины окружности). Значение по умолчанию – 0 мм."
+# AI Translated
+msgid "This sets the threshold for small perimeter length."
+msgstr "Пороговое значение (радиус) для расчёта длины коротких периметров (по формуле длины окружности)."
 
 msgid "Small support perimeters"
 msgstr "Короткие периметры поддержек"
@@ -16855,8 +16862,9 @@ msgstr "Аналогично скорости «Коротких перимет�
 msgid "Small support perimeters threshold"
 msgstr "Порог коротких периметров поддержек"
 
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "Пороговое значение (радиус) для расчёта длины коротких периметров поддержек (по формуле длины окружности). Значение по умолчанию – 0 мм."
+# AI Translated
+msgid "This sets the threshold for small support perimeter length."
+msgstr "Пороговое значение (радиус) для расчёта длины коротких периметров поддержек (по формуле длины окружности)."
 
 msgid "Walls printing order"
 msgstr "Порядок печати периметров"
@@ -19195,16 +19203,17 @@ msgstr "мм³/с²"
 msgid "Smoothing segment length"
 msgstr "Протяжённость сглаживания"
 
+# AI Translated
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "Меньшее значение приводит к более плавному изменению расхода, однако может значительно увеличить размер файла G-кода и количество инструкций для обработки прошивкой принтера.\n"
 "\n"
-"Значение по умолчанию (3) подходит для большинства случаев. Если принтер печатает рывками, увеличьте это значение для снижения количества корректировок.\n"
+"(3) подходит для большинства случаев. Если принтер печатает рывками, увеличьте это значение для снижения количества корректировок.\n"
 "\n"
 "Допустимые значения: 0,5–5"
 
@@ -19760,12 +19769,13 @@ msgstr "Ступенчато смещать швы внутренних пери
 msgid "Seam gap"
 msgstr "Зазор шва"
 
+# AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "Позволяет укоротить периметры на заданную длину, чтобы уменьшить видимость шва.\n"
-"Можно указать значение в миллиметрах или процент от диаметра сопла. Значение по умолчанию – 10%. Внимание: большой зазор может ухудшить печать коротких периметров."
+"Можно указать значение в миллиметрах или процент от диаметра сопла. Внимание: большой зазор может ухудшить печать коротких периметров."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Косой шов (beta)"
@@ -19782,31 +19792,36 @@ msgstr "Ограничить область применения косого ш
 msgid "Conditional angle threshold"
 msgstr "Порог угла для косого шва"
 
+# AI Translated
+# Needs human review: Rewrote a person's translation: Default-value sentence removed per source change; kept the human translation of the first sentence and added a literal translation of the second (new) English sentence to satisfy line-break validation
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "Не использовать косой шов, если в контуре слоя присутсвуют углы меньше указанного, где можно спрятать обычный шов.\n"
-"Значение по умолчанию – 155°."
+"Если максимальный угол в контуре превышает это значение (то есть острых углов нет), будет использован косой шов."
 
 msgid "Conditional overhang threshold"
 msgstr "Порог нависания"
 
+# AI Translated
+# Needs human review: Rewrote a person's translation: Source sentence about the 40% default was replaced by a neutral threshold sentence; patched the human translation accordingly
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Не использовать косой шов, если периметр выступает над предыдущим слишком сильно. Значение по умолчанию – 40% от ширины внешнего периметра."
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "Не использовать косой шов, если периметр выступает над предыдущим слишком сильно. Порог задаётся в процентах от ширины внешнего периметра."
 
 msgid "Scarf joint speed"
 msgstr "Скорость косого шва"
 
+# AI Translated
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "Ограничение скорости движения головы при печати косого шва (относительно стола). Рекомендуется печатать его на низкой скорости (менее 100 мм/с) и включить функцию «Сглаживание подачи», если фактическая скорость печати шва значительно отличается от скорости печати периметра.\n"
 "\n"
-"Можно указать значение в мм/с или процент от скорости периметра. По умолчанию - 100%. Значения, превышающие ограничение скорости периметра, игнорируются."
+"Можно указать значение в мм/с или процент от скорости периметра. Значения, превышающие ограничение скорости периметра, игнорируются."
 
 msgid "Scarf joint flow ratio"
 msgstr "Поток косого шва"
@@ -19817,12 +19832,13 @@ msgstr "Поток материала для косого шва."
 msgid "Scarf start height"
 msgstr "Начальная высота косого шва"
 
+# AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "Начальная высота косого шва.\n"
-"Можно указать значение в миллиметрах или процент от высоты текущего слоя. Значение по умолчанию - 0."
+"Можно указать значение в миллиметрах или процент от высоты текущего слоя."
 
 msgid "Scarf around entire wall"
 msgstr "Косой шов вдоль всего периметра"
@@ -19932,10 +19948,9 @@ msgstr ""
 msgid "Wipe speed"
 msgstr "Скорость очистки"
 
-# based on the travel speed setting above – ошибка, эта настройка вообще в
-# другом разделе и на другой вкладке.
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "Скорость возвратного движения при очистке. Можно указать процент от скорости холостых перемещений или ограничить её настройкой выше. Значение по умолчанию – 80%."
+# AI Translated
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "Скорость возвратного движения при очистке. Можно указать процент от скорости холостых перемещений или ограничить её настройкой выше."
 
 msgid "Skirt distance"
 msgstr "Смещение юбки"
@@ -20494,9 +20509,9 @@ msgstr "Ширина линий поддержки. Можно указать п
 msgid "Loop pattern interface"
 msgstr "Связующий слой петлями"
 
-# ??? Печатать контактный слой связующего слоя поддержки петлями
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "Печатать по периметру последнего связующего слоя поддержки непрерывную полилинию. По умолчанию отключено. Устаревшая функция, которая не всегда работает корректно."
+# AI Translated
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "Печатать по периметру последнего связующего слоя поддержки непрерывную полилинию. Устаревшая функция, которая не всегда работает корректно."
 
 msgid "Support/raft interface"
 msgstr "Связующий слой поддержки/подложки"
@@ -21348,8 +21363,9 @@ msgstr "Формат эскизов G-кода: PNG для наилучшего 
 msgid "Use relative E distances"
 msgstr "Относительные координаты экструдера"
 
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "Относительная экструзия рекомендуется при использовании опции «Помечать объекты». Некоторые экструдеры работают лучше при отключении этой опции (абсолютный режим экструзии). Черновая башня совместима только с относительной экструзии. Рекомендуется включить для большинства принтеров (по умолчанию включено)."
+# AI Translated
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "Относительная экструзия рекомендуется при использовании опции «Помечать объекты». Некоторые экструдеры работают лучше при отключении этой опции (абсолютный режим экструзии). Черновая башня совместима только с относительной экструзии. Рекомендуется включить для большинства принтеров."
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "Классический генератор создаёт периметры с постоянной шириной линии, а для очень тонких участков используется заполнение щелей. Генератор Arachne создаёт периметры с адаптивной шириной линии, что при правильно настроенном Pressure Advance позволяет избегать образования щелей и лучше печатать мелкие элементы."
@@ -21406,14 +21422,15 @@ msgstr "Минимальная ширина элементов модели дл
 msgid "Minimum wall length"
 msgstr "Допустимая длина щели"
 
+# AI Translated
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "Максимальная длина щели в месте уплотнения, которую можно игнорировать. Помогает избежать печати большого количества ненужных коротких линий.\n"
 "\n"
-"Примечание: не влияет на периметры на первом слое и верхних поверхностях во избежание появления видимых щелей в них. Дополнительно можно настроить чувствительность определения поверхности как верхней в настройке «Порог верхней поверхности», если значение превышает стандартное значение в 0.5 мм."
+"Примечание: не влияет на периметры на первом слое и верхних поверхностях во избежание появления видимых щелей в них. Дополнительно можно настроить чувствительность определения поверхности как верхней в настройке «Порог верхней поверхности», если значение превышает 0.5 мм."
 
 # Минимальный сегмент периметра
 msgid "Maximum wall resolution"
@@ -21683,8 +21700,9 @@ msgstr "Количество повторений всей модели."
 msgid "Ensure on bed"
 msgstr "Обеспечивать размещение на столе"
 
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "Поднимает модель над столом, когда она частично находится ниже его уровня. По умолчанию отключено."
+# AI Translated
+msgid "Lift the object above the bed when it is partially below."
+msgstr "Поднимает модель над столом, когда она частично находится ниже его уровня."
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "Расставьте представленные модели на столе и объединить их в одну модель, чтобы выполнить действия один раз."

@@ -16813,8 +16813,15 @@ msgstr ""
 "\n"
 "Ezen felül, ha a Lassítás felkunkorodó kerületeknél ki van kapcsolva, akkor ez lesz azon túlnyúló falak nyomtatási sebessége is, amelyeket 13%-nál kisebb mértékben támaszt alá az alattuk lévő réteg, függetlenül attól, hogy híd vagy túlnyúlás részét képezik."
 
-msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
-msgstr "A belső hidak sebessége. Ha az érték százalékban van megadva, a bridge_speed alapján lesz kiszámítva. Az alapértelmezett érték 150%."
+# AI Translated
+msgid ""
+"Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed.\n"
+"\n"
+"The resulting speed is limited by the filament's \"Max volumetric speed\"."
+msgstr ""
+"A belső hidak sebessége. Ha az érték százalékban van megadva, a bridge_speed alapján lesz kiszámítva.\n"
+"\n"
+"A kapott sebességet a filament \"Max. volumetrikus sebessége\" korlátozza."
 
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "A modell és a legkülső peremvonal közötti távolság"
@@ -17390,8 +17397,9 @@ msgstr "Ez a külön beállítás a <= small_perimeter_threshold sugarú kerüle
 msgid "Small perimeters threshold"
 msgstr "Kis kerületek küszöbértéke"
 
-msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
-msgstr "A kis peremek hosszának küszöbértékét határozza meg. Az alapértelmezett érték 0 mm"
+# AI Translated
+msgid "This sets the threshold for small perimeter length."
+msgstr "A kis peremek hosszának küszöbértékét határozza meg."
 
 # AI Translated
 msgid "Small support perimeters"
@@ -17406,8 +17414,8 @@ msgid "Small support perimeters threshold"
 msgstr "Kis támaszfalak küszöbértéke"
 
 # AI Translated
-msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr "Ez állítja be a kis támaszfalak hosszának küszöbértékét. Az alapértelmezett küszöbérték 0 mm."
+msgid "This sets the threshold for small support perimeter length."
+msgstr "Ez állítja be a kis támaszfalak hosszának küszöbértékét."
 
 msgid "Walls printing order"
 msgstr "Falak nyomtatási sorrendje"
@@ -19720,13 +19728,13 @@ msgstr "Simítási szegmenshossz"
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
-"Default value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
+"A value of 3 works well for most cases. If your printer is stuttering, increase this value to reduce the number of adjustments made.\n"
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
 "Az alacsonyabb érték simább extrudálási sebességátmeneteket eredményez. Ugyanakkor jelentősen nagyobb G-code fájlt és több feldolgozandó utasítást eredményez a nyomtató számára.\n"
 "\n"
-"A 3-as alapértelmezett érték a legtöbb esetben jól működik. Ha a nyomtató akad, növeld ezt az értéket, hogy csökkenjen a végrehajtott módosítások száma.\n"
+"A 3-as érték a legtöbb esetben jól működik. Ha a nyomtató akad, növeld ezt az értéket, hogy csökkenjen a végrehajtott módosítások száma.\n"
 "\n"
 "Megengedett értékek: 0,5-5"
 
@@ -20255,10 +20263,10 @@ msgstr "Varrat hézag"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter."
 msgstr ""
 "A varrat láthatóságának csökkentéséhez zárt hurkú extrudálásnál a hurok megszakad és a megadott mértékben rövidül.\n"
-"Ez az érték megadható milliméterben vagy a fúvóka átmérőjének százalékában. Ennek a paraméternek az alapértelmezett értéke 10%."
+"Ez az érték megadható milliméterben vagy a fúvóka átmérőjének százalékában."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Átlapolt varrat (béta)"
@@ -20275,31 +20283,34 @@ msgstr "Csak olyan sima kerületeken alkalmaz átlapolt illesztést, ahol nincse
 msgid "Conditional angle threshold"
 msgstr "Feltételes szögküszöb"
 
+# AI Translated
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
-"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
+"If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used."
 msgstr ""
 "Ez az opció beállítja a feltételes átlapolt varrat alkalmazásának szögküszöbét.\n"
-"Ha a kerülethurokon belüli maximális szög meghaladja ezt az értéket (ami arra utal, hogy nincsenek éles sarkok), akkor átlapolt varrat lesz használva. Az alapértelmezett érték 155°."
+"Ha a kerülethurokon belüli maximális szög meghaladja ezt az értéket (ami arra utal, hogy nincsenek éles sarkok), akkor átlapolt varrat lesz használva."
 
 msgid "Conditional overhang threshold"
 msgstr "Feltételes túlnyúlási küszöb"
 
+# AI Translated
 #, no-c-format, no-boost-format
-msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Ez a beállítás határozza meg az átlapolt varratok túlnyúlási küszöbét. Ha a kerület alá nem támasztott része kisebb ennél a küszöbnél, a szeletelő átlapolt varratot alkalmaz. Az alapértelmezett küszöb a külső fal szélességének 40%-a. Teljesítménybeli okokból a túlnyúlás mértéke csak becsült érték."
+msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The threshold is a percentage of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
+msgstr "Ez a beállítás határozza meg az átlapolt varratok túlnyúlási küszöbét. Ha a kerület alá nem támasztott része kisebb ennél a küszöbnél, a szeletelő átlapolt varratot alkalmaz. A küszöb a külső fal szélességének százaléka. Teljesítménybeli okokból a túlnyúlás mértéke csak becsült érték."
 
 msgid "Scarf joint speed"
 msgstr "Átlapolt varrat sebessége"
 
+# AI Translated
 msgid ""
 "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
 "\n"
-"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed."
 msgstr ""
 "Ez az opció beállítja az átlapolt varratok nyomtatási sebességét. Ajánlott az átlapolt varratokat alacsony sebességgel nyomtatni (100 mm/s alatt). Az is javasolt, hogy kapcsold be az \"Extrudálási sebesség simítását\", ha az itt megadott sebesség jelentősen eltér a külső vagy belső fal sebességétől.\n"
 "\n"
-"Ha az itt megadott sebesség nagyobb, mint a külső vagy belső fal sebessége, a nyomtató a kettő közül a lassabbat fogja használni. Ha százalékban van megadva (pl. 80%), a sebesség a megfelelő külső vagy belső fali sebesség alapján lesz kiszámítva. Az alapértelmezett érték 100%."
+"Ha az itt megadott sebesség nagyobb, mint a külső vagy belső fal sebessége, a nyomtató a kettő közül a lassabbat fogja használni. Ha százalékban van megadva (pl. 80%), a sebesség a megfelelő külső vagy belső fali sebesség alapján lesz kiszámítva."
 
 msgid "Scarf joint flow ratio"
 msgstr "Átlapolt varrat anyagáramlása"
@@ -20310,12 +20321,13 @@ msgstr "Ez a tényező az átlapolt varratokhoz felhasznált anyag mennyiségét
 msgid "Scarf start height"
 msgstr "Átlapolás kezdőmagassága"
 
+# AI Translated
 msgid ""
 "Start height of the scarf.\n"
-"This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
+"This amount can be specified in millimeters or as a percentage of the current layer height."
 msgstr ""
 "Az átlapolás kezdőmagassága.\n"
-"Ez az érték megadható milliméterben vagy az aktuális rétegmagasság százalékában. Ennek a paraméternek az alapértelmezett értéke 0."
+"Ez az érték megadható milliméterben vagy az aktuális rétegmagasság százalékában."
 
 msgid "Scarf around entire wall"
 msgstr "Átlapolás a teljes fal mentén"
@@ -20406,8 +20418,9 @@ msgstr ""
 msgid "Wipe speed"
 msgstr "Törlés sebessége"
 
-msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "A törlés sebességét az itt megadott beállítás határozza meg. Ha az érték százalékban van megadva (pl. 80%), akkor azt a rendszer a mozgási sebességbeállítás alapján számítja ki. Ennek a paraméternek az alapértelmezett értéke 80%"
+# AI Translated
+msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above."
+msgstr "A törlés sebességét az itt megadott beállítás határozza meg. Ha az érték százalékban van megadva (pl. 80%), akkor azt a rendszer a mozgási sebességbeállítás alapján számítja ki."
 
 msgid "Skirt distance"
 msgstr "Szoknya távolsága"
@@ -20994,8 +21007,9 @@ msgstr "A támasz vonalszélessége. Ha százalékban van megadva, a fúvókaát
 msgid "Loop pattern interface"
 msgstr "Hurokminta felület"
 
-msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
-msgstr "Lefedi a támasz felső érintkező rétegét körökkel. Alapértelmezés szerint letiltva."
+# AI Translated
+msgid "This covers the top contact layer of the supports with loops."
+msgstr "Lefedi a támasz felső érintkező rétegét körökkel."
 
 msgid "Support/raft interface"
 msgstr "Támasz/tutaj érintkező felülete"
@@ -21840,8 +21854,9 @@ msgstr "A G-code miniatűrjeinek formátuma: PNG a legjobb minőséghez, JPG a l
 msgid "Use relative E distances"
 msgstr "Relatív E távolságok használata"
 
-msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "A relatív extrudálás használata ajánlott a \"label_objects\" opcióval. Bizonyos extruderek jobban működnek, ha ez az opció nincs bejelölve (abszolút extrudálási mód). A törlőtorony csak a relatív móddal kompatibilis. A legtöbb nyomtatón ajánlott. Alapértelmezés szerint be van jelölve."
+# AI Translated
+msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers."
+msgstr "A relatív extrudálás használata ajánlott a \"label_objects\" opcióval. Bizonyos extruderek jobban működnek, ha ez az opció nincs bejelölve (abszolút extrudálási mód). A törlőtorony csak a relatív móddal kompatibilis. A legtöbb nyomtatón ajánlott."
 
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "A klasszikus falgenerátor állandó szélességű falakat hoz létre, és a nagyon vékony területeknél hézagkitöltést használ. Az Arachne falgenerátor változó szélességű falakat hoz létre."
@@ -21896,11 +21911,11 @@ msgstr "Minimális falhossz"
 msgid ""
 "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. The value is a multiple of the wall width. Higher values remove more and longer walls.\n"
 "\n"
-"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
+"NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the 'Walls and surfaces' settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 "Állítsd ezt az értéket úgy, hogy megakadályozza a rövid, nem zárt falak kinyomtatását, amelyek növelhetik a nyomtatási időt. Az érték a falszélesség többszöröse. A nagyobb értékek több és hosszabb falat távolítanak el.\n"
 "\n"
-"MEGJEGYZÉS: Az alsó és felső felületeket ez az érték nem érinti, hogy elkerülhetők legyenek a modell külsején megjelenő látható hézagok. Az alábbi „Falak és felületek” beállításai között az „Egyfalas küszöbérték” módosításával állíthatod be annak érzékenységét, hogy mi számít felső felületnek. Az „Egyfalas küszöbérték” csak akkor látható, ha ez a beállítás az alapértelmezett 0.5 fölé van állítva, vagy ha az egyfalú felső felületek engedélyezve vannak."
+"MEGJEGYZÉS: Az alsó és felső felületeket ez az érték nem érinti, hogy elkerülhetők legyenek a modell külsején megjelenő látható hézagok. Az alábbi „Falak és felületek” beállításai között az „Egyfalas küszöbérték” módosításával állíthatod be annak érzékenységét, hogy mi számít felső felületnek. Az „Egyfalas küszöbérték” csak akkor látható, ha ez a beállítás a 0.5 fölé van állítva, vagy ha az egyfalú felső felületek engedélyezve vannak."
 
 msgid "Maximum wall resolution"
 msgstr "Maximális falfelbontás"
@@ -22162,8 +22177,9 @@ msgstr "A teljes modell ismétlésszáma"
 msgid "Ensure on bed"
 msgstr "Ágyra igazítás"
 
-msgid "Lift the object above the bed when it is partially below. Disabled by default."
-msgstr "A tárgy az ágy fölé emelve, ha az részben alatta van. Alapértelmezés szerint le van tiltva."
+# AI Translated
+msgid "Lift the object above the bed when it is partially below."
+msgstr "A tárgy az ágy fölé emelve, ha az részben alatta van."
 
 msgid "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
 msgstr "A megadott modellek elrendezése és egyetlen modellé egyesítése az asztalon, hogy a műveletek egyszerre legyenek végrehajthatók."
