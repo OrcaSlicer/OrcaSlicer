@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <atomic>
 #include <utility>
+#include <iterator>
 #include <vector>
 #include "libslic3r/Model.hpp"
 
@@ -210,12 +211,20 @@ ObjectExtrusions getAllLayersExtrusionPathsFromObject(PrintObject *obj)
 {
     ObjectExtrusions oe;
 
+    size_t total_regions = 0;
+    for (const auto *layerPtr : obj->layers())
+        total_regions += layerPtr->regions().size();
+    oe.perimeters.reserve(total_regions);
+    oe.support.reserve(obj->support_layers().size());
+
     for (auto layerPtr : obj->layers()) {
         auto perimeters = getExtrusionPathsFromLayer(layerPtr->regions());
         oe.perimeters.insert(oe.perimeters.end(), std::make_move_iterator(perimeters.begin()), std::make_move_iterator(perimeters.end()));
     }
 
-    for (auto supportLayerPtr : obj->support_layers()) { oe.support.push_back(getExtrusionPathsFromSupportLayer(supportLayerPtr)); }
+    for (auto supportLayerPtr : obj->support_layers()) {
+        oe.support.push_back(getExtrusionPathsFromSupportLayer(supportLayerPtr));
+    }
 
     return oe;
 }
@@ -225,6 +234,7 @@ ConflictComputeOpt ConflictChecker::find_inter_of_lines(const LineWithIDs &lines
     using namespace RasterizationImpl;
     // Only looked up, never iterated, so the order of the cells does not matter.
     std::unordered_map<IndexPair, std::vector<int>, IndexPairHash> indexToLine;
+    indexToLine.reserve(lines.size() * 2);
     Grids indexes;
 
     for (int i = 0; i < lines.size(); ++i) {
