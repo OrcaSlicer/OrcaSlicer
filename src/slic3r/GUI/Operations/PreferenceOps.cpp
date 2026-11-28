@@ -357,6 +357,14 @@ std::vector<Preference> build_table()
              {L("How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
                 "99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option.")})
         .unit = L("%");
+    // ORCA: dynamic nozzle color
+    t.choice("dynamic_nozzle_color", L("Dynamic nozzle color"),
+             {{"off", L("Off")}, {"on", L("On")}, {"filament_only", L("Filament view only")}},
+             {L("Draw the nozzle in the sliced preview in the color of the filament it is printing.\n"
+                "Off: the nozzle is always drawn in its default color.\n"
+                "On: the nozzle takes the filament color in every view type.\n"
+                "Filament view only: the nozzle takes the filament color only in the Summary, Filament and Tool view types, "
+                "where the toolpaths are colored by filament too.")});
 
     //// BEHAVIOUR > Preset
     t.section(kBehaviour, L("Preset"));
@@ -821,6 +829,10 @@ void apply_preference(const std::string& key)
             canvas->get_gcode_viewer().set_translucent_filaments(config.get_bool(key));
             redraw_preview(*canvas);
         }
+    } else if (key == "dynamic_nozzle_color") {
+        // ORCA: recolor the nozzle of the currently loaded preview
+        if (GLCanvas3D* canvas = preview_canvas())
+            redraw_preview(*canvas);
     } else if (key == "preview_dim_previous_layers") {
         // ORCA: apply the preview dimming change immediately to the currently loaded preview
         if (GLCanvas3D* canvas = preview_canvas()) {

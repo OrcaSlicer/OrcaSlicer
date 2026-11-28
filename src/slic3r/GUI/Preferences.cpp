@@ -2066,10 +2066,6 @@ void PreferencesDialog::create_items()
     //// GENERAL > Settings, Features, AI features
     add_preference_rows(g_sizer, "general");
 
-    // ORCA: Add dynamic nozzle color feature
-    auto item_dynamic_nozzle_color = create_item_checkbox(_L("Dynamic nozzle color"), _L("Show the nozzle in the color of the current filament in the G-code preview."), "dynamic_nozzle_color");
-    g_sizer->Add(item_dynamic_nozzle_color);
-
 #if 0
     g_sizer->Add(create_item_title(_L("Filament Grouping")), 1, wxEXPAND);
     //temporarily disable it

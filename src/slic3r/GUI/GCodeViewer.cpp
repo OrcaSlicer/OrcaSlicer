@@ -2478,7 +2478,14 @@ void GCodeViewer::render_markers(int canvas_width, int canvas_height)
             // The primary marker is the one every preview draws, so the carriage colour it may
             // have been given has to come back off when no parallel mode is active.
             // ORCA: Dynamic nozzle color feature. Use 0.5f alpha to match default nozzle transparency.
-            if (wxGetApp().app_config->get_bool("dynamic_nozzle_color") && curr_vertex.extruder_id < m_tool_colors.size()) {
+            // "filament_only" colors it only where the toolpaths are colored by filament as well.
+            const std::string   nozzle_color_mode = wxGetApp().app_config->get("dynamic_nozzle_color");
+            const libvgcode::EViewType view_type  = m_viewer.get_view_type();
+            const bool dynamic_nozzle_color = nozzle_color_mode == "on" ||
+                (nozzle_color_mode == "filament_only" &&
+                 (view_type == libvgcode::EViewType::ColorPrint || view_type == libvgcode::EViewType::Summary ||
+                  view_type == libvgcode::EViewType::Tool));
+            if (dynamic_nozzle_color && curr_vertex.extruder_id < m_tool_colors.size()) {
                 ColorRGBA color = m_tool_colors[curr_vertex.extruder_id];
                 color.a(0.5f);
                 m_sequential_view.marker.set_color(color);

@@ -544,10 +544,11 @@ void AppConfig::set_defaults()
         set_bool("show_daily_tips", true);
     }
 
-    // ORCA: Add dynamic nozzle color feature
-    if (get("dynamic_nozzle_color").empty()) {
-        set_bool("dynamic_nozzle_color", false);
-    }
+    // ORCA: dynamic nozzle color: "off", "on" or "filament_only". It was a checkbox before.
+    if (const std::string dynamic_nozzle_color = get("dynamic_nozzle_color"); dynamic_nozzle_color == "true")
+        set("dynamic_nozzle_color", "on");
+    else if (dynamic_nozzle_color.empty() || dynamic_nozzle_color == "false")
+        set("dynamic_nozzle_color", "off");
 
     if (get("show_shared_profiles_notification").empty()) {
         set_bool("show_shared_profiles_notification", true);
