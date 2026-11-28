@@ -219,7 +219,9 @@ public:
 
     virtual int SetSelection(size_t n) override
     {
+        m_target_page = GetPage(n);
         int ret = DoSetSelection(n, SetSelection_SendEvent);
+        m_target_page = nullptr;
         int new_sel = GetSelection();
         //check the new_sel firstly
         if (new_sel != n) {
@@ -243,7 +245,10 @@ public:
     virtual int ChangeSelection(size_t n) override
     {
         GetBtnsListCtrl()->SetSelection(n);
-        return DoSetSelection(n);
+        m_target_page = GetPage(n);
+        const int ret = DoSetSelection(n);
+        m_target_page = nullptr;
+        return ret;
     }
 
     // Labels are stored by the custom button list; wx's image-list API is unused — tab icons
