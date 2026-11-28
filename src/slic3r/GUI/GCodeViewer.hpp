@@ -213,7 +213,6 @@ public:
 
 private:
     std::vector<int> m_plater_extruder;
-    std::vector<ColorRGBA> m_tool_colors;
     bool m_gl_data_initialized{ false };
     unsigned int m_last_result_id{ 0 };
     // Belt printers: the view the loaded result was converted for (see load_as_gcode).

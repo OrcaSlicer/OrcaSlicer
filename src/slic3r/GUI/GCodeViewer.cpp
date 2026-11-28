@@ -1822,11 +1822,6 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     }
     m_only_gcode_in_preview = only_gcode;
 
-    m_tool_colors.clear();
-    // ORCA: the filament colors the dynamic nozzle color takes, as the toolpaths draw them
-    for (const libvgcode::ColorWithAlpha& color : libvgcode::convert_filament_colors(str_tool_colors))
-        m_tool_colors.push_back(libvgcode::convert(color));
-
     m_sequential_view.gcode_window.load_gcode(gcode_result.filename, gcode_result.lines_ends);
 
     //BBS: add only gcode mode
@@ -2062,7 +2057,6 @@ void GCodeViewer::reset()
     m_support_masses.clear();
     m_left_extruder_filament.clear();
     m_right_extruder_filament.clear();
-    m_tool_colors.clear();
     m_sequential_view.gcode_window.reset();
     m_contained_in_bed = true;
 }
@@ -2479,14 +2473,18 @@ void GCodeViewer::render_markers(int canvas_width, int canvas_height)
             // have been given has to come back off when no parallel mode is active.
             // ORCA: Dynamic nozzle color feature. Use 0.5f alpha to match default nozzle transparency.
             // "filament_only" colors it only where the toolpaths are colored by filament as well.
-            const std::string   nozzle_color_mode = wxGetApp().app_config->get("dynamic_nozzle_color");
-            const libvgcode::EViewType view_type  = m_viewer.get_view_type();
+            const std::string          nozzle_color_mode = wxGetApp().app_config->get("dynamic_nozzle_color");
+            const libvgcode::EViewType view_type         = m_viewer.get_view_type();
+            const bool                 tool_view         = view_type == libvgcode::EViewType::Tool;
             const bool dynamic_nozzle_color = nozzle_color_mode == "on" ||
                 (nozzle_color_mode == "filament_only" &&
-                 (view_type == libvgcode::EViewType::ColorPrint || view_type == libvgcode::EViewType::Summary ||
-                  view_type == libvgcode::EViewType::Tool));
-            if (dynamic_nozzle_color && curr_vertex.extruder_id < m_tool_colors.size()) {
-                ColorRGBA color = m_tool_colors[curr_vertex.extruder_id];
+                 (tool_view || view_type == libvgcode::EViewType::ColorPrint || view_type == libvgcode::EViewType::Summary));
+            // The palettes the toolpaths are drawn with: the Tool view colors by extruder, every other view
+            // takes the filament loaded at the vertex, which a color change replaces.
+            const libvgcode::PaletteWithAlpha& palette = tool_view ? m_viewer.get_tool_colors() : m_viewer.get_color_print_colors();
+            const size_t color_id = tool_view ? curr_vertex.extruder_id : curr_vertex.color_id;
+            if (dynamic_nozzle_color && color_id < palette.size()) {
+                ColorRGBA color = libvgcode::convert(palette[color_id]);
                 color.a(0.5f);
                 m_sequential_view.marker.set_color(color);
             } else {
