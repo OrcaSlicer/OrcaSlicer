@@ -433,6 +433,8 @@ include(Assimp/Assimp.cmake)
 include(DataChannel/DataChannel.cmake)
 set(DATACHANNEL_PKG dep_DataChannel)
 
+include(AsyncMqtt/AsyncMqtt.cmake)
+
 # we don't want to load a "wrong" openssl when loading curl
 # so, just don't even bother
 # ...i think this is how it works? change if wrong
@@ -499,6 +501,7 @@ set(_dep_list
     dep_FFMPEG
     dep_Assimp
     ${DATACHANNEL_PKG}
+    dep_AsyncMqtt
     )
 
 if (MSVC)
