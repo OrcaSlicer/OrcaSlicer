@@ -13,11 +13,13 @@
 #include <boost/filesystem/directory.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
+#include <algorithm>
 #include <unordered_set>
 #include <string>
 #include "libslic3r/Utils.hpp"
 #include <fstream>
 #include <ostream>
+#include <sstream>
 #include <wx/string.h>
 #include <vector>
 #include <cstdio>
@@ -31,9 +33,71 @@ using json = nlohmann::json;
 static const char* HMS_PATH = "hms";
 static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";
 
+static std::unordered_set<std::string> discover_package_dev_id_types()
+{
+    // Orca: derive the packaged device types from the HMS action files so new
+    // local HMS resources do not require a second hard-coded list.
+    std::unordered_set<std::string> result;
+
+    const std::string resource_dir = Slic3r::resources_dir();
+    if (resource_dir.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "HMS: resources directory is empty; no packaged device types discovered";
+        return result;
+    }
+
+    const fs::path hms_dir = fs::path(resource_dir) / HMS_PATH;
+    if (!fs::exists(hms_dir) || !fs::is_directory(hms_dir)) {
+        BOOST_LOG_TRIVIAL(warning) << "HMS: packaged HMS resource directory is unavailable; no packaged device types discovered";
+        return result;
+    }
+
+    const std::string prefix = "hms_action_";
+    const std::string suffix = ".json";
+
+    for (const auto& entry : fs::directory_iterator(hms_dir)) {
+        if (!fs::is_regular_file(entry.path()))
+            continue;
+
+        const std::string filename = entry.path().filename().string();
+        if (filename.size() <= prefix.size() + suffix.size())
+            continue;
+        if (filename.compare(0, prefix.size(), prefix) != 0)
+            continue;
+        if (filename.compare(filename.size() - suffix.size(), suffix.size(), suffix) != 0)
+            continue;
+
+        result.emplace(filename.substr(
+            prefix.size(),
+            filename.size() - prefix.size() - suffix.size()));
+    }
+
+    if (result.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "HMS: no packaged device types discovered in the HMS resource directory";
+        return result;
+    }
+
+    std::vector<std::string> sorted_types(result.begin(), result.end());
+    std::sort(sorted_types.begin(), sorted_types.end());
+
+    std::ostringstream discovered_types;
+    for (const auto& type : sorted_types) {
+        if (discovered_types.tellp() > 0)
+            discovered_types << ", ";
+        discovered_types << type;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "HMS: discovered packaged device types: " << discovered_types.str();
+
+    return result;
+}
+
 // the local HMS info
-// Orca: dev-id-type set trimmed to the devices Orca ships local HMS images for
-static std::unordered_set<std::string> package_dev_id_types {"094", "239", "093", "22E", "20P", "26A", "31B"};
+// Orca: dev-id-type set is derived from the devices with packaged HMS action data
+static const std::unordered_set<std::string>& package_dev_id_types()
+{
+    static const std::unordered_set<std::string> types = discover_package_dev_id_types();
+    return types;
+}
 
 // Orca: HMS should be disabled when stealth mode is on or networking is not installed
 static bool should_disable_hms()
@@ -630,7 +694,7 @@ void HMSQuery::clear_hms_info()
 void HMSQuery::init_hms_info(const std::string& dev_type_id)
 {
     std::unique_lock unique_lock(m_hms_mutex);
-    if (package_dev_id_types.count(dev_type_id) != 0)
+    if (package_dev_id_types().count(dev_type_id) != 0)
     {
         /*the local one only load once*/
         if (m_hms_info_jsons.count(dev_type_id) == 0) {
