@@ -1178,17 +1178,21 @@ void WipeTower2::set_extruder(size_t idx, const PrintConfig& config)
     }
 
     m_filpar[idx].filament_area = float((M_PI/4.f) * pow(config.filament_diameter.get_at(idx), 2)); // all extruders are assumed to have the same filament diameter at this point
-    float nozzle_diameter = float(config.nozzle_diameter.get_at(idx));
+    // Orca: nozzle_diameter and max_layer_height are per nozzle (extruder), not per filament, so read
+    // them through the filament->nozzle map rather than by filament id. Indexing nozzle_diameter by
+    // filament id picked up the size of an unrelated (possibly unused) extruder whenever a filament
+    // was mapped to a different nozzle than its own index, e.g. four filaments all mapped to a 0.4 mm
+    // extruder 1 while extruders 3/4 had 0.2 mm nozzles gave the whole tower 0.2 mm line widths.
+    const std::vector<int> &filament_map = config.filament_map.values; // 1 based nozzle indices
+    const size_t nozzle_idx = idx < filament_map.size() && filament_map[idx] > 0 ? size_t(filament_map[idx] - 1) : 0;
+
+    float nozzle_diameter = float(config.nozzle_diameter.get_at(nozzle_idx));
     m_filpar[idx].nozzle_diameter = nozzle_diameter; // to be used in future with (non-single) multiextruder MM
 
-    // Orca: max_layer_height is per nozzle, so read it through the filament->nozzle map rather than
-    // by filament id. Zero means three quarters of the nozzle diameter, as in Slicing.cpp.
+    // Zero max_layer_height means three quarters of the nozzle diameter, as in Slicing.cpp.
     {
-        const std::vector<int> &filament_map = config.filament_map.values; // 1 based nozzle indices
-        const size_t nozzle_idx = idx < filament_map.size() && filament_map[idx] > 0 ? size_t(filament_map[idx] - 1) : 0;
-        const float  max_layer_height = float(config.max_layer_height.get_at(nozzle_idx));
-        m_filpar[idx].max_layer_height = max_layer_height > 0.f ? max_layer_height
-                                                                : 0.75f * float(config.nozzle_diameter.get_at(nozzle_idx));
+        const float max_layer_height = float(config.max_layer_height.get_at(nozzle_idx));
+        m_filpar[idx].max_layer_height = max_layer_height > 0.f ? max_layer_height : 0.75f * nozzle_diameter;
     }
 
     float max_vol_speed = float(config.filament_max_volumetric_speed.get_at(idx));
