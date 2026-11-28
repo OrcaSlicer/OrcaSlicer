@@ -1016,6 +1016,12 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
     int keyCode = evt.GetKeyCode();
     bool processed = false;
 
+    if (m_current == Cut && keyCode == WXK_SHIFT && !get_current()->is_in_editing_mode()) {
+        if (evt.GetEventType() == wxEVT_KEY_UP)
+            gizmo_event(SLAGizmoEventType::ShiftUp);
+        m_parent.set_as_dirty();
+    }
+
     if (evt.GetEventType() == wxEVT_KEY_UP)
     {
         if (/*m_current == SlaSupports || m_current == Hollow ||*/ m_current == BrimEars)
