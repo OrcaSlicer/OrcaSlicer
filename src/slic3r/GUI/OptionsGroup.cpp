@@ -1216,7 +1216,7 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
             ret = config.option<ConfigOptionPoints>(opt_key)->get_at(idx);
         break;
     case coPointsGroups:
-        if (opt_key == "extruder_printable_area") {
+        if (opt_key == "extruder_printable_area" || opt_key == "extruder_movable_area") {
             auto values = config.option<ConfigOptionPointsGroups>(opt_key)->values;
             if (!values.empty())
                 ret = get_thumbnails_string(config.option<ConfigOptionPointsGroups>(opt_key)->get_at(idx));
