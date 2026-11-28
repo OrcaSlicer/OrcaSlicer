@@ -667,7 +667,7 @@ void PartPlate::calc_exclude_triangles(const ExPolygon &poly)
                                    << count << " points do not form a simple polygon; exclude area drawn as is";
     else if (count <= 1) // Empty, or the single-point default "0x0".
         BOOST_LOG_TRIVIAL(info)    << __FUNCTION__ << ": "
-                                   << "not configured, exclude area not drawn";
+                                   << "not configured or has 1 point, exclude area not drawn";
     else if (count < 3)
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": "
                                    << "has " << count << " points, at least 3 are needed to form an area; exclude area not drawn";
