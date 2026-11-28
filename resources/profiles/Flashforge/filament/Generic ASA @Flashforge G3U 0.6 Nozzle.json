@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Flashforge G3U 0.6 Nozzle",
-	"inherits": "Generic ASA @Flashforge",
 	"renamed_from": "Flashforge Generic ASA @G3U 0.6 Nozzle;Flashforge Generic ASA G3U 0.6 Nozzle",
+	"inherits": "Generic ASA @Flashforge",
 	"from": "system",
 	"setting_id": "9wfcw1ifKVGOXx5G",
 	"filament_id": "OFLPAxz3",

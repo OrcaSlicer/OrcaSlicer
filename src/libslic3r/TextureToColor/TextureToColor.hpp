@@ -1,10 +1,17 @@
 #pragma once
 
 #include "Callbacks.hpp"
+#include "libslic3r/Point.hpp"
 #include "TriMesh.hpp"
 #include "opencv2/core.hpp"
+#include <cstddef>
+#include <array>
 #include <functional>
+#include <opencv2/core/mat.hpp>
 #include <string>
+#include <vector>
+
+namespace cv { class Mat; }
 
 namespace Slic3r { namespace tex2color {
 

@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Elegoo PETG-CF @System",
+	"renamed_from": "Elegoo PETG-CF",
 	"inherits": "Elegoo PETG-CF @base",
 	"from": "system",
 	"setting_id": "bXRJMaXxB3V49x7R",
 	"instantiation": "true",
-	"renamed_from": "Elegoo PETG-CF",
 	"pressure_advance": [
 		"0.052"
 	],

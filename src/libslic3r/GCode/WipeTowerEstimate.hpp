@@ -1,12 +1,16 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
+#include "../BoundingBox.hpp"
+#include "../Point.hpp"
 #include "../Polygon.hpp"
 
 namespace Slic3r {
 
 class ConfigBase;
+enum class PrintSequence;
 enum class WipeTowerType;
 
 // Pre-slice footprint of the wipe tower, shared by validation (Print), the GUI's placement
@@ -34,6 +38,8 @@ Polygon estimate_wipe_tower_first_layer_outline(const ConfigBase &config, WipeTo
 // filament_ids:  0-based filaments purged on the plate. The config cannot see custom G-code tool
 //                changes, so ids derived from the model must include them
 //                (Print::extruders(true)) or a real tower is sized as if it were never built.
+//                A mixed slot may be passed as itself or already expanded: it is sized as its
+//                physical components either way, since those are all the tower ever purges.
 // layer_height:  thinnest layer the objects are sliced at. The first layer is folded in here.
 //
 // A raft is deliberately not a reason: normalize_fdm_2 clears enable_prime_tower for a plate
@@ -43,5 +49,25 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase               
                                                  const std::vector<unsigned int> &filament_ids,
                                                  double                           layer_height,
                                                  double                           max_object_height);
+
+// Whether a prime tower is PRINTED for a plate. The footprint estimate above answers how big a
+// tower is and never reads enable_prime_tower or print_sequence, so it reports a size for a plate
+// that prints no tower at all; the authority is DynamicPrintConfig::normalize_fdm_2(), which clears
+// enable_prime_tower before the plate is sliced. This mirrors that rule so pre-slice consumers can
+// ask it without mutating a config, and a test pins the two together.
+//
+// Pass the plate's effective print sequence and its number of printable instances.
+// used_filaments: the plate's filament SLOTS as authored - a mixed slot counts once, matching
+//                 Print::extruders(), which is what normalize_fdm_2 is handed.
+// has_mixed_filament: filament_is_mixed is a PROJECT option, so it is passed rather than read -
+//                 `config` only has to carry the print preset's own keys.
+bool prime_tower_is_printed(const ConfigBase &config, PrintSequence print_sequence, int used_filaments, int num_instances, bool has_mixed_filament);
+
+// Where to put a tower whose saved position no longer fits: of the anchors (the tower's
+// position) inside `anchor_bounds`, the one nearest `target` whose `footprint` touches none of
+// the `obstacles`. `footprint` is relative to the anchor, brim included; an obstacle is taken
+// as its convex hull. Empty when every anchor in bounds meets an obstacle. All coordinates scaled.
+std::optional<Point> nearest_clear_wipe_tower_anchor(const BoundingBox &anchor_bounds, const Polygon &footprint,
+                                                     const Polygons &obstacles, const Point &target);
 
 } // namespace Slic3r

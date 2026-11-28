@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @SecKit",
-	"inherits": "fdm_filament_pc",
 	"renamed_from": "SecKit Generic PC",
+	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "PxmBHXsdhZGR9bYv",
 	"filament_id": "OFLakOUI",

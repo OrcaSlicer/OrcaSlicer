@@ -1,9 +1,14 @@
 #include "Geometry.hpp"
 #include "Line.hpp"
-#include "Polyline.hpp"
+#include "Point.hpp"
+#include <Eigen/Core>
+#include "libslic3r.h"
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <limits>
 #include <sstream>
+#include "BoundingBox.hpp"
 
 namespace Slic3r {
 

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @Anker",
-	"inherits": "Generic TPU @Anker base",
 	"renamed_from": "Anker Generic TPU",
+	"inherits": "Generic TPU @Anker base",
 	"from": "system",
 	"setting_id": "5YigkBBSP2RM1MbK",
 	"instantiation": "true",

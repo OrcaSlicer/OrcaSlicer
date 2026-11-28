@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Tiertime 300HS",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Tiertime Generic PLA@300HS;Tiertime Generic PLA300HS",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "VdXotPCaBzW0DswJ",
 	"filament_id": "OFDSrzZ8",

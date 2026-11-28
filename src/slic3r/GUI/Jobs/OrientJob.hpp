@@ -3,6 +3,10 @@
 
 #include "Job.hpp"
 #include "libslic3r/Orient.hpp"
+#include <optional>
+#include <vector>
+#include <exception>
+#include "libslic3r/Model.hpp"
 
 namespace Slic3r {
 
@@ -19,6 +23,8 @@ class OrientJob : public Job
 
     OrientMeshs m_selected, m_unselected, m_unprintable;
     Plater     *m_plater;
+    // The objects to orient in place of the selection, read when the job starts; none of them: every object.
+    std::optional<std::vector<int>> m_objects;
 
     // clear m_selected and m_unselected, reserve space for next usage
     void clear_input();
@@ -26,7 +32,7 @@ class OrientJob : public Job
     //BBS: add only one plate mode
     void prepare_selection(std::vector<bool> obj_sel, bool only_one_plate);
     
-    // Prepare the selected and unselected items separately. If nothing is
+    // Prepare the selected (or the given) and unselected items separately. If nothing is
     // selected, behaves as if everything would be selected.
     void prepare_selected();
 
@@ -38,7 +44,8 @@ public:
     
     void process(Ctl &ctl) override;
 
-    OrientJob();
+    // `objects`, given, are oriented as if they were the selection.
+    explicit OrientJob(std::optional<std::vector<int>> objects = std::nullopt);
     
     void finalize(bool canceled, std::exception_ptr &e) override;
 #if 0

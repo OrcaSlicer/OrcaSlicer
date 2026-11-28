@@ -36,8 +36,7 @@ function WatchXtermTheme() {
 }
 
 function OnInit() {
-  if (typeof TranslatePage === "function")
-    TranslatePage();
+  TranslatePage();
 
   term = new Terminal({
     cursorBlink: true,
@@ -77,7 +76,7 @@ function OnInit() {
       onRun();
   });
 
-  term.writeln("Plugin terminal ready.");
+  term.writeln(T("ready", "Plugin terminal ready."));
 }
 
 function onRun() {
@@ -122,7 +121,7 @@ function HandleStudio(value) {
 
     case "process_done":
       setRunning(false);
-      term.writeln("\x1b[90mProcess exited with code: " + payload.exit_code + "\x1b[0m");
+      term.writeln("\x1b[90m" + T("exit_code", "Process exited with code: %s", payload.exit_code) + "\x1b[0m");
       break;
 
     case "process_error":

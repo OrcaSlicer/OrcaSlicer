@@ -1,6 +1,7 @@
 #include "GLGizmoSimplify.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
@@ -11,9 +12,32 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/QuadricEdgeCollapse.hpp"
 
+#include <functional>
+#include <cstddef>
+#include <cstdint>
+#include <algorithm>
+#include <cassert>
+#include <cmath>
 #include <glad/gl.h>
 
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <iterator>
+#include <mutex>
+#include <imgui.h>
+#include <memory>
+#include <limits>
+#include <optional>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 #include <thread>
+#include <vector>
+#include <wx/event.h>
+#include <utility>
 
 namespace Slic3r::GUI {
 
@@ -315,24 +339,28 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0);
     ImGui::PushItemWidth(slider_width + space_size);
-    if (m_imgui->bbl_slider_float_style("##decimate_ratio", &m_configuration.decimate_ratio, 0.f, 100.f, format)) {
+    // The slider and the number box beside it set the ratio alike.
+    auto ratio_changed = [&]() {
         if (m_configuration.decimate_ratio < 0.f)
             m_configuration.decimate_ratio = 0.01f;
         if (m_configuration.decimate_ratio > 100.f)
             m_configuration.decimate_ratio = 100.f;
         m_configuration.fix_count_by_ratio(orig_triangle_count);
         start_process = true;
-    }
+    };
+    if (m_imgui->bbl_slider_float_style("##decimate_ratio", &m_configuration.decimate_ratio, 0.f, 100.f, format))
+        ratio_changed();
     ImGui::SameLine();
     ImGui::PopStyleVar(1);
 
     ImGui::PushItemWidth(ImGui::CalcTextSize("100.00%").x + space_size);
 
-    ImGui::BBLDragFloat("##decimate_ratio_input", &m_configuration.decimate_ratio, 0.05f, 0.0f, 0.0f, "%.2f%%");
+    if (ImGui::BBLDragFloat("##decimate_ratio_input", &m_configuration.decimate_ratio, 0.05f, 0.0f, 0.0f, "%.2f%%"))
+        ratio_changed();
 
     ImGui::NewLine();
     ImGui::SameLine(bottom_left_width + space_size);
-    ImGui::Text(_u8L("%d triangles").c_str(), m_configuration.wanted_count);
+    ImGui::TextUnformatted(GUI::format(_L_PLURAL("%1% triangle", "%1% triangles", m_configuration.wanted_count), m_configuration.wanted_count).c_str());
     m_imgui->disabled_end(); // use_count
 
     m_imgui->bbl_checkbox(_L("Show wireframe").c_str(), m_show_wireframe);
@@ -398,6 +426,15 @@ void GLGizmoSimplify::close() {
     // close gizmo == open it again
     GLGizmosManager &gizmos_mgr = m_parent.get_gizmos_manager();
     gizmos_mgr.open_gizmo(GLGizmosManager::EType::Simplify);
+}
+
+bool GLGizmoSimplify::is_busy() const
+{
+    std::lock_guard lk(m_state_mutex);
+    // A calculation runs until its worker sets idle. While the gizmo is open, worker_finished() then
+    // joins the thread, so a joinable one has a result not yet shown; while it is closed nothing is
+    // shown, and opening it joins a thread that ended meanwhile.
+    return m_state.status != State::idle || (m_worker.joinable() && GLGizmoBase::m_state == On);
 }
 
 void GLGizmoSimplify::stop_worker_thread_request()
@@ -519,9 +556,10 @@ void GLGizmoSimplify::process()
         std::lock_guard lk(m_state_mutex);
         if (m_state.status == State::Status::running) {
             // We were not cancelled, the result is valid.
-            m_state.status = State::Status::idle;
             m_state.result = std::move(its);
         }
+        // A cancellation that came after the calculation's last check ends here too.
+        m_state.status = State::Status::idle;
 
         // Update UI. Use CallAfter so the function is run on UI thread.
         call_after_if_active([this]() { worker_finished(); });
@@ -579,6 +617,15 @@ void GLGizmoSimplify::on_set_state()
         m_volume = nullptr; // invalidate selected model
         m_glmodel.reset();
     } else if (GLGizmoBase::m_state == GLGizmoBase::On) {
+        // A calculation that ended while the gizmo was closed had its worker_finished() dropped, so
+        // nothing else joins its thread.
+        bool ended = false;
+        {
+            std::lock_guard lk(m_state_mutex);
+            ended = m_state.status == State::idle;
+        }
+        if (ended && m_worker.joinable())
+            m_worker.join();
         // when open by hyperlink it needs to show up
         request_rerender();
     }

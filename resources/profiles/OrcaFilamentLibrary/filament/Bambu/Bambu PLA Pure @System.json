@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Bambu PLA Pure @System",
+	"inherits": "Bambu PLA Pure @base",
+	"from": "system",
+	"setting_id": "MI6Z51sJkjOmlIl0",
+	"instantiation": "true",
+	"compatible_printers": []
+}

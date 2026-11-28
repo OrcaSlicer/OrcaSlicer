@@ -6,7 +6,12 @@
 	"setting_id": "1qdr65SvIErZzxN3",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
-		"23.2"
+		"12",
+		"21",
+		"21",
+		"12",
+		"21",
+		"21"
 	],
 	"compatible_printers": []
 }

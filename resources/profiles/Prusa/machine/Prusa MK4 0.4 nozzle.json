@@ -1,7 +1,7 @@
 {
 	"type": "machine",
 	"name": "Prusa MK4 0.4 nozzle",
-	"inherits": "fdm_machine_common",
+	"inherits": "fdm_machine_common_nextruder",
 	"from": "system",
 	"setting_id": "tGox5Ldie8Ka8UAJ",
 	"instantiation": "true",

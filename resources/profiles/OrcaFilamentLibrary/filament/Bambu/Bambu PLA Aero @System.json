@@ -6,6 +6,11 @@
 	"setting_id": "R499nyjJA5r7khOd",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
 		"0"
 	],
 	"slow_down_layer_time": [

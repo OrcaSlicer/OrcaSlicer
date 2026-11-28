@@ -42,6 +42,7 @@ call :add_arg build_deps bool d deps "Download and build the dependencies, neede
 call :add_arg build_slicer bool s slicer "Build OrcaSlicer"
 call :add_arg build_tests bool "" tests "Build the unit tests"
 call :add_arg run_tests bool "" run-tests "Build the unit tests and run them"
+call :add_arg make_installer bool "" installer "Build OrcaSlicer and package it into an NSIS installer"
 call :add_arg pack_deps bool p pack "Bundle the built dependencies into a zip file"
 call :add_arg install_deps bool u install-deps "Install or update CMake, Perl and Git with WinGet"
 call :add_arg install_vs string "" install-vs "Also install Visual Studio: buildtools or ide"
@@ -52,7 +53,7 @@ call :add_section "Build configuration"
 call :add_arg config string "" config "release, debug, relwithdebinfo or minsizerel (default: release)"
 call :add_arg target_arch string "" arch "x64 or arm64 (default: the host architecture)"
 call :add_arg slicer_asan bool a asan "Build the slicer with ASAN enabled"
-call :add_arg no_pch bool "" no-pch "Build without the precompiled header, implied by --cache"
+call :add_arg no_pch bool "" no-pch "Build without the precompiled header, implied by -l and --cache"
 
 call :add_section "Toolchain"
 call :add_arg use_clang_cl bool l clang-cl "Use clang-cl as the compiler"
@@ -185,6 +186,9 @@ if "%build_deps%%build_slicer%%pack_deps%%install_deps%%install_vs%" == "" (
     if "%run_tests%" == "ON" set "build_slicer=ON"
 )
 
+REM The installer packages the slicer build, so it always needs one.
+if "%make_installer%" == "ON" set "build_slicer=ON"
+
 REM Options like --config or -j only shape a build. Without one of the actions
 REM there is nothing for them to shape, so say so rather than resolving a whole
 REM build and reporting it took no time. The block above may have added one.
@@ -222,6 +226,30 @@ if "%build_slicer%" == "ON" if "%install_slicer%" == "ON" if not "%slicer_target
     echo --install needs the executable, but --slicer-target names "%slicer_target%".
     exit /b 1
 )
+REM cpack runs the same install, so it has the same need.
+if "%make_installer%" == "ON" if not "%slicer_target%" == "" if /I not "%slicer_target%" == "OrcaSlicer" (
+    echo --installer needs the executable, but --slicer-target names "%slicer_target%".
+    exit /b 1
+)
+
+REM cpack finds makensis on PATH or through the registry key the NSIS installer
+REM writes, so look in the same places, and before the build rather than after
+REM it. The value is read past its REG_SZ marker because the name column is
+REM localised and may hold spaces.
+if not "%make_installer%" == "ON" goto :nsis_ready
+if "%dry_run%" == "ON" goto :nsis_ready
+where makensis >nul 2>nul && goto :nsis_ready
+for %%v in (32 64) do (
+    for /f "delims=" %%l in ('reg query "HKLM\SOFTWARE\NSIS" /ve /reg:%%v 2^>nul ^| findstr REG_SZ') do (
+        set "nsis_line=%%l"
+        set "nsis_line=!nsis_line:*REG_SZ=!"
+        for /f "tokens=*" %%d in ("!nsis_line!") do if exist "%%d\makensis.exe" goto :nsis_ready
+    )
+)
+echo NSIS was not found, and --installer needs it to build the installer.
+echo Install it with "winget install NSIS.NSIS", then run this again.
+exit /b 1
+:nsis_ready
 if not "%vs_version%" == "" if "!vs_gen_%vs_version%!" == "" (
     echo Unknown Visual Studio release "%vs_version%". Known releases: 2019, 2022, 2026.
     exit /b 1
@@ -282,11 +310,7 @@ if "%install_deps%" == "ON" (
         call :note_failed "Visual Studio" !errorlevel!
     )
 
-    REM CMake 4 dropped pre-3.5 policy support and ships incomplete ASM_ARMASM
-    REM linker modules, which breaks Boost.Context on ARM64. CI pins the same way.
-    set "cmake_version_flag="
-    if /I "%arch%" == "ARM64" set "cmake_version_flag=--version 3.31.8"
-    call :print_and_run winget install !winget_args! --id=Kitware.CMake !cmake_version_flag!
+    call :print_and_run winget install !winget_args! --id=Kitware.CMake
     call :note_failed CMake !errorlevel!
     call :print_and_run winget install !winget_args! --id=StrawberryPerl.StrawberryPerl
     call :note_failed Perl !errorlevel!
@@ -363,6 +387,9 @@ if "%use_ninja%" == "ON" if "%use_msbuild%" == "ON" (
     echo --ninja and --msbuild select different generators.
     exit /b 1
 )
+
+REM CMakeLists turns the precompiled header off for clang-cl (llvm/llvm-project#53486).
+if "%use_clang_cl%" == "ON" set "no_pch=ON"
 
 set "generator=!vs_gen_%vs_version%!"
 if "%use_ninja%" == "ON" (
@@ -519,7 +546,7 @@ REM real path rather than one glued onto the repository root.
 for %%p in ("!build_dir!") do set "build_full=%%~fp"
 echo Configuration: %build_type%, %arch%
 if not "%clang_exe%" == "" echo Compiler: %clang_exe%
-if "%no_pch%" == "ON" echo Precompiled header: off
+if "%build_slicer%" == "ON" if "%no_pch%" == "ON" echo Precompiled header: off
 if not "%cache_args%" == "" echo Compiler cache: %cache_exe%
 
 set "SIG_FLAG="
@@ -692,8 +719,8 @@ if "%build_slicer%" == "ON" (
         set "slicer_args=!slicer_args! -DSLIC3R_ASAN=ON"
     )
 
-    REM A later -DSLIC3R_PCH=ON in ORCA_SLICER_CMAKE_ARGS still wins, because
-    REM CMake takes the last definition on the command line.
+    REM Under cl, a later -DSLIC3R_PCH=ON in ORCA_SLICER_CMAKE_ARGS still wins,
+    REM because CMake takes the last definition on the command line.
     if "%no_pch%" == "ON" (
         set "slicer_args=!slicer_args! -DSLIC3R_PCH=OFF"
     )
@@ -736,6 +763,14 @@ if "%build_slicer%" == "ON" (
 
     if "%install_slicer%" == "ON" (
         call :print_and_run cmake --build "%build_dir%" --target install --config %build_type%
+        %error_check%
+    )
+
+    REM cpack installs into its own staging tree, so this does not need -i.
+    REM Unlike CI it skips the preset cache, whose packaging step prunes the
+    REM checkout's preset JSONs.
+    if "%make_installer%" == "ON" (
+        call :print_and_run cpack -G NSIS -C %build_type% --config "%build_dir%\CPackConfig.cmake" -B "%build_dir%"
         %error_check%
     )
 )
@@ -824,6 +859,16 @@ REM worked out the same way in either run.
     if "%build_slicer%" == "ON" if not "%linked%" == "ON" echo   Target        %slicer_target%
     if "%build_slicer%" == "ON" if not "%using_ninja%" == "ON" echo   Solution      %build_full%\!solution!
     if "%pack_deps%" == "ON" if defined bundle echo   Bundle        !bundle!
+    if "%make_installer%" == "ON" (
+        REM The file name carries the version, which only CMake knows, so name
+        REM the newest match, or the pattern when there is none yet.
+        set "installer="
+        for /f "delims=" %%f in ('dir /b /o-d "!build_full!\OrcaSlicer_Windows_Installer_*.exe" 2^>nul') do (
+            if not defined installer set "installer=!build_full!\%%f"
+        )
+        if not defined installer set "installer=!build_full!\OrcaSlicer_Windows_Installer_*.exe"
+        echo   Installer     !installer!
+    )
 
     echo.
     echo Next

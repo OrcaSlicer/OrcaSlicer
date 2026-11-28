@@ -3,6 +3,14 @@
 
 #include "wxExtensions.hpp"
 #include "Widgets/StaticBox.hpp"
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/dc.h>
+
+class wxDC;
+class wxWindow;
 
 class TabButton : public StaticBox
 {

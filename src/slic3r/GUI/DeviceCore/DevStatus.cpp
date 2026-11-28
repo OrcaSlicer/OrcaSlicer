@@ -1,6 +1,7 @@
 #include "DevStatus.h"
-#include "slic3r/GUI/DeviceManager.hpp"
 #include <boost/log/trivial.hpp>
+#include <exception>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 

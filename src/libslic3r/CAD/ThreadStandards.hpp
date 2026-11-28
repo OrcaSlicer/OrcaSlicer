@@ -24,6 +24,8 @@ struct ThreadSpec {
     double thread_depth_mm() const { return 0.6134 * pitch_mm; }
     // Internal/tapped minor (tap-drill) diameter for the same nominal thread.
     double minor_diameter_mm() const { return major_diameter_mm - 1.0825 * pitch_mm; }
+    // Radial depth of the internal (tapped) thread, minor to major: (D - D1) / 2.
+    double internal_depth_mm() const { return 0.5 * (major_diameter_mm - minor_diameter_mm()); }
 
     bool imperial() const { return series == Series::UNC || series == Series::UNF; }
 };
@@ -33,6 +35,13 @@ const std::vector<ThreadSpec>& thread_standards();
 
 // Exact case-sensitive designation lookup; nullptr if not a known standard.
 const ThreadSpec* find_thread_standard(const std::string& name);
+
+// The standard nearest a measured cylinder of `diameter`, as the Thread tool infers it from a
+// picked face or rim: a boss is matched on the major (nominal) diameter, a bore on the minor one,
+// since a hole to be tapped is drilled at the tap-drill size. Every series is scanned together, so
+// a 5 mm bore gives 1/4-20 UNC (minor 4.975) rather than M6 (minor 4.918); the first of equally
+// near sizes wins. nullptr only for an empty table.
+const ThreadSpec* nearest_thread_standard(double diameter, bool internal);
 
 } // namespace Slic3r
 

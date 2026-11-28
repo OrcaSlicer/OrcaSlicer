@@ -1,3 +1,5 @@
+#pragma once
+
 #import <Cocoa/Cocoa.h>
 
 @interface RemovableDriveManagerMM : NSObject

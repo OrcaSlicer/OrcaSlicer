@@ -12,9 +12,19 @@
 		"60"
 	],
 	"filament_long_retractions_when_cut": [
+		"1",
+		"1",
+		"1",
+		"1",
+		"1",
 		"1"
 	],
 	"filament_retraction_distances_when_cut": [
+		"18",
+		"18",
+		"18",
+		"18",
+		"18",
 		"18"
 	],
 	"compatible_printers": []

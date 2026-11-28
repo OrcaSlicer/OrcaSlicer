@@ -1,11 +1,15 @@
 #ifndef slic3r_EmbossStyleManager_hpp_
 #define slic3r_EmbossStyleManager_hpp_
 
+#include <cstddef>
+#include <limits>
+#include "libslic3r/Point.hpp"
 #include <memory>
 #include <optional>
 #include <string>
 #include <functional>
 #include <imgui/imgui.h>
+#include <vector>
 #include <wx/font.h>
 #include <glad/gl.h>
 #include <libslic3r/BoundingBox.hpp>

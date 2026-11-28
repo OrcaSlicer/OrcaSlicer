@@ -1,15 +1,12 @@
 #ifndef slic3r_GeometryEngine_hpp_
 #define slic3r_GeometryEngine_hpp_
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
-#include <BRepPrimAPI_MakeBox.hxx>
-#include <BRepPrimAPI_MakeCylinder.hxx>
-#include <BRepPrimAPI_MakeSphere.hxx>
-#include <BRepPrimAPI_MakeCone.hxx>
-#include <BRepPrimAPI_MakeTorus.hxx>
-#include <gp_Ax2.hxx>
-#include <TopoDS_Solid.hxx>
+#include <GeomAbs_SurfaceType.hxx>
+#include <TopoDS_Shape.hxx>
+#include <array>
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Edge.hxx>
 #include <vector>
@@ -17,43 +14,11 @@
 
 namespace Slic3r {
 
-enum class PrimitiveType { Box, Cylinder, Sphere, Cone, Torus, COUNT };
-enum class DressUpType   { Fillet, Chamfer };
 enum class FaceGroup     { Top, Bottom, Lateral, All };
-
-struct PrimitiveParams {
-    PrimitiveType type{PrimitiveType::Box};
-    double box_w{20}, box_h{20}, box_d{20};
-    double cyl_radius{10}, cyl_height{20};
-    double sph_radius{10};
-    double cone_r1{10}, cone_r2{5}, cone_height{20};
-    double torus_r1{10}, torus_r2{3};
-
-    // Dress-up
-    bool   dressup_enabled{false};
-    DressUpType dressup_type{DressUpType::Fillet};
-    FaceGroup   dressup_faces{FaceGroup::All};
-    double dressup_radius{1.0};    // fillet radius
-    double dressup_chamfer_dist{1.0}; // chamfer distance (symmetric)
-
-    // Mesh quality
-    double linear_deflection{0.01};
-    double angular_deflection{0.5};
-
-    template<class Archive>
-    void serialize(Archive& ar) {
-        ar(type, box_w, box_h, box_d, cyl_radius, cyl_height, sph_radius,
-           cone_r1, cone_r2, cone_height, torus_r1, torus_r2,
-           dressup_enabled, dressup_type, dressup_faces, dressup_radius, dressup_chamfer_dist,
-           linear_deflection, angular_deflection);
-    }
-};
 
 class GeometryEngine
 {
 public:
-    static TopoDS_Solid make_primitive(const PrimitiveParams& params);
-
     // Read a STEP file into its top-level solids (one TopoDS_Shape per solid; falls back to
     // the whole shape if it contains no closed solids). Reuses OCCT's STEPControl_Reader,
     // already linked via Format/STEP.cpp — no new dependency. err is set on failure (empty result).
@@ -119,11 +84,15 @@ public:
                                        FaceGroup faces = FaceGroup::All);
     static TopoDS_Shape apply_chamfer(const TopoDS_Shape& solid, double distance,
                                        int edge_id);
+    // Several edges in one operation, all ids resolved against `solid`.
+    static TopoDS_Shape apply_fillet(const TopoDS_Shape& solid, double radius,
+                                     const std::vector<int>& edge_ids);
+    static TopoDS_Shape apply_chamfer(const TopoDS_Shape& solid, double distance,
+                                       const std::vector<int>& edge_ids);
 
     static TriangleMesh tessellate(const TopoDS_Shape& shape,
-                                   double linear_deflection = 0.01,
+                                   double linear_deflection = 0.003,
                                    double angular_deflection = 0.5);
-    static std::string  primitive_name(PrimitiveType type);
 
     // Topology accessors for in-viewport face/edge picking (Design tab). Face index is the
     // TopExp_Explorer(shape, TopAbs_FACE) ordinal — identical to SketchEngine::tessellate's
@@ -143,6 +112,10 @@ public:
     static Vec3d face_normal_world(const TopoDS_Face& face);
     // Sample an edge into a world-space polyline (>=2 pts) for pick-distance + highlight.
     static std::vector<Vec3d> sample_edge_world(const TopoDS_Edge& edge, double chord_tol = 0.05);
+    // The edges a viewer draws over a body, each as a polyline: every edge of the shape once,
+    // without degenerate edges (a cone apex) and without the seam of a closed surface (the line
+    // down a cylinder's side), which is where OCCT closes the parameter space, not a real edge.
+    static std::vector<std::vector<Vec3d>> display_edges(const TopoDS_Shape& shape, double chord_tol);
     // 0-based edge index into TopExp::MapShapes(shape, TopAbs_EDGE, map).
     static int          edge_count(const TopoDS_Shape& shape);
     static TopoDS_Edge  edge_by_index(const TopoDS_Shape& shape, int index);
@@ -165,6 +138,37 @@ public:
     // radius = circle radius, height = 0 (unknown from an edge), internal = false. ok=false if
     // the edge is not a circle. Lets the Thread tool be driven by a picked circular rim.
     static CylinderFace circle_of_edge(const TopoDS_Edge& edge);
+
+    // What surface a face lies on, for reading a body's topology: its OCCT type, area and centre
+    // of mass, and the numbers that define an analytic surface. Cylinder: as cylinder_of_face
+    // (`location` its base). Cone: `location` the apex, `axis` from the apex into the opening,
+    // `half_angle` (radians), `radius` and `radius2` the smallest and largest radius the face
+    // reaches. Sphere: `location` the centre, `radius`. Torus: `location` the centre, `axis`,
+    // `radius` the major and `radius2` the minor radius. `internal` (cylinder, cone, sphere): the
+    // outward normal points toward the axis or centre, as in a bore or a countersink.
+    struct SurfaceInfo {
+        GeomAbs_SurfaceType type{GeomAbs_OtherSurface};
+        double area{0};
+        Vec3d  centroid{0, 0, 0};
+        Vec3d  location{0, 0, 0};
+        Vec3d  axis{0, 0, 1};
+        double radius{0};
+        double radius2{0};
+        double half_angle{0};
+        bool   internal{false};
+    };
+    static SurfaceInfo surface_info(const TopoDS_Face& face);
+    // The faces each edge bounds: entry i lists the faces_of() ids along edge i of edges_of(), each
+    // once. A seam (the line down a cylinder's side) lists its one face; a degenerate edge (a
+    // cone's apex) lists none.
+    static std::vector<std::vector<int>> edge_faces(const TopoDS_Shape& shape);
+    // How the two faces along `edge` meet, as OCCT's fillet code judges it: +1 convex (an outside
+    // corner), -1 concave (an inside corner), 0 when they meet tangentially, as along a fillet's
+    // boundary, or the edge cannot be judged.
+    static int edge_convexity(const TopoDS_Edge& edge, const TopoDS_Face& f1, const TopoDS_Face& f2);
+    // The shortest distance between two shapes (faces, edges, vertices), and the nearest point on
+    // each. Negative when OCCT finds none.
+    static double min_distance(const TopoDS_Shape& a, const TopoDS_Shape& b, Vec3d& pa, Vec3d& pb);
 
     // Plane-coordinate (u,v) bounding box of a face's vertices, measured from `origin` along
     // `x_axis`/`y_axis`. Lets the Hole tool dimension the hole from the face SIDES (umin/vmin =

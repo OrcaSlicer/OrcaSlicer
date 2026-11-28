@@ -22,10 +22,12 @@ REQUIRED_DEV_PACKAGES=(
     libspnav-devel
     libtool
     m4
-    mesa-libGLU-devel
+    mesa-libGL-devel
     ninja-build
     openssl-devel
     perl-FindBin
+    perl-IPC-Cmd
+    perl-Time-Piece
     texinfo
     wayland-protocols-devel
     webkit2gtk4.1-devel

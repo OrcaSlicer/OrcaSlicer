@@ -1,13 +1,16 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Lulzbot",
-	"inherits": "Generic ABS @System",
 	"renamed_from": "Lulzbot 2.85mm ABS",
+	"inherits": "Generic ABS @System",
 	"from": "system",
 	"setting_id": "Mtn4Fh3Lp6KlAxjo",
 	"instantiation": "true",
 	"filament_diameter": [
 		"2.85"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
 	],
 	"filament_max_volumetric_speed": [
 		"6"

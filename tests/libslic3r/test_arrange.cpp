@@ -1,30 +1,48 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <limits>
+#include <cstddef>
+#include <cmath>
 
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/Arrange.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::arrangement;
 
 namespace {
 
+using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
-// Square of the given (scaled) side, lower-left at the origin. bed_idx starts at
+// Rectangle of the given (scaled) size, lower-left at the origin. bed_idx starts at
 // 0 because arrange() seeds the nester's bin from it (see ModelArrange.cpp).
-ArrangePolygon make_square(coord_t side)
+ArrangePolygon make_rect(coord_t width, coord_t depth)
 {
     ArrangePolygon ap;
-    Polygon        p;
-    p.points = {Point(0, 0), Point(side, 0), Point(side, side), Point(0, side)};
-    ap.poly  = ExPolygon(p);
+    ap.poly    = ExPolygon(Polygon({{0, 0}, {width, 0}, {width, depth}, {0, depth}}));
     ap.bed_idx = 0;
     return ap;
 }
+
+ArrangePolygon make_square(coord_t side) { return make_rect(side, side); }
 
 ArrangePolygons squares(int n, double side_mm, double height_mm = 0.)
 {
@@ -34,6 +52,21 @@ ArrangePolygons squares(int n, double side_mm, double height_mm = 0.)
         items.back().height = height_mm;
     }
     return items;
+}
+
+// 64-gon disc of the given diameter, centred on the origin.
+ArrangePolygon make_disc(double diameter_mm, double height_mm)
+{
+    Polygon p;
+    for (int i = 0; i < 64; ++i) {
+        const double a = 2. * PI * i / 64;
+        p.points.emplace_back(scaled(diameter_mm / 2 * std::cos(a)), scaled(diameter_mm / 2 * std::sin(a)));
+    }
+    ArrangePolygon ap;
+    ap.poly    = ExPolygon(p);
+    ap.bed_idx = 0;
+    ap.height  = height_mm;
+    return ap;
 }
 
 // Bed [0,0]..[w,h] in scaled coordinates.
@@ -86,11 +119,19 @@ void require_no_overlap(const ArrangePolygons &items)
     REQUIRE(disjoint(placed_shapes(items)));
 }
 
+// Shortest distance between two bounding boxes, 0 when they touch or overlap.
+double box_gap(const BoundingBox &a, const BoundingBox &b)
+{
+    coord_t sx = std::max<coord_t>(0, std::max(b.min.x() - a.max.x(), a.min.x() - b.max.x()));
+    coord_t sy = std::max<coord_t>(0, std::max(b.min.y() - a.max.y(), a.min.y() - b.max.y()));
+    return std::sqrt(double(sx) * sx + double(sy) * sy);
+}
+
 // The sequential-print floor is chosen by comparing object height against the nozzle,
 // so the two are defined together and every expectation is derived from them.
 constexpr double NOZZLE_HEIGHT_MM = 2.5;
 constexpr double CLEARANCE_MM     = 30.;
-constexpr double NOZZLE_FLOOR_MM  = MAX_OUTER_NOZZLE_DIAMETER / 2.;
+constexpr double NOZZLE_FLOOR_MM  = MAX_OUTER_NOZZLE_DIAMETER;
 
 ArrangeParams seq_print_params(coord_t min_dist)
 {
@@ -110,12 +151,45 @@ DynamicPrintConfig bed_config()
     return c;
 }
 
+constexpr double SKIRT_DISTANCE_MM = 2.;
+
+// A skirt of `loops` loops of `width` on the bed_config() bed, SKIRT_DISTANCE_MM from the items.
+DynamicPrintConfig skirt_config(int loops, const ConfigOption &width)
+{
+    DynamicPrintConfig cfg = bed_config();
+    cfg.set_key_value("skirt_loops", new ConfigOptionInt(loops));
+    cfg.set_key_value("skirt_height", new ConfigOptionInt(1));
+    cfg.set_key_value("skirt_distance", new ConfigOptionFloat(SKIRT_DISTANCE_MM));
+    cfg.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4}));
+    cfg.set_key_value("initial_layer_line_width", width.clone());
+    return cfg;
+}
+
 ArrangePolygons squares_of_heights(const std::vector<double> &heights_mm)
 {
     ArrangePolygons items;
     for (double height_mm : heights_mm)
         items.push_back(squares(1, 20., height_mm).front());
     return items;
+}
+
+// Arranges as the arrange job does for a sequential print, on the bed_config() bed.
+void arrange_by_object(ArrangePolygons &items, ArrangePolygons &fixed)
+{
+    DynamicPrintConfig cfg = bed_config();
+    ArrangeParams      p   = seq_print_params(0);
+    p.bed_shrink_x         = BED_SHRINK_SEQ_PRINT;
+    p.bed_shrink_y         = BED_SHRINK_SEQ_PRINT;
+    // Rod and lid above the objects, so they need not each go to a bed of their own.
+    p.clearance_height_to_rod = float(NOZZLE_HEIGHT_MM * 10);
+    p.clearance_height_to_lid = float(NOZZLE_HEIGHT_MM * 40);
+    for (ArrangePolygon &ap : items)
+        ap.extrude_ids = {1}; // the sequential sort reads extrude_ids.front()
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    update_unselected_items_inflation(fixed, &cfg, p);
+    arrange(items, fixed, get_shrink_bedpts(&cfg, p), p);
 }
 
 } // namespace
@@ -181,20 +255,15 @@ TEST_CASE("Arrange spaces items by their inflation", "[Arrange]")
     arrange(items, bed(200, 200), quiet_params());
 
     // Axis-aligned squares are their own bounding boxes, so the clearance between
-    // a pair is the distance between their boxes (1mm slack for nester rounding).
+    // a pair is the distance between their boxes (0.5mm slack for nester rounding).
     std::vector<BoundingBox> boxes;
     for (const ExPolygon &e : placed_shapes(items))
         boxes.push_back(e.contour.bounding_box());
 
     double min_gap = std::numeric_limits<double>::max();
     for (size_t i = 0; i < boxes.size(); ++i)
-        for (size_t j = i + 1; j < boxes.size(); ++j) {
-            coord_t sx = std::max<coord_t>(0, std::max(boxes[j].min.x() - boxes[i].max.x(),
-                                                       boxes[i].min.x() - boxes[j].max.x()));
-            coord_t sy = std::max<coord_t>(0, std::max(boxes[j].min.y() - boxes[i].max.y(),
-                                                       boxes[i].min.y() - boxes[j].max.y()));
-            min_gap = std::min(min_gap, std::sqrt(double(sx) * sx + double(sy) * sy));
-        }
+        for (size_t j = i + 1; j < boxes.size(); ++j)
+            min_gap = std::min(min_gap, box_gap(boxes[i], boxes[j]));
 
     REQUIRE(min_gap >= double(scaled(8.)) - double(scaled(0.5)));
 }
@@ -204,11 +273,381 @@ TEST_CASE("An item larger than the bed cannot be placed", "[Arrange]")
     ArrangePolygons items;
     items.emplace_back(make_square(scaled(20.)));
     items.emplace_back(make_square(scaled(400.))); // far bigger than the bed
+    // An item that cannot be placed keeps the position it came in with, so the
+    // caller can leave it where the user had it.
+    items[1].translation = {scaled(10.), scaled(20.)};
 
     arrange(items, bed(200, 200), quiet_params(scaled(1.)));
 
     REQUIRE(items[0].bed_idx == 0);
     REQUIRE(items[1].bed_idx == UNARRANGED);
+    REQUIRE(items[1].translation.x() == scaled(10.));
+    REQUIRE(items[1].translation.y() == scaled(20.));
+}
+
+TEST_CASE("An item filling the printable area is arranged", "[Arrange]")
+{
+    // The arrange bed keeps a margin from the printable area and the item is widened by
+    // its brim. Neither may keep an item that fits the printable area from being placed.
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params();
+
+    ArrangePolygons items = squares(1, 197.);
+    items.front().brim_width = 1.;
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+    REQUIRE(items.front().bed_idx == 0);
+
+    // Larger than the printable area is still refused.
+    ArrangeParams   p_large = quiet_params();
+    ArrangePolygons large   = squares(1, 201.);
+    update_arrange_params(p_large, &cfg, large);
+    update_selected_items_inflation(large, &cfg, p_large);
+    arrange(large, get_shrink_bedpts(&cfg, p_large), p_large);
+    REQUIRE(large.front().bed_idx == UNARRANGED);
+}
+
+TEST_CASE("Arranging uses the whole bed when the extruders share no printable area", "[Arrange]")
+{
+    // Two half-bed areas that only touch. An item wider than either half still fits the bed.
+    DynamicPrintConfig cfg = bed_config(); // 200 x 200
+    cfg.set_key_value("extruder_printable_area", new ConfigOptionPointsGroups{
+        { { 0., 0. }, { 100., 0. }, { 100., 200. }, { 0., 200. } },
+        { { 100., 0. }, { 200., 0. }, { 200., 200. }, { 100., 200. } } });
+    ArrangeParams p = quiet_params();
+
+    ArrangePolygons items = squares(1, 150.);
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    const Points bedpts = get_shrink_bedpts(&cfg, p);
+    // The arrange jobs read the four corners.
+    REQUIRE(bedpts.size() == 4);
+    arrange(items, bedpts, p);
+    CHECK(items.front().bed_idx == 0);
+
+    // The bed still bounds the arrangement.
+    ArrangeParams   p_large = quiet_params();
+    ArrangePolygons large   = squares(1, 201.);
+    update_arrange_params(p_large, &cfg, large);
+    update_selected_items_inflation(large, &cfg, p_large);
+    arrange(large, get_shrink_bedpts(&cfg, p_large), p_large);
+    CHECK(large.front().bed_idx == UNARRANGED);
+}
+
+TEST_CASE("Items almost as wide as the bed are arranged on one bed", "[Arrange]")
+{
+    struct Case
+    {
+        std::string description;
+        double      distance_mm;
+        double      brim_width_mm;
+        bool        align_to_y_axis;
+        int         skirt_loops;
+        double      gap_mm;
+    };
+    // A distance the user set is kept. A brim is cut to the 5 mm the bed leaves on each side of the
+    // item, or to 2.5 mm with the skirt.
+    auto c = GENERATE(values<Case>({
+        {"with a distance the user set",       20., 0., false, 0, 20.},
+        {"with a brim",                        0.,  8., false, 0, 10.},
+        {"when turned to the Y axis",          0.,  8., true,  0, 10.},
+        {"with a skirt",                       0.,  8., false, 1, 5.},
+        {"with a distance and a skirt",        20., 0., false, 1, 20.},
+    }));
+
+    DYNAMIC_SECTION(c.description)
+    {
+        constexpr double   LINE_WIDTH_MM = 0.5;
+        DynamicPrintConfig cfg = skirt_config(c.skirt_loops, ConfigOptionFloatOrPercent(LINE_WIDTH_MM, false));
+        ArrangeParams      p   = quiet_params(scaled(c.distance_mm));
+        p.align_to_y_axis      = c.align_to_y_axis;
+
+        ArrangePolygons items(2, make_rect(scaled(190.), scaled(20.)));
+        for (ArrangePolygon &ap : items)
+            ap.brim_width = c.brim_width_mm;
+        ArrangePolygons fixed;
+        update_arrange_items(items, fixed, &cfg, p);
+        arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+        // The skirt goes around the items, so they keep its room from the bed edge.
+        const coord_t skirt_room = c.skirt_loops > 0 ? scaled(SKIRT_DISTANCE_MM + c.skirt_loops * LINE_WIDTH_MM) : 0;
+        BoundingBox   printable  = bed(200, 200);
+        printable.offset(-skirt_room);
+        for (const ArrangePolygon &ap : items) {
+            REQUIRE(ap.bed_idx == 0);
+            REQUIRE(printable.contains(ap.transformed_poly().contour.bounding_box()));
+        }
+        // 0.5 mm slack for nester rounding.
+        CHECK(box_gap(items[0].transformed_poly().contour.bounding_box(), items[1].transformed_poly().contour.bounding_box()) >=
+              double(scaled(c.gap_mm - 0.5)));
+    }
+}
+
+TEST_CASE("A distance the user set is kept when another item's brim is cut", "[Arrange]")
+{
+    DynamicPrintConfig cfg = bed_config();
+    ArrangeParams      p   = quiet_params(scaled(20.));
+    ArrangePolygons    items{make_rect(scaled(195.), scaled(20.)), make_rect(scaled(190.), scaled(20.))};
+    for (ArrangePolygon &ap : items)
+        ap.brim_width = 5.;
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        REQUIRE(bed(200, 200).contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    // The 195 mm item keeps 7.5 mm of its inflation and the 190 mm item all 10 mm. 0.5 mm slack for nester rounding.
+    CHECK(box_gap(items[0].transformed_poly().contour.bounding_box(), items[1].transformed_poly().contour.bounding_box()) >=
+          double(scaled(17.5 - 0.5)));
+}
+
+TEST_CASE("A distance the user set is kept past the branches of tree supports", "[Arrange]")
+{
+    constexpr double   DISTANCE_MM = 20.;
+    constexpr double   BRANCH_MM   = 10.; // tree support branch diameter, half of which lies around an item
+    DynamicPrintConfig cfg         = bed_config();
+    ArrangeParams      p           = quiet_params(scaled(DISTANCE_MM));
+    ArrangePolygons    items(2, make_rect(scaled(190.), scaled(20.)));
+    for (ArrangePolygon &ap : items) {
+        ap.has_tree_support = true;
+        ap.brim_width       = BRANCH_MM;
+    }
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    // The arrange bed extends past the printable area by no more than the distance past the branches.
+    const BoundingBox arrange_bed(get_shrink_bedpts(&cfg, p));
+    CHECK(unscale<double>(arrange_bed.min.x()) >= -(DISTANCE_MM / 2 - BRANCH_MM / 2) - 1e-3);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    for (const ArrangePolygon &ap : items)
+        REQUIRE(ap.bed_idx == 0);
+    // 0.5 mm slack for nester rounding.
+    CHECK(box_gap(items[0].transformed_poly().contour.bounding_box(), items[1].transformed_poly().contour.bounding_box()) >=
+          double(scaled(DISTANCE_MM - 0.5)));
+}
+
+TEST_CASE("A distance the user set keeps the arrange bed inside a round bed", "[Arrange]")
+{
+    constexpr double   RADIUS_MM = 100.;
+    DynamicPrintConfig cfg;
+    std::vector<Vec2d> circle;
+    for (int i = 0; i < 72; ++i)
+        circle.emplace_back(RADIUS_MM + RADIUS_MM * std::cos(i * PI / 36), RADIUS_MM + RADIUS_MM * std::sin(i * PI / 36));
+    cfg.set_key_value("printable_area", new ConfigOptionPoints(circle));
+    ArrangeParams   p     = quiet_params(scaled(20.));
+    ArrangePolygons items = squares(2, 20.);
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+
+    const Vec2d center(RADIUS_MM, RADIUS_MM);
+    for (const Point &pt : get_shrink_bedpts(&cfg, p))
+        REQUIRE((unscaled(pt) - center).norm() <= RADIUS_MM + EPSILON);
+}
+
+TEST_CASE("An item cut to less inflation than the bed would grow keeps the bed from growing", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config();
+    ArrangeParams      p     = quiet_params(scaled(36.));
+    ArrangePolygons    items = {make_rect(scaled(199.), scaled(20.))};
+    items.front().rotation   = PI / 18; // 10 degrees, so the corners of the inflated item lie past the inflation
+    items.front().brim_width = 8.;
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    // The arrange bed extends past the printable area by no more than the item's inflation.
+    const BoundingBox arrange_bed(get_shrink_bedpts(&cfg, p));
+    CHECK(arrange_bed.min.x() >= -items.front().inflation);
+    CHECK(arrange_bed.min.y() >= -items.front().inflation);
+
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("An item filling the bed does not keep the bed from growing for the others", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params(scaled(20.));
+    ArrangePolygons    items = {make_rect(scaled(200.), scaled(20.)), make_rect(scaled(190.), scaled(20.))};
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    const BoundingBox printable = bed(200, 200).inflated(scaled(BuildVolume::BedEpsilon));
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        REQUIRE(printable.contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    // 0.5 mm slack for nester rounding.
+    CHECK(box_gap(items[0].transformed_poly().contour.bounding_box(), items[1].transformed_poly().contour.bounding_box()) >=
+          double(scaled(20. - 0.5)));
+}
+
+TEST_CASE("An item too big for the bed is not placed with a distance the user set", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params(scaled(20.));
+    ArrangePolygons    items = {make_rect(scaled(205.), scaled(20.))};
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == UNARRANGED);
+}
+
+TEST_CASE("An item too big for the bed does not take the bed margin from the others", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config();
+    ArrangeParams      p     = quiet_params();
+    ArrangePolygons    items = {make_rect(scaled(210.), scaled(20.)), make_rect(scaled(20.), scaled(20.))};
+    const float        margin_mm = p.bed_shrink_x;
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    const BoundingBox arrange_bed(get_shrink_bedpts(&cfg, p));
+    CHECK_THAT(unscale<double>(arrange_bed.min.x()), WithinAbs(margin_mm, 1e-4));
+    CHECK_THAT(unscale<double>(arrange_bed.min.y()), WithinAbs(margin_mm, 1e-4));
+}
+
+TEST_CASE("An item exactly as wide as the bed is arranged with its brim", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params();
+    ArrangePolygons    items = {make_rect(scaled(200.), scaled(50.))};
+    items.front().brim_width = 1.;
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+}
+
+TEST_CASE("An item turned by hand and almost as wide as the bed is arranged with its brim", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config();
+    ArrangeParams      p     = quiet_params();
+    ArrangePolygons    items = {make_rect(scaled(190.), scaled(20.))};
+    items.front().rotation   = PI / 18; // 10 degrees, so the corners of the inflated item lie past the inflation
+    items.front().brim_width = 8.;
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("A non-convex item turned by hand and almost as wide as the bed is arranged with its brim", "[Arrange]")
+{
+    DynamicPrintConfig cfg = bed_config(); // 200 x 200
+    ArrangeParams      p   = quiet_params();
+    ArrangePolygon     l_shape;
+    l_shape.poly = ExPolygon(Polygon({{0, 0}, {scaled(190.), 0}, {scaled(190.), scaled(10.)},
+                                      {scaled(20.), scaled(10.)}, {scaled(20.), scaled(60.)}, {0, scaled(60.)}}));
+    l_shape.bed_idx    = 0;
+    l_shape.rotation   = PI / 18; // 10 degrees, so the turned item is about 197.5 mm wide
+    l_shape.brim_width = 8.;
+    ArrangePolygons items{l_shape};
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("With rotations allowed, an item that fits only on the diagonal of the bed is arranged", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params();
+    p.allow_rotations        = true;
+    ArrangePolygons    items = {make_rect(scaled(260.), scaled(20.))};
+    items.front().brim_width = 1.;
+    ArrangePolygons    fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    // The item keeps no inflation and gets the bed margin back.
+    CHECK(items.front().inflation == 0);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("With rotations allowed, an item turned off the axis it fits is arranged", "[Arrange]")
+{
+    DynamicPrintConfig cfg;
+    cfg.set_key_value("printable_area", new ConfigOptionPoints{{0, 0}, {250, 0}, {250, 210}, {0, 210}});
+    ArrangeParams p   = quiet_params();
+    p.allow_rotations = true;
+    // Turned 45 degrees the item is about 219 mm wide and deep, more than the 210 mm the bed is deep.
+    ArrangePolygons items    = {make_rect(scaled(249.5), scaled(60.))};
+    items.front().rotation   = PI / 4;
+    items.front().brim_width = 1.;
+    ArrangePolygons fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(250, 210).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("With rotations allowed, items that have to be turned keep a distance the user set", "[Arrange]")
+{
+    constexpr double   DISTANCE_MM = 20.;
+    DynamicPrintConfig cfg;
+    cfg.set_key_value("printable_area", new ConfigOptionPoints{{0, 0}, {250, 0}, {250, 210}, {0, 210}});
+    ArrangeParams p   = quiet_params(scaled(DISTANCE_MM));
+    p.allow_rotations = true;
+    // Turned to the Y axis the items are 240 mm deep, more than the 210 mm the bed is deep.
+    ArrangePolygons items(2, make_rect(scaled(240.), scaled(20.)));
+    for (ArrangePolygon &ap : items) {
+        ap.rotation   = PI / 2;
+        ap.brim_width = 1.;
+    }
+    ArrangePolygons fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        REQUIRE(bed(250, 210).contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    // 0.5 mm slack for nester rounding.
+    CHECK(box_gap(items[0].transformed_poly().contour.bounding_box(), items[1].transformed_poly().contour.bounding_box()) >=
+          double(scaled(DISTANCE_MM - 0.5)));
+}
+
+TEST_CASE("The skirt room counts a percent line width against the nozzle", "[Arrange]")
+{
+    DynamicPrintConfig cfg = skirt_config(2, ConfigOptionFloatOrPercent(125., true));
+    ArrangeParams      p   = quiet_params();
+
+    update_arrange_params(p, &cfg, {});
+    // Two loops 125% as wide as the 0.4 mm nozzle.
+    CHECK_THAT(p.brim_skirt_distance, WithinAbs(SKIRT_DISTANCE_MM + 2 * 0.5, 1e-4));
+}
+
+TEST_CASE("The skirt room reads a line width stored as a plain number", "[Arrange]")
+{
+    DynamicPrintConfig cfg = skirt_config(2, ConfigOptionFloat(0.5));
+    ArrangeParams      p   = quiet_params();
+
+    update_arrange_params(p, &cfg, {});
+    CHECK_THAT(p.brim_skirt_distance, WithinAbs(SKIRT_DISTANCE_MM + 2 * 0.5, 1e-4));
 }
 
 TEST_CASE("Items overflowing one bed spill onto virtual beds", "[Arrange]")
@@ -245,18 +684,163 @@ TEST_CASE("Arrange without final alignment keeps items disjoint", "[Arrange]")
     require_no_overlap(items);
 }
 
-TEST_CASE("Arrange aligns the pile to a custom center", "[Arrange]")
+TEST_CASE("Arrange centers a pile that fits on the custom alignment point", "[Arrange]")
 {
-    // align_center != (0.5, 0.5) selects Alignment::USER_DEFINED.
-    ArrangePolygons items  = squares(5, 30.);
+    ArrangePolygons items  = squares(4, 30.);
     ArrangeParams   params = quiet_params(scaled(2.));
     params.align_center    = Vec2d(0.3, 0.7);
 
     arrange(items, bed(250, 250), params);
 
-    for (const ArrangePolygon &ap : items)
+    BoundingBox pile;
+    for (const ArrangePolygon &ap : items) {
         REQUIRE(ap.bed_idx == 0);
+        pile.merge(ap.transformed_poly().contour.bounding_box());
+    }
+    // best_object_pos is align_center scaled to the bed.
+    const Point expected(scaled(250. * 0.3), scaled(250. * 0.7));
+    REQUIRE(std::abs(pile.center().x() - expected.x()) <= scaled(0.5));
+    REQUIRE(std::abs(pile.center().y() - expected.y()) <= scaled(0.5));
     require_no_overlap(items);
+}
+
+// A row of four 40 mm parts centred on the 30% mark of a 200 x 50 mm bed would start 24 mm
+// left of it (#15727). The pile stops at the left edge instead.
+TEST_CASE("Arrange keeps a custom-aligned pile within the bed", "[Arrange]")
+{
+    const BoundingBox bed_   = bed(200, 50);
+    ArrangePolygons   items  = squares(4, 40.);
+    ArrangeParams     params = quiet_params(scaled(2.));
+    params.align_center      = Vec2d(0.3, 0.5);
+
+    arrange(items, bed_, params);
+
+    coord_t leftmost = std::numeric_limits<coord_t>::max();
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        const BoundingBox bb = ap.transformed_poly().contour.bounding_box();
+        CHECK(bed_.contains(bb));
+        leftmost = std::min(leftmost, bb.min.x());
+    }
+    // Stopped at the edge it was aimed at, not re-centred.
+    CHECK(leftmost < scaled(10.));
+    require_no_overlap(items);
+}
+
+// Arranging a selection leaves the unselected parts where they are, but the final alignment
+// centres the box around both, so the selection does not move by its own centring. The check
+// against the bed and the fixed part must test where the selection actually lands.
+TEST_CASE("Arrange keeps a selection on the bed and clear of a fixed part", "[Arrange]")
+{
+    ArrangePolygons fixed = squares(1, 40.);
+    fixed.front().translation = {scaled(80.), scaled(80.)};
+    ArrangePolygons items = squares(3, 40.);
+    for (ArrangePolygon &ap : items)
+        ap.inflation = scaled(1.);
+
+    arrange(items, fixed, bed(200, 200), quiet_params());
+
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        REQUIRE(bed(200, 200).contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    items.insert(items.end(), fixed.begin(), fixed.end());
+    require_no_overlap(items);
+}
+
+// A belt printer starts its parts at the leading end of the belt (best_object_pos 0.5, 0.05).
+// Centring a pile on a point that close to the edge pushed everything longer than the room
+// around it off the bed: four 90 mm parts on a 95 x 500 mm belt ended with one across the
+// edge and one outside, with 290 mm of belt free behind them. The pile stops at the edge.
+TEST_CASE("Arrange keeps a pile aligned near an edge on the bed", "[Arrange][belt]")
+{
+    const BoundingBox belt   = bed(95, 500);
+    ArrangePolygons   items  = squares(4, 90.);
+    ArrangeParams     params = quiet_params(scaled(2.));
+    params.align_center      = Vec2d(0.5, 0.05);
+    params.is_belt           = true;
+    params.belt_axis         = 1;
+    params.belt_tilt_slope   = 1.f;
+
+    arrange(items, belt, params);
+
+    coord_t lowest = std::numeric_limits<coord_t>::max();
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        const BoundingBox bb = ap.transformed_poly().contour.bounding_box();
+        CHECK(belt.contains(bb));
+        lowest = std::min(lowest, bb.min.y());
+    }
+    // Snapped to the edge it was aimed at, less the spacing margin, not re-centred.
+    CHECK(lowest < scaled(10.));
+    require_no_overlap(items);
+}
+
+// Flat-bed printers with an off-centre best_object_pos (the A1 mini and the H2 family) get
+// the same clamp: centring the pile on that point used to push it off the bed (#15727).
+TEST_CASE("Arrange keeps a flat-bed pile aligned near an edge on the bed", "[Arrange]")
+{
+    const BoundingBox bed_   = bed(95, 500);
+    ArrangePolygons   items  = squares(4, 90.);
+    ArrangeParams     params = quiet_params(scaled(2.));
+    params.align_center      = Vec2d(0.5, 0.05);
+
+    arrange(items, bed_, params);
+
+    coord_t lowest = std::numeric_limits<coord_t>::max();
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        const BoundingBox bb = ap.transformed_poly().contour.bounding_box();
+        CHECK(bed_.contains(bb));
+        lowest = std::min(lowest, bb.min.y());
+    }
+    // Stopped at the edge it was aimed at, not re-centred.
+    CHECK(lowest < scaled(10.));
+    require_no_overlap(items);
+}
+
+// On a belt the parts print in belt order, so two colours that alternate along the
+// belt, or sit side by side, cost a filament change on every shared layer. Arrange
+// keeps each colour together: no part shares belt length with a part of another
+// colour, counting the tilted layers that run cot(angle) * height past its far edge,
+// whichever end of the belt prints first.
+TEST_CASE("Arrange groups the colours of a belt print along the belt", "[Arrange][belt]")
+{
+    const bool reversed = GENERATE(false, true);
+    CAPTURE(reversed);
+    const BoundingBox belt   = bed(95, 500);
+    ArrangePolygons   items  = squares(6, 30., 20.);
+    for (size_t i = 0; i < items.size(); ++i)
+        items[i].extrude_ids = { int(i % 3) + 1 };   // three colours, two parts each
+    ArrangeParams params     = quiet_params(scaled(2.));
+    params.align_center      = Vec2d(0.5, 0.05);
+    params.is_belt           = true;
+    params.belt_axis         = 1;
+    params.belt_reversed     = reversed;
+    params.belt_tilt_slope   = 1.f;   // 45 degrees
+
+    arrange(items, belt, params);
+    require_no_overlap(items);
+
+    // Belt position in print order, so the same check serves both directions.
+    const coord_t dir = reversed ? -1 : 1;
+    auto start = [&](const ArrangePolygon &ap) { const BoundingBox bb = ap.transformed_poly().contour.bounding_box(); return dir * (reversed ? bb.max.y() : bb.min.y()); };
+    auto end   = [&](const ArrangePolygon &ap) { const BoundingBox bb = ap.transformed_poly().contour.bounding_box(); return dir * (reversed ? bb.min.y() : bb.max.y()) + scaled(ap.height * params.belt_tilt_slope); };
+
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        CHECK(belt.contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    for (const ArrangePolygon &a : items)
+        for (const ArrangePolygon &b : items) {
+            if (a.extrude_ids == b.extrude_ids)
+                continue;
+            // The part printed later starts after the earlier one has finished.
+            const coord_t earlier_end = start(a) <= start(b) ? end(a) : end(b);
+            const coord_t later_start = std::max(start(a), start(b));
+            INFO("colour " << a.extrude_ids.front() << " vs " << b.extrude_ids.front());
+            CHECK(earlier_end <= later_start);
+        }
 }
 
 TEST_CASE("Sequential print floors the object distance by object height", "[Arrange]")
@@ -306,6 +890,41 @@ TEST_CASE("Sequential print keeps an object distance already above the floor", "
     CHECK(p.min_obj_distance == stored);
 }
 
+TEST_CASE("Sequential print keeps the clearance of an object almost as wide as the bed", "[Arrange]")
+{
+    ArrangePolygons items  = {make_rect(scaled(199.), scaled(20.))};
+    items.front().height   = NOZZLE_HEIGHT_MM * 2;
+    items.front().rotation = PI / 18; // 10 degrees, so the corners of the inflated object lie past the clearance
+    DynamicPrintConfig cfg = bed_config();
+    ArrangeParams      p   = seq_print_params(0);
+
+    update_selected_items_inflation(items, &cfg, p);
+    CHECK(p.min_obj_distance >= scaled(CLEARANCE_MM));
+    CHECK(items.front().inflation == p.min_obj_distance / 2);
+}
+
+TEST_CASE("Sequential print with rotations allowed arranges an object that has to be turned", "[Arrange]")
+{
+    DynamicPrintConfig cfg = bed_config(); // 200 x 200
+    ArrangeParams      p   = seq_print_params(scaled(40.));
+    p.allow_rotations      = true;
+    p.bed_shrink_x         = BED_SHRINK_SEQ_PRINT;
+    p.bed_shrink_y         = BED_SHRINK_SEQ_PRINT;
+    // Turned 10 degrees the object is about 205 mm wide, so it fits only turned back and with the bed margin given back.
+    ArrangePolygons items     = {make_rect(scaled(198.), scaled(60.))};
+    items.front().rotation    = PI / 18;
+    items.front().height      = NOZZLE_HEIGHT_MM * 2;
+    items.front().extrude_ids = {1}; // the sequential sort reads extrude_ids.front()
+    ArrangePolygons fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    CHECK(items.front().inflation == p.min_obj_distance / 2);
+    arrange(items, fixed, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
 TEST_CASE("Layered printing does not floor the object distance", "[Arrange]")
 {
     ArrangePolygons    items = squares_of_heights({NOZZLE_HEIGHT_MM * 2, NOZZLE_HEIGHT_MM * 2});
@@ -315,4 +934,242 @@ TEST_CASE("Layered printing does not floor the object distance", "[Arrange]")
 
     update_selected_items_inflation(items, &cfg, p);
     CHECK(p.min_obj_distance == 0);
+}
+
+// Short objects only need a nozzle's width between them, far less than the clearance
+// radius, so the bed may only grow by half that width. A row of four 50 mm objects and
+// their gaps is wider than the 200 mm bed but would fit one grown by half the clearance
+// radius. Twenty of them overfill the bed, so the pile reaches its edges.
+TEST_CASE("Sequential print keeps short objects on the bed and a nozzle apart", "[Arrange]")
+{
+    ArrangePolygons items = squares(20, 50., NOZZLE_HEIGHT_MM / 2);
+    ArrangePolygons fixed;
+    arrange_by_object(items, fixed);
+
+    // Grown as Print::sequential_print_clearance_valid() grows them.
+    ExPolygons grown;
+    for (const ArrangePolygon &ap : items) {
+        if (ap.bed_idx != 0)
+            continue;
+        CHECK(bed(200, 200).contains(ap.transformed_poly().contour.bounding_box()));
+        append(grown, offset_ex(ap.transformed_poly(), float(scale_(0.5 * MAX_OUTER_NOZZLE_DIAMETER - 0.1))));
+    }
+    REQUIRE(grown.size() > 1);
+    REQUIRE(disjoint(grown));
+}
+
+// Only the disc has to fit the bed; the half gap it is inflated by may reach past the
+// edge. Within the bed margin of filling the bed, the arrange bed is cut to the disc's
+// size, and rounding must not leave it a hair too small.
+TEST_CASE("Sequential print arranges a short object filling the printable area", "[Arrange]")
+{
+    ArrangePolygons items{make_disc(196., NOZZLE_HEIGHT_MM / 2)};
+    ArrangePolygons fixed;
+    arrange_by_object(items, fixed);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+// The largest object and its clearance are wider than the bed less its margins, though
+// the object itself fits within them, so every object keeps the margin.
+TEST_CASE("Sequential print keeps the bed margin beside a large tall object", "[Arrange]")
+{
+    ArrangePolygons items = squares(3, 10., NOZZLE_HEIGHT_MM * 2);
+    items.push_back(make_disc(170., NOZZLE_HEIGHT_MM * 2));
+    ArrangePolygons fixed;
+    arrange_by_object(items, fixed);
+
+    const coord_t     margin = scaled(BED_SHRINK_SEQ_PRINT - 0.01); // 0.01 mm for rounding
+    const BoundingBox inner(Point(margin, margin), Point(scaled(200.) - margin, scaled(200.) - margin));
+    for (const ArrangePolygon &ap : items)
+        if (ap.bed_idx == 0)
+            CHECK(inner.contains(ap.transformed_poly().contour.bounding_box()));
+}
+
+// Short objects keep off an extrusion calibration region. One along the back edge catches
+// the region being moved back by a positive bed shrink, which lets objects onto it.
+TEST_CASE("Sequential print keeps short objects off a calibration region", "[Arrange]")
+{
+    const BoundingBox region_bb(Point(0, scaled(185.)), Point(scaled(200.), scaled(200.)));
+    ArrangePolygon    region;
+    region.poly                     = ExPolygon(region_bb.polygon());
+    region.bed_idx                  = 0;
+    region.is_virt_object           = true;
+    region.is_extrusion_cali_object = true;
+    ArrangePolygons items = squares(20, 40., NOZZLE_HEIGHT_MM / 2);
+    ArrangePolygons fixed{region};
+    arrange_by_object(items, fixed);
+
+    for (const ArrangePolygon &ap : items)
+        if (ap.bed_idx == 0)
+            CHECK(ap.transformed_poly().contour.bounding_box().max.y() <= region_bb.min.y());
+}
+
+// The nester packs an object turned and inflated, and the inflated corners of a turned square
+// reach past its inflation, so cutting the arrange bed to the object's size must measure that
+// outline. The square is 196 mm wide turned 30 degrees.
+TEST_CASE("Sequential print arranges a turned short object filling the printable area", "[Arrange]")
+{
+    ArrangePolygon item = make_square(scaled(196. / (std::cos(PI / 6) + std::sin(PI / 6))));
+    item.height   = NOZZLE_HEIGHT_MM / 2;
+    item.rotation = PI / 6;
+    ArrangePolygons items{item};
+    ArrangePolygons fixed;
+    arrange_by_object(items, fixed);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+// An object closer to the bed edge than the bed margin, as one placed by hand, still takes its
+// room when Fill bed adds objects around it, though its inflation crosses the arrange bed's edge.
+TEST_CASE("Sequential print keeps short objects off one at the bed edge", "[Arrange]")
+{
+    ArrangePolygon obstacle = make_square(scaled(40.));
+    obstacle.translation    = {scaled(1.), scaled(80.)};
+    obstacle.height         = NOZZLE_HEIGHT_MM / 2;
+    obstacle.extrude_ids    = {1};
+    ArrangePolygons fixed{obstacle};
+    ArrangePolygons items = squares(20, 40., NOZZLE_HEIGHT_MM / 2);
+    arrange_by_object(items, fixed);
+
+    ExPolygons placed{obstacle.transformed_poly()};
+    for (const ArrangePolygon &ap : items)
+        if (ap.bed_idx == 0)
+            placed.emplace_back(ap.transformed_poly());
+    REQUIRE(placed.size() > 1);
+    REQUIRE(disjoint(placed));
+}
+
+TEST_CASE("Bed exclusions apply by physical nozzle and overlapping Z range", "[Arrange][ExclusionVolume][MultiNozzle]")
+{
+    ArrangePolygon object = make_square(scaled(20.));
+    object.has_z_range = true;
+    object.z_min = 0.0;
+    object.z_max = 20.0;
+    object.bed_exclusion_extruder_ids = {1};
+
+    ArrangePolygon exclusion = make_square(scaled(20.));
+    exclusion.is_bed_exclusion = true;
+    exclusion.has_z_range = true;
+    exclusion.z_min = 10.0;
+    exclusion.z_max = 30.0;
+    exclusion.bed_exclusion_extruder_id = 1;
+
+    CHECK(bed_exclusion_applies(object, exclusion));
+
+    exclusion.bed_exclusion_extruder_id = 0;
+    CHECK_FALSE(bed_exclusion_applies(object, exclusion));
+
+    // Empty physical-nozzle assignments mean unresolved, so arrangement stays conservative.
+    object.bed_exclusion_extruder_ids.clear();
+    CHECK(bed_exclusion_applies(object, exclusion));
+
+    object.bed_exclusion_extruder_ids = {0};
+    object.z_max = 9.0;
+    CHECK_FALSE(bed_exclusion_applies(object, exclusion));
+
+    // Touching at one Z plane is intentionally treated as a collision.
+    object.z_max = 10.0;
+    CHECK(bed_exclusion_applies(object, exclusion));
+}
+
+TEST_CASE("Shared bed exclusions apply to every arranged object", "[Arrange][ExclusionVolume]")
+{
+    ArrangePolygon object = make_square(scaled(20.));
+    object.bed_exclusion_extruder_ids = {1};
+
+    ArrangePolygon shared = make_square(scaled(20.));
+    shared.is_bed_exclusion = true;
+    shared.bed_exclusion_extruder_id = -1;
+
+    CHECK(has_bed_exclusion_regions({shared}));
+    CHECK_FALSE(has_bed_exclusion_regions({object}));
+    CHECK(bed_exclusion_applies(object, shared));
+}
+
+TEST_CASE("Arrange keeps relevant objects outside conditional exclusion obstacles", "[Arrange][ExclusionVolume]")
+{
+    ArrangePolygon exclusion = make_square(scaled(30.));
+    exclusion.translation = Vec2crd(scaled(35.0), scaled(35.0));
+    exclusion.is_bed_exclusion = true;
+    exclusion.bed_exclusion_extruder_id = 0;
+
+    ArrangePolygons items = squares(4, 20.0);
+    for (ArrangePolygon &item : items)
+        item.bed_exclusion_extruder_ids = {0};
+
+    arrange(items, {exclusion}, bed(100.0, 100.0), quiet_params(scaled(1.0)));
+
+    const ExPolygon excluded_shape = exclusion.transformed_poly();
+    for (const ArrangePolygon &item : items) {
+        REQUIRE(item.bed_idx == 0);
+        CHECK(intersection(ExPolygons{item.transformed_poly()}, ExPolygons{excluded_shape}).empty());
+    }
+    require_no_overlap(items);
+}
+
+TEST_CASE("Objects taller than the rod clearance stay out of the Y span of a compacted prime tower", "[Arrange]")
+{
+    // A tower spanning Y 180..240 at the right edge of the bed, with no extra growth on its polygon.
+    ArrangePolygon tower;
+    Polygon        outline;
+    outline.points       = {Point(scaled(180.), scaled(180.)), Point(scaled(240.), scaled(180.)), Point(scaled(240.), scaled(240.)), Point(scaled(180.), scaled(240.))};
+    tower.poly           = ExPolygon(outline);
+    tower.bed_idx        = 0;
+    tower.is_virt_object = true;
+    tower.is_wipe_tower  = true;
+
+    ArrangeParams params           = quiet_params(scaled(2.));
+    params.clearance_height_to_rod = 24.f;
+    params.clearance_dist_to_rod   = 40.f;
+    params.compacted_tower_growth  = 0;
+
+    // The pile gathers around the tower, so without the rule the objects end up beside it. A
+    // best_object_pos away from the bed centre, as some printer profiles set, must not carry the
+    // pile back into the span either.
+    for (const Vec2d &align_center : {Vec2d(0.5, 0.5), Vec2d(0.3, 0.5), Vec2d(0.7, 0.5), Vec2d(0.5, 0.7)}) {
+        INFO("best_object_pos " << align_center.x() << "x" << align_center.y());
+        params.align_center   = align_center;
+        ArrangePolygons items = squares(4, 40., 50.);
+        arrange(items, {tower}, bed(250, 250), params);
+
+        for (const ArrangePolygon &ap : items) {
+            REQUIRE(ap.bed_idx == 0);
+            CHECK(ap.transformed_poly().contour.bounding_box().max.y() <= scaled(180. - 40.));
+        }
+    }
+
+    // Objects that stay under the rod may share the span.
+    params.align_center = Vec2d(0.5, 0.5);
+    ArrangePolygons low = squares(4, 40., 10.);
+    arrange(low, {tower}, bed(250, 250), params);
+    CHECK(std::any_of(low.begin(), low.end(), [](const ArrangePolygon &ap) {
+        return ap.transformed_poly().contour.bounding_box().max.y() > scaled(180. - 40.);
+    }));
+}
+
+TEST_CASE("Objects no taller than the nozzle height only keep the nozzle cone from a compacted prime tower", "[Arrange]")
+{
+    // A K2: toolhead radius 64 mm, nozzle height 4 mm.
+    const double  toolhead_radius = 64.;
+    ArrangeParams params;
+    params.nozzle_height = 4.f;
+
+    ArrangePolygon keychain;
+    keychain.height = 3.;
+    ArrangePolygon at_nozzle_height;
+    at_nozzle_height.height = 4.;
+    ArrangePolygon tall;
+    tall.height = 30.;
+
+    using Catch::Matchers::WithinAbs;
+    CHECK_THAT(compacted_tower_arrange_clearance({keychain, at_nozzle_height}, params, toolhead_radius), WithinAbs(MAX_OUTER_NOZZLE_DIAMETER, EPSILON));
+    // The tower is one polygon for all the objects placed, so one taller object gives every one of
+    // them the toolhead radius.
+    CHECK_THAT(compacted_tower_arrange_clearance({keychain, tall}, params, toolhead_radius), WithinAbs(toolhead_radius, EPSILON));
+    CHECK_THAT(compacted_tower_arrange_clearance({tall}, params, toolhead_radius), WithinAbs(toolhead_radius, EPSILON));
+    // find_new_position() passes no objects.
+    CHECK_THAT(compacted_tower_arrange_clearance({}, params, toolhead_radius), WithinAbs(toolhead_radius, EPSILON));
 }

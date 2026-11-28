@@ -2,11 +2,17 @@
 #define slic3r_MixedFilamentDialog_hpp_
 
 #include <array>
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
 #include <wx/bitmap.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/colour.h>
 #include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 #include <wx/tglbtn.h>
 #include <wx/stattext.h>
 
@@ -14,7 +20,8 @@
 #include "libslic3r/FilamentMixer.hpp"
 
 class Button;
-class CheckBox;
+class ScalableButton;
+class LabeledCheckBox;
 class ComboBox;
 class wxMouseEvent;
 class wxScrolledWindow;
@@ -92,9 +99,8 @@ private:
     void update_ok_button_state();
     void update_gradient_direction_items();
     void update_component_count_ui();
-    // Picks dialog (width, height) based on current state so the gradient curve
-    // editor and the recommendation list stay visible at the same time.
-    wxSize compute_dialog_size() const;
+    // Fits the dialog to its content and keeps it on its display.
+    void fit_within_display();
     void rebuild_all_combos();
     void rebuild_recommendation_items();
     void refresh_curve_editor_colors();
@@ -104,8 +110,7 @@ private:
 
     // Reserves the same width on every material row label so the combo boxes line up.
     static void apply_uniform_label_width(wxStaticText* lbl);
-    // Appends one "Filament N" label + combo row to m_material_rows_sizer.  N follows the
-    // number of rows already there, so callers must not renumber anything themselves.
+    // Appends a label + combo row to m_material_rows_sizer, numbered after the existing rows.
     void append_material_row();
 
     // Helpers for component/ratio access
@@ -134,17 +139,15 @@ private:
     RatioLabelPanel*            m_label_ratio_b{nullptr};
     wxPanel*                    m_ratio_editor_panel{nullptr};
     wxTextCtrl*                 m_ratio_editor{nullptr};
-    CheckBox*                   m_chk_gradient{nullptr};
-    wxStaticText*               m_label_gradient{nullptr};
+    LabeledCheckBox*            m_chk_gradient{nullptr};
     ComboBox*                   m_combo_gradient_dir{nullptr};
     wxBoxSizer*                 m_gradient_sizer{nullptr};
     GradientCurveEditor*        m_curve_editor{nullptr};
     wxBoxSizer*                 m_curve_sizer{nullptr};
-    CheckBox*                   m_chk_per_part_gradient{nullptr};
-    wxStaticText*               m_label_per_part_gradient{nullptr};
+    LabeledCheckBox*            m_chk_per_part_gradient{nullptr};
     wxBoxSizer*                 m_per_part_gradient_sizer{nullptr};
-    Button*                     m_btn_add_material{nullptr};
-    Button*                     m_btn_remove_material{nullptr};
+    ScalableButton*             m_btn_add_material{nullptr};
+    ScalableButton*             m_btn_remove_material{nullptr};
     Button*                     m_btn_ok{nullptr};
     Button*                     m_btn_cancel{nullptr};
     wxBoxSizer*                 m_warning_sizer{nullptr};

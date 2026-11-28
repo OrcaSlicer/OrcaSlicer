@@ -2,14 +2,17 @@
 #define slic3r_ColorDecomposeDialog_hpp_
 
 #include <array>
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <vector>
 #include <utility>
 #include <wx/colour.h>
 #include <wx/panel.h>
+#include <wx/sizer.h>
 #include <wx/statbmp.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 
 #include "GUI_Utils.hpp"
 #include "libslic3r/ColorDecomposeRecipe.hpp"
@@ -75,7 +78,7 @@ protected:
 private:
     void build_ui();
     wxBoxSizer* create_filament_selector();
-    wxBoxSizer* create_target_color_section();
+    wxFlexGridSizer* create_target_color_section();
     wxBoxSizer* create_mode_selection_section();
     wxPanel*    create_mode_card(wxWindow* parent, DecomposeMode mode, const wxString& title);
     wxBoxSizer* create_button_panel();

@@ -2,17 +2,24 @@
 #define slic3r_GUI_IMSlider_hpp_
 
 #include "TickCode.hpp"
+#include <cstddef>
+#include <functional>
+#include <array>
 #include <imgui/imgui.h>
+#include <vector>
+#include "libslic3r/CustomGCode.hpp"
+#include <string>
+#include <wx/event.h>
 #include <wx/slider.h>
 
 #include <set>
 
-class wxMenu;
+class wxMouseEvent;
+
 struct IMGUI_API ImRect;
 
 namespace Slic3r {
 
-using namespace CustomGCode;
 class PrintObject;
 class Layer;
 
@@ -63,6 +70,8 @@ public:
 
     int    GetMinValue() const { return m_min_value; }
     int    GetMaxValue() const { return m_max_value; }
+    // How many values the slider was given (SetSliderValues()): none until then, whatever its range says.
+    size_t values_count() const { return m_values.size(); }
     double GetMinValueD() { return m_values.empty() ? 0. : m_values[m_min_value]; }
     double GetMaxValueD() { return m_values.empty() ? 0. : m_values[m_max_value]; }
     int    GetLowerValue() const { return m_lower_value; }
@@ -71,6 +80,9 @@ public:
     double GetLowerValueD() { return get_double_value(ssLower); }
     double GetHigherValueD() { return get_double_value(ssHigher); }
     SelectedSlider GetSelection() { return m_selection; }
+    // The tick of the layer at a height (mm): the first layer whose top is at or above it, or, on a plate
+    // with a wipe tower and without force_lower_bound, only a layer at that height. -1 when there is none.
+    int    get_tick_from_value(double value, bool force_lower_bound = false) const;
 
     // Set low and high slider position. If the span is non-empty, disable the "one layer" mode.
     void SetLowerValue(const int lower_val);
@@ -81,8 +93,10 @@ public:
     void SetSliderValues(const std::vector<double> &values);
     void SetSliderAlternateValues(const std::vector<double> &values) { m_alternate_values = values; }
 
-    Info GetTicksValues() const;
-    void SetTicksValues(const Info &custom_gcode_per_print_z);
+    CustomGCode::Info GetTicksValues() const;
+    // The codes by layer index (tick), as the menus show them.
+    const std::set<TickCode>& GetTicks() const { return m_ticks.ticks; }
+    void SetTicksValues(const CustomGCode::Info &custom_gcode_per_print_z);
     void SetLayersTimes(const std::vector<float> &layers_times, float total_time);
     void SetLayersTimes(const std::vector<double> &layers_times);
 
@@ -90,10 +104,15 @@ public:
     void SetDrawMode(DrawMode mode) { m_draw_mode = mode; }
     //BBS
     void SetExtraStyle(long style) { m_extra_style = style; }
-    void SetManipulationMode(Mode mode) { m_mode = mode; }
-    Mode GetManipulationMode() const { return m_mode; }
+    void SetManipulationMode(CustomGCode::Mode mode) { m_mode = mode; }
+    CustomGCode::Mode GetManipulationMode() const { return m_mode; }
     void SetModeAndOnlyExtruder(const bool is_one_extruder_printed_model, const int only_extruder, bool can_change_color);
     void SetExtruderColors(const std::vector<std::string> &extruder_colors);
+    // The filaments the menus offer for a filament change, one colour each.
+    const std::vector<std::string>& GetExtruderColors() const { return m_extruder_colors; }
+    // Whether the menus offer Change Filament: the plate's objects print with one filament, not in spiral vase
+    // mode and not by object.
+    bool can_change_color() const { return m_can_change_color; }
 
     bool IsNewPrint();
 
@@ -109,8 +128,8 @@ public:
     void UseDefaultColors(bool def_colors_on) { m_ticks.set_default_colors(def_colors_on); }
 
     void on_mouse_wheel(wxMouseEvent& evt);
-    void post_ticks_changed_event(Type type = Unknown);
-    bool check_ticks_changed_event(Type type);
+    void post_ticks_changed_event(CustomGCode::Type type = CustomGCode::Unknown);
+    bool check_ticks_changed_event(CustomGCode::Type type);
     bool switch_one_layer_mode();
     void show_go_to_layer(bool show) { m_show_go_to_layer_dialog = show; }
 
@@ -118,13 +137,16 @@ public:
 
     //BBS update scroll value changed
     bool is_dirty() { return m_dirty; }
+    // whether the mouse is holding this slider's handle, read from ImGui's active id rather than
+    // from the dirty flag, which is raised and consumed inside a single frame
+    bool is_dragging() const;
     void set_as_dirty(bool dirty = true) { m_dirty = dirty; }
     bool is_need_post_tick_event() { return m_is_need_post_tick_changed_event; }
     void reset_post_tick_event(bool val = false) {
         m_is_need_post_tick_changed_event = val;
-        m_tick_change_event_type = Type::Unknown;
+        m_tick_change_event_type = CustomGCode::Type::Unknown;
     }
-    Type get_post_tick_event_type() { return m_tick_change_event_type; }
+    CustomGCode::Type get_post_tick_event_type() { return m_tick_change_event_type; }
 
     float m_scale = 1.0;
     void set_scale(float scale = 1.0);
@@ -133,10 +155,14 @@ public:
     void on_change_color_mode(bool is_dark);
     void set_menu_enable(bool enable = true) { m_menu_enable = enable; }
 
-protected:
-    void add_custom_gcode(std::string custom_gcode);
-    void add_code_as_tick(Type type, int selected_extruder = -1);
+    // The menus' tick edits, on the layer `tick` or, with -1, on the active thumb's as the menus do. Each
+    // raises the event that hands the ticks to the plater at the next frame. add_code_as_tick returns
+    // whether the ticks changed; on a layer that holds a code it can only turn that code into a filament change.
+    void add_custom_gcode(std::string custom_gcode, int tick = -1);
+    bool add_code_as_tick(CustomGCode::Type type, int selected_extruder = -1, int tick = -1);
     void delete_tick(const TickCode& tick);
+
+protected:
     void do_go_to_layer(size_t layer_number); //menu
     void correct_lower_value();
     void correct_higher_value();
@@ -148,7 +174,7 @@ protected:
     void render_edit_menu(const TickCode& tick); //menu
     void draw_background_and_groove(const ImRect& bg_rect, const ImRect& groove);
     void draw_colored_band(const ImRect& groove, const ImRect& slideable_region);
-    void draw_custom_label_block(const ImVec2 anchor, Type type);
+    void draw_custom_label_block(const ImVec2 anchor, CustomGCode::Type type);
     void draw_ticks(const ImRect& slideable_region);
     void draw_tick_on_mouse_position(const ImRect& slideable_region);
     void show_tooltip(const TickCode& tick); //menu
@@ -162,7 +188,6 @@ protected:
 private:
     std::string get_label(int tick, LabelType label_type = ltHeightWithLayer);
     double get_double_value(const SelectedSlider& selection);
-    int    get_tick_from_value(double value, bool force_lower_bound = false);
     float get_pos_from_value(int v_min, int v_max, int value, const ImRect& rect);
     int    get_tick_near_point(int v_min, int v_max, const ImVec2& pt, const ImRect& rect);
 
@@ -182,6 +207,8 @@ private:
     int  m_higher_value;
     int  m_one_layer_value; // ORCA
     bool m_dirty = false;
+    // the ImGui id of the slider widget, as of its last render
+    unsigned int m_imgui_id = 0;
 
     bool m_render_as_disabled{ false };
 
@@ -209,7 +236,7 @@ private:
     void *m_delete_icon_id;
 
     DrawMode            m_draw_mode = dmRegular;
-    Mode                m_mode          = SingleExtruder;
+    CustomGCode::Mode   m_mode          = CustomGCode::SingleExtruder;
     int                 m_only_extruder = -1;
 
     long                m_style;
@@ -224,7 +251,7 @@ private:
     bool                     m_can_change_color;
     std::string              m_print_obj_idxs;
     bool                     m_is_need_post_tick_changed_event { false };
-    Type                     m_tick_change_event_type;
+    CustomGCode::Type        m_tick_change_event_type;
 
     std::vector<double> m_alternate_values;
 

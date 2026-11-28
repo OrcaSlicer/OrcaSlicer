@@ -1,10 +1,14 @@
 #ifndef SUPPORTTREEMESHER_HPP
 #define SUPPORTTREEMESHER_HPP
 
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 
 #include "libslic3r/SLA/SupportTreeBuilder.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include <tuple>
+#include <cstddef>
+#include <Eigen/Geometry>
 //#include "libslic3r/SLA/Contour3D.hpp"
 
 namespace Slic3r { namespace sla {

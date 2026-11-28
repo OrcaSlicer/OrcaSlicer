@@ -2,7 +2,16 @@
 #define slic3r_ConfigWizard_private_hpp_
 
 #include "ConfigWizard.hpp"
+#include "ConfigWizardTypes.hpp"
 
+#include <memory>
+#include "libslic3r/Preset.hpp"
+#include <string>
+#include <utility>
+#include <cstddef>
+#include <algorithm>
+#include "libslic3r/Config.hpp"
+#include <map>
 #include <vector>
 #include <set>
 #include <unordered_map>
@@ -10,11 +19,15 @@
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/scrolwin.h>
 #include <wx/sizer.h>
 #include <wx/panel.h>
 #include <wx/button.h>
 #include <wx/choice.h>
 #include <wx/spinctrl.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/listbox.h>
 #include <wx/checklst.h>
@@ -28,9 +41,8 @@
 #include "GUI.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
+#include <wx/types.h>
 
-
-namespace fs = boost::filesystem;
 
 namespace Slic3r {
 namespace GUI {
@@ -75,7 +87,7 @@ struct Bundle
 	// cache or its profile JSONs, whichever is usable.
 	// Returns false if not loaded. Reason for that is logged as boost::log error.
 	//BBS: set BBL as default
-	bool load(fs::path dir, const std::string &vendor_name, bool is_in_resources, bool is_bbl_bundle = false);
+	bool load(boost::filesystem::path dir, const std::string &vendor_name, bool is_in_resources, bool is_bbl_bundle = false);
 
 	const std::string& vendor_id() const { return vendor_profile->id; }
 };
@@ -225,7 +237,7 @@ struct ConfigWizardPage: wxPanel
     ConfigWizard::priv *wizard_p() const { return parent->p.get(); }
 
     virtual void apply_custom_config(DynamicPrintConfig &config) {}
-    virtual void set_run_reason(ConfigWizard::RunReason run_reason) {}
+    virtual void set_run_reason(RunReason run_reason) {}
     virtual void on_activate() {}
 };
 
@@ -240,7 +252,7 @@ struct PageWelcome: ConfigWizardPage
     bool reset_user_profile() const { return cbox_reset != nullptr ? cbox_reset->GetValue() : false; }
     bool integrate_desktop() const { return cbox_integrate != nullptr ? cbox_integrate->GetValue() : false; }
 
-    virtual void set_run_reason(ConfigWizard::RunReason run_reason) override;
+    virtual void set_run_reason(RunReason run_reason) override;
 };
 
 struct PagePrinters: ConfigWizardPage //TO check
@@ -262,7 +274,7 @@ struct PagePrinters: ConfigWizardPage //TO check
 
     std::string get_vendor_id() const { return printer_pickers.empty() ? "" : printer_pickers[0]->vendor_id; }
 
-    virtual void set_run_reason(ConfigWizard::RunReason run_reason) override;
+    virtual void set_run_reason(RunReason run_reason) override;
 
     bool has_printers { false };
     bool is_primary_printer_page { false };
@@ -529,7 +541,7 @@ typedef std::map<std::string, std::set<std::string>> PresetAliases;
 struct ConfigWizard::priv
 {
     ConfigWizard *q;
-    ConfigWizard::RunReason run_reason = RR_USER;
+    RunReason run_reason = RunReason::RR_USER;
     AppConfig appconfig_new;      // Backing for vendor/model/variant and material selections in the GUI
     BundleMap bundles;            // Holds all loaded config bundles, the key is the vendor names.
                                   // Materials refers to Presets in those bundles by pointers.
@@ -591,7 +603,7 @@ struct ConfigWizard::priv
     void load_vendors();
     void add_page(ConfigWizardPage *page);
     void enable_next(bool enable);
-    void set_start_page(ConfigWizard::StartPage start_page);
+    void set_start_page(StartPage start_page);
     void create_3rdparty_pages();
     void set_run_reason(RunReason run_reason);
     void update_materials(Technology technology);

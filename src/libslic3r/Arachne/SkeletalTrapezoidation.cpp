@@ -10,16 +10,26 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <math.h>
+#include <list>
+#include <memory>
 #include <utility>
 #include <cassert>
 #include <cstdlib>
+#include <vector>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Arachne/BeadingStrategy/BeadingStrategy.hpp"
 #include "libslic3r/Geometry/VoronoiUtils.hpp"
 #include "ankerl/unordered_dense.h"
 #include "libslic3r/Arachne/SkeletalTrapezoidationEdge.hpp"
 #include "libslic3r/Arachne/SkeletalTrapezoidationJoint.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
+#include "libslic3r/Arachne/SkeletalTrapezoidationGraph.hpp"
+#include "libslic3r/Arachne/utils/PolygonsSegmentIndex.hpp"
 
 #ifndef NDEBUG
     #include "libslic3r/EdgeGrid.hpp"
@@ -377,6 +387,13 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     VD voronoi_diagram;
     voronoi_diagram.construct_voronoi(segments.cbegin(), segments.cend());
 
+    // A graph built from a diagram the repair could not fix has edges without twins, and every later
+    // stage dereferences the twin. Leave the graph empty so no toolpaths are generated for this outline.
+    if (!voronoi_diagram.is_valid()) {
+        BOOST_LOG_TRIVIAL(error) << "Arachne: invalid Voronoi diagram, no toolpaths generated for this outline.";
+        return;
+    }
+
 #ifdef ARACHNE_DEBUG_VORONOI
     {
         static int iRun = 0;
@@ -455,8 +472,6 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         if (!edge.prev)
             edge.from->incident_edge = &edge;
 }
-
-using NodeSet = SkeletalTrapezoidation::NodeSet;
 
 void SkeletalTrapezoidation::separatePointyQuadEndNodes()
 {

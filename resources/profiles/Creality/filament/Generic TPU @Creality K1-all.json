@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @Creality K1-all",
-	"inherits": "Generic TPU @Creality",
 	"renamed_from": "Creality Generic TPU @K1-all;Creality Generic TPU K1-all",
+	"inherits": "Generic TPU @Creality",
 	"from": "system",
 	"setting_id": "7zTgnS8bIEkkhqtB",
 	"instantiation": "true",

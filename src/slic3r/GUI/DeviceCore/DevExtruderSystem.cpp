@@ -1,4 +1,15 @@
+#include "libslic3r/CommonDefs.hpp"
+#include <cassert>
+#include <boost/log/trivial.hpp>
+#include <map>
+#include <cstdlib>
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <unordered_map>
+#include <optional>
+#include <string>
+#include <vector>
 #include "DevExtruderSystem.h"
 #include "DevNozzleSystem.h"
 #include "DevFilaSystem.h" // complete type for GetFilaSystem()->GetTrayIndexMap() in GetBackupAmsSlotInGroup
@@ -307,11 +318,13 @@ namespace Slic3r
             extder_obj.SetExtId(njon["id"].get<int>());
 
             extder_obj.m_filam_bak.clear();
-            const json& filam_bak_items = njon["filam_bak"];
-            for (const auto& filam_bak_item : filam_bak_items)
-            {
-                const auto& filam_bak_val = filam_bak_item.get<int>();
-                extder_obj.m_filam_bak.emplace_back(filam_bak_val);
+            // A Bambu Lab H3C's status can leave out filam_bak.
+            if (njon.contains("filam_bak")) {
+                const json& filam_bak_items = njon["filam_bak"];
+                for (const auto& filam_bak_item : filam_bak_items) {
+                    const auto& filam_bak_val = filam_bak_item.get<int>();
+                    extder_obj.m_filam_bak.emplace_back(filam_bak_val);
+                }
             }
 
             extder_obj.m_ext_has_filament = (DevUtil::get_flag_bits(njon["info"].get<int>(), 1) != 0);

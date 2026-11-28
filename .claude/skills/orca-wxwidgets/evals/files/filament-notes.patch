@@ -1,0 +1,252 @@
+diff --git a/src/slic3r/GUI/FilamentNotesDialog.hpp b/src/slic3r/GUI/FilamentNotesDialog.hpp
+new file mode 100644
+--- /dev/null
++++ b/src/slic3r/GUI/FilamentNotesDialog.hpp
+@@ -0,0 +1,56 @@
++#pragma once
++
++#include "GUI_Utils.hpp"
++
++#include <wx/timer.h>
++
++#include <string>
++#include <thread>
++#include <vector>
++
++class Button;
++class TextInput;
++
++namespace Slic3r { namespace GUI {
++
++// Strip of filament colour swatches; hovering a swatch outlines it.
++class SwatchPreview : public wxPanel
++{
++public:
++    SwatchPreview(wxWindow* parent);
++    void set_colours(const std::vector<wxColour>& colours);
++
++private:
++    void on_left_down(wxMouseEvent& e);
++    void on_left_up(wxMouseEvent& e);
++    void on_motion(wxMouseEvent& e);
++    void draw_hover(int index);
++
++    std::vector<wxColour> m_colours;
++    bool                  m_dragging{false};
++    int                   m_hover{-1};
++};
++
++// Non-modal editor for the user's notes on a filament, synced with the cloud.
++class FilamentNotesDialog : public DPIDialog
++{
++public:
++    FilamentNotesDialog(wxWindow* parent, const std::string& filament_id);
++    ~FilamentNotesDialog() override;
++
++protected:
++    void on_dpi_changed(const wxRect& suggested_rect) override;
++
++private:
++    void start_sync();
++    void on_sync_done(wxCommandEvent& e);
++    void show_more_menu();
++
++    std::string    m_filament_id;
++    TextInput*     m_name_input{nullptr};
++    wxTextCtrl*    m_notes{nullptr};
++    wxStaticText*  m_status{nullptr};
++    SwatchPreview* m_preview{nullptr};
++    Button*        m_more_btn{nullptr};
++    wxTimer*       m_autosave_timer{nullptr};
++    std::thread    m_sync_thread;
++};
++
++}} // namespace Slic3r::GUI
+diff --git a/src/slic3r/GUI/FilamentNotesDialog.cpp b/src/slic3r/GUI/FilamentNotesDialog.cpp
+new file mode 100644
+--- /dev/null
++++ b/src/slic3r/GUI/FilamentNotesDialog.cpp
+@@ -0,0 +1,170 @@
++#include "FilamentNotesDialog.hpp"
++
++#include "GUI_App.hpp"
++#include "I18N.hpp"
++#include "Widgets/Button.hpp"
++#include "Widgets/DialogButtons.hpp"
++#include "Widgets/TextInput.hpp"
++
++#include <wx/dcbuffer.h>
++#include <wx/dcclient.h>
++#include <wx/menu.h>
++#include <wx/statbox.h>
++
++namespace Slic3r {
++// Provided by the cloud layer; blocking network call.
++std::string fetch_remote_note(const std::string& filament_id);
++
++namespace GUI {
++
++wxDEFINE_EVENT(EVT_NOTES_SYNC_DONE, wxCommandEvent);
++
++SwatchPreview::SwatchPreview(wxWindow* parent)
++    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(240), FromDIP(28)))
++{
++    SetBackgroundStyle(wxBG_STYLE_PAINT);
++    Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
++        wxAutoBufferedPaintDC dc(this);
++        dc.SetBackground(wxBrush(GetBackgroundColour()));
++        dc.Clear();
++        const wxSize sz = GetClientSize();
++        const int    w  = sz.x / std::max<int>(1, m_colours.size());
++        dc.SetPen(*wxTRANSPARENT_PEN);
++        for (size_t i = 0; i < m_colours.size(); ++i) {
++            dc.SetBrush(wxBrush(m_colours[i]));
++            dc.DrawRectangle(int(i) * w, 0, w, sz.y);
++        }
++    });
++    Bind(wxEVT_LEFT_DOWN, &SwatchPreview::on_left_down, this);
++    Bind(wxEVT_LEFT_UP, &SwatchPreview::on_left_up, this);
++    Bind(wxEVT_MOTION, &SwatchPreview::on_motion, this);
++}
++
++void SwatchPreview::set_colours(const std::vector<wxColour>& colours)
++{
++    m_colours = colours;
++    Refresh();
++}
++
++void SwatchPreview::on_left_down(wxMouseEvent& e)
++{
++    m_dragging = true;
++    CaptureMouse();
++}
++
++void SwatchPreview::on_left_up(wxMouseEvent& e)
++{
++    if (m_dragging) {
++        m_dragging = false;
++        ReleaseMouse();
++    }
++}
++
++void SwatchPreview::on_motion(wxMouseEvent& e)
++{
++    const wxPoint p   = ScreenToClient(wxGetMousePosition());
++    const int     w   = GetClientSize().x / std::max<int>(1, m_colours.size());
++    const int     idx = w > 0 ? p.x / w : -1;
++    if (idx != m_hover) {
++        m_hover = idx;
++        draw_hover(idx);
++    }
++    e.Skip();
++}
++
++void SwatchPreview::draw_hover(int index)
++{
++    wxClientDC dc(this);
++    dc.SetPen(wxPen(wxColour("#009688"), 2));
++    dc.SetBrush(*wxTRANSPARENT_BRUSH);
++    const int w = GetClientSize().x / std::max<int>(1, m_colours.size());
++    dc.DrawRectangle(index * w, 0, w, GetClientSize().y);
++}
++
++FilamentNotesDialog::FilamentNotesDialog(wxWindow* parent, const std::string& filament_id)
++    : DPIDialog(parent, wxID_ANY, _L("Filament notes"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE)
++    , m_filament_id(filament_id)
++{
++    SetBackgroundColour(*wxWHITE);
++    auto* sizer = new wxBoxSizer(wxVERTICAL);
++
++    m_name_input = new TextInput(this, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(300), -1));
++    m_name_input->GetTextCtrl()->Bind(wxEVT_TEXT, [this](wxCommandEvent&) {
++        wxString v = m_name_input->GetTextCtrl()->GetValue();
++        v.Trim(false);
++        m_name_input->GetTextCtrl()->SetValue(v.Upper());
++        m_autosave_timer->StartOnce(1000);
++    });
++    m_name_input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent&) {
++        m_autosave_timer->StartOnce(1);
++    });
++    sizer->Add(m_name_input, 0, wxEXPAND | wxALL, FromDIP(10));
++
++    auto* box = new wxStaticBoxSizer(wxVERTICAL, this, _L("Notes"));
++    m_notes   = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(400, 160), wxTE_MULTILINE);
++    box->Add(m_notes, 1, wxEXPAND | wxALL, FromDIP(6));
++    sizer->Add(box, 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
++
++    m_preview = new SwatchPreview(this);
++    sizer->Add(m_preview, 0, wxEXPAND | wxALL, FromDIP(10));
++
++    m_status = new wxStaticText(this, wxID_ANY, wxEmptyString);
++    sizer->Add(m_status, 0, wxLEFT | wxRIGHT, FromDIP(10));
++
++    m_more_btn = new Button(this, _L("More..."));
++    m_more_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { show_more_menu(); });
++    sizer->Add(m_more_btn, 0, wxALL, FromDIP(10));
++
++    auto* btns = new DialogButtons(this, {"OK", "Cancel"});
++    btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { Close(); });
++    btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { Close(); });
++    sizer->Add(btns, 0, wxEXPAND);
++
++    m_autosave_timer = new wxTimer(this);
++    Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
++        wxGetApp().app_config->set("filament_note_" + m_filament_id, m_notes->GetValue().ToStdString());
++        wxGetApp().app_config->save();
++    });
++
++    Bind(EVT_NOTES_SYNC_DONE, &FilamentNotesDialog::on_sync_done, this);
++    Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent&) { delete this; });
++
++    SetSizer(sizer);
++    Layout();
++    wxGetApp().UpdateDlgDarkUI(this);
++
++    start_sync();
++}
++
++FilamentNotesDialog::~FilamentNotesDialog()
++{
++    if (m_sync_thread.joinable())
++        m_sync_thread.detach();
++}
++
++void FilamentNotesDialog::start_sync()
++{
++    m_sync_thread = std::thread([this]() {
++        m_status->SetLabel(_L("Syncing..."));
++        const std::string remote = fetch_remote_note(m_filament_id);
++        wxCommandEvent evt(EVT_NOTES_SYNC_DONE);
++        evt.SetString(wxString::FromUTF8(remote));
++        wxPostEvent(this, evt);
++    });
++}
++
++void FilamentNotesDialog::on_sync_done(wxCommandEvent& e)
++{
++    m_notes->SetValue(e.GetString());
++    m_status->SetLabel(_L("Synced"));
++}
++
++void FilamentNotesDialog::show_more_menu()
++{
++    wxMenu menu;
++    menu.Append(wxID_CLEAR, _L("Clear notes"));
++    menu.Append(wxID_REVERT, _L("Reload from cloud"));
++    m_more_btn->Bind(wxEVT_MENU, [this](wxCommandEvent& e) {
++        if (e.GetId() == wxID_CLEAR)
++            m_notes->Clear();
++        else
++            start_sync();
++    });
++    PopupMenu(&menu, m_more_btn->GetPosition() + wxPoint(0, m_more_btn->GetSize().y));
++}
++
++void FilamentNotesDialog::on_dpi_changed(const wxRect&)
++{
++    m_more_btn->Rescale();
++    Layout();
++    Refresh();
++}
++
++}} // namespace Slic3r::GUI

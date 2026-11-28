@@ -1,16 +1,66 @@
+// why: keep the Windows headers ahead of libslic3r. Model.hpp pulls in Format/STEP.hpp, and
+// OCCT's Standard_Macro.hxx defines NOUSER and NOGDI on Windows so that windows.h does not
+// collide with OCCT's identifiers. Defined that early they also hide the USER and GDI
+// declarations, and the wx MSW headers Field.hpp reaches (wx/wxprec.h -> wx/msw/private.h)
+// need WNDPROC, RGB and the ::GetWindowRect family. Including windows.h first, as
+// libslic3r_gui does through pchheader.hpp or win_platform.hpp, keeps them.
+#ifdef WIN32
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <Windows.h>
+    #include <CommCtrl.h>
+#endif
+
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
+#include <cstddef>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/TriangleMesh.hpp>
-#include <slic3r/plugin/PythonPluginBridge.hpp>
+#include <slic3r/GUI/DockPanel.hpp>
+#include <slic3r/GUI/AuiPaneLayout.hpp>
+#include <slic3r/GUI/OptionsGroup.hpp>
+#include <slic3r/GUI/Widgets/WebHosting.hpp>
 
+#include <map>
+#include <utility>
+
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include "plugin_test_utils.hpp"
+#include <pybind11/gil.h>
+#include <pybind11/pytypes.h>
+#include <pybind11/cast.h>
 #include "python_test_support.hpp"
 
 #include <pybind11/embed.h>
+#include <pybind11/eval.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
+#include <nlohmann/json.hpp>
+#include <slic3r/GUI/Mcp/McpTools.hpp>
+#include <slic3r/plugin/PluginOperations.hpp>
+
+#include <regex>
+#include <set>
 #include <string>
+#include <vector>
+
+#include <wx/string.h>
+#include <wx/uri.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <pybind11/detail/common.h>
 
 namespace py = pybind11;
 
@@ -28,6 +78,8 @@ bool has_attr(const py::handle& object, const char* name)
 
 TEST_CASE("Plugin host API exposes host-owned bundle and preset surface to Python", "[PluginHost][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::module_ orca = import_orca_module();
     REQUIRE(has_attr(orca, "host"));
 
@@ -38,6 +90,14 @@ TEST_CASE("Plugin host API exposes host-owned bundle and preset surface to Pytho
     REQUIRE(has_attr(host, "Model"));
     REQUIRE(has_attr(host, "ModelObject"));
     REQUIRE(has_attr(host, "Plater"));
+    REQUIRE(has_attr(host, "preset"));
+    py::object preset = host.attr("preset");
+    REQUIRE(has_attr(preset, "bundles"));
+    py::object bundles = preset.attr("bundles");
+    CHECK(has_attr(bundles, "list_ids"));
+    CHECK(has_attr(bundles, "reload_local"));
+    CHECK_FALSE(has_attr(host, "reload_local_bundle"));
+    CHECK_FALSE(has_attr(host, "list_bundle_ids"));
 
     py::object preset_bundle_type = host.attr("PresetBundle");
     CHECK(has_attr(preset_bundle_type, "prints"));
@@ -111,11 +171,157 @@ TEST_CASE("Plugin host API exposes host-owned bundle and preset surface to Pytho
     CHECK(printers.attr("find_preset")(printer_preset.name).attr("name").cast<std::string>() == printer_preset.name);
 }
 
+TEST_CASE("Plugin host API exposes the editable preset category handles and guards them before Orca app initialization",
+          "[PluginHost][Python]")
+{
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
+    py::object host   = import_orca_module().attr("host");
+    py::object preset = host.attr("preset");
+
+    REQUIRE(has_attr(preset, "PresetEditor"));
+    REQUIRE(has_attr(preset, "process"));
+    REQUIRE(has_attr(preset, "printer"));
+    REQUIRE(has_attr(preset, "filament"));
+
+    py::object process  = preset.attr("process");
+    py::object printer  = preset.attr("printer");
+    py::object filament = preset.attr("filament");
+
+    CHECK(process.attr("type").cast<Slic3r::Preset::Type>() == Slic3r::Preset::TYPE_PRINT);
+    CHECK(printer.attr("type").cast<Slic3r::Preset::Type>() == Slic3r::Preset::TYPE_PRINTER);
+    CHECK(filament.attr("type").cast<Slic3r::Preset::Type>() == Slic3r::Preset::TYPE_FILAMENT);
+    for (const py::object& editor : { process, printer, filament })
+        CHECK(has_attr(editor, "update"));
+
+    // With no wx application the call must fail cleanly, like the rest of host.preset, and must not
+    // be mistaken for a missing attribute or an argument error.
+    for (const py::object& editor : { process, printer, filament }) {
+        try {
+            editor.attr("update")("layer_height", "0.25");
+            FAIL("preset editor update unexpectedly succeeded without a wx application");
+        } catch (const py::error_already_set& error) {
+            CHECK(error.matches(PyExc_RuntimeError));
+            CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+        }
+    }
+}
+
+TEST_CASE("Plugin host API exposes the filament slot form of preset update and guards it", "[PluginHost][Python]")
+{
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
+    py::object host   = import_orca_module().attr("host");
+    py::object preset = host.attr("preset");
+
+    // The filament editor accepts update(slot_number, key, value) as well as update(key, value); with
+    // no wx application it reaches the same clean failure as the rest of host.preset. The slot
+    // validation and the switch/cancel path need a running app, so they are not exercised here.
+    try {
+        preset.attr("filament").attr("update")(1, "layer_height", "0.25");
+        FAIL("slot-addressed filament update unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+    }
+
+    // The process and printer editors accept only update(key, value); the slot form is rejected
+    // before any application access, naming the editor that does accept it.
+    for (const char* name : { "process", "printer" }) {
+        CAPTURE(name);
+        try {
+            preset.attr(name).attr("update")(1, "layer_height", "0.25");
+            FAIL("slot-addressed update on a non-filament editor unexpectedly succeeded");
+        } catch (const py::error_already_set& error) {
+            CHECK(error.matches(PyExc_ValueError));
+            CHECK(std::string(error.what()).find("only available on") != std::string::npos);
+        }
+    }
+}
+
+TEST_CASE("Plugin host API exposes staged preset update transactions", "[PluginHost][Python]")
+{
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
+    py::object preset = import_orca_module().attr("host").attr("preset");
+    py::object transaction_type = preset.attr("PresetTransaction");
+    py::object result_type = preset.attr("PresetUpdateResult");
+
+    CHECK(has_attr(transaction_type, "set"));
+    CHECK(has_attr(transaction_type, "commit"));
+    CHECK(has_attr(result_type, "target_name"));
+    CHECK(has_attr(result_type, "selection_changed"));
+    CHECK(has_attr(result_type, "slot_assignment_changed"));
+    CHECK(has_attr(result_type, "shared_slots"));
+
+    for (const char* name : { "process", "printer" }) {
+        CAPTURE(name);
+        py::object editor = preset.attr(name);
+        CHECK(has_attr(editor, "begin_update"));
+        try {
+            editor.attr("begin_update")();
+            FAIL("begin_update unexpectedly succeeded without a wx application");
+        } catch (const py::error_already_set& error) {
+            CHECK(error.matches(PyExc_RuntimeError));
+            CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+        }
+    }
+
+    py::object filament = preset.attr("filament");
+    CHECK(has_attr(filament, "begin_update"));
+    try {
+        filament.attr("begin_update")(1);
+        FAIL("filament begin_update unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+    }
+}
+
+TEST_CASE("A settings group resolves an option's id from its option map", "[PluginHost]")
+{
+    using Slic3r::GUI::option_id_in_map;
+    using Slic3r::GUI::t_opt_map;
+
+    // The map ConfigOptionsGroup::get_option leaves: a scalar option, and a per-extruder option
+    // whose entries carry their index.
+    t_opt_map options;
+    options.emplace("layer_height", std::make_pair(std::string("layer_height"), -1));
+    options.emplace("nozzle_diameter#0", std::make_pair(std::string("nozzle_diameter"), 0));
+    options.emplace("nozzle_diameter#1", std::make_pair(std::string("nozzle_diameter"), 1));
+
+    // A negative index resolves a scalar option and yields its own (negative) index.
+    int index = -1;
+    CHECK(option_id_in_map(options, "layer_height", index) == "layer_height");
+    CHECK(index == -1);
+
+    // A negative index on a vector option matches several entries, so it resolves to nothing.
+    index = -1;
+    CHECK(option_id_in_map(options, "nozzle_diameter", index).empty());
+
+    // An explicit index selects that entry.
+    index = 1;
+    CHECK(option_id_in_map(options, "nozzle_diameter", index) == "nozzle_diameter#1");
+    CHECK(index == 1);
+
+    // An index no entry carries, and a key the map does not own, resolve to nothing.
+    index = 7;
+    CHECK(option_id_in_map(options, "nozzle_diameter", index).empty());
+    index = -1;
+    CHECK(option_id_in_map(options, "wall_loops", index).empty());
+
+    const t_opt_map empty;
+    CHECK(option_id_in_map(empty, "layer_height", index).empty());
+}
+
 TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initialization", "[PluginHost][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object host = import_orca_module().attr("host");
+    py::object bundles = host.attr("preset").attr("bundles");
 
-    for (const char* function_name : { "preset_bundle", "plater", "model" }) {
+    for (const char* function_name : { "preset_bundle", "plater", "model", "app_info", "selected_printer" }) {
         CAPTURE(function_name);
         try {
             host.attr(function_name)();
@@ -125,10 +331,41 @@ TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initi
             CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
         }
     }
+
+    try {
+        bundles.attr("reload_local")("test-bundle");
+        FAIL("host.preset.bundles.reload_local unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+    }
+
+    try {
+        bundles.attr("list_ids")();
+        FAIL("host.preset.bundles.list_ids unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+    }
+}
+
+TEST_CASE("Plugin host API reports no GL details before the 3D view exists", "[PluginHost][Python]")
+{
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
+    py::object host = import_orca_module().attr("host");
+
+    CHECK(host.attr("gl_info")().is_none());
+
+    py::object plater_type = host.attr("Plater");
+    CHECK(has_attr(plater_type, "project_path"));
+    CHECK(has_attr(plater_type, "export_3mf_copy"));
 }
 
 TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app initialization", "[PluginHost][Python]")
 {
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object host = import_orca_module().attr("host");
     REQUIRE(has_attr(host, "ui"));
 
@@ -141,6 +378,8 @@ TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app i
     CHECK(ui.attr("WINDOW_MODELESS").cast<long>() == 0);
     CHECK(ui.attr("WINDOW_MODAL").cast<long>() == 1);
     CHECK(has_attr(ui, "UiWindow"));
+    CHECK(has_attr(ui, "create_dock_panel"));
+    CHECK(has_attr(ui, "UiDockPanel"));
 
     // With no wx application the UI calls marshal to a main thread that does not
     // exist here; they must fail cleanly with a clear error, not crash.
@@ -151,6 +390,84 @@ TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app i
         CHECK(error.matches(PyExc_RuntimeError));
         CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
     }
+
+    try {
+        ui.attr("create_dock_panel")("<p>panel</p>");
+        FAIL("orca.host.ui.create_dock_panel unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+    }
+
+    // Positional arguments follow create_window(): width and height come straight after the title.
+    try {
+        ui.attr("create_dock_panel")("<p>panel</p>", "Panel", 400, 300);
+        FAIL("orca.host.ui.create_dock_panel unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+    }
+
+    // An unknown dock position is rejected before the application is needed.
+    try {
+        ui.attr("create_dock_panel")("<p>panel</p>", py::arg("dock") = "top");
+        FAIL("orca.host.ui.create_dock_panel accepted an unknown dock position");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_ValueError));
+    }
+}
+
+TEST_CASE("Plugin pane names identify the plugin and title without layout delimiters", "[PluginHost]")
+{
+    using Slic3r::GUI::plugin_pane_name;
+
+    CHECK(plugin_pane_name("dock_demo", "Scene") == "plugin:dock_demo:Scene");
+    CHECK(plugin_pane_name("key", "a|b;c=d\\e").find_first_of("|;=\\") == std::string::npos);
+}
+
+TEST_CASE("A pane's saved layout entry is found by pane name", "[PluginHost]")
+{
+    using Slic3r::GUI::aui_pane_layout_entry;
+
+    const std::string sidebar = "name=sidebar;caption=;state=2099196;dir=4;layer=0;row=0;pos=0;bestw=390;besth=900";
+    // The caption holds an escaped '|', which must not end the entry.
+    const std::string plugin  = "name=plugin:demo:Scene;caption=Scene \\| stats;state=2099198;dir=2;layer=0;row=1;pos=0;bestw=320;besth=480";
+    const std::string layout  = "layout3|" + sidebar + "|" + plugin + "|dock_size(4,0,0)=392|";
+
+    CHECK(aui_pane_layout_entry(layout, "plugin:demo:Scene") == plugin);
+    CHECK(aui_pane_layout_entry(layout, "sidebar") == sidebar);
+    CHECK(aui_pane_layout_entry(layout, "plugin:demo").empty());
+    CHECK(aui_pane_layout_entry("", "plugin:demo:Scene").empty());
+}
+
+TEST_CASE("A reloaded plugin page is recognised by its base URL, fragment aside", "[PluginHost]")
+{
+    using namespace Slic3r::GUI::web_hosting;
+
+    // A resources path holding a space, which the web view may report escaped differently.
+    const Slic3r::ScopedResourcesDir resources("web content check");
+
+    // The swapped-in page, then after an in-page anchor and a reload.
+    CHECK(is_content_url(content_base_url()));
+    CHECK(is_content_url(content_base_url() + "#tab2"));
+    const wxString unescaped = wxURI::Unescape(content_base_url());
+    REQUIRE(unescaped != content_base_url());
+    CHECK(is_content_url(unescaped));
+    CHECK(is_content_url(unescaped + "#tab2"));
+    // A page the plugin linked to keeps its own URL and must be left alone.
+    CHECK_FALSE(is_content_url(content_base_url() + "guide.html"));
+    CHECK_FALSE(is_content_url("https://example.com/"));
+    CHECK_FALSE(is_content_url(""));
+}
+
+TEST_CASE("A reloaded plugin page is recognised when the resources path holds a '#'", "[PluginHost]")
+{
+    using namespace Slic3r::GUI::web_hosting;
+
+    const Slic3r::ScopedResourcesDir resources("web#content check");
+
+    CHECK(is_content_url(content_base_url()));
+    CHECK(is_content_url(content_base_url() + "#tab2"));
+    CHECK_FALSE(is_content_url(content_base_url() + "guide.html"));
 }
 
 TEST_CASE("Plugin host API exposes model geometry and structure to Python", "[PluginHost][Python]")
@@ -158,6 +475,8 @@ TEST_CASE("Plugin host API exposes model geometry and structure to Python", "[Pl
     using Catch::Matchers::WithinAbs;
     using Catch::Matchers::WithinRel;
 
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object host = import_orca_module().attr("host");
     REQUIRE(has_attr(host, "BoundingBox"));
     REQUIRE(has_attr(host, "Model"));
@@ -237,6 +556,8 @@ TEST_CASE("Plugin host API exposes TriangleMesh geometry to Python", "[PluginHos
     using Catch::Matchers::WithinAbs;
     using Catch::Matchers::WithinRel;
 
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
     py::object host = import_orca_module().attr("host");
     REQUIRE(has_attr(host, "TriangleMesh"));
 
@@ -335,4 +656,117 @@ TEST_CASE("Plugin host API exposes TriangleMesh geometry to Python", "[PluginHos
     // Instance offset (5, 6, 0) must land in the matrix translation column.
     REQUIRE_THAT(instance_matrix.attr("__getitem__")(py::make_tuple(0, 3)).cast<double>(), WithinAbs(5.0, 1e-6));
     REQUIRE_THAT(instance_matrix.attr("__getitem__")(py::make_tuple(1, 3)).cast<double>(), WithinAbs(6.0, 1e-6));
+}
+
+TEST_CASE("a script reads the catalog", "[PluginHost][Python]")
+{
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
+    py::module_ orca = import_orca_module();
+    // An operation a plugin offers is among the commands while it is offered.
+    Slic3r::PluginOperation op;
+    op.plugin_key  = "catalog_reader";
+    op.name        = "measure";
+    op.description = "Measures the plate.";
+    op.changes     = false;
+    Slic3r::PluginOperations::instance().add(op);
+    py::dict scope;
+    try {
+        py::exec(R"PY(
+import orca
+tools = orca.host.tools
+state = tools.describe("app_state")
+commands = tools.list()
+names = [entry["name"] for entry in commands]
+fields = sorted(commands[0])
+plugin_fields = sorted(next(entry for entry in commands if entry["name"] == "plugin.catalog_reader.measure"))
+operation = tools.describe("plugin.catalog_reader.measure")
+try:
+    tools.describe("nope")
+    unknown = None
+except tools.ToolError as error:
+    unknown = (str(error), error.details)
+try:
+    tools.describe("app_stat")
+    mistyped = None
+except tools.ToolError as error:
+    mistyped = error.details
+)PY",
+                 scope);
+    } catch (...) {
+        Slic3r::PluginOperations::instance().remove_plugin("catalog_reader");
+        throw;
+    }
+    Slic3r::PluginOperations::instance().remove_plugin("catalog_reader");
+
+    CHECK(scope["state"]["read_only"].cast<bool>());
+    CHECK(scope["state"]["key"].cast<std::string>() == "app_state");
+    CHECK(scope["state"].contains("input_schema"));
+    CHECK(py::len(scope["commands"]) >= 53);
+    const std::vector<std::string> list_fields{"description", "group", "listed", "name", "read_only", "title"};
+    CHECK(scope["fields"].cast<std::vector<std::string>>() == list_fields);
+    CHECK(scope["plugin_fields"].cast<std::vector<std::string>>() == list_fields);
+    const auto names = scope["names"].cast<std::vector<std::string>>();
+    for (const char* name : {"app_state", "object_mirror", "plugin.catalog_reader.measure"}) {
+        CAPTURE(name);
+        CHECK(std::count(names.begin(), names.end(), name) == 1);
+    }
+    CHECK(scope["operation"]["group"].cast<std::string>() == "Plugins");
+    CHECK(scope["operation"]["read_only"].cast<bool>());
+    REQUIRE_FALSE(scope["unknown"].is_none());
+    CHECK(scope["unknown"].cast<py::tuple>()[0].cast<std::string>() == "Unknown tool: nope");
+    const py::dict details = scope["unknown"].cast<py::tuple>()[1].cast<py::dict>();
+    REQUIRE(details.contains("did_you_mean"));
+    CHECK(py::isinstance<py::list>(details["did_you_mean"]));
+    REQUIRE_FALSE(scope["mistyped"].is_none());
+    const auto close = scope["mistyped"]["did_you_mean"].cast<std::vector<std::string>>();
+    REQUIRE_FALSE(close.empty());
+    CHECK(close.front() == "app_state");
+
+    // script_describe_api documents both, as it does every function of the package.
+    std::set<std::string> documented;
+    for (const nlohmann::json& entry : Slic3r::GUI::Mcp::python_api_reference())
+        if (entry["kind"] == "function" && !entry["doc"].get<std::string>().empty())
+            documented.insert(entry["name"].get<std::string>());
+    CHECK(documented.count("orca.host.tools.list") == 1);
+    CHECK(documented.count("orca.host.tools.describe") == 1);
+}
+
+TEST_CASE("every public member of the orca package has documentation and named parameters", "[PluginHost][Python]")
+{
+    // script_list_api and script_describe_api serve this documentation to agents writing scripts and plugins: a member without it, or
+    // with a parameter pybind11 names argN, is one they can only guess at. A constant's documentation is
+    // the documentation that names it, and a class's goes on with what its constructors say; an enum's
+    // constructor takes one of the values its documentation lists.
+    ensure_python_initialized();
+    py::gil_scoped_acquire gil;
+    const py::module_        orca = import_orca_module();
+    const py::object         cleandoc = py::module_::import("inspect").attr("cleandoc");
+    const std::regex         positional(R"(\barg\d+\b)");
+    const std::regex         takes_arguments(R"(\w\((?!\)))");
+    std::vector<std::string> undocumented;
+    std::vector<std::string> unnamed;
+    std::vector<std::string> constructors;
+    for (const nlohmann::json& entry : Slic3r::GUI::Mcp::python_api_reference()) {
+        const std::string name      = entry["name"].get<std::string>();
+        const std::string signature = entry["signature"].get<std::string>();
+        const std::string doc       = entry["doc"].get<std::string>();
+        if (doc.empty())
+            undocumented.push_back(name);
+        if (std::regex_search(signature, positional))
+            unnamed.push_back(name);
+        if (entry["kind"] == "class" && std::regex_search(signature, takes_arguments)) {
+            py::object cls = orca;
+            for (std::size_t from = name.find('.') + 1, dot = 0; dot != std::string::npos; from = dot + 1) {
+                dot = name.find('.', from);
+                cls = cls.attr(name.substr(from, dot - from).c_str());
+            }
+            const py::object own = cls.attr("__doc__");
+            if (!py::hasattr(cls, "__members__") && doc == cleandoc(own.is_none() ? py::str("") : own).cast<std::string>())
+                constructors.push_back(name);
+        }
+    }
+    CHECK(undocumented == std::vector<std::string>{});
+    CHECK(unnamed == std::vector<std::string>{});
+    CHECK(constructors == std::vector<std::string>{});
 }

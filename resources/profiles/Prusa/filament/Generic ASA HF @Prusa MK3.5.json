@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA HF @Prusa MK3.5",
-	"inherits": "fdm_filament_asa",
 	"renamed_from": "Prusa Generic ASA HF @MK3.5;Prusa Generic ASA HF MK3.5",
+	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "C9YvhnKeHonpemK8",
 	"filament_id": "OFzRtFM9",

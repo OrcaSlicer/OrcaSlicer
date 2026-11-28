@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "fdm_filament_petg",
+	"from": "system",
 	"instantiation": "false",
 	"close_fan_the_first_x_layers": [
 		"3"
@@ -137,7 +138,6 @@
 	"filament_end_gcode": [
 		"; filament end gcode \n"
 	],
-	"from": "system",
 	"filament_adhesiveness_category": [
 		"300"
 	],

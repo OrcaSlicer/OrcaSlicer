@@ -1,8 +1,19 @@
 #include "ElegooLink.hpp"
 
 #include <algorithm>
+#include "libslic3r/Utils.hpp"
+#include <boost/optional/optional.hpp>
+#include <cstddef>
+#include <ios>
+#include <boost/uuid/random_generator.hpp>
+#include <chrono>
+#include <cctype>
+#include "libslic3r/PrintConfig.hpp"
+#include <iostream>
 #include <map>
 #include <mutex>
+#include <regex>
+#include <ostream>
 #include <sstream>
 #include <exception>
 #include <boost/format.hpp>
@@ -20,8 +31,15 @@
 
 #include <curl/curl.h>
 
+#include <string>
+#include <utility>
+#include <thread>
+#include <vector>
 #include <wx/progdlg.h>
 
+#include "OctoPrint.hpp"
+#include "PrintHost.hpp"
+#include "WebSocketClient.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -30,8 +48,8 @@
 #include "libslic3r/AppConfig.hpp"
 #include "Bonjour.hpp"
 #include "slic3r/GUI/BonjourDialog.hpp"
+#include <boost/asio/ip/address.hpp>
 
-namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 #define MAX_UPLOAD_PACKAGE_LENGTH 1048576 //(1024*1024)
 
@@ -340,9 +358,7 @@ namespace Slic3r {
         if (classify_printer_model(config->opt_string("printer_model")) != ElegooPrinterType::CC2)
             return fallback_webui;
 
-        std::string web_path = resources_dir() + "/web/elegoolink/lan_service_web/index.html";
-        std::replace(web_path.begin(), web_path.end(), '\\', '/');
-        web_path = "file://" + web_path;
+        std::string web_path = GUI::into_u8(GUI::file_url_from_path(boost::filesystem::path(resources_dir()) / "web/elegoolink/lan_service_web/index.html"));
         const std::string token   = get_cc2_token(config->opt_string("printhost_apikey"));
         const std::string host_ip = Http::get_host_header_value(host);
 
@@ -448,8 +464,17 @@ namespace Slic3r {
     }
     bool ElegooLink::test(wxString &curl_msg) const{
         switch (classify_printer_model(m_printerModel)) {
-        case ElegooPrinterType::Other:
-            return OctoPrint::test(curl_msg);
+        case ElegooPrinterType::Other: {
+            if (OctoPrint::test(curl_msg))
+                return true;
+            // A custom preset can have any printer_model, so an SDCP printer may land here too.
+            // If that check fails as well, keep the OctoPrint error for the user.
+            wxString sdcp_msg;
+            if (!elegoo_test(sdcp_msg))
+                return false;
+            curl_msg = sdcp_msg;
+            return true;
+        }
         case ElegooPrinterType::CC2:
             return elegoo_cc2_test(curl_msg);
         case ElegooPrinterType::CC:
@@ -540,19 +565,6 @@ namespace Slic3r {
 
         return res;
     }
-    bool ElegooLink::test_with_resolved_ip(wxString& msg) const
-    {
-        switch (classify_printer_model(m_printerModel)) {
-        case ElegooPrinterType::Other:
-            return OctoPrint::test_with_resolved_ip(msg);
-        case ElegooPrinterType::CC2:
-            return elegoo_cc2_test_with_resolved_ip(msg);
-        case ElegooPrinterType::CC:
-            return elegoo_test_with_resolved_ip(msg);
-        }
-        return false;
-    }
-
     bool ElegooLink::elegoo_cc2_test_with_resolved_ip(wxString& msg) const
     {
         const char*  name        = get_name();
@@ -607,10 +619,12 @@ namespace Slic3r {
     {
         const auto printer_type = classify_printer_model(m_printerModel);
 
-        if (printer_type == ElegooPrinterType::Other)
-            return OctoPrint::upload_inner_with_resolved_ip(std::move(upload_data), prorgess_fn, error_fn, info_fn, resolved_addr);
-
         info_fn(L"resolve", boost::nowide::widen(resolved_addr.to_string()));
+
+        // Other may be an SDCP printer: fall back to SDCP, but report the OctoPrint error if that fails too.
+        wxString octoprint_msg = GUI::from_u8(resolved_addr.to_string());
+        if (printer_type == ElegooPrinterType::Other && OctoPrint::test_with_resolved_ip(octoprint_msg))
+            return upload_after_test_with_resolved_ip(std::move(upload_data), prorgess_fn, error_fn, info_fn, resolved_addr);
 
         if (printer_type == ElegooPrinterType::CC2) {
             wxString cc2_msg = GUI::from_u8(resolved_addr.to_string());
@@ -626,7 +640,7 @@ namespace Slic3r {
 
         wxString legacy_msg = GUI::from_u8(resolved_addr.to_string());
         if (!elegoo_test_with_resolved_ip(legacy_msg)) {
-            error_fn(std::move(legacy_msg));
+            error_fn(std::move(printer_type == ElegooPrinterType::Other ? octoprint_msg : legacy_msg));
             return false;
         }
 
@@ -642,8 +656,10 @@ namespace Slic3r {
     {
         const auto printer_type = classify_printer_model(m_printerModel);
 
-        if (printer_type == ElegooPrinterType::Other)
-            return OctoPrint::upload_inner_with_host(std::move(upload_data), prorgess_fn, error_fn, info_fn);
+        // Other may be an SDCP printer: fall back to SDCP, but report the OctoPrint error if that fails too.
+        wxString octoprint_msg;
+        if (printer_type == ElegooPrinterType::Other && OctoPrint::test(octoprint_msg))
+            return upload_after_test_with_host(std::move(upload_data), prorgess_fn, error_fn, info_fn, octoprint_msg);
 
         if (printer_type == ElegooPrinterType::CC2) {
             wxString cc2_msg;
@@ -672,7 +688,7 @@ namespace Slic3r {
 
         wxString legacy_msg;
         if(!elegoo_test(legacy_msg)){
-            error_fn(std::move(legacy_msg));
+            error_fn(std::move(printer_type == ElegooPrinterType::Other ? octoprint_msg : legacy_msg));
             return false;
         }
 

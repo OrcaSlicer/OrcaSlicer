@@ -1,0 +1,36 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PLA @BBL H2S 0.2 nozzle",
+	"inherits": "PrintaLot PLA @base",
+	"from": "system",
+	"setting_id": "HuE5bb95ad6PHtBk",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"75",
+		"75"
+	],
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_flush_volumetric_speed": [
+		"3",
+		"3"
+	],
+	"filament_max_volumetric_speed": [
+		"1.6",
+		"1.6"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2S 0.2 nozzle"
+	]
+}

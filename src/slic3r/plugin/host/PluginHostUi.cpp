@@ -1,14 +1,23 @@
 #include "PluginHostUi.hpp"
+#include "PluginHostBindings.hpp"
 
+#include <pybind11/pytypes.h>
+#include <pybind11/gil.h>
+#include <pybind11/cast.h>
 #include "slic3r/plugin/PluginAuditManager.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp" // PythonGILState
-#include "slic3r/plugin/PluginFsUtils.hpp"   // json_to_py / py_to_json
+#include "slic3r/plugin/PluginJsonPy.hpp"
+#include "slic3r/plugin/PythonRunScope.hpp"
 
+#include <functional>
+#include <exception>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/MainFrame.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
+#include <slic3r/GUI/Plater.hpp>
+#include <slic3r/GUI/DockPanel.hpp>
 #include <slic3r/GUI/PluginProgressDialog.hpp>
-#include <slic3r/GUI/PluginWebDialog.hpp>
+#include <slic3r/GUI/WebDialog.hpp>
 #include <slic3r/GUI/NotificationManager.hpp>
 
 #include <nlohmann/json.hpp>
@@ -16,11 +25,20 @@
 
 #include <boost/log/trivial.hpp>
 
+#include <utility>
+#include <string>
 #include <wx/app.h>
 #include <wx/defs.h>
+#include <wx/thread.h>
+#include <wx/timer.h>
+#include <wx/toplevel.h>
+#include <wx/event.h>
+#include <wx/progdlg.h>
 #include <wx/window.h>
 
+#include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <future>
 #include <memory>
@@ -71,42 +89,113 @@ CallablePtr make_holder(py::object obj)
     return std::make_shared<GilSafeCallable>(std::move(obj));
 }
 
+// The script run the calling code's UI belongs to: the run bound to the thread when it owns its UI (a person's or an
+// agent's script). None for a plugin's code, a plugin's script_run included, whose UI belongs to the plugin as always.
+std::shared_ptr<PythonRunScope> owning_run()
+{
+    const PythonRunBinding& binding = current_python_run();
+    return binding.run && binding.run->owns_ui() ? binding.run : nullptr;
+}
+
+// Who owns what the calling code opens: the run bound to the thread (refusing once its UI has closed, so nothing it
+// opens outlives it), else the plugin whose code this is.
+std::string new_ui_owner()
+{
+    const PythonRunBinding& binding = current_python_run();
+    if (!binding.run)
+        return PluginAuditManager::instance().current_plugin();
+    if (binding.run->owns_ui() && binding.run->ui_closed())
+        throw std::runtime_error("The script's run has ended; it opens no more windows");
+    return binding.run->ui_owner();
+}
+
+// On the UI thread, before creating what a run asked for: a run whose UI closed while the request waited gets nothing.
+void ensure_ui_open(const std::shared_ptr<PythonRunScope>& run)
+{
+    if (run && run->ui_closed())
+        throw std::runtime_error("The script's run has ended; it opens no more windows");
+}
+
+// Calls `call` under the GIL. A script run's callback runs inside that run (its identity, its UI owner, its thread
+// attribution), counted as one of its active callbacks so the run waits for it, and does nothing once the run's UI has
+// closed. A callback runs on the UI thread, so it calls no tools (call_tool() refuses a Callback binding).
+template<typename Call>
+void call_in_run(const std::shared_ptr<PythonRunScope>& run, Call&& call)
+{
+    if (run && (run->ui_closed() || !run->callback_entering()))
+        return;
+    struct Left
+    {
+        PythonRunScope* run;
+        ~Left()
+        {
+            if (run != nullptr)
+                run->callback_left();
+        }
+    } left{run.get()};
+    PythonGILState gil;
+    if (!gil)
+        return;
+    std::optional<ScopedPythonRun>          bound;
+    std::optional<ScopedPluginAuditContext> audit;
+    if (run) {
+        bound.emplace(run, PythonRunThread::Callback);
+        audit.emplace(run->identity());
+    }
+    call();
+}
+
 // Adapt a Python callable to a GUI message handler that acquires the GIL and
 // swallows/logs exceptions (a raising handler must not escape into wx events).
-GUI::PluginWebDialog::MessageHandler make_message_adapter(py::object on_message)
+GUI::WebDialog::MessageHandler make_message_adapter(py::object on_message, const char* what = "on_message")
 {
     CallablePtr holder = make_holder(std::move(on_message));
     if (!holder)
         return nullptr;
-    return [holder](const json& data) {
-        PythonGILState gil;
-        if (!gil)
-            return;
-        try {
-            holder->fn(json_to_py(data));
-        } catch (py::error_already_set& e) {
-            BOOST_LOG_TRIVIAL(error) << "orca.host.ui on_message handler raised: " << e.what();
-            PyErr_Clear();
-        }
+    return [holder, run = owning_run(), what](const json& data) {
+        call_in_run(run, [&] {
+            try {
+                holder->fn(json_to_py(data));
+            } catch (py::error_already_set& e) {
+                BOOST_LOG_TRIVIAL(error) << "orca.host.ui " << what << " handler raised: " << e.what();
+                PyErr_Clear();
+            }
+        });
     };
 }
 
-GUI::PluginWebDialog::SubmitHandler make_submit_adapter(py::object on_submit)
+// A callable that takes no arguments (on_close, a notification's link): true unless it returned a false value.
+std::function<bool()> make_event_adapter(const CallablePtr& holder, std::shared_ptr<PythonRunScope> run, const char* what)
 {
-    CallablePtr holder = make_holder(std::move(on_submit));
     if (!holder)
         return nullptr;
-    return [holder](const json& data) {
-        PythonGILState gil;
-        if (!gil)
-            return;
-        try {
-            holder->fn(json_to_py(data));
-        } catch (py::error_already_set& e) {
-            BOOST_LOG_TRIVIAL(error) << "orca.host.ui on_submit handler raised: " << e.what();
-            PyErr_Clear();
-        }
+    return [holder, run = std::move(run), what]() {
+        bool handled = false;
+        call_in_run(run, [&] {
+            if (!holder->active.load(std::memory_order_acquire))
+                return;
+            try {
+                py::object result = holder->fn();
+                handled           = result.is_none() || result.cast<bool>();
+            } catch (py::error_already_set& e) {
+                BOOST_LOG_TRIVIAL(error) << "orca.host.ui " << what << " handler raised: " << e.what();
+                PyErr_Clear();
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "orca.host.ui " << what << " handler raised: " << e.what();
+            }
+        });
+        return handled;
     };
+}
+
+// The plugin's on_close: fired only on a user/JS-initiated close (not forced teardown), while the
+// window is alive. Empty if the plugin passed None. `run` is the script run that opened the window, if any.
+std::function<void()> make_close_adapter(const CallablePtr& holder, std::shared_ptr<PythonRunScope> run)
+{
+    std::function<bool()> event = make_event_adapter(holder, std::move(run), "on_close");
+    if (!event)
+        return nullptr;
+    return [event]() { (void) event(); };
 }
 
 // --------------------------------------------------------------------------
@@ -172,6 +261,17 @@ public:
         }
         return out;
     }
+    // The plugin's windows, left registered.
+    std::vector<std::pair<int, wxWindow*>> windows_for_plugin(const std::string& plugin_key)
+    {
+        std::lock_guard<std::mutex>            lk(m_mtx);
+        std::vector<std::pair<int, wxWindow*>> out;
+        for (const auto& [id, owner] : m_owners)
+            if (owner == plugin_key)
+                if (auto it = m_resources.find(id); it != m_resources.end())
+                    out.emplace_back(id, it->second);
+        return out;
+    }
     void bind_callback(const CallablePtr& callback, const std::string& plugin_key)
     {
         if (!callback)
@@ -203,10 +303,22 @@ private:
     int                                  m_next_id{1};
 };
 
+// wxTheApp is rechecked because it goes null while a worker may still be waiting on the UI thread.
+bool app_closing() { return wxTheApp == nullptr || GUI::wxGetApp().is_closing(); }
+
+// State of a call queued by run_on_ui_blocking(). It is at namespace scope because MSVC does not
+// find a function-local enumerator from the default member initializer of a local class in a template.
+enum : int { UiCallPending, UiCallClaimed, UiCallAbandoned };
+
 // --------------------------------------------------------------------------
 // Run a (pure C++/wx) callable on the main/UI thread, blocking the caller until
 // it completes, with the GIL released across the wait. If already on the main
 // thread, run inline (also with the GIL released so other Python threads run).
+//
+// A worker thread gives up with a RuntimeError once the app is closing and the
+// UI thread has not picked the call up yet: the UI thread may be waiting for
+// that worker (a printer agent joining it in disconnect_printer()), or its event
+// loop may never run again.
 // --------------------------------------------------------------------------
 template<typename Fn>
 auto run_on_ui_blocking(Fn&& fn) -> std::invoke_result_t<Fn&>
@@ -220,22 +332,40 @@ auto run_on_ui_blocking(Fn&& fn) -> std::invoke_result_t<Fn&>
         return fn();
     }
 
-    std::promise<R> prom;
-    std::future<R>  fut = prom.get_future();
+    if (app_closing())
+        throw std::runtime_error("OrcaSlicer is closing");
+
+    // Shared with the queued task, which can outlive an abandoned wait. The task only touches fn
+    // after claiming the call, and a claimed call is always waited for, so fn is still alive then.
+    struct Call
+    {
+        std::promise<R>  prom;
+        std::atomic<int> state{UiCallPending};
+    };
+    auto           call = std::make_shared<Call>();
+    std::future<R> fut  = call->prom.get_future();
 
     py::gil_scoped_release nogil;
-    GUI::wxGetApp().CallAfter([&prom, &fn]() {
+    GUI::wxGetApp().CallAfter([call, &fn]() {
+        int expected = UiCallPending;
+        if (!call->state.compare_exchange_strong(expected, UiCallClaimed))
+            return;
         try {
             if constexpr (std::is_void_v<R>) {
                 fn();
-                prom.set_value();
+                call->prom.set_value();
             } else {
-                prom.set_value(fn());
+                call->prom.set_value(fn());
             }
         } catch (...) {
-            prom.set_exception(std::current_exception());
+            call->prom.set_exception(std::current_exception());
         }
     });
+    while (fut.wait_for(std::chrono::milliseconds(50)) != std::future_status::ready) {
+        int expected = UiCallPending;
+        if (app_closing() && call->state.compare_exchange_strong(expected, UiCallAbandoned))
+            throw std::runtime_error("OrcaSlicer is closing");
+    }
     return fut.get();
 }
 
@@ -281,9 +411,27 @@ std::string button_to_string(int rc)
 std::string ui_message(const std::string& text, const std::string& title,
                        const std::string& buttons, const std::string& icon)
 {
+    const std::string                     owner = new_ui_owner();
+    const std::shared_ptr<PythonRunScope> run   = owning_run();
     const long style = message_style(buttons, icon);
     return run_on_ui_blocking([&]() -> std::string {
+        ensure_ui_open(run);
         GUI::MessageDialog dlg(nullptr, wxString::FromUTF8(text), wxString::FromUTF8(title), style);
+        // A script's message box closes with its run, so a stop ends the modal loop the run waits in. A plugin's
+        // stays unregistered: its unload doesn't close it.
+        struct Registered
+        {
+            int id = 0;
+            ~Registered()
+            {
+                if (id != 0)
+                    UiRegistry::instance().remove(id);
+            }
+        } registered;
+        if (run) {
+            registered.id = UiRegistry::instance().reserve_id();
+            UiRegistry::instance().bind(registered.id, &dlg, owner);
+        }
         return button_to_string(dlg.ShowModal());
     });
 }
@@ -308,10 +456,11 @@ struct UiProgressHandle
 py::object ui_create_window(const std::string& html, const std::string& title, int width, int height,
                             py::object on_message, py::object on_close, long style, py::object on_submit)
 {
+    const std::string plugin_key     = new_ui_owner();
+    auto              run            = owning_run();
     auto              msg_adapter    = make_message_adapter(std::move(on_message));
-    auto              submit_adapter = make_submit_adapter(std::move(on_submit));
+    auto              submit_adapter = make_message_adapter(std::move(on_submit), "on_submit");
     CallablePtr       close_holder   = make_holder(std::move(on_close));
-    const std::string plugin_key     = PluginAuditManager::instance().current_plugin();
     const int         w              = width > 0 ? width : 820;
     const int         h              = height > 0 ? height : 600;
 
@@ -342,36 +491,21 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
     const int new_id = UiRegistry::instance().reserve_id();
     UiRegistry::instance().bind(new_id, nullptr, plugin_key);
 
-    GUI::wxGetApp().CallAfter([new_id, plugin_key, html, title, w, h,
+    GUI::wxGetApp().CallAfter([new_id, plugin_key, html, title, w, h, run,
                                msg_adapter = std::move(msg_adapter),
                                submit_adapter = std::move(submit_adapter),
                                close_holder = std::move(close_holder), modal]() mutable {
-        // Torn down (plugin unload / app shutdown) before the window materialized.
+        // Torn down (plugin unload, a script run's end, app shutdown) before the window materialized.
         if (!UiRegistry::instance().is_open(new_id))
             return;
 
-        // Plugin's on_close: fired only on a user/JS-initiated close (not forced
-        // teardown), while the dialog is alive. Empty if the plugin passed None.
-        GUI::PluginWebDialog::CloseHandler on_close;
-        if (close_holder) {
-            on_close = [close_holder]() {
-                PythonGILState gil;
-                if (!gil)
-                    return;
-                try {
-                    close_holder->fn();
-                } catch (py::error_already_set& e) {
-                    BOOST_LOG_TRIVIAL(error) << "orca.host.ui on_close handler raised: " << e.what();
-                    PyErr_Clear();
-                }
-            };
-        }
+        GUI::WebDialog::CloseHandler on_close = make_close_adapter(close_holder, run);
         // Registry cleanup: GIL-free, runs from the dialog destructor on every path.
         auto on_destroyed = [new_id]() { UiRegistry::instance().remove(new_id); };
 
-        auto* dlg = new GUI::PluginWebDialog(ui_parent(), wxString::FromUTF8(title), html,
-                                             wxSize(w, h), std::move(msg_adapter), std::move(submit_adapter),
-                                             std::move(on_close), std::move(on_destroyed), PLUGIN_WX_STYLE);
+        auto* dlg = new GUI::WebDialog(ui_parent(), wxString::FromUTF8(title), html,
+                                       wxSize(w, h), std::move(msg_adapter), std::move(submit_adapter),
+                                       std::move(on_close), std::move(on_destroyed), PLUGIN_WX_STYLE);
         UiRegistry::instance().bind(new_id, dlg, plugin_key);
         if (modal) {
             dlg->ShowModal();
@@ -380,11 +514,104 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
             if (UiRegistry::instance().is_open(new_id))
                 dlg->Destroy();
         } else {
+            dlg->use_normal_window_type();
             dlg->Show();
         }
     });
 
     return py::cast(UiWindowHandle{new_id});
+}
+
+// --------------------------------------------------------------------------
+// orca.host.ui.create_dock_panel + UiDockPanel handle
+// --------------------------------------------------------------------------
+constexpr const char* DOCK_POSITIONS[] = {"left", "right", "bottom", "float"};
+
+struct UiDockPanelHandle
+{
+    int id{0};
+};
+
+// Polls until the plater is shown on screen, then runs the callback with it (null when the app
+// is closing instead) and deletes itself. A plugin loaded at startup opens its panes from
+// on_load, before the main window exists, and a pane added before that window is laid out is
+// sized against the unsized frame and keeps that width (AuiMgr::track_docked_size).
+class PlaterShownWaiter : public wxTimer
+{
+public:
+    explicit PlaterShownWaiter(std::function<void(GUI::Plater*)> fn) : m_fn(std::move(fn)) {}
+
+    // True once the callback ran.
+    bool try_run()
+    {
+        const bool   closing = GUI::wxGetApp().is_closing();
+        GUI::Plater* plater  = closing ? nullptr : GUI::wxGetApp().plater();
+        if (!closing && (plater == nullptr || !plater->IsShownOnScreen()))
+            return false;
+        Stop();
+        m_fn(plater);
+        // Off the timer callback's stack: wxGTK's timeout callback still reads the timer after Notify().
+        GUI::wxGetApp().CallAfter([this]() { delete this; });
+        return true;
+    }
+
+    void Notify() override { try_run(); }
+
+private:
+    std::function<void(GUI::Plater*)> m_fn;
+};
+
+void run_when_plater_shown(std::function<void(GUI::Plater*)> fn)
+{
+    GUI::wxGetApp().CallAfter([fn = std::move(fn)]() mutable {
+        auto* waiter = new PlaterShownWaiter(std::move(fn));
+        if (!waiter->try_run())
+            waiter->Start(100);
+    });
+}
+
+py::object ui_create_dock_panel(const std::string& html, const std::string& title, int width, int height,
+                                py::object on_message, py::object on_close, const std::string& dock)
+{
+    if (std::find(std::begin(DOCK_POSITIONS), std::end(DOCK_POSITIONS), dock) == std::end(DOCK_POSITIONS))
+        throw std::invalid_argument("orca.host.ui.create_dock_panel dock must be \"left\", \"right\", \"bottom\" or \"float\"");
+
+    const std::string plugin_key   = new_ui_owner();
+    auto              run          = owning_run();
+    // A script's panels keep one saved layout per title across its runs, which each own their panels.
+    const std::string pane_key     = run ? run->identity() : plugin_key;
+    auto              msg_adapter  = make_message_adapter(std::move(on_message));
+    CallablePtr       close_holder = make_holder(std::move(on_close));
+    const int         w            = width > 0 ? width : 320;
+    const int         h            = height > 0 ? height : 480;
+
+    if (wxTheApp == nullptr)
+        throw std::runtime_error("OrcaSlicer application is not initialized");
+
+    // Deferred and pre-bound for the same reasons as create_window().
+    const int new_id = UiRegistry::instance().reserve_id();
+    UiRegistry::instance().bind(new_id, nullptr, plugin_key);
+
+    run_when_plater_shown([new_id, plugin_key, pane_key, html, title, dock, w, h, run,
+                           msg_adapter = std::move(msg_adapter),
+                           close_holder = std::move(close_holder)](GUI::Plater* plater) mutable {
+        if (!UiRegistry::instance().is_open(new_id))
+            return;
+
+        if (plater == nullptr) {
+            UiRegistry::instance().remove(new_id);
+            return;
+        }
+
+        auto  on_destroyed = [new_id]() { UiRegistry::instance().remove(new_id); };
+        auto* panel = new GUI::DockPanel(plater, html, std::move(msg_adapter), make_close_adapter(close_holder, run),
+                                         std::move(on_destroyed));
+        UiRegistry::instance().bind(new_id, panel, plugin_key);
+        plater->add_dock_pane(panel, GUI::plugin_pane_name(pane_key, title), wxString::FromUTF8(title), dock,
+                              wxSize(w, h), [panel]() { panel->fire_close(); });
+    });
+
+    return py::cast(UiDockPanelHandle{new_id});
 }
 
 void handle_post(int id, py::object data)
@@ -393,8 +620,11 @@ void handle_post(int id, py::object data)
         return;
     json j = py_to_json(data); // GIL held (binding body)
     GUI::wxGetApp().CallAfter([id, j = std::move(j)]() {
-        auto* d = UiRegistry::instance().get_as<GUI::PluginWebDialog>(id);
-        GUI::PluginWebDialog::post_message(d, j);
+        auto* window = UiRegistry::instance().get_as<wxWindow>(id);
+        if (auto* panel = dynamic_cast<GUI::DockPanel*>(window))
+            panel->push_message(j);
+        else
+            GUI::WebDialog::post_message(dynamic_cast<GUI::WebDialog*>(window), j);
     });
 }
 
@@ -403,17 +633,34 @@ void handle_close(int id)
     if (wxTheApp == nullptr)
         return;
     GUI::wxGetApp().CallAfter([id]() {
-        auto* d = UiRegistry::instance().get_as<GUI::PluginWebDialog>(id);
-        GUI::PluginWebDialog::request_close(d);
+        auto* window = UiRegistry::instance().get_as<wxWindow>(id);
+        if (auto* panel = dynamic_cast<GUI::DockPanel*>(window))
+            panel->request_close();
+        else
+            GUI::WebDialog::request_close(dynamic_cast<GUI::WebDialog*>(window));
+    });
+}
+
+void handle_show(int id, bool show)
+{
+    if (wxTheApp == nullptr)
+        return;
+    GUI::wxGetApp().CallAfter([id, show]() {
+        auto*        panel  = UiRegistry::instance().get_as<GUI::DockPanel>(id);
+        GUI::Plater* plater = GUI::wxGetApp().plater();
+        if (panel != nullptr && plater != nullptr)
+            plater->show_dock_pane(panel, show);
     });
 }
 
 UiProgressHandle ui_create_progress_dialog(const std::string& title, const std::string& message, int maximum, int style)
 {
-    const std::string plugin_key = PluginAuditManager::instance().current_plugin();
+    const std::string plugin_key = new_ui_owner();
+    const auto        run        = owning_run();
     const int         max_value  = maximum > 0 ? maximum : 100;
 
     return run_on_ui_blocking([&]() -> UiProgressHandle {
+        ensure_ui_open(run);
         const int new_id = UiRegistry::instance().reserve_id();
 
         // Registry cleanup: GIL-free, runs from the dialog destructor on every path.
@@ -477,47 +724,42 @@ void progress_close(int id)
     });
 }
 
-void plater_notification(NotificationManager::NotificationLevel notification_level, const std::string& text,
+void plater_notification(GUI::NotificationManager::NotificationLevel notification_level, const std::string& text,
                          const std::string& hypertext, py::object on_click)
 {
-    const std::string plugin_key = PluginAuditManager::instance().current_plugin();
+    const std::string plugin_key = new_ui_owner();
+    const auto        run        = owning_run();
     CallablePtr        holder    = make_holder(std::move(on_click));
     if (holder)
         UiRegistry::instance().bind_callback(holder, plugin_key);
 
     std::function<bool(wxEvtHandler*)> callback;
-    if (holder) {
-        callback = [holder](wxEvtHandler*) -> bool {
-            if (!holder->active.load(std::memory_order_acquire))
-                return false;
+    if (std::function<bool()> event = make_event_adapter(holder, run, "notification"))
+        callback = [event](wxEvtHandler*) -> bool { return event(); };
 
-            PythonGILState gil;
-            if (!gil)
-                return false;
-            try {
-                py::object result = holder->fn();
-                return result.is_none() || result.cast<bool>();
-            } catch (py::error_already_set& e) {
-                BOOST_LOG_TRIVIAL(error) << "orca.host.ui notification callback raised: " << e.what();
-                PyErr_Clear();
-                return false;
-            } catch (const std::exception& e) {
-                BOOST_LOG_TRIVIAL(error) << "orca.host.ui notification callback raised: " << e.what();
-                return false;
-            } catch (...) {
-                BOOST_LOG_TRIVIAL(error) << "orca.host.ui notification callback raised an unknown exception";
-                return false;
-            }
-        };
-    }
-
-    run_on_ui_blocking([notification_level, text, hypertext, callback = std::move(callback)]() mutable {
-        wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification, notification_level, text,
+    run_on_ui_blocking([notification_level, text, hypertext, &run, callback = std::move(callback)]() mutable {
+        ensure_ui_open(run);
+        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::NotificationType::CustomNotification, notification_level, text,
                                                                            hypertext, std::move(callback));
     });
 }
 
 } // namespace
+
+std::function<void(const nlohmann::json&)> PluginHostUi::message_callback(pybind11::object fn)
+{
+    return make_message_adapter(std::move(fn));
+}
+
+std::function<bool()> PluginHostUi::event_callback(pybind11::object fn)
+{
+    return make_event_adapter(make_holder(std::move(fn)), owning_run(), "on_close");
+}
+
+void PluginHostUi::run_on_ui_thread(std::function<void()> fn)
+{
+    run_on_ui_blocking(std::move(fn));
+}
 
 void PluginHostUi::RegisterBindings(pybind11::module_& host)
 {
@@ -527,7 +769,8 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
         "thread (marshaled from the plugin thread). See the plugin docs for the window.orca bridge. "
         "Do not call these from a slicing pipeline hook (SlicingPipeline capability): that hook runs "
         "on the slicing worker thread, which the UI thread can itself be blocked waiting on, so a "
-        "marshaled UI call from there can deadlock the application.");
+        "marshaled UI call from there can deadlock the application. Once the application is closing, a "
+        "call from a background thread raises RuntimeError instead of waiting for the UI thread.");
 
     ui.def("message", &ui_message, py::arg("text"), py::arg("title") = "OrcaSlicer", py::arg("buttons") = "ok",
            py::arg("icon") = "info",
@@ -546,7 +789,10 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
     ui.attr("WINDOW_MODAL")      = py::int_(WINDOW_MODAL);
 
     py::class_<UiWindowHandle>(ui, "UiWindow", "Handle to a plugin HTML window or modal dialog created by create_window().")
-        .def_property_readonly("id", [](const UiWindowHandle& h) { return h.id; })
+        .def_property_readonly(
+            "id", [](const UiWindowHandle& h) { return h.id; },
+            "Positive integer identifying this window, unique among plugin UI handles for the app's lifetime and "
+            "never reused; two handles with equal ids refer to the same window.")
         .def(
             "post", [](const UiWindowHandle& h, py::object data) { handle_post(h.id, std::move(data)); },
             py::arg("data"), "Send a payload to the page (delivered to window.orca.onMessage handlers).")
@@ -563,10 +809,42 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
            "or WINDOW_MODAL. on_message(data) is called on the UI thread when the page posts; on_submit(data) "
            "is called when the page submits; offload heavy work to a thread and push results back with window.post().");
 
+    py::class_<UiDockPanelHandle>(ui, "UiDockPanel", "Handle to a dockable plugin HTML panel created by create_dock_panel().")
+        .def_property_readonly(
+            "id", [](const UiDockPanelHandle& h) { return h.id; },
+            "Positive integer identifying this panel, unique among plugin UI handles for the app's lifetime and "
+            "never reused; two handles with equal ids refer to the same panel.")
+        .def(
+            "post", [](const UiDockPanelHandle& h, py::object data) { handle_post(h.id, std::move(data)); },
+            py::arg("data"), "Send a payload to the page (delivered to window.orca.onMessage handlers).")
+        .def(
+            "show", [](const UiDockPanelHandle& h) { handle_show(h.id, true); }, "Show the panel again after hide().")
+        .def(
+            "hide", [](const UiDockPanelHandle& h) { handle_show(h.id, false); }, "Hide the panel without closing it.")
+        .def(
+            "close", [](const UiDockPanelHandle& h) { handle_close(h.id); }, "Close the panel (fires on_close).")
+        .def(
+            "is_open", [](const UiDockPanelHandle& h) { return UiRegistry::instance().is_open(h.id); },
+            "Return True until the panel is closed; a hidden panel is still open.");
+
+    ui.def("create_dock_panel", &ui_create_dock_panel, py::arg("html"), py::arg("title") = "OrcaSlicer",
+           py::arg("width") = 320, py::arg("height") = 480, py::arg("on_message") = py::none(),
+           py::arg("on_close") = py::none(), py::arg("dock") = "right",
+           "Open an HTML panel docked beside the 3D view and return a UiDockPanel. dock is \"left\", \"right\", "
+           "\"bottom\" or \"float\", and width/height are in DIPs; the user can move and resize the panel, and a panel "
+           "opened again comes back where the window layout was last saved. The panel belongs to the Prepare and "
+           "Preview tabs. on_message(data) is called on the UI thread when the page posts; window.orca.close() "
+           "or the panel's close button closes it and calls on_close(). A post() made before the page has "
+           "loaded can be dropped, so have the page request its first data.");
+
     py::class_<UiProgressHandle>(ui, "ProgressDialog", "Handle to a native progress dialog.")
         .def(py::init(&new_progress_dialog), py::arg("title"), py::arg("message"), py::arg("maximum") = 100,
-             py::arg("style") = wxPD_APP_MODAL | wxPD_AUTO_HIDE)
-        .def_property_readonly("id", [](const UiProgressHandle& h) { return h.id; })
+             py::arg("style") = wxPD_APP_MODAL | wxPD_AUTO_HIDE,
+             "Open a native progress dialog, as create_progress_dialog() does, with the same arguments.")
+        .def_property_readonly(
+            "id", [](const UiProgressHandle& h) { return h.id; },
+            "Positive integer identifying this progress dialog, unique among plugin UI handles for the app's lifetime "
+            "and never reused; two handles with equal ids refer to the same dialog.")
         .def(
             "pulse", [](const UiProgressHandle& h, const std::string& message) { return progress_pulse(h.id, message); },
             py::arg("message") = "", "Pulse the dialog gauge; returns False if the dialog is closed or cancelled.")
@@ -598,18 +876,25 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
 
     ui.def("create_progress_dialog", &ui_create_progress_dialog, py::arg("title"), py::arg("message"),
            py::arg("maximum") = 100, py::arg("style") = wxPD_APP_MODAL | wxPD_AUTO_HIDE,
-           "Create a native progress dialog and return a ProgressDialog handle.");
+           "Create a native progress dialog and return a ProgressDialog handle. maximum is the value update() reaches "
+           "when the work is done (100 when 0 or less). style combines these flags with |: PD_APP_MODAL disables every "
+           "other OrcaSlicer window while the dialog shows, not only the one it belongs to (on macOS, only that one "
+           "either way); PD_AUTO_HIDE hides the dialog once update() reaches maximum, where without it that update() "
+           "shows \"Done.\" and returns only once the person closes the dialog; PD_CAN_ABORT adds a Cancel button, "
+           "after which update() and pulse() return False; PD_ELAPSED_TIME, PD_ESTIMATED_TIME and PD_REMAINING_TIME "
+           "show those times; PD_CAN_SKIP has no effect, as the dialog has no Skip button. The default is "
+           "PD_APP_MODAL | PD_AUTO_HIDE.");
 
-    py::enum_<NotificationManager::NotificationLevel>(ui, "NotificationLevel")
-        .value("ProgressBarNotificationLevel", NotificationManager::NotificationLevel::ProgressBarNotificationLevel)
-        .value("HintNotificationLevel", NotificationManager::NotificationLevel::HintNotificationLevel)
-        .value("RegularNotificationLevel", NotificationManager::NotificationLevel::RegularNotificationLevel)
-        .value("PrintInfoNotificationLevel", NotificationManager::NotificationLevel::PrintInfoNotificationLevel)
-        .value("PrintInfoShortNotificationLevel", NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel)
-        .value("ImportantNotificationLevel", NotificationManager::NotificationLevel::ImportantNotificationLevel)
-        .value("WarningNotificationLevel", NotificationManager::NotificationLevel::WarningNotificationLevel)
-        .value("SeriousWarningNotificationLevel", NotificationManager::NotificationLevel::SeriousWarningNotificationLevel)
-        .value("ErrorNotificationLevel", NotificationManager::NotificationLevel::ErrorNotificationLevel)
+    py::enum_<GUI::NotificationManager::NotificationLevel>(ui, "NotificationLevel")
+        .value("ProgressBarNotificationLevel", GUI::NotificationManager::NotificationLevel::ProgressBarNotificationLevel)
+        .value("HintNotificationLevel", GUI::NotificationManager::NotificationLevel::HintNotificationLevel)
+        .value("RegularNotificationLevel", GUI::NotificationManager::NotificationLevel::RegularNotificationLevel)
+        .value("PrintInfoNotificationLevel", GUI::NotificationManager::NotificationLevel::PrintInfoNotificationLevel)
+        .value("PrintInfoShortNotificationLevel", GUI::NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel)
+        .value("ImportantNotificationLevel", GUI::NotificationManager::NotificationLevel::ImportantNotificationLevel)
+        .value("WarningNotificationLevel", GUI::NotificationManager::NotificationLevel::WarningNotificationLevel)
+        .value("SeriousWarningNotificationLevel", GUI::NotificationManager::NotificationLevel::SeriousWarningNotificationLevel)
+        .value("ErrorNotificationLevel", GUI::NotificationManager::NotificationLevel::ErrorNotificationLevel)
         .export_values();
 
     ui.def("push_notification", &plater_notification, py::arg("notification_level"), py::arg("text"),
@@ -630,8 +915,12 @@ void PluginHostUi::close_windows_for_plugin(const std::string& plugin_key)
         // Destroy() bypasses wxEVT_CLOSE, so the plugin's on_close is not fired on
         // forced teardown (intended); the resource destructor still cleans the registry.
         for (auto* window : UiRegistry::instance().take_for_plugin(plugin_key)) {
-            if (auto* dialog = dynamic_cast<GUI::PluginWebDialog*>(window))
-                GUI::PluginWebDialog::destroy_for_plugin(dialog);
+            if (auto* dialog = dynamic_cast<GUI::WebDialog*>(window))
+                GUI::WebDialog::destroy_silently(dialog);
+            else if (auto* panel = dynamic_cast<GUI::DockPanel*>(window))
+                panel->destroy_silently();
+            else if (auto* message = dynamic_cast<GUI::MessageDialog*>(window))
+                message->EndModal(wxID_CANCEL); // a script's message box lives on the stack of its modal call
             else if (window != nullptr)
                 window->Destroy();
         }
@@ -639,8 +928,40 @@ void PluginHostUi::close_windows_for_plugin(const std::string& plugin_key)
 
     if (wxIsMainThread())
         teardown();
-    else
+    else if (!app_closing())
         GUI::wxGetApp().CallAfter(teardown);
+}
+
+void PluginHostUi::end_run_modals(const std::string& owner)
+{
+    if (wxTheApp == nullptr)
+        return;
+    auto end_modals = [owner]() {
+        for (const auto& [id, window] : UiRegistry::instance().windows_for_plugin(owner)) {
+            if (auto* message = dynamic_cast<GUI::MessageDialog*>(window))
+                message->EndModal(wxID_CANCEL); // its modal call unregisters it
+            else if (auto* dialog = dynamic_cast<GUI::WebDialog*>(window); dialog != nullptr && dialog->IsModal()) {
+                UiRegistry::instance().remove(id);
+                GUI::WebDialog::destroy_silently(dialog);
+            }
+        }
+    };
+    if (wxIsMainThread())
+        end_modals();
+    else if (!app_closing())
+        GUI::wxGetApp().CallAfter(end_modals);
+}
+
+void PluginHostUi::close_run_windows(const std::string& owner)
+{
+    if (wxTheApp == nullptr)
+        return;
+    try {
+        run_on_ui_blocking([&owner]() { close_windows_for_plugin(owner); });
+    } catch (const std::exception& e) {
+        // The app is closing: its own teardown takes the windows.
+        BOOST_LOG_TRIVIAL(info) << "Script windows left to the app's teardown: " << e.what();
+    }
 }
 
 } // namespace Slic3r

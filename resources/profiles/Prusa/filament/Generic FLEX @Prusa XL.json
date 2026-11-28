@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic FLEX @Prusa XL",
-	"renamed_from": "Prusa Generic FLEX @XL;Prusa Generic FLEX XL",
+	"renamed_from": "Prusa Generic FLEX @XL;Prusa Generic FLEX XL;Generic FLEX @Prusa XL 5T;Prusa Generic FLEX @XL 5T;Prusa Generic FLEX XL 5T",
 	"inherits": "fdm_filament_flex",
 	"from": "system",
 	"setting_id": "qrFWrwgQSXgU7oCb",
@@ -30,6 +30,12 @@
 		"Prusa XL 0.4 nozzle",
 		"Prusa XL 0.5 nozzle",
 		"Prusa XL 0.6 nozzle",
-		"Prusa XL 0.8 nozzle"
+		"Prusa XL 0.8 nozzle",
+		"Prusa XL 5T 0.25 nozzle",
+		"Prusa XL 5T 0.3 nozzle",
+		"Prusa XL 5T 0.4 nozzle",
+		"Prusa XL 5T 0.5 nozzle",
+		"Prusa XL 5T 0.6 nozzle",
+		"Prusa XL 5T 0.8 nozzle"
 	]
 }

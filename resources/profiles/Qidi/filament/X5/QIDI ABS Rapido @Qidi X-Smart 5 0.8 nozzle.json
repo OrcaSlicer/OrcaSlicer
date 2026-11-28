@@ -1,0 +1,32 @@
+{
+	"type": "filament",
+	"name": "QIDI ABS Rapido @Qidi X-Smart 5 0.8 nozzle",
+	"inherits": "QIDI ABS Rapido@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "MFSalN37Z60149bo",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"chamber_temperatures": [
+		"0"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
+	],
+	"nozzle_temperature": [
+		"260"
+	],
+	"pressure_advance": [
+		"0.011"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.8 nozzle"
+	]
+}

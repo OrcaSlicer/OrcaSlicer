@@ -13,6 +13,7 @@
 		"1.23"
 	],
 	"filament_flow_ratio": [
+		"0.96",
 		"0.96"
 	],
 	"filament_vendor": [
@@ -29,5 +30,21 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"65"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"fan_min_speed": [
+		"100",
+		"100"
+	],
+	"fan_max_speed": [
+		"100",
+		"100"
+	],
+	"additional_cooling_fan_speed": [
+		"70",
+		"70"
 	]
 }

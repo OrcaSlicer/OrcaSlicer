@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Anycubic",
-	"inherits": "fdm_filament_asa",
 	"renamed_from": "Anycubic Generic ASA",
+	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "o2Cr8cBtE4OKsTqm",
 	"filament_id": "OFLPAxz3",

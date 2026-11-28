@@ -2,7 +2,13 @@
 #include <sys/sysctl.h>
 #import <Cocoa/Cocoa.h>
 #import <wx/osx/cocoa/dataview.h>
+#import <wx/textctrl.h>
 #import "GUI_Utils.hpp"
+#include "libslic3r/Color.hpp"
+#include <dispatch/dispatch.h>
+#include <functional>
+#include <optional>
+#include <utility>
 
 namespace Slic3r {
 namespace GUI {
@@ -22,6 +28,12 @@ void staticbox_remove_margin(wxStaticBox* sb) {
     [nativeBox setBorderWidth:0];
 }
 
+void textctrl_disable_text_replacement(wxTextCtrl* ctrl) {
+    NSScrollView* scrollview = (NSScrollView*) ctrl->GetHandle();
+    if ([scrollview isKindOfClass:[NSScrollView class]])
+        [(NSTextView*) scrollview.documentView setAutomaticTextReplacementEnabled:NO];
+}
+
 // wxOSX SetShape only clears the window background; it cannot clip to a region. Clipping the
 // window's view layer to a rounded rect is what actually rounds the opaque webview inside.
 void set_window_corner_radius(wxWindow* win, int radius) {
@@ -36,6 +48,27 @@ void set_window_corner_radius(wxWindow* win, int radius) {
     [view setWantsLayer:YES];
     [[view layer] setCornerRadius:radius];
     [[view layer] setMasksToBounds:YES];
+}
+
+void sample_screen_color(std::function<void(std::optional<ColorRGBA>)> done)
+{
+    // Owned until handler runs; handler is always called, with nil on cancel.
+    __block NSColorSampler* sampler = [[NSColorSampler alloc] init];
+    __block auto callback = std::move(done);
+    [sampler showSamplerWithSelectionHandler:^(NSColor* picked) {
+        NSColor* srgb = picked ? [picked colorUsingColorSpace:[NSColorSpace sRGBColorSpace]] : nil;
+        std::optional<ColorRGBA> color;
+        if (srgb)
+            color = ColorRGBA(static_cast<float>([srgb redComponent]), static_cast<float>([srgb greenComponent]),
+                              static_cast<float>([srgb blueComponent]), 1.f);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [sampler release];
+            sampler = nil;
+            auto finished = std::move(callback);
+            callback = nullptr;
+            finished(color);
+        });
+    }];
 }
 
 bool is_debugger_present()

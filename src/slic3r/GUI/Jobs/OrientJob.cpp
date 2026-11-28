@@ -6,6 +6,29 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include <cstddef>
+#include <optional>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/PartPlate.hpp"
+#include <cassert>
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include "libslic3r/Orient.hpp"
+#include <chrono>
+#include <string>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include <exception>
+#include "libslic3r/LifecycleEvents.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 
 namespace Slic3r { namespace GUI {
@@ -87,9 +110,15 @@ void OrientJob::prepare_selected() {
 
     std::vector<bool> obj_sel(model.objects.size(), false);
 
-    for (auto &s : m_plater->get_selection().get_content())
-        if (s.first < int(obj_sel.size()))
-            obj_sel[size_t(s.first)] = !s.second.empty();
+    if (m_objects) {
+        for (int object : *m_objects)
+            if (object >= 0 && size_t(object) < obj_sel.size())
+                obj_sel[size_t(object)] = true;
+    } else {
+        for (auto &s : m_plater->get_selection().get_content())
+            if (s.first < int(obj_sel.size()))
+                obj_sel[size_t(s.first)] = !s.second.empty();
+    }
 
    //BBS: add only one plate mode
     prepare_selection(obj_sel, false);
@@ -214,7 +243,8 @@ void OrientJob::process(Ctl &ctl)
 
     params.progressind = [this, count, &ctl](unsigned st, std::string orientstr) {
         st += m_unprintable.size();
-        if (st > 0) ctl.update_status(int(st / float(count) * 100), _u8L("Orienting") + " " + orientstr);
+        // TRN Progress status. %1% is the name of the object being oriented.
+        if (st > 0) ctl.update_status(int(st / float(count) * 100), GUI::format(_u8L("Orienting %1%"), orientstr));
     };
 
     orientation::orient(m_selected, m_unselected, params);
@@ -233,7 +263,7 @@ void OrientJob::process(Ctl &ctl)
     wxGetApp().plater()->show_status_message(ctl.was_canceled() ? "Orienting canceled." : ss.str());
 }
 
-OrientJob::OrientJob() : m_plater{wxGetApp().plater()} {}
+OrientJob::OrientJob(std::optional<std::vector<int>> objects) : m_plater{wxGetApp().plater()}, m_objects{std::move(objects)} {}
 
 void OrientJob::finalize(bool canceled, std::exception_ptr &eptr)
 {
@@ -254,6 +284,12 @@ void OrientJob::finalize(bool canceled, std::exception_ptr &eptr)
         mesh.apply();
     }
 
+    if (!m_selected.empty()) {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        ctx.msg = "auto_oriented";
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
+    }
 
     m_plater->update();
 

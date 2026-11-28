@@ -3,39 +3,41 @@
 
 #include "libslic3r/PrintConfig.hpp"
 
+#include <cstdint>
+#include <memory>
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Lazy.hpp"
+#include <wx/event.h>
+#include <functional>
+#include <cstddef>
+#include <deque>
 #include <wx/frame.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
 #include <wx/settings.h>
+#include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/filehistory.h>
+#include <wx/timer.h>
+#include <wx/dialog.h>
+#include <wx/weakref.h>
 #ifdef __APPLE__
 #include <wx/taskbar.h>
 #endif // __APPLE__
 
 #include <string>
 #include <map>
+#include <utility>
+#include <vector>
 
 #include "GUI_Utils.hpp"
 #include "Event.hpp"
-//BBS: GUI refactor
-#include "ParamsPanel.hpp"
-#include "Monitor.hpp"
-#include "Auxiliary.hpp"
-#include "Project.hpp"
-#include "CalibrationPanel.hpp"
-#include "UnsavedChangesDialog.hpp"
-#include "Widgets/SideButton.hpp"
-#include "Widgets/SideMenuPopup.hpp"
-#include "FilamentGroupPopup.hpp"
+#include "IdleScheduler.hpp"
+#include "wxExtensions.hpp"
 
 
 #include <boost/property_tree/ptree_fwd.hpp>
 
-// BBS
-#include "BBLTopbar.hpp"
-#include "PrinterWebView.hpp"
-#include "calib_dlg.hpp"
-#include "MultiMachinePage.hpp"
-#include "slic3r/plugin/host/PluginPages.hpp"
 
 // Stable identifiers for MainFrame::m_tabpanel's built-in pages. These are
 // names rather than positional indices so optional pages cannot shift them.
@@ -57,16 +59,44 @@
 #define ENABEL_PRINT_ALL 0
 
 class Notebook;
+class BBLTopbar;
+class SideButton;
+class SidePopup;
+class wxLogWindow;
+class wxMenu;
+class wxMenuBar;
+class wxMenuItem;
 class wxBookCtrlBase;
 class wxProgressDialog;
 
 namespace Slic3r {
 
+class PluginPages;
+
 namespace GUI
 {
 
 class Tab;
+class CodeEditorWindow;
 class PrintHostQueueDialog;
+class DiffPresetDialog;
+class ParamsPanel;
+class MonitorPanel;
+class MultiMachinePage;
+class ProjectPanel;
+class CalibrationPanel;
+class PrinterWebView;
+class FilamentGroupPopup;
+class PA_Calibration_Dlg;
+class FlowRateCalibrationDialog;
+class Temp_Calibration_Dlg;
+class MaxVolumetricSpeed_Test_Dlg;
+class VFA_Test_Dlg;
+class Retraction_Test_Dlg;
+class Input_Shaping_Freq_Test_Dlg;
+class Input_Shaping_Damp_Test_Dlg;
+class Cornering_Test_Dlg;
+template <class Panel> class LazyPage;
 class Plater;
 #ifdef SLIC3R_CAD
 class DesignPanel;
@@ -74,6 +104,9 @@ class DesignPanel;
 class MainFrame;
 class WebViewPanel;
 class ParamsDialog;
+class RecordingIndicator;
+enum class Shortcut : uint8_t;
+struct KeyChord;
 #ifdef __WXGTK__
 class ResizeEdgePanel;
 #endif
@@ -134,6 +167,46 @@ class MainFrame : public DPIFrame
 #endif
     bool     m_loaded {false};
     wxTimer* m_reset_title_text_colour_timer{ nullptr };
+    IdleScheduler         m_idle;
+    bool                  m_prebuild_started{ false };
+    // Loads the Prepare canvas's GL resources while its page is hidden.
+    class GLResourcesPrebuild : public LazyBase
+    {
+    public:
+        explicit GLResourcesPrebuild(MainFrame& frame) : m_frame(frame) {}
+        const std::string& name() const override { return m_name; }
+        bool               built() const override;
+        bool               pending() const override { return !m_failed && !built(); }
+        bool               build_step() override;
+        int                prebuild_order() const override { return 0; }
+
+    private:
+        MainFrame&  m_frame;
+        std::string m_name{ "gl_resources" };
+        int         m_step{ 0 };
+        bool        m_failed{ false };
+    } m_gl_prebuild{ *this };
+    // Lays out the hidden Prepare page at the size the book gives its pages.
+    class PrepareLayoutPrebuild : public LazyBase
+    {
+    public:
+        explicit PrepareLayoutPrebuild(MainFrame& frame) : m_frame(frame) {}
+        const std::string& name() const override { return m_name; }
+        bool               built() const override;
+        bool               build_step() override;
+        int                prebuild_order() const override { return 0; }
+
+    private:
+        MainFrame&  m_frame;
+        std::string m_name{ "prepare_layout" };
+        wxSize      m_laid_out_size;
+    } m_prepare_layout_prebuild{ *this };
+    // Every built-in LazyPage, in and out of the book; prebuild_pages_when_idle() registers them.
+    // Plugin pages stay out: PluginPages destroys them at runtime.
+    std::vector<LazyBase*> m_lazy_pages;
+    // The latest EVT_LOAD_PRINTER_URL, applied when the web Device view is built.
+    wxString              m_printer_url;
+    wxString              m_printer_api_key;
 
     wxString    m_qs_last_input_file = wxEmptyString;
     wxString    m_qs_last_output_file = wxEmptyString;
@@ -178,7 +251,7 @@ class MainFrame : public DPIFrame
     bool can_delete() const;
     bool can_delete_all() const;
     bool can_reslice() const;
-    void bind_diff_dialog();
+    DiffPresetDialog* make_diff_dialog();
 
     // BBS
     wxBoxSizer* create_side_tools();
@@ -194,6 +267,46 @@ class MainFrame : public DPIFrame
 
     // vector of a MenuBar items changeable in respect to printer technology
     std::vector<wxMenuItem*> m_changeable_menu_items;
+
+    // Menu items whose label shows a key binding; update_shortcut_labels() rewrites them.
+    struct ShortcutMenuItem
+    {
+        wxMenuItem* item;
+        Shortcut    shortcut;
+        wxString    label;
+        bool        accelerator;   // false keeps the binding display-only on macOS, where the menu bar's accelerators are live
+    };
+    std::vector<ShortcutMenuItem> m_shortcut_menu_items;
+    // Menu bar items whose label shows a fixed key as text after sep, and their label without it.
+    std::vector<std::pair<const wxMenuItem*, wxString>> m_key_text_items;
+
+    wxString shortcut_label(const wxString& label, Shortcut shortcut, bool accelerator);
+    template<typename... Args>
+    wxMenuItem* append_shortcut_item(wxMenu* menu, Shortcut shortcut, bool accelerator, const wxString& label, Args&&... args)
+    {
+        wxMenuItem* item = append_menu_item(menu, wxID_ANY, shortcut_label(label, shortcut, accelerator), std::forward<Args>(args)...);
+        m_shortcut_menu_items.push_back({ item, shortcut, label, accelerator });
+        return item;
+    }
+    // A check item showing the shortcut's key: display-only on macOS, a live accelerator elsewhere.
+    wxMenuItem* append_shortcut_check_item(wxMenu* menu, Shortcut shortcut, const wxString& label, const wxString& description,
+                                           std::function<void(wxCommandEvent&)> cb, std::function<bool()> enable,
+                                           std::function<bool()> check)
+    {
+        wxMenuItem* item = append_menu_check_item(menu, wxID_ANY, shortcut_label(label, shortcut, false), description, std::move(cb), this,
+                                                  std::move(enable), std::move(check), this);
+        m_shortcut_menu_items.push_back({ item, shortcut, label, false });
+        return item;
+    }
+    // Runs the Global shortcut bound to chord; false when the focused control should see the key as well.
+    bool handle_global_shortcut(const KeyChord& chord);
+    // Sends a Save or Edit menu action to the code editor that has the focus; false when none has it.
+    bool forward_to_editor(const char* action);
+    // Cut ('x'), copy ('c') or paste ('v') in the code editor that has the focus; false when none has it.
+    bool editor_clipboard(char command);
+    void bind_code_editor_menu_rule();
+    void add_common_view_menu_items(wxMenu* view_menu, std::function<bool(void)> can_change_view);
+    wxMenu* generate_help_menu();
 
     struct FileHistory : wxFileHistory
     {
@@ -247,7 +360,7 @@ protected:
 
 public:
     MainFrame();
-    ~MainFrame() = default;
+    ~MainFrame();
 #ifdef __APPLE__
     bool get_mac_full_screen() { return m_mac_fullscreen; }
 #endif
@@ -296,6 +409,8 @@ public:
 
 	void        update_title_colour_after_set_title();
     void        show_option(bool show);
+    // The tab bar's REC pill, shown while a recording runs.
+    void        show_recording_indicator(bool show);
     void        init_tabpanel();
     void        create_preset_tabs();
     //BBS: GUI refactor
@@ -329,8 +444,16 @@ public:
 
     void        reslice_now();
     void        export_config();
+    // Shows the Action Replay window, creating it the first time and raising the open one after.
+    void        show_action_replay();
+    // The code editor window (the Run Script panel, Action Replay) that has the focus, or nullptr.
+    CodeEditorWindow* focused_code_editor() const;
     // Query user for the config file and open it.
     void        load_config_file();
+    // Import preset files (.json, .zip, .orca_printer, .orca_filament, .orca_bundle) as the Import Configs
+    // dialog does, then refresh the presets. `confirm` answers for each preset that exists already
+    // (0 no, 1 yes, 2 no to all, 3 yes to all). Returns the files imported.
+    std::vector<std::string> import_configs(std::vector<std::string> files, std::function<int(const std::string &)> confirm);
     // Open a config file. Return true if loaded.
     bool        load_config_file(const std::string &path);
 
@@ -352,11 +475,31 @@ public:
     void        select_tab(wxPanel* panel);
     void        select_tab(const wxString& id = wxString());
     void        request_select_tab(const wxString& id);
+    // post_init() needs the plater's canvas on screen to initialize OpenGL; this pass does not
+    // build the settings page.
+    void        select_prepare_for_gl_init();
+    // Builds the lazy tab pages while the user is idle; post_init() calls it once.
+    void        prebuild_pages_when_idle();
+    bool        prebuild_pending() const { return m_idle.pending(); }
+    bool        Show(bool show = true) override;
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);
+    void        update_shortcut_labels();
+    // A menu item's label without the key shown after it, the name automation gives the item. GetItemLabelText()
+    // drops a key that follows "\t"; on macOS a key the menu bar must not take follows sep instead (shortcut_label()),
+    // which it keeps, so for MainFrame's own items that label is the one the item was made with.
+    wxString    menu_item_label(const wxMenuItem& item) const;
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
     void        on_config_changed(DynamicPrintConfig* cfg) const ;
     void        set_print_button_to_default(PrintSelectType select_type);
+    // Orca: the print/export actions the current printer offers, in the order the dropdown lists them.
+    // The dropdown is built from this, and a remembered action is only restored if it appears here.
+    std::vector<PrintSelectType> available_print_actions() const;
+    // Orca: apply an action picked from the print dropdown to the print button
+    void        select_print_action(PrintSelectType select_type);
+    // Orca: remember the user's preferred print/export action across sessions (see "remember_print_action" preference)
+    void        remember_print_select(PrintSelectType select_type);
+    bool        get_remembered_print_select(PrintSelectType& out) const;
 
     bool can_save() const;
     bool can_save_as() const;
@@ -393,7 +536,7 @@ public:
     void fit_tab_labels(); // ORCA
     // True while either of the two tabs backed by m_plater is selected.
     bool is_prepare_or_preview_tab() const;
-    PluginPages& plugin_pages() { return m_plugin_pages; }
+    PluginPages& plugin_pages() { return *m_plugin_pages; }
 
     PA_Calibration_Dlg* m_pa_calib_dlg{ nullptr };
     FlowRateCalibrationDialog* m_flow_rate_calib_dlg{ nullptr };
@@ -404,33 +547,34 @@ public:
     Input_Shaping_Freq_Test_Dlg* m_IS_freq_calib_dlg{ nullptr };
     Input_Shaping_Damp_Test_Dlg* m_IS_damp_calib_dlg{ nullptr };
     Cornering_Test_Dlg* m_cornering_calib_dlg{ nullptr };
+    // Modeless and owned by this frame; the weak ref clears when it is destroyed.
+    wxWeakRef<wxDialog> m_action_replay;
 
     // BBS. Replace title bar and menu bar with top bar.
     BBLTopbar*            m_topbar{ nullptr };
     PrintHostQueueDialog* printhost_queue_dlg() { return m_printhost_queue_dlg; }
     Plater*               m_plater { nullptr };
+    // Lazy pages, created once and kept for the frame's life; their panels are reached
+    // through LazyInstance's statics, and show_device() only moves pages in and out of the book.
 #ifdef SLIC3R_CAD
-    // The tab page is the placeholder; m_design_panel stays null until the tab is first
-    // selected, so everything the Design panel builds stays off the startup path.
-    wxPanel*              m_design_page { nullptr };
-    DesignPanel*          m_design_panel { nullptr };
-    // Builds the Design panel if it does not exist yet and returns it (null only before the
-    // placeholder page itself exists). Main thread only -- it creates wx controls. Both the
-    // tab activation and the MCP socket go through this: the socket is driven headlessly,
-    // with nobody to click the tab, and without this every verb would answer "not ready".
-    DesignPanel*          ensure_design_panel();
+    LazyPage<DesignPanel>* m_design_page { nullptr };
+    // The Design panel when its tab is the one on screen, else null. Edit > Undo/Redo act on
+    // the tab that is shown: its own history when that is Design, the plater's otherwise.
+    DesignPanel*           shown_design_panel() const;
 #endif
+    // The top bar's Undo/Redo, for a tab that keeps its own history (Design).
+    void set_undo_redo_enabled(bool undo, bool redo);
     //BBS: GUI refactor
-    MonitorPanel*         m_monitor{ nullptr };
+    LazyPage<MonitorPanel>* m_monitor_page{ nullptr };
 
     //AuxiliaryPanel*       m_auxiliary{ nullptr };
-    MultiMachinePage*     m_multi_machine{ nullptr };
-    ProjectPanel*         m_project{ nullptr };
+    LazyPage<MultiMachinePage>* m_multi_machine_page{ nullptr };
+    LazyPage<ProjectPanel>* m_project_page{ nullptr };
 
-    CalibrationPanel*     m_calibration{ nullptr };
-    WebViewPanel*         m_webview { nullptr };
-    PrinterWebView*       m_printer_view{nullptr};
-    PluginPages           m_plugin_pages;
+    LazyPage<CalibrationPanel>* m_calibration_page{ nullptr };
+    LazyPage<WebViewPanel>* m_home_page { nullptr };
+    LazyPage<PrinterWebView>* m_printer_view_page{nullptr};
+    std::unique_ptr<PluginPages> m_plugin_pages;
     wxLogWindow*          m_log_window { nullptr };
     // BBS
     //wxBookCtrlBase*       m_tabpanel { nullptr };
@@ -440,7 +584,8 @@ public:
     ParamsDialog*         m_param_dialog{ nullptr };
     //BBS
     SettingsDialog        m_settings_dialog;
-    DiffPresetDialog      diff_dialog;
+    // The Compare presets dialog, built on first use or at idle through its holder.
+    std::unique_ptr<Lazy<DiffPresetDialog>> m_diff_dialog;
     wxWindow*             m_plater_page{ nullptr };
     PrintHostQueueDialog* m_printhost_queue_dlg;
 
@@ -452,6 +597,7 @@ public:
     SideButton* m_slice_option_btn{ nullptr };
     SideButton* m_print_btn{ nullptr };
     SideButton* m_print_option_btn{ nullptr };
+    RecordingIndicator* m_recording{ nullptr };
 
     SidePopup*  m_slice_option_pop_up{ nullptr };
 
@@ -460,6 +606,9 @@ public:
     mutable bool          m_print_enable{ true };
     bool get_enable_slice_status();
     bool get_enable_print_status();
+    // Whether the Print button would be enabled for `action`: get_enable_print_status()'s rule, which it asks for the
+    // button's selected action. The print commands ask it for the action they stand for.
+    bool print_action_enabled(PrintSelectType action);
     //BBS
     void update_side_button_style();
     void update_slice_print_status(SlicePrintEventType event, bool can_slice = true, bool can_print = true);

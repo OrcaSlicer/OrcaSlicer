@@ -2,6 +2,16 @@
 #define slic3r_GUI_TabCtrl_hpp_
 
 #include "Button.hpp"
+#include <wx/anybutton.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <vector>
+#include <wx/sizer.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dc.h>
 
 wxDECLARE_EVENT(wxEVT_TAB_SEL_CHANGING, wxCommandEvent);
 wxDECLARE_EVENT(wxEVT_TAB_SEL_CHANGED, wxCommandEvent);
@@ -42,6 +52,8 @@ public:
     virtual void Rescale();
 
     wxString GetItemText(unsigned int item) const;
+    // The button that shows tab `item`, or null.
+    Button* GetItemButton(unsigned int item) const { return item < btns.size() ? btns[item] : nullptr; }
     void SetItemText(unsigned int item, wxString const& value);
     void SetItemBitmap(unsigned int item, const wxBitmap& bitmap);
 

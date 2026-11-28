@@ -3,6 +3,11 @@
 
 #include "DailyTips.hpp"
 #include "NotificationManager.hpp"
+#include <wx/event.h>
+#include <functional>
+#include <string>
+#include <cstdint>
+#include <imgui.h>
 
 namespace Slic3r { namespace GUI {
 

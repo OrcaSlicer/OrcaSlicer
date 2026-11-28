@@ -1,14 +1,23 @@
 #ifndef slic3r_ConflictChecker_hpp_
 #define slic3r_ConflictChecker_hpp_
 
-#include "../Utils.hpp"
-#include "../Model.hpp"
 #include "../Print.hpp"
 #include "../Layer.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 
 #include <queue>
+#include <utility>
+#include <algorithm>
+#include <iterator>
+#include <string>
 #include <vector>
 #include <optional>
+
+namespace Slic3r { class ExtrusionEntityCollection; }
 
 namespace Slic3r {
 
@@ -62,7 +71,7 @@ public:
     Point           _offset;
 
 public:
-    LinesBucket(ExtrusionLayers &&paths, const void* id, Point offset) : _piles(paths), _id(id), _offset(offset) {}
+    LinesBucket(ExtrusionLayers &&paths, const void* id, Point offset) : _piles(std::move(paths)), _id(id), _offset(offset) {}
     LinesBucket(LinesBucket &&) = default;
 
     std::pair<int, int> curRange() const
@@ -138,8 +147,6 @@ struct ConflictComputeResult
 };
 
 using ConflictComputeOpt = std::optional<ConflictComputeResult>;
-
-using ConflictObjName = std::optional<std::pair<std::string, std::string>>;
 
 struct ConflictChecker
 {

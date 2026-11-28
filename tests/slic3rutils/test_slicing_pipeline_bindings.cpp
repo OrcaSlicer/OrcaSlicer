@@ -1,4 +1,18 @@
 #include <catch2/catch_test_macros.hpp>
+#include <pybind11/gil.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
+#include "libslic3r/libslic3r.h"
+#include <pybind11/cast.h>
+#include <pybind11/eval.h>
+#include <catch2/matchers/catch_matchers.hpp>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Print.hpp"
+#include <cstddef>
+#include "libslic3r/SurfaceCollection.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <initializer_list>
+#include <utility>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 using namespace Slic3r;
 
@@ -77,8 +91,8 @@ TEST_CASE("make_writable_rows builds a writable (N,2) int64 view that aliases th
 
 TEST_CASE("orca.slicing module: Step enum, context, and a Python capability can execute", "[slicing_pipeline]") {
     ensure_python_initialized();
-    import_orca_module(); // forces PythonPluginBridge::instance() (see import_orca_module in python_test_support.hpp)
     py::gil_scoped_acquire gil;
+    import_orca_module(); // links in PythonPluginBridge, which registers the orca module
     py::module_ orca = py::module_::import("orca");
     REQUIRE(py::hasattr(orca, "slicing"));
     py::object slicing = orca.attr("slicing");
@@ -102,8 +116,8 @@ _probe = Probe()
 TEST_CASE("orca.slicing is workflow-only: context exposes raw print/object; view classes are gone", "[slicing_pipeline]") {
     using Catch::Matchers::WithinRel;
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     py::module_ orca = py::module_::import("orca");
     py::object slicing = orca.attr("slicing");
 
@@ -130,19 +144,21 @@ TEST_CASE("orca.slicing is workflow-only: context exposes raw print/object; view
 }
 
 #include "libslic3r/PrintConfig.hpp"   // DynamicPrintConfig for the psGCodePostProcess context
-#include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <sstream>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Polyline.hpp"
+#include <pybind11/detail/common.h>
+#include <pybind11/detail/descr.h>
 
 // psGCodePostProcess is the merged post-processing seam: no live Print (print/object are None), the
 // plugin edits the file at ctx.gcode_path in place, and ctx.config_value() falls back to the config
 // the export path handed in. Exercising the real bindings by calling the Python execute() directly
 // (not the C++ audit trampoline) keeps this a pure binding-surface test.
 TEST_CASE("orca.slicing psGCodePostProcess context: file edit in place + config fallback", "[slicing_pipeline]") {
-    namespace fs = boost::filesystem;
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
 
     ScopedTemporaryFile gpath(".gcode");
     {
@@ -219,7 +235,6 @@ struct TestLayerRegion : Slic3r::LayerRegion {
 // decomposition of an ExtrusionLoop into its contained ExtrusionPath (flatten()
 // does NOT decompose loops, hence the hand-rolled recursive walk).
 static void build_nested_perimeters(TestLayerRegion& region) {
-    using namespace Slic3r;
     ExtrusionPath pathA(erExternalPerimeter);        // -> "Outer wall"
     pathA.mm3_per_mm = 0.05; pathA.width = 0.45f; pathA.height = 0.20f;
     pathA.polyline.points = { Point3(0, 0, 0), Point3(10, 0, 0), Point3(10, 10, 0) };
@@ -245,8 +260,8 @@ TEST_CASE("orca.host leaf geometry: Surface/ExPolygon/Polygon raw bindings", "[s
     using Catch::Matchers::WithinRel;
     using Catch::Matchers::WithinAbs;
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     py::object host = py::module_::import("orca").attr("host");
 
     for (const char* name : { "SurfaceType", "Polygon", "ExPolygon", "Surface", "SurfaceCollection" })
@@ -281,8 +296,8 @@ TEST_CASE("orca.host leaf geometry: Surface/ExPolygon/Polygon raw bindings", "[s
 TEST_CASE("orca.host Surface/SurfaceCollection: construct, writable members, set()", "[slicing_pipeline]") {
     using Catch::Matchers::WithinRel;
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     py::object host = py::module_::import("orca").attr("host");
     py::object ST = host.attr("SurfaceType");
     const coord_t s = (coord_t) scale_(10.0);
@@ -315,8 +330,8 @@ TEST_CASE("orca.host Surface/SurfaceCollection: construct, writable members, set
 
 TEST_CASE("orca.host Point: construct, read/write coords, arithmetic", "[slicing_pipeline]") {
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     py::object host = py::module_::import("orca").attr("host");
     REQUIRE(py::hasattr(host, "Point"));
     py::object p = host.attr("Point")(3, 4);
@@ -338,8 +353,8 @@ TEST_CASE("orca.host Point: construct, read/write coords, arithmetic", "[slicing
 TEST_CASE("orca.host Polygon: writable as_array aliases buffer; Point refs; set_points; offset", "[slicing_pipeline]") {
     using Catch::Matchers::WithinRel;
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     py::object host = py::module_::import("orca").attr("host");
 
     const coord_t s = (coord_t) scale_(10.0);
@@ -387,8 +402,8 @@ TEST_CASE("orca.host Polygon: writable as_array aliases buffer; Point refs; set_
 TEST_CASE("orca.host ExPolygon: construct, writable contour/holes, transforms, boolean ops", "[slicing_pipeline]") {
     using Catch::Matchers::WithinRel;
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     py::object host = py::module_::import("orca").attr("host");
     const coord_t s = (coord_t) scale_(10.0);
 
@@ -416,7 +431,6 @@ namespace {
 // Nested collection: outer -> inner -> [ ExtrusionLoop(pathA), ExtrusionPath(pathB) ].
 // Exercises polymorphic downcast of .entities and loop decomposition in flatten_paths().
 static Slic3r::ExtrusionEntityCollection build_nested_collection() {
-    using namespace Slic3r;
     ExtrusionPath pathA(erExternalPerimeter);        // -> "Outer wall"
     pathA.mm3_per_mm = 0.05; pathA.width = 0.45f; pathA.height = 0.20f;
     pathA.polyline.points = { Point3(0, 0, 0), Point3(10, 0, 0), Point3(10, 10, 0) };
@@ -437,8 +451,8 @@ static Slic3r::ExtrusionEntityCollection build_nested_collection() {
 TEST_CASE("orca.host extrusion tree: polymorphic entities + flatten_paths", "[slicing_pipeline]") {
     using Catch::Matchers::WithinRel;
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     py::object host = py::module_::import("orca").attr("host");
     for (const char* name : { "ExtrusionEntity", "ExtrusionPath", "ExtrusionLoop",
                               "ExtrusionMultiPath", "ExtrusionEntityCollection", "PrintRegion" })
@@ -466,8 +480,8 @@ TEST_CASE("orca.host extrusion tree: polymorphic entities + flatten_paths", "[sl
 
 TEST_CASE("orca.host ExtrusionPath.points() is a read-only (N,3) int64 view", "[slicing_pipeline]") {
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     bool have_numpy = false;
     try { py::module_::import("numpy"); have_numpy = true; }
     catch (const py::error_already_set&) { have_numpy = false; }
@@ -503,8 +517,8 @@ struct TestLayer : Slic3r::Layer {
 TEST_CASE("orca.host graph classes: LayerRegion/Layer raw traversal; Print/PrintObject registered", "[slicing_pipeline]") {
     using Catch::Matchers::WithinRel;
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     py::object host = py::module_::import("orca").attr("host");
 
     for (const char* name : { "LayerRegion", "Layer", "PrintObject", "Print" })
@@ -544,8 +558,8 @@ TEST_CASE("orca.host graph classes: LayerRegion/Layer raw traversal; Print/Print
 
 TEST_CASE("orca.host: plugin-only mutators are gone; class-API editing works", "[slicing_pipeline]") {
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     py::object host = py::module_::import("orca").attr("host");
 
     // The three plugin-only mutators were removed in the raw-API realignment.
@@ -567,8 +581,8 @@ TEST_CASE("orca.host: plugin-only mutators are gone; class-API editing works", "
 TEST_CASE("orca.host: SurfaceCollection.set mutates geometry; lslices via make_slices", "[slicing_pipeline]") {
     using Catch::Matchers::WithinRel;
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     bool have_numpy = false;
     try { py::module_::import("numpy"); have_numpy = true; }
     catch (const py::error_already_set&) { have_numpy = false; }
@@ -612,8 +626,8 @@ TEST_CASE("orca.host: SurfaceCollection.set mutates geometry; lslices via make_s
 TEST_CASE("orca.host ExPolygon in-place transforms + SurfaceCollection.append (sample ops)", "[slicing_pipeline]") {
     using Catch::Matchers::WithinRel;
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
     py::object host = py::module_::import("orca").attr("host");
     const coord_t s = (coord_t) scale_(10.0);
     auto make_square = [&]() {
@@ -657,8 +671,8 @@ TEST_CASE("orca.host ExPolygon in-place transforms + SurfaceCollection.append (s
 TEST_CASE("orca.host: in-place edit of surface.expolygon through a live collection persists to C++", "[slicing_pipeline]") {
     using Catch::Matchers::WithinRel;
     ensure_python_initialized();
-    import_orca_module();
     py::gil_scoped_acquire gil;
+    import_orca_module();
 
     const coord_t s = (coord_t) scale_(10.0);
     // Live LayerRegion holding one surface (a 10mm square at the origin).

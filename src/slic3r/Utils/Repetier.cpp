@@ -1,6 +1,9 @@
 #include "Repetier.hpp"
 
 #include <algorithm>
+#include <boost/optional/optional.hpp>
+#include "libslic3r/Exception.hpp"
+#include <boost/property_tree/exceptions.hpp>
 #include <sstream>
 #include <exception>
 #include <boost/foreach.hpp>
@@ -10,9 +13,13 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
+#include <utility>
+#include <wx/arrstr.h>
 #include <wx/progdlg.h>
+#include <wx/string.h>
 
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -20,7 +27,6 @@
 #include "Http.hpp"
 
 
-namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 

@@ -2,32 +2,37 @@
 #define slic3r_PluginsDialog_hpp_
 
 #include "Widgets/WebViewHostDialog.hpp"
-#include "Widgets/ProgressDialog.hpp"
-#include "PluginSource.hpp"
-#include "PluginStatus.hpp"
+#include "Operations/Outcome.hpp"
 #include "PluginSort.hpp"
-#include "slic3r/plugin/PluginDescriptor.hpp"
 
 #include <atomic>
+#include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
 #include <exception>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <nlohmann/json_fwd.hpp>
 #include <optional>
 #include <string>
 #include <thread>
 #include <type_traits>
 #include <utility>
+#include <wx/event.h>
+#include <wx/chartype.h>
 #include <wx/evtloop.h>
 #include <wx/app.h>
+#include <wx/gdicmn.h>
 #include <wx/progdlg.h>
 #include <wx/string.h>
 #include <wx/timer.h>
 
 #include <boost/filesystem.hpp>
+#include <wx/toplevel.h>
 
-class wxTimer;
+class wxWindow;
+namespace Slic3r { struct PluginDescriptor; }
+
 
 namespace Slic3r {
 
@@ -51,7 +56,14 @@ void open_plugin_hub();
 // responsive by performing the install on a worker behind a modal progress dialog. `parent` owns
 // the overwrite prompt and the progress dialog. On success `message` carries the localized
 // confirmation; on a user-cancelled overwrite it is empty; on failure it carries the reason.
-bool install_local_plugin_package(const boost::filesystem::path& package_file, wxWindow* parent, wxString& message);
+// `overwrite` answers the overwrite prompt for a plugin installed already: none asks the person;
+// false installs nothing, with the prompt's question as the reason, in `message` and in `refused`
+// where it is given; true replaces the plugin.
+bool install_local_plugin_package(const boost::filesystem::path& package_file,
+                                  wxWindow*                      parent,
+                                  wxString&                      message,
+                                  std::optional<bool>            overwrite = std::nullopt,
+                                  std::optional<Ops::Refusal>*   refused   = nullptr);
 
 namespace detail {
 
@@ -229,18 +241,18 @@ public:
 
     void set_open_terminal_dlg_fn();
     void update_plugin_dialog_ui();
+    // Main thread only. Refresh visible permissions after an external grant; hidden dialogs
+    // are refreshed by the normal open path instead. The web page merges the new state into
+    // the Permissions rows, with unsaved text taking precedence until it is saved or reverted.
+    void refresh_permissions_if_visible();
 
 private:
     void open_plugin_on_cloud(const std::string& sharing_token);
     void open_plugin_hub();
     void on_script_message(const nlohmann::json& payload) override;
+    nlohmann::json localized_strings() const override;
     // Runs one web command on a clean main-loop stack; see on_script_message.
     void handle_web_command(const nlohmann::json& payload);
-    // Re-raises this dialog after a transient modal it opened (file dialog, message box,
-    // progress dialog). Native macOS panels end by re-activating the app's main window
-    // (the mainframe) instead of this webview-hosting dialog, burying it; wx only
-    // compensates for generic wxDialog modals (wxDialog::EndModal raises the parent).
-    void restore_z_order();
 
     void send_plugins();
     void set_plugin_sort(const std::string& sort_key, const std::string& sort_order);
@@ -252,6 +264,9 @@ private:
     void prompt_for_missing_plugins();
     void refresh_plugins();
     void toggle_plugin(const std::string& plugin_key, bool enabled);
+    // Shared native warning for enabling full access. Returns true only on an explicit Yes.
+    bool prompt_enable_full_access(const std::string& plugin_key);
+    void mutate_plugin_permission(const nlohmann::json& payload);
     void toggle_plugin_capability(const std::string& plugin_key, PluginCapabilityType type, const std::string& capability_name, bool enabled);
     void handle_plugin_menu_action(const std::string& plugin_key, const std::string& action);
 
@@ -280,6 +295,8 @@ private:
     void unsubscribe_cloud_plugin(const Slic3r::PluginDescriptor& plugin);
     void reload_local_plugin(const std::string& plugin_key, bool clear_cache);
     void reinstall_cloud_plugin(const Slic3r::PluginDescriptor& plugin);
+    // Runs a reload's `work` behind the Reloading plugin progress dialog; what it throws is its refusal.
+    Ops::Outcome<Ops::Done> run_reload(const std::function<Ops::Outcome<Ops::Done>()>& work);
 
     // In the future, we can allow users to choose which plugin version they want to install.
     template<typename Run, typename OnFinish>

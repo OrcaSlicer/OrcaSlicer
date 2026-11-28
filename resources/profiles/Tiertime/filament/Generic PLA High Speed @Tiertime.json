@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA High Speed @Tiertime",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Tiertime Generic PLA High Speed",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "HFwoDRXx0L72uTKc",
 	"filament_id": "OFmpMwxS",

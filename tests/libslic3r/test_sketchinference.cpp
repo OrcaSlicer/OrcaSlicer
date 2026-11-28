@@ -1,4 +1,9 @@
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/Point.hpp"
+#include <vector>
 using Catch::Approx;   // v3 scopes Approx into the Catch namespace; v2 had it at global scope
 
 #include "libslic3r/CAD/SketchInference.hpp"
@@ -153,8 +158,8 @@ TEST_CASE("inference: degenerate entities are ignored", "[inference]")
 // The cap that keeps infer_relations linear rather than quadratic. Without it a drawing with
 // many equal holes yields a constraint per PAIR: 200 equal circles produced ~20000 candidates,
 // the batch was rejected as over-constrained, and the caller's one-at-a-time fallback then ran
-// a solve per constraint -- which pinned the app at 95% of a core with the MCP socket
-// unresponsive, and is what the corpus rung caught.
+// a solve per constraint -- which pinned the app at 95% of a core and left it unresponsive,
+// and is what the corpus rung caught.
 TEST_CASE("inference: at most one relation per rule per new entity", "[inference]")
 {
     // 40 circles of the same radius; the 41st must not produce 40 EqualRadius constraints.

@@ -18,7 +18,6 @@ REQUIRED_DEV_PACKAGES=(
     dev-vcs/git
     gui-libs/eglexternalplatform
     kde-frameworks/extra-cmake-modules
-    media-libs/glew
     media-libs/gst-plugins-base:1.0
     media-libs/gstreamer:1.0
     media-plugins/gst-plugins-gtk:1.0
@@ -31,6 +30,7 @@ REQUIRED_DEV_PACKAGES=(
     sys-devel/gettext
     sys-devel/m4
     virtual/libudev
+    virtual/opengl
     x11-libs/gtk+:3
     dev-util/pkgconf
     dev-lang/yasm

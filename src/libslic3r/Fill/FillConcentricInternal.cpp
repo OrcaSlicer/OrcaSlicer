@@ -3,9 +3,27 @@
 #include "../Surface.hpp"
 #include "../VariableWidth.hpp"
 #include "Arachne/WallToolPaths.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 
 #include "FillConcentricInternal.hpp"
+#include <cassert>
+#include <cstddef>
+#include <algorithm>
 #include <libslic3r/ShortestPath.hpp>
+#include <vector>
+#include <utility>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/PrintConfig.hpp"
+
+namespace Slic3r { class Surface; }
 
 namespace Slic3r {
 

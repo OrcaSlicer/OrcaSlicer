@@ -1,0 +1,9 @@
+{
+  "type": "filament",
+  "name": "Generic PETG @UltiMaker 2 extended+ 0.4 nozzle",
+  "inherits": "Generic PETG @UltiMaker 2+ 0.4 nozzle",
+  "from": "system",
+  "setting_id": "yk4J40ItJ5NRDjMp",
+  "instantiation": "true",
+  "compatible_printers": ["UltiMaker 2 extended+ 0.4 nozzle"]
+}

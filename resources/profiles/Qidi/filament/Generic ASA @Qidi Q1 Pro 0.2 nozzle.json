@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Qidi Q1 Pro 0.2 nozzle",
-	"inherits": "Generic ASA @Qidi",
 	"renamed_from": "Qidi Generic ASA @Qidi Q1 Pro 0.2 nozzle;Qidi Generic ASA Qidi Q1 Pro 0.2 nozzle",
+	"inherits": "Generic ASA @Qidi",
 	"from": "system",
 	"setting_id": "3LUibDTlv799Gy6r",
 	"filament_id": "OFLPAxz3",

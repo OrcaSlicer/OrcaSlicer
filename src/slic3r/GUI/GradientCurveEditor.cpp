@@ -7,11 +7,20 @@
 
 #include <algorithm>
 #include <cmath>
+#include "libslic3r/FilamentMixer.hpp"
+#include <cstddef>
 #include <limits>
 
+#include <wx/colour.h>
+#include <vector>
+#include <utility>
 #include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <wx/geometry.h>
 #include <wx/settings.h>
 
 namespace Slic3r {
@@ -47,7 +56,7 @@ GradientCurveEditor::GradientCurveEditor(wxWindow* parent,
     , m_color_high(color_high)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
-    SetBackgroundColour(wxGetApp().get_window_default_clr());
+    SetBackgroundColour(parent->GetBackgroundColour());
     // Wide enough so the X-axis "Material Ratio" label fits past the arrow tip without overlap.
     SetMinSize(FromDIP(wxSize(260, 200)));
 
@@ -292,9 +301,8 @@ int GradientCurveEditor::hit_test_curve(int px, int py, int* seg_out) const
 void GradientCurveEditor::on_paint(wxPaintEvent& /*evt*/)
 {
     // Resolve theme colors every paint so dark-mode toggles (no re-construction) take
-    // effect without an explicit listener. Window bg is read from GUI_App, not
-    // GetBackgroundColour(), since the latter is snapshotted at construction time.
-    const wxColour bg            = wxGetApp().get_window_default_clr();
+    // effect without an explicit listener.
+    const wxColour bg            = GetBackgroundColour();
     const wxColour grid_color    = StateColor::darkModeColorFor(kGridColor);
     const wxColour axis_color    = StateColor::darkModeColorFor(kAxisColor);
     const wxColour label_muted   = StateColor::darkModeColorFor(kLabelMuted);
@@ -353,7 +361,7 @@ void GradientCurveEditor::on_paint(wxPaintEvent& /*evt*/)
     }
 
     const MixedGradientTheme theme{bg, grid_color, axis_color, label_muted, label_strong, outline_color, point_fill};
-    draw_mixed_gradient_plot(raw_dc, GetClientSize(), curves, anchors, theme);
+    draw_mixed_gradient_plot(raw_dc, GetClientSize(), curves, anchors, theme, kGradientMinRatio);
 }
 
 void GradientCurveEditor::on_left_down(wxMouseEvent& evt)

@@ -49,5 +49,8 @@
 	],
 	"pressure_advance": [
 		"0.02"
+	],
+	"temperature_vitrification": [
+		"100"
 	]
 }

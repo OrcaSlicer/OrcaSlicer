@@ -2,7 +2,18 @@
 #define slic3r_Point_hpp_
 
 #include "libslic3r.h"
+#include <Eigen/Core>
+#include <algorithm>
+#include <cassert>
 #include <cstddef>
+#include <cstdint>
+#include <type_traits>
+#include <iterator>
+#include <ostream>
+#include <utility>
+#include <limits>
+#include <optional>
+#include <functional>
 #include <vector>
 #include <cmath>
 #include <string>
@@ -774,7 +785,8 @@ namespace std {
 
 // start Boost
 #include <boost/version.hpp>
-#include <boost/polygon/polygon.hpp>
+#include <boost/polygon/isotropy.hpp>
+#include <boost/polygon/point_concept.hpp>
 namespace boost { namespace polygon {
     template <>
     struct geometry_concept<Slic3r::Point> { using type = point_concept; };

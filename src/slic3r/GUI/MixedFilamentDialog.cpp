@@ -2,16 +2,36 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <cstring>
 #include <functional>
 #include <map>
 #include <set>
+#include <wx/colour.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <vector>
+#include <string>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/dc.h>
+#include <wx/dcmemory.h>
+#include <utility>
+#include <wx/chartype.h>
+#include <tuple>
+#include <wx/arrstr.h>
 #include <wx/image.h>
+#include <wx/panel.h>
 #include <wx/sizer.h>
 #include <wx/dcclient.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
+#include <wx/display.h>
 #include <wx/scrolwin.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
+#include <wx/toplevel.h>
+#include <wx/window.h>
 #include <wx/wrapsizer.h>
 #include <wx/tokenzr.h>
 
@@ -24,10 +44,11 @@
 #include "FilamentBitmapUtils.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
-#include "Widgets/CheckBox.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/DropDown.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/StaticLine.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -36,7 +57,7 @@ static constexpr int MAX_COMPONENTS = 3;
 static constexpr int MIN_COMPONENT_RATIO = 10;
 
 // Section headings and the placeholder text share one muted tone; light key, resolved at each use.
-static const wxColour COLOR_LABEL_MUTED("#6B6A6A");
+static const wxColour COLOR_LABEL_MUTED("#363636");
 
 // Lightweight self-painting label used for both dual-color and triple-color
 // ratio percentage display.  Hover shows a rounded-rect background; click
@@ -179,8 +200,10 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow* parent,
 
 void MixedFilamentDialog::on_dpi_changed(const wxRect&)
 {
-    int h = (num_components() >= 3) ? FromDIP(680) : FromDIP(580);
-    SetSize(FromDIP(439), h);
+    // Re-render the icons at the new scale.
+    if (m_btn_add_material)    m_btn_add_material->msw_rescale();
+    if (m_btn_remove_material) m_btn_remove_material->msw_rescale();
+    fit_within_display();
     Refresh();
 }
 
@@ -256,7 +279,7 @@ void MixedFilamentDialog::apply_uniform_label_width(wxStaticText* lbl)
     const wxString text = lbl->GetLabel();
     int w = 0;
     for (int i = 1; i <= MAX_COMPONENTS; ++i) {
-        lbl->SetLabel(wxString::Format(_L("Filament %d"), i));
+        lbl->SetLabel(std::to_string(i));
         lbl->InvalidateBestSize();
         w = std::max(w, lbl->GetBestSize().x);
     }
@@ -268,15 +291,18 @@ void MixedFilamentDialog::apply_uniform_label_width(wxStaticText* lbl)
 void MixedFilamentDialog::append_material_row()
 {
     auto* row = new wxBoxSizer(wxHORIZONTAL);
-    auto* lbl = new wxStaticText(this, wxID_ANY,
-                                 wxString::Format(_L("Filament %d"), (int)(m_combo_filaments.size() + 1)));
-    lbl->SetFont(::Label::Body_12);
+    auto* lbl = new wxStaticText(this, wxID_ANY, std::to_string(m_combo_filaments.size() + 1));
+    lbl->SetFont(::Label::Body_14);
+    lbl->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
     apply_uniform_label_width(lbl);
     row->Add(lbl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
 
     auto* combo = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                wxSize(FromDIP(166), FromDIP(24)), 0, nullptr, wxCB_READONLY);
     combo->SetKeepDropArrow(true);
+    // Named so that automation finds each component's selector (widget_set_value {"target": {"name": "filament_1"}}),
+    // as it finds the gradient controls below.
+    combo->SetName(wxString::Format("filament_%d", (int)(m_combo_filaments.size() + 1)));
     combo->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { on_filament_changed(); });
     row->Add(combo, 1, wxALIGN_CENTER_VERTICAL);
 
@@ -611,14 +637,15 @@ void MixedFilamentDialog::build_ui()
     m_right_sizer->Add(create_material_selection(), 0, wxEXPAND);
     m_right_sizer->Add(create_gradient_section(), 0, wxEXPAND | wxTOP, FromDIP(7));
 
-    m_ratio_sizer = create_ratio_slider();
-    m_right_sizer->Add(m_ratio_sizer, 0, wxEXPAND | wxTOP, FromDIP(7));
-
     m_triangle_sizer = create_triangle_picker();
     m_right_sizer->Add(m_triangle_sizer, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(7));
 
     top_sizer->Add(m_right_sizer, 1, wxTOP | wxRIGHT | wxBOTTOM, FromDIP(20));
     main_sizer->Add(top_sizer, 0, wxEXPAND);
+
+    // The ratio bar spans the full dialog width, using the space below the preview too.
+    m_ratio_sizer = create_ratio_slider();
+    main_sizer->Add(m_ratio_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(25));
 
     main_sizer->Add(create_recommendation_grid(), 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(25));
 
@@ -643,6 +670,13 @@ void MixedFilamentDialog::build_ui()
 
     Layout();
     CentreOnParent();
+
+    // Refit once shown, the first fit can be clipped on GTK
+    CallAfter([this] {
+        Fit();
+        CentreOnParent();
+        fit_within_display();
+    });
 }
 
 wxBoxSizer* MixedFilamentDialog::create_preview_panel()
@@ -785,10 +819,25 @@ wxBoxSizer* MixedFilamentDialog::create_material_selection()
     });
     sizer->Add(m_summary_panel, 0, wxEXPAND);
 
-    auto* sel_label = new wxStaticText(this, wxID_ANY, _L("Select Mixed Materials"));
+    auto* title_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* sel_label = new StaticLine(this, false, _L("Mixed Materials"));
     sel_label->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
-    sel_label->SetFont(::Label::Body_12);
-    sizer->Add(sel_label, 0, wxTOP, FromDIP(6));
+
+    title_sizer->Add(sel_label, 1, wxALIGN_CENTER_VERTICAL, FromDIP(8));
+
+    // Icon-only buttons, so they always keep a tooltip.
+    m_btn_remove_material = new ScalableButton(this, wxID_ANY, "delete_filament");
+    m_btn_remove_material->SetToolTip(_L("Remove the third material"));
+    m_btn_remove_material->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_remove_material(); });
+    title_sizer->Add(m_btn_remove_material, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
+
+    m_btn_add_material = new ScalableButton(this, wxID_ANY, "add_filament");
+    m_btn_add_material->SetToolTip(_L("Add material"));
+    m_btn_add_material->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_add_material(); });
+    title_sizer->Add(m_btn_add_material, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
+
+    sizer->Add(title_sizer, 0, wxTOP | wxEXPAND, FromDIP(6));
 
     m_material_rows_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -799,33 +848,6 @@ wxBoxSizer* MixedFilamentDialog::create_material_selection()
 
     sizer->Add(m_material_rows_sizer, 0, wxEXPAND);
 
-    auto* btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-
-    m_btn_add_material = new Button(this, _L("+ Add Material"));
-    m_btn_add_material->SetBackgroundColor(wxColour("#F8F8F8"));
-    m_btn_add_material->SetBorderColor(wxColour("#EEEEEE"));
-    // The disabled tone rides on the StateColor so Enable() alone repaints it, the way m_btn_ok does.
-    m_btn_add_material->SetTextColor(StateColor(
-        std::make_pair(wxColour("#ACACAC"), (int) StateColor::Disabled),
-        std::make_pair(wxColour("#262E30"), (int) StateColor::Normal)));
-    m_btn_add_material->SetMinSize(wxSize(-1, FromDIP(24)));
-    m_btn_add_material->SetCursor(wxCursor(wxCURSOR_HAND));
-    m_btn_add_material->EnableTooltipEvenDisabled();
-    m_btn_add_material->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_add_material(); });
-    btn_sizer->Add(m_btn_add_material, 1, wxRIGHT, FromDIP(6));
-
-    m_btn_remove_material = new Button(this, _L("- Delete Material"));
-    m_btn_remove_material->SetBackgroundColor(wxColour("#F8F8F8"));
-    m_btn_remove_material->SetBorderColor(wxColour("#EEEEEE"));
-    m_btn_remove_material->SetTextColor(wxColour("#262E30"));
-    m_btn_remove_material->SetMinSize(wxSize(-1, FromDIP(24)));
-    m_btn_remove_material->SetCursor(wxCursor(wxCURSOR_HAND));
-    m_btn_remove_material->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_remove_material(); });
-    m_btn_remove_material->Hide();
-    btn_sizer->Add(m_btn_remove_material, 1, 0, 0);
-
-    sizer->Add(btn_sizer, 0, wxEXPAND | wxTOP, FromDIP(9));
-
     return sizer;
 }
 
@@ -835,7 +857,7 @@ wxBoxSizer* MixedFilamentDialog::create_ratio_slider()
 
     auto* ratio_label = new wxStaticText(this, wxID_ANY, _L("Ratio"));
     ratio_label->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
-    ratio_label->SetFont(::Label::Body_12);
+    ratio_label->SetFont(::Label::Body_14);
     sizer->Add(ratio_label, 0, wxBOTTOM, FromDIP(4));
 
     m_ratio_bar = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, FromDIP(27)));
@@ -846,7 +868,7 @@ wxBoxSizer* MixedFilamentDialog::create_ratio_slider()
         wxBufferedPaintDC dc(m_ratio_bar);
         wxSize sz = m_ratio_bar->GetClientSize();
         draw_mixed_ratio_blend_bar(dc, wxRect(0, 0, sz.GetWidth(), sz.GetHeight()),
-                                   comp_colour(0), comp_colour(1), ratio(1) / 100.0);
+                                   comp_colour(0), comp_colour(1), ratio(1) / 100.0, MIN_COMPONENT_RATIO / 100.0);
     });
 
     m_ratio_bar->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
@@ -945,14 +967,15 @@ wxBoxSizer* MixedFilamentDialog::create_triangle_picker()
                                    {StateColor::darkModeColorFor(*wxWHITE),
                                     StateColor::darkModeColorFor(wxColour("#CECECE")),
                                     StateColor::darkModeColorFor(wxColour("#262E30")),
-                                    StateColor::darkModeColorFor(COLOR_LABEL_MUTED)});
+                                    StateColor::darkModeColorFor(COLOR_LABEL_MUTED)},
+                                   MIN_COMPONENT_RATIO / 100.0);
 
         if (m_result.ratios.size() >= 3) {
             dc.SetFont(::Label::Body_10);
             wxSize ts0 = dc.GetTextExtent(wxString::Format(wxT("%d%%"), m_result.ratios[0]));
             int top_label_y = std::max(0, (int)(v0.y - ts0.GetHeight() - FromDIP(4)));
 
-            dc.SetFont(::Label::Body_12);
+            dc.SetFont(::Label::Body_14);
             dc.SetTextForeground(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
             dc.DrawText(_L("Ratio"), FromDIP(2), top_label_y);
 
@@ -1048,18 +1071,17 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
 {
     m_gradient_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_chk_gradient = new ::CheckBox(this);
+    m_chk_gradient = new LabeledCheckBox(this, _L("Gradient Effect"));
+    m_chk_gradient->SetName("gradient");
     m_chk_gradient->SetValue(m_result.gradient_enabled);
-    m_chk_gradient->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) { e.Skip(); on_gradient_toggled(); });
-    m_gradient_sizer->Add(m_chk_gradient, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(4));
-
-    m_label_gradient = new wxStaticText(this, wxID_ANY, _L("Gradient Effect"));
-    m_label_gradient->SetFont(::Label::Body_13);
-    m_gradient_sizer->Add(m_label_gradient, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+    m_chk_gradient->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) { e.Skip(); on_gradient_toggled(); });
+    m_gradient_sizer->Add(m_chk_gradient, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(2));
 
     m_combo_gradient_dir = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                         wxSize(FromDIP(152), FromDIP(24)), 0, nullptr, wxCB_READONLY);
     m_combo_gradient_dir->SetKeepDropArrow(true);
+    // Its items are pictures of the two filaments, the first item the first filament at the bottom.
+    m_combo_gradient_dir->SetName("gradient_direction");
     update_gradient_direction_items();
     m_combo_gradient_dir->SetSelection(m_result.gradient_direction);
     m_combo_gradient_dir->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { on_gradient_direction_changed(); });
@@ -1089,17 +1111,13 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
     // Per-part gradient toggle sits BELOW the curve editor.
     m_per_part_gradient_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_chk_per_part_gradient = new ::CheckBox(this);
+    m_chk_per_part_gradient = new LabeledCheckBox(this, _L("Enable per-part gradient effect"));
+    m_chk_per_part_gradient->SetName("per_part_gradient");
     m_chk_per_part_gradient->SetValue(m_result.per_part_gradient);
-    m_chk_per_part_gradient->Bind(wxEVT_TOGGLEBUTTON,
+    m_chk_per_part_gradient->Bind(wxEVT_CHECKBOX,
         [this](wxCommandEvent& e) { e.Skip(); on_per_part_gradient_toggled(); });
     m_per_part_gradient_sizer->Add(m_chk_per_part_gradient, 0,
-        wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(4));
-
-    m_label_per_part_gradient = new wxStaticText(this, wxID_ANY, _L("Enable per-part gradient effect"));
-    m_label_per_part_gradient->SetFont(::Label::Body_13);
-    m_per_part_gradient_sizer->Add(m_label_per_part_gradient, 0,
-        wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+        wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(2));
 
     outer->Add(m_per_part_gradient_sizer, 0, wxEXPAND | wxTOP, FromDIP(2));
     m_per_part_gradient_sizer->ShowItems(m_result.gradient_enabled);
@@ -1111,21 +1129,13 @@ wxBoxSizer* MixedFilamentDialog::create_recommendation_grid()
 {
     auto* outer = new wxBoxSizer(wxVERTICAL);
 
-    auto* title_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto* rec_label = new wxStaticText(this, wxID_ANY, _L("Mixing Recommendations"));
-    rec_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#ACACAC")));
-    rec_label->SetFont(::Label::Body_10);
-    title_sizer->Add(rec_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+    auto* rec_label = new StaticLine(this, false, _L("Recommendations"));
+    rec_label->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
 
-    auto* rec_line = new wxPanel(this, wxID_ANY);
-    rec_line->SetMinSize(wxSize(-1, 1));
-    rec_line->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#EEEEEE")));
-    title_sizer->Add(rec_line, 1, wxALIGN_CENTER_VERTICAL);
-
-    outer->Add(title_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
+    outer->Add(rec_label, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
 
     m_recommendation_scroll = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(-1, FromDIP(116)));
-    m_recommendation_scroll->SetScrollRate(0, 5);
+    m_recommendation_scroll->SetScrollRate(0, FromDIP(20));
     m_recommendation_scroll->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#F8F8F8")));
 
     m_recommendation_grid = new wxWrapSizer(wxHORIZONTAL, wxREMOVE_LEADING_SPACES);
@@ -1250,16 +1260,17 @@ wxBoxSizer* MixedFilamentDialog::create_button_panel()
 {
     auto* sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_btn_cancel = new Button(this, _L("Cancel"));
-    m_btn_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
-    m_btn_cancel->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
-
+    // ORCA: Cancel on the right
     m_btn_ok = new Button(this, _L("OK"));
     m_btn_ok->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_btn_ok->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_OK); });
 
-    sizer->Add(m_btn_cancel, 0, wxRIGHT, FromDIP(12));
-    sizer->Add(m_btn_ok, 0);
+    m_btn_cancel = new Button(this, _L("Cancel"));
+    m_btn_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+    m_btn_cancel->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
+
+    sizer->Add(m_btn_ok, 0, wxRIGHT, FromDIP(ButtonProps::ChoiceButtonGap()));
+    sizer->Add(m_btn_cancel, 0);
 
     return sizer;
 }
@@ -1375,15 +1386,7 @@ void MixedFilamentDialog::on_gradient_toggled()
     // Toggling the curve editor changes the right column height (and width when
     // turning gradient on), so the dialog must follow or the recommendation list
     // gets squeezed off-screen. Same trick as 2-color -> 3-color switching.
-    const wxSize new_size = compute_dialog_size();
-    if (GetSize() != new_size) {
-        const wxRect old_rect = GetRect();
-        const wxPoint center(old_rect.x + old_rect.width / 2,
-                             old_rect.y + old_rect.height / 2);
-        SetSize(new_size);
-        SetPosition(wxPoint(center.x - new_size.x / 2,
-                            center.y - new_size.y / 2));
-    }
+    fit_within_display();
 
     Layout();
     Refresh();
@@ -1607,7 +1610,7 @@ void MixedFilamentDialog::paint_warning_panel(wxPaintEvent&)
     if (m_type_mismatch_msg.empty()) return;
 
     dc.SetFont(::Label::Body_12);
-    dc.SetTextForeground(StateColor::darkModeColorFor(wxColour("#D01B1B")));
+    dc.SetTextForeground(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
     wxString msg = m_type_mismatch_msg;
     int avail_w = sz.GetWidth() - x - FromDIP(10);
     wxSize ts = dc.GetTextExtent(msg);
@@ -1656,7 +1659,7 @@ void MixedFilamentDialog::update_ok_button_state()
             wxString parts;
             for (auto it = type_groups.begin(); it != type_groups.end(); ++it) {
                 if (!parts.empty())
-                    parts += _L(" and ");
+                    parts += "; ";
                 wxString slots;
                 for (size_t j = 0; j < it->second.size(); ++j) {
                     if (!slots.empty()) slots += ", ";
@@ -1664,7 +1667,7 @@ void MixedFilamentDialog::update_ok_button_state()
                 }
                 parts += wxString::Format(_L("Slot %s (%s)"), slots, wxString::FromUTF8(it->first));
             }
-            m_type_mismatch_msg = parts + " " + _L("cannot be mixed. Please select the same filament type.");
+            m_type_mismatch_msg = wxString::Format(_L("Different filament types cannot be mixed: %s. Please select the same filament type."), parts);
         } else {
             m_type_mismatch_msg.clear();
         }
@@ -1755,25 +1758,6 @@ void MixedFilamentDialog::update_gradient_direction_items()
         m_combo_gradient_dir->SetSelection(0);
 }
 
-wxSize MixedFilamentDialog::compute_dialog_size() const
-{
-    const bool is_three      = (num_components() >= 3);
-    const bool curve_visible = !is_three && m_result.gradient_enabled;
-
-    int w = FromDIP(439);
-    int h = FromDIP(580);
-    if (is_three) {
-        h = FromDIP(680);
-    } else if (curve_visible) {
-        // Wider so the gradient editor can show "Material Ratio" intact;
-        // +40 over the 3-color height to fit the curve editor while keeping the
-        // recommendation list visible (it can still scroll if needed).
-        w = FromDIP(470);
-        h = FromDIP(720);
-    }
-    return wxSize(w, h);
-}
-
 void MixedFilamentDialog::update_component_count_ui()
 {
     bool is_two   = (num_components() == 2);
@@ -1789,7 +1773,6 @@ void MixedFilamentDialog::update_component_count_ui()
     if (m_gradient_sizer) {
         bool show_gradient = is_two;
         m_chk_gradient->Show(show_gradient);
-        if (m_label_gradient) m_label_gradient->Show(show_gradient);
         m_combo_gradient_dir->Show(show_gradient && m_result.gradient_enabled);
         if (m_per_part_gradient_sizer)
             m_per_part_gradient_sizer->ShowItems(show_gradient && m_result.gradient_enabled);
@@ -1806,24 +1789,39 @@ void MixedFilamentDialog::update_component_count_ui()
     if (m_btn_add_material) {
         bool can_add = (num_components() < (size_t)MAX_COMPONENTS && m_physical_colors.size() > num_components());
         m_btn_add_material->Enable(can_add);
-        m_btn_add_material->SetToolTip(can_add ? wxString()
+        m_btn_add_material->SetToolTip(can_add ? _L("Add material")
             : (is_three ? _L("Maximum 3 materials for mixing") : _L("Maximum number of components reached")));
     }
 
     if (m_btn_remove_material) {
-        m_btn_remove_material->Show(is_three);
+        // Always shown, enabled only with a third material.
         m_btn_remove_material->Enable(is_three);
-        m_btn_remove_material->SetToolTip(is_three ? _L("Remove the third material") : wxString());
+        m_btn_remove_material->SetToolTip(_L("Remove the third material"));
     }
 
-    const wxSize new_size = compute_dialog_size();
-    const wxRect old_rect = GetRect();
-    const wxPoint center(old_rect.x + old_rect.width / 2,
-                         old_rect.y + old_rect.height / 2);
-    SetSize(new_size);
-    SetPosition(wxPoint(center.x - new_size.x / 2,
-                        center.y - new_size.y / 2));
+    fit_within_display();
     Layout();
+}
+
+void MixedFilamentDialog::fit_within_display()
+{
+    // Fit keeps the top-left corner, so controls don't move when sections appear or hide.
+    Fit();
+
+    // Until it is shown the dialog has no display of its own (on Wayland none at all), so use
+    // the parent's, which is also where CentreOnParent() places it.
+    const wxRect area = wxDisplay(IsShown() ? static_cast<wxWindow*>(this) : GetParent()).GetClientArea();
+    wxSize       size = GetSize();
+    size.DecTo(area.GetSize());
+
+    // Keep the dialog on screen. Before it is shown only the size counts, as build_ui() centres it.
+    wxPoint pos = GetPosition();
+    if (IsShown()) {
+        pos.x = std::max(area.x, std::min(pos.x, area.GetRight() + 1 - size.x));
+        pos.y = std::max(area.y, std::min(pos.y, area.GetBottom() + 1 - size.y));
+    }
+    if (size != GetSize() || pos != GetPosition())
+        SetSize(pos.x, pos.y, size.x, size.y, wxSIZE_ALLOW_MINUS_ONE);
 }
 
 } // namespace GUI

@@ -1,8 +1,10 @@
 #ifndef slic3r_BitmapComboBox_hpp_
 #define slic3r_BitmapComboBox_hpp_
 
+#include <cstddef>
 #include <wx/bmpcbox.h>
 #include <wx/gdicmn.h>
+#include <wx/string.h>
 
 #include "GUI_Utils.hpp"
 

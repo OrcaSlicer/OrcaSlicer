@@ -1,0 +1,28 @@
+{
+	"type": "machine",
+	"name": "fdm_wanhao_d9_mk1_common",
+	"inherits": "fdm_wanhao_d9_common",
+	"from": "system",
+	"instantiation": "false",
+	"machine_start_gcode": "; Wanhao Duplicator 9 start G-code, for the Marlin 2.1 firmwares at github.com/Le-Syl21/WANHAO-Duplicator-9\nG21 ; millimetres\nG90 ; absolute coordinates\nM83 ; relative extrusion\nM140 S[bed_temperature_initial_layer_single] ; heat the bed\nM104 S150 ; warm the nozzle without letting it ooze\nG91 ; a print stopped by hand can leave the nozzle down on the bed\nG1 Z10 F300 ; clear the bed before homing\nG90\nG28 ; home all axes (this turns bed levelling off)\nM420 S1 ; turn the bed mesh saved from the screen back on\nG1 Z10 F300\nM104 S[nozzle_temperature_initial_layer] ; start the nozzle now, the bed is still heating\nM190 S[bed_temperature_initial_layer_single] ; wait for the bed\nM109 S[nozzle_temperature_initial_layer] ; and confirm the nozzle\nG92 E0\nG1 X15 Y20 Z0.3 F3000 ; start of the priming line\nG1 Y140 E9.0 F1200 ; draw a line of filament\nG1 X15.5 F3000\nG1 Y20 E9.0 F1200 ; and back, next to it\nG92 E0\nG1 X22 F6000 ; wipe sideways to snap the string\nG1 Z2 F300 ; lift, so the line does not stick to the nozzle",
+	"machine_max_acceleration_x": [
+		"500",
+		"500"
+	],
+	"machine_max_acceleration_y": [
+		"500",
+		"500"
+	],
+	"machine_max_acceleration_e": [
+		"500",
+		"500"
+	],
+	"machine_max_acceleration_extruding": [
+		"500",
+		"500"
+	],
+	"machine_max_acceleration_travel": [
+		"500",
+		"500"
+	]
+}

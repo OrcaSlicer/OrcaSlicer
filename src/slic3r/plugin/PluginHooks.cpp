@@ -1,20 +1,29 @@
 #include "PluginHooks.hpp"
 
 #include "PluginManager.hpp"
+#include "PluginResolver.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginInterface.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Exception.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r_version.h"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
 
 #include <boost/log/trivial.hpp>
 
+#include <exception>
+#include <cstddef>
 #include <memory>
+#include "slic3r/plugin/PluginDescriptor.hpp"
 #include <string>
 #include <stdexcept>
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r::plugin_hooks {
 namespace {
@@ -25,24 +34,18 @@ namespace {
 void install_capability_resolver()
 {
     ConfigBase::set_resolve_capability_fn([](const std::string& cap_name, const std::string& cap_type) {
-        PluginManager& plugin_mgr = PluginManager::instance();
-        const PluginCapabilityType type = plugin_capability_type_from_string(cap_type);
-        // only_enabled = false: this resolves the reference a preset STORES, which must stay
-        // resolvable whether or not the user currently has the capability enabled. Filtering on
-        // the enable flag here would quietly drop the reference out of the preset's manifest.
-        auto plugin_cap = plugin_mgr.get_plugin_capability(cap_name, type, /*only_enabled=*/false);
-        if (!plugin_cap)
-            return std::string();
+        const auto ref = PluginManager::instance().resolve_capability_ref(cap_name, plugin_capability_type_from_string(cap_type));
+        return ref ? create_full_ref(*ref) : std::string();
+    });
+}
 
-        PluginDescriptor descriptor;
-        if (!plugin_mgr.try_get_plugin_descriptor_for_capability(cap_name, type, descriptor))
-            return std::string();
-
-        // Cloud plugins are resolved at runtime via the UUID in the middle field, so the first
-        // field keeps the friendly display name. Local plugins are looked up by plugin_key (the
-        // first field, with an empty UUID), so emit the plugin_key to keep them resolvable.
-        const std::string identity = descriptor.is_cloud_plugin() ? descriptor.name : descriptor.plugin_key;
-        return identity + ';' + descriptor.cloud_uuid() + ';' + cap_name;
+// Global libslic3r-side seam (Slic3r::fire_lifecycle_event, in libslic3r/LifecycleEvents.hpp):
+// broadcasts to every loaded, enabled capability regardless of type, unlike the SlicingPipeline
+// hook below which only targets picker-selected SlicingPipeline capabilities.
+void install_lifecycle_event_hook()
+{
+    set_lifecycle_hook_fn([](LifecycleEvent event, const LifecycleEventContext& ctx) {
+        PluginManager::instance().dispatch_lifecycle_event(event, ctx);
     });
 }
 
@@ -84,18 +87,24 @@ void install_slicing_pipeline_hook()
                         ctx.step   = step;
                         ctx.print  = &print;
                         ctx.object = object;
+                        // Slicing hooks are synchronous by design and never await: the context
+                        // borrows Print/PrintObject that are only valid during this call, and the
+                        // UI thread may itself be blocked waiting on this slicing worker. An async
+                        // override is rejected here rather than scheduled -- cap->execute() casts
+                        // its Python result to ExecutionResult and a coroutine object cannot be
+                        // cast, so it surfaces as the SlicingError below.
                         r = cap->execute(ctx);
                     } catch (const CanceledException&) {
                         throw; // cancellation must reach process(), never become a slicing error
                     } catch (const std::exception& ex) {
                         // A Python raise reaches here as pybind11::error_already_set; surface it as a
                         // (non-critical) slicing error instead of a crash.
-                        throw SlicingError(std::string("Slicing pipeline plugin '") +
-                                           ref.capability_name + "' error: " + ex.what());
+                        throw SlicingError(GUI::format(_u8L("Slicing pipeline plugin '%1%' error: %2%"),
+                                                       ref.capability_name, ex.what()));
                     }
                     if (r.status == PluginResult::FatalError)
-                        throw SlicingError(std::string("Slicing pipeline plugin '") +
-                                           ref.capability_name + "' error: " + r.message);
+                        throw SlicingError(GUI::format(_u8L("Slicing pipeline plugin '%1%' error: %2%"),
+                                                       ref.capability_name, r.message));
                     // log a non-empty success/skipped message instead of dropping it. This is
                     // log-only by design: every pipeline hook fires AFTER set_done() (see Print.cpp),
                     // so the Print-level m_step_active is -1 here. Calling active_step_add_warning()
@@ -122,12 +131,14 @@ void install()
 {
     install_capability_resolver();
     install_slicing_pipeline_hook();
+    install_lifecycle_event_hook();
 }
 
 void uninstall()
 {
     ConfigBase::set_resolve_capability_fn(nullptr);
     Print::set_slicing_pipeline_hook_fn(nullptr);
+    set_lifecycle_hook_fn(nullptr);
 }
 
 } // namespace Slic3r::plugin_hooks

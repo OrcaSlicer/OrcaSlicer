@@ -30,21 +30,26 @@
 	"is_support_timelapse": "1",
 	"is_support_multi_box": "0",
 	"layer_change_gcode": "SET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}",
-	"machine_end_gcode": "DISABLE_BOX_HEATER\nM140 S0\nBUFFER_MONITORING ENABLE=0\nDISABLE_ALL_SENSOR\nG1 E-3 F1800\nG0 Z{max_layer_z + 3} F600\nUNLOAD_FILAMENT T=[current_extruder]\nG0 Y270 F12000\nG0 X90 Y270 F12000\n{if max_layer_z < max_print_height / 2}G1 Z{max_print_height / 2 + 10} F600{else}G1 Z{min(max_print_height, max_layer_z + 3)}{endif}\nM104 S0",
+	"machine_end_gcode": "; Firmware 1.1.1 and older: delete the PRINT_END line at the end.\n; That firmware runs PRINT_END itself and errors if the G-code calls it.\nSET_PRINT_MAIN_STATUS MAIN_STATUS=print_end\nDISABLE_BOX_HEATER\nM140 S0\nBUFFER_MONITORING ENABLE=0\nDISABLE_ALL_SENSOR\nG1 E-3 F1800\n{if max_layer_z + 3 > max_print_height}\nG0 Z{max_print_height} F600\n{else}\nG0 Z{max_layer_z + 3} F600\n{endif}\nUNLOAD_FILAMENT T=[current_extruder]\nG0 Y270 F12000\nG0 X90 Y270 F12000\n{if max_layer_z < max_print_height / 2}G1 Z{max_print_height / 2 + 10} F600{else}G1 Z{min(max_print_height, max_layer_z + 3)}{endif}\nM104 S0\nPRINT_END",
 	"machine_load_filament_time": "35",
 	"machine_max_jerk_e": [
+		"4",
 		"4"
 	],
 	"machine_max_jerk_x": [
+		"9",
 		"9"
 	],
 	"machine_max_jerk_y": [
+		"9",
 		"9"
 	],
 	"machine_max_jerk_z": [
+		"4",
 		"4"
 	],
 	"machine_max_speed_z": [
+		"20",
 		"20"
 	],
 	"machine_pause_gcode": "PAUSE",
@@ -67,6 +72,8 @@
 		"259"
 	],
 	"support_box_temp_control": "1",
+	"support_chamber_temp_control": "0",
+	"support_multi_bed_types": "1",
 	"thumbnails_format": "PNG",
 	"thumbnail_size": [
 		"150x150"

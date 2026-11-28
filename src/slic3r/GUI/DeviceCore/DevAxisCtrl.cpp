@@ -1,7 +1,12 @@
 #include "DevAxis.h"
 
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
-#include "slic3r/Utils/NetworkAgent.hpp"
+#include <string>
+#include <cstdlib>
+#include <cstdio>
+
+using json = nlohmann::json;
 
 namespace Slic3r
 {

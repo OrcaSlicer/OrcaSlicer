@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Flashforge PC @FF G4P 0.6 nozzle",
-	"inherits": "FusRock S-PAHT @G3U 0.6 Nozzle",
 	"renamed_from": "FlashForge PC @FF G4P 0.6 nozzle;FlashForge PC FF G4P 0.6 nozzle",
+	"inherits": "FusRock S-PAHT @G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "XjAM4PMXLCBwdgQf",
 	"filament_id": "OFWXCbVF",

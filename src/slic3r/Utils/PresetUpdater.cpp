@@ -1,12 +1,23 @@
 #include "PresetUpdater.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <exception>
 #include <functional>
 #include <atomic>
+#include "libslic3r/Exception.hpp"
+#include <map>
+#include <ios>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
 #include <set>
 #include <string>
 #include <thread>
@@ -24,9 +35,10 @@
 
 #include <vector>
 #include <wx/app.h>
+#include <wx/event.h>
 #include <wx/msgdlg.h>
 
-#include "libslic3r/libslic3r.h"
+#include <nlohmann/json.hpp>
 #include "libslic3r/format.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -36,24 +48,23 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/UpdateDialogs.hpp"
-#include "slic3r/GUI/ConfigWizard.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Config/Version.hpp"
-#include "slic3r/Config/Snapshot.hpp"
 #include "slic3r/GUI/MarkdownTip.hpp"
 #include "libslic3r/miniz_extension.hpp"
-#include "slic3r/GUI/GUI_Utils.hpp"
+
+using json = nlohmann::json;
+
+namespace Slic3r::GUI::Config { class Snapshot; }
+namespace Slic3r::GUI::Config { class SnapshotDB; }
 
 namespace fs = boost::filesystem;
 using Slic3r::GUI::Config::Index;
 using Slic3r::GUI::Config::Version;
-using Slic3r::GUI::Config::Snapshot;
-using Slic3r::GUI::Config::SnapshotDB;
 
 
 // FIXME: Incompat bundle resolution doesn't deal with inherited user presets
@@ -198,6 +209,23 @@ struct Updates
 
 static bool reload_configs_update_gui();
 
+// Orca: whether the bundle for `vendor_name` is meant for this user.
+// A vendor only appears in AppConfig::vendors() once one of its printer models
+// has been selected, so an unlisted vendor is not in use and its cache must not
+// prompt. The two Orca bundles are never selected that way but are always
+// needed. `explicitly_allowed` carries vendors the user has just confirmed in
+// check_new_vendors(); they are installed before any of their printers is
+// selected, so they cannot be enabled yet.
+static bool is_vendor_wanted(const AppConfig::VendorMap &enabled_vendors,
+                             const std::set<std::string> &explicitly_allowed,
+                             const std::string &vendor_name)
+{
+    return vendor_name == PresetBundle::ORCA_DEFAULT_BUNDLE
+        || vendor_name == PresetBundle::ORCA_FILAMENT_LIBRARY
+        || enabled_vendors.find(vendor_name) != enabled_vendors.end()
+        || explicitly_allowed.find(vendor_name) != explicitly_allowed.end();
+}
+
 
 wxDEFINE_EVENT(EVT_SLIC3R_VERSION_ONLINE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SLIC3R_EXPERIMENTAL_VERSION_ONLINE, wxCommandEvent);
@@ -264,7 +292,8 @@ struct PresetUpdater::priv
 	bool install_bundles_rsrc(const std::vector<std::string>& bundles, bool snapshot) const;
 	void check_installed_vendor_profiles() const;
     Updates get_printer_config_updates(bool update = false) const;
-	Updates get_config_updates(const Semver& old_slic3r_version) const;
+	Updates get_config_updates(const Semver& old_slic3r_version,
+	                           const std::set<std::string>& explicitly_allowed_vendors = {}) const;
 	bool perform_updates(Updates &&updates, bool snapshot = true) const;
 	void set_waiting_updates(Updates u);
 };
@@ -292,7 +321,9 @@ void PresetUpdater::priv::set_download_prefs(AppConfig *app_config)
 	version_check_url = app_config->version_check_url();
 
 	auto profile_update_url = app_config->profile_update_url();
-	if (!profile_update_url.empty() && app_config->get_bool("enable_ota"))
+	// Dev builds keep the profiles from their own source tree; an over-the-air bundle would replace them.
+	const bool dev_build = boost::algorithm::icontains(std::string(SoftFever_VERSION), "dev");
+	if (!profile_update_url.empty() && !dev_build)
 		enabled_config_update = true;
 	else
 		enabled_config_update = false;
@@ -339,62 +370,8 @@ bool PresetUpdater::priv::get_file(const std::string &url, const fs::path &targe
 //BBS: refine preset update logic
 bool PresetUpdater::priv::extract_file(const fs::path &source_path, const fs::path &dest_path)
 {
-    bool res = true;
-    std::string file_path = source_path.string();
-    std::string parent_path = (!dest_path.empty() ? dest_path : source_path.parent_path()).string();
-    mz_zip_archive archive;
-    mz_zip_zero_struct(&archive);
-
-    if (!open_zip_reader(&archive, file_path))
-    {
-        BOOST_LOG_TRIVIAL(error) << "Unable to open zip reader for "<<file_path;
-        return false;
-    }
-
-    mz_uint num_entries = mz_zip_reader_get_num_files(&archive);
-
-    mz_zip_archive_file_stat stat;
-    // we first loop the entries to read from the archive the .amf file only, in order to extract the version from it
-    for (mz_uint i = 0; i < num_entries; ++i)
-    {
-        if (mz_zip_reader_file_stat(&archive, i, &stat))
-        {
-            std::string dest_file = parent_path+"/"+stat.m_filename;
-            if (stat.m_is_directory) {
-                fs::path dest_path(dest_file);
-                if (!fs::exists(dest_path))
-                    fs::create_directories(dest_path);
-				continue;
-            }
-            else if (stat.m_uncomp_size == 0) {
-                BOOST_LOG_TRIVIAL(warning) << "[Orca Updater]Unzip: invalid size for file "<<stat.m_filename;
-                continue;
-            }
-            try
-            {
-                res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_file.c_str(), 0);
-                if (!res) {
-                    BOOST_LOG_TRIVIAL(error) << "[Orca Updater]extract file "<<stat.m_filename<<" to dest "<<dest_file<<" failed";
-                    close_zip_reader(&archive);
-                    return res;
-                }
-                BOOST_LOG_TRIVIAL(info) << "[Orca Updater]successfully extract file " << stat.m_file_index << " to "<<dest_file;
-            }
-            catch (const std::exception& e)
-            {
-                // ensure the zip archive is closed and rethrow the exception
-                close_zip_reader(&archive);
-                BOOST_LOG_TRIVIAL(error) << "[Orca Updater]Archive read exception:"<<e.what();
-                return false;
-            }
-        }
-        else {
-            BOOST_LOG_TRIVIAL(warning) << "[Orca Updater]Unzip: read file stat failed";
-        }
-    }
-    close_zip_reader(&archive);
-
-	return true;
+    const std::string parent_path = (!dest_path.empty() ? dest_path : source_path.parent_path()).string();
+    return extract_archive_confined(source_path.string(), parent_path);
 }
 
 // Remove a leftover partial archive for the vendor about to be synchronized.
@@ -1098,35 +1075,28 @@ void PresetUpdater::priv::check_installed_vendor_profiles() const
     const auto enabled_vendors = app_config->vendors();
 
     std::set<std::string> bundles;
-    // Orca: always install filament library
-    bundles.insert(PresetBundle::ORCA_FILAMENT_LIBRARY);
     // A vendor is named by its profile or, where the build ships preset caches
     // instead of the raw profile JSONs, by its cache alone.
     for (const std::string &vendor_name : vendor_names_in(rsrc_path)) {
-        if (bundles.find(vendor_name) != bundles.end())continue;
-
-        const auto is_vendor_enabled = (vendor_name == PresetBundle::ORCA_DEFAULT_BUNDLE) // always update configs from resource to vendor for ORCA_DEFAULT_BUNDLE
-                                       || (enabled_vendors.find(vendor_name) != enabled_vendors.end());
+        const auto is_vendor_enabled = is_vendor_wanted(enabled_vendors, {}, vendor_name);
         if (is_vendor_installed(vendor_name)) {
-            if (enabled_config_update) {
-                if (is_vendor_enabled) {
-                    // Orca: whichever form of the vendor resources ships at the newer
-                    // version is the one installing lays down, and the one to judge
-                    // what is installed against.
-                    Semver resource_ver = resource_vendor_version(vendor_name);
-                    // Orca: a vendor installed as a preset cache has no profile
-                    // beside it; the version it was installed at is in the cache.
-                    Semver vendor_ver = installed_vendor_version(vendor_name);
+            if (is_vendor_enabled) {
+                // Orca: whichever form of the vendor resources ships at the newer
+                // version is the one installing lays down, and the one to judge
+                // what is installed against.
+                Semver resource_ver = resource_vendor_version(vendor_name);
+                // Orca: a vendor installed as a preset cache has no profile
+                // beside it; the version it was installed at is in the cache.
+                Semver vendor_ver = installed_vendor_version(vendor_name);
 
-                    if (vendor_ver < resource_ver) {
-                        BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:found vendor " << vendor_name << " newer version "
-                                                << resource_ver.to_string() << " from resource, old version " << vendor_ver.to_string();
-                        bundles.insert(vendor_name);
-                    }
-                } else {
-                    // need to be removed because not installed
-                    remove_installed_vendor(vendor_name);
+                if (vendor_ver < resource_ver) {
+                    BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:found vendor " << vendor_name << " newer version "
+                                            << resource_ver.to_string() << " from resource, old version " << vendor_ver.to_string();
+                    bundles.insert(vendor_name);
                 }
+            } else {
+                // need to be removed because not installed
+                remove_installed_vendor(vendor_name);
             }
         } else if (is_vendor_enabled) {
             bundles.insert(vendor_name);
@@ -1189,7 +1159,8 @@ Updates PresetUpdater::priv::get_printer_config_updates(bool update) const
 // Version of slic3r that was running the last time and which was read out from PrusaSlicer.ini is provided
 // as a parameter.
 // Orca: OTA profile updates should be loacated in ota/profiles folder
-Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version) const
+Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version,
+                                               const std::set<std::string> &explicitly_allowed_vendors) const
 {
 	Updates updates;
 
@@ -1197,6 +1168,8 @@ Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version
     auto cache_profile_path =  cache_path / "profiles";
     if (!fs::exists(cache_profile_path))
         return updates;
+
+	const auto &enabled_vendors = GUI::wxGetApp().app_config->vendors();
 
 	// Orca (PR #130): vendor changelogs are captured in memory during
 	// sync_vendor_config()/check_new_vendors(), not written beside the cache.
@@ -1214,6 +1187,11 @@ Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version
 			continue;
 
 		const std::string vendor_name = path.stem().string();
+		if (!is_vendor_wanted(enabled_vendors, explicitly_allowed_vendors, vendor_name)) {
+			BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:ignoring cached update for " << vendor_name
+			                        << ": the vendor is not enabled";
+			continue;
+		}
 		auto print_in_cache = (cache_profile_path / vendor_name / PRESET_PRINT_NAME);
 		auto filament_in_cache = (cache_profile_path / vendor_name / PRESET_FILAMENT_NAME);
 		auto machine_in_cache = (cache_profile_path / vendor_name / PRESET_PRINTER_NAME);
@@ -1429,6 +1407,9 @@ void PresetUpdater::check_vendor_update(const std::string& vendor_id)
 {
     if (!p->enabled_config_update) return;
     if (vendor_id.empty()) return;
+    // Stealth mode can be switched off mid-session, so it is checked before the vendor is marked
+    // as checked: the next printer change after that still queries the server.
+    if (GUI::wxGetApp().app_config->get_stealth_mode()) return;
 
     if (!p->checked_vendors.insert(vendor_id).second)
         return;
@@ -1576,8 +1557,10 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                         vendor_list += ", ";
                     vendor_list += candidate.vendor_id;
                 }
-                GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
-                    _u8L("Downloading new vendor profile(s): ") + vendor_list + _u8L("..."));
+                GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::format(
+                    // TRN %1% is a comma-separated list of vendor names.
+                    _L_PLURAL("Downloading new vendor profile: %1%...", "Downloading new vendor profiles: %1%...", candidates.size()),
+                    vendor_list));
             }
 
             vendor_check_threads.emplace_back([this, candidates, callback]() {
@@ -1684,12 +1667,14 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                     // into data_dir()/system.
                     GUI::wxGetApp().CallAfter([this, new_vendor_ids] {
                         AppConfig* app_config = GUI::wxGetApp().app_config;
-                        Updates    updates    = get_config_updates(app_config->orig_version());
 
                         // Only install the vendors just confirmed; leave any other unrelated
                         // pending cached update (from a background sync_vendor_config()) alone,
-                        // still gated behind its own notification/confirmation.
+                        // still gated behind its own notification/confirmation. The confirmed
+                        // ids are passed in because a new vendor is not enabled yet and would
+                        // otherwise be filtered out of the ordinary update scan.
                         std::set<std::string> confirmed(new_vendor_ids.begin(), new_vendor_ids.end());
+                        Updates    updates    = get_config_updates(app_config->orig_version(), confirmed);
                         Updates                filtered;
                         for (auto& update : updates.updates)
                             if (confirmed.count(update.vendor))
@@ -1724,8 +1709,10 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                                 vendor_list += ", ";
                             vendor_list += vendor_id;
                         }
-                        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
-                            _u8L("Failed to download vendor profile(s): ") + vendor_list);
+                        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::format(
+                            // TRN %1% is a comma-separated list of vendor names.
+                            _L_PLURAL("Failed to download vendor profile: %1%", "Failed to download vendor profiles: %1%", failed_vendor_ids.size()),
+                            vendor_list));
                     });
                 }
 

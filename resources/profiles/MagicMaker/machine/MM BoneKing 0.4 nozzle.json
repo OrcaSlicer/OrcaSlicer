@@ -76,6 +76,7 @@
 		"Generic PLA @System"
 	],
 	"machine_max_acceleration_e": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_extruding": [

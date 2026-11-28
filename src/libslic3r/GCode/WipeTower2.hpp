@@ -4,14 +4,20 @@
 #define WipeTower2_
 
 #include <cmath>
+#include <cstddef>
+#include <limits>
+#include <math.h>
 #include <string>
 #include <sstream>
 #include <utility>
 #include <algorithm>
+#include <vector>
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "WipeTower.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/PrintConfig.hpp"
 namespace Slic3r
 {
 
@@ -130,6 +136,15 @@ public:
 		
 		// Calculate extrusion flow from desired line width, nozzle diameter, filament diameter and layer_height:
 		m_extrusion_flow = extrusion_flow(layer_height);
+
+        // Orca: with volumetric speeds, a speed is its flow divided by this layer's line cross section.
+        const float mm3_per_mm = m_extrusion_flow * filament_area();
+        if (m_infill_volumetric_flow > 0.f)
+            m_infill_speed = m_infill_volumetric_flow / mm3_per_mm;
+        if (m_perimeter_volumetric_flow > 0.f)
+            m_perimeter_speed = m_perimeter_volumetric_flow / mm3_per_mm;
+        if (m_first_layer_volumetric_flow > 0.f)
+            m_first_layer_speed = m_first_layer_volumetric_flow / mm3_per_mm;
 	}
 
 	// Return the wipe tower position.
@@ -200,6 +215,8 @@ public:
         float               tower_interface_pre_extrusion_length = 0.f;
         float               tower_ironing_area = 4.f;
         float               tower_interface_purge_length = 0.f;
+        // Tallest layer this filament's nozzle can lay down; caps the sparse layer combination.
+        float               max_layer_height = 0.f;
     };
 
 private:
@@ -240,6 +257,10 @@ private:
     float  m_wipe_tower_max_purge_speed   = 90.f;
 	float  m_perimeter_speed    = 0.f;
     float  m_first_layer_speed  = 0.f;
+    // Volumetric flows (mm³/s) set_layer() derives the speeds above from, 0 without volumetric speeds.
+    float  m_infill_volumetric_flow      = 0.f;
+    float  m_perimeter_volumetric_flow   = 0.f;
+    float  m_first_layer_volumetric_flow = 0.f;
     size_t m_first_layer_idx    = size_t(-1);
     bool   m_enable_tower_interface_features = false;
     bool   m_enable_tower_interface_cooldown_during_tower = false;
@@ -268,6 +289,7 @@ private:
     float           m_extra_loading_move        = 0.f;
     float           m_bridging                  = 0.f;
     bool            m_sparse_layers_skipped     = false;
+    bool            m_sparse_layers_combined    = false;
     bool            m_set_extruder_trimpot      = false;
     bool            m_adhesion                  = true;
     GCodeFlavor     m_gcode_flavor;
@@ -368,6 +390,8 @@ private:
 		float z;		// z position of the layer
 		float height;	// layer height
 		float depth;	// depth of the layer based on all layers above
+		// Folded into a later, thicker layer, so this one prints nothing at all.
+		bool  combined_away{false};
 		float toolchanges_depth() const { float sum = 0.f; for (const auto &a : tool_changes) sum += a.required_depth; return sum; }
 
 		std::vector<ToolChange> tool_changes;

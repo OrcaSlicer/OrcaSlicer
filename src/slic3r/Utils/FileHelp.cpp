@@ -1,6 +1,11 @@
 #include "FileHelp.hpp"
+#include <algorithm>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/exception.hpp>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <cstdint>
 namespace Slic3r {
     namespace Utils {
 

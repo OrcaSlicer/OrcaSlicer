@@ -48,10 +48,10 @@ static_assert(cad_escape_level({false, false, true, true})   == CadLevel::Tool, 
 static_assert(cad_escape_level({false, false, false, true})  == CadLevel::Idle,      "selection is idle-level");
 static_assert(cad_escape_level({false, false, false, false}) == CadLevel::Idle,      "empty is idle");
 
-// Right-click vs. right-hold-orbit. A press that stays put and is let go promptly is a click and
-// summons the offer; anything longer or further was navigation, and navigation must never be
-// rewarded with a menu over wherever the camera happened to stop.
-inline constexpr int kCadRightClickMs      = 200;   // press->release budget
+// Right-click vs. right-drag-orbit. A press that stays put summons the offer; one that travelled
+// was navigation, and navigation must never be rewarded with a menu over wherever the camera
+// happened to stop. Distance only, never duration: charter 6.2 rules out any gesture that
+// depends on timing, and a press that did not move did not move the camera either.
 inline constexpr int kCadRightClickDriftPx = 3;     // cursor drift budget, max(|dx|,|dy|)
 
 }} // namespace Slic3r::GUI

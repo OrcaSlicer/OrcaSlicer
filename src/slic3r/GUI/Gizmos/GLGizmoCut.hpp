@@ -8,7 +8,21 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/CutUtils.hpp"
+#include "libslic3r/ObjectID.hpp"
 #include "imgui/imgui.h"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <map>
+#include <vector>
+#include <memory>
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <cstddef>
+#include <utility>
+#include <wx/string.h>
+#include <string>
+#include <wx/event.h>
+#include <functional>
+#include "libslic3r/Color.hpp"
 
 namespace Slic3r {
 
@@ -179,7 +193,7 @@ class GLGizmoCut3D : public GLGizmoBase
         };
 
         void render(const Vec3d* normal, GLModel& sphere_model);
-        void toggle_selection(const Vec2d& mouse_pos);
+        bool toggle_selection(const Vec2d& mouse_pos);
         void turn_over_selection();
         ModelObject* model_object() { return m_model.objects.front(); }
         bool valid() const { return m_valid; }
@@ -299,6 +313,7 @@ protected:
     void reset_cut_plane();
     void set_connectors_editing(bool connectors_editing);
     void flip_cut_plane();
+    bool is_mouse_over_selected_object(const Vec2d& mouse_pos) const;
     void process_contours();
     void reset_cut_by_contours();
     void render_flip_plane_button(bool disable_pred = false);
@@ -392,6 +407,11 @@ private:
     indexed_triangle_set get_connector_mesh(CutConnectorAttributes connector_attributes);
     void apply_cut_connectors(ModelObject* mo, const std::string& connector_name);
 };
+
+// What Perform cut does to the cut object's cut id before it cuts, and to the model's other pieces of the same cut after
+// it, which a cut made from arguments (Ops::cut_object()) does as well.
+void update_object_cut_id(CutObjectBase& cut_id, ModelObjectCutAttributes attributes, const int dowels_count);
+void synchronize_model_after_cut(Model& model, const CutObjectBase& cut_id);
 
 } // namespace GUI
 } // namespace Slic3r

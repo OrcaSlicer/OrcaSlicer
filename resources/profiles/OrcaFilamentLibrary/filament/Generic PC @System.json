@@ -7,5 +7,21 @@
 	"setting_id": "LNjv9LwZnbu7ZASC",
 	"filament_id": "OFLakOUI",
 	"instantiation": "true",
-	"compatible_printers": []
+	"compatible_printers": [],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
+	"filament_max_volumetric_speed": [
+		"12",
+		"20",
+		"30",
+		"12",
+		"20",
+		"20"
+	]
 }

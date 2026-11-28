@@ -1,0 +1,25 @@
+name: check-gcode label
+
+# Wakes check_gcode_comment.yml when the check-gcode label is added after the pull request's
+# build finished. It runs no pull request code and needs no token. A pull_request run cannot post
+# on a pull request from a fork, and pull_request_target is blocked by default in public
+# repositories, so the comment is posted by a workflow_run workflow instead.
+#
+# The workflow name is matched in check_gcode_comment.yml. No branches filter: a pull request
+# into another branch is told why it gets no report.
+on:
+  pull_request:
+    types:
+      - labeled
+
+permissions: {}
+
+jobs:
+  wake:
+    name: Wake the comparison comment
+    if: ${{ github.event.label.name == 'check-gcode' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Note the label
+        run: echo "check_gcode_comment.yml posts the comparison when this run completes."
