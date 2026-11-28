@@ -7062,70 +7062,98 @@ double GLCanvas3D::get_size_proportional_to_max_bed_size(double factor) const
 }
 
 //BBS
-std::vector<Vec2f> GLCanvas3D::get_empty_cells(const Vec2f start_point, const Vec2f step)
+std::vector<Vec2f> GLCanvas3D::get_empty_cells(const Vec2f start_point,
+                                               const Vec2f step,
+                                               const Vec2f grid_stride,
+                                               const std::vector<const ModelInstance *> &excluded_instances)
 {
-    PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
-    BoundingBoxf3 build_volume = plate->get_build_volume();
-    Vec2d vmin(build_volume.min.x(), build_volume.min.y()), vmax(build_volume.max.x(), build_volume.max.y());
-    BoundingBoxf bbox(vmin, vmax);
-    std::vector<Vec2f> cells;
-    std::vector<Vec2f> cells_ret;
-    auto min_x = start_point.x() - step(0) * int((start_point.x() - bbox.min.x()) / step(0));
-    auto min_y = start_point.y() - step(1) * int((start_point.y() - bbox.min.y()) / step(1));
-    cells.reserve(((bbox.max.x() - min_x) / step(0)) * ((bbox.max.y() - min_y) / step(1)));
-    cells_ret.reserve(cells.size());
-    for (float x = min_x; x < bbox.max.x() - step(0) / 2; x += step(0))
-        for (float y = min_y; y < bbox.max.y() - step(1) / 2; y += step(1))
-        {
-            cells.emplace_back(x, y);
-        }
-    for (size_t i = 0; i < m_model->objects.size(); ++i) {
-        ModelObject* model_object = m_model->objects[i];
-        auto id = model_object->id().id;
-        ModelInstance* model_instance0 = model_object->instances.front();
-        Polygon hull_2d = model_object->convex_hull_2d(Geometry::assemble_transform({ 0.0, 0.0, model_instance0->get_offset().z() }, model_instance0->get_rotation(),
-            model_instance0->get_scaling_factor(), model_instance0->get_mirror()));
-        if (hull_2d.empty())
-            continue;
+    if (step(0) <= 0.0f || step(1) <= 0.0f)
+        return {};
 
-        const auto& instances = model_object->instances;
-        double rotation_z0 = instances.front()->get_rotation().z();
-        for (const auto& instance : instances) {
-            Geometry::Transformation transformation;
-            const Vec3d& offset = instance->get_offset();
-            transformation.set_offset({ scale_(offset.x()), scale_(offset.y()), 0.0 });
-            transformation.set_rotation(Z, instance->get_rotation().z() - rotation_z0);
-            const Transform3d& trafo = transformation.get_matrix();
-            Polygon inst_hull_2d = hull_2d.transform(trafo);
+    const Vec2f stride(grid_stride(0) > 0.0f ? grid_stride(0) : step(0),
+                       grid_stride(1) > 0.0f ? grid_stride(1) : step(1));
 
-            for (auto it = cells.begin(); it != cells.end(); )
-            {
-                if (!inst_hull_2d.contains(Point(scale_(it->x()), scale_(it->y()))))
-                    cells_ret.push_back(*it);
+    PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+    if (plate == nullptr)
+        return {};
 
-                it++;
+    const BoundingBoxf3 build_volume = plate->get_build_volume();
+    const BoundingBoxf bbox(Vec2d(build_volume.min.x(), build_volume.min.y()),
+                            Vec2d(build_volume.max.x(), build_volume.max.y()));
+
+    const double half_x = step(0) * 0.5;
+    const double half_y = step(1) * 0.5;
+    if (bbox.min.x() + half_x > bbox.max.x() - half_x ||
+        bbox.min.y() + half_y > bbox.max.y() - half_y)
+        return {};
+
+    const int min_ix = static_cast<int>(std::ceil((bbox.min.x() + half_x - start_point.x()) / stride(0)));
+    const int max_ix = static_cast<int>(std::floor((bbox.max.x() - half_x - start_point.x()) / stride(0)));
+    const int min_iy = static_cast<int>(std::ceil((bbox.min.y() + half_y - start_point.y()) / stride(1)));
+    const int max_iy = static_cast<int>(std::floor((bbox.max.y() - half_y - start_point.y()) / stride(1)));
+    if (min_ix > max_ix || min_iy > max_iy)
+        return {};
+
+    std::vector<BoundingBoxf> occupied_boxes;
+    if (m_model != nullptr) {
+        for (const ModelObject *model_object : m_model->objects) {
+            for (const ModelInstance *instance : model_object->instances) {
+                if (std::find(excluded_instances.begin(), excluded_instances.end(), instance) != excluded_instances.end())
+                    continue;
+                const BoundingBoxf3 inst_bb3 = model_object->instance_convex_hull_bounding_box(instance);
+                if (!inst_bb3.defined)
+                    continue;
+                const BoundingBoxf inst_bb2(Vec2d(inst_bb3.min.x(), inst_bb3.min.y()),
+                                            Vec2d(inst_bb3.max.x(), inst_bb3.max.y()));
+                if (inst_bb2.overlap(bbox))
+                    occupied_boxes.push_back(inst_bb2);
             }
         }
     }
 
-    Vec2f start = start_point;
-    if (start_point(0) < 0 && start_point(1) < 0) {
-        start(0) = bbox.center()(0);
-        start(1) = bbox.center()(1);
+    std::vector<Vec2f> cells;
+    for (int ix = min_ix; ix <= max_ix; ++ix) {
+        const double x = start_point.x() + ix * static_cast<double>(stride(0));
+        for (int iy = min_iy; iy <= max_iy; ++iy) {
+            const double y = start_point.y() + iy * static_cast<double>(stride(1));
+            const BoundingBoxf cell_bb(Vec2d(x - half_x, y - half_y),
+                                       Vec2d(x + half_x, y + half_y));
+            const bool overlaps = std::any_of(occupied_boxes.begin(), occupied_boxes.end(),
+                                              [&cell_bb](const BoundingBoxf &box) { return box.overlap(cell_bb); });
+            if (!overlaps)
+                cells.emplace_back(static_cast<float>(x), static_cast<float>(y));
+        }
     }
-    std::sort(cells_ret.begin(), cells_ret.end(), [start](const Vec2f& cell1, const Vec2f& cell2) {return (cell1 - start).norm() < (cell2 - start).norm(); });
-    return cells_ret;
+
+    std::sort(cells.begin(), cells.end(), [start_point](const Vec2f &cell1, const Vec2f &cell2) {
+        return (cell1 - start_point).squaredNorm() < (cell2 - start_point).squaredNorm();
+    });
+
+    return cells;
 }
 
-Vec2f GLCanvas3D::get_nearest_empty_cell(const Vec2f start_point, const Vec2f step)
+Vec2f GLCanvas3D::get_nearest_empty_cell(const Vec2f start_point,
+                                         const Vec2f step,
+                                         const bool offset_on_fallback,
+                                         const std::vector<const ModelInstance *> &excluded_instances)
 {
-    std::vector<Vec2f> empty_cells = get_empty_cells(start_point, step);
+    std::vector<Vec2f> empty_cells = get_empty_cells(start_point, step, step, excluded_instances);
+    if (empty_cells.empty()) {
+        const float fine = std::max(5.0f, static_cast<float>(get_size_proportional_to_max_bed_size(0.02)));
+        if (step(0) > fine || step(1) > fine) {
+            const Vec2f fine_stride(std::max(1.0f, std::min(step(0), fine)),
+                                    std::max(1.0f, std::min(step(1), fine)));
+            empty_cells = get_empty_cells(start_point, step, fine_stride, excluded_instances);
+        }
+    }
     if (!empty_cells.empty())
         return empty_cells.front();
-    else {
-        double offset = get_size_proportional_to_max_bed_size(0.05);
-        return { start_point(0) + offset, start_point(1) + offset };
-    }
+
+    if (!offset_on_fallback)
+        return start_point;
+
+    const float offset = static_cast<float>(get_size_proportional_to_max_bed_size(0.05));
+    return {start_point(0) + offset, start_point(1) + offset};
 }
 
 void GLCanvas3D::set_cursor(ECursorType type)
