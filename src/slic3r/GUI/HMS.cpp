@@ -13,10 +13,16 @@
 #include <boost/filesystem/directory.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/system/error_code.hpp>
 #include <unordered_set>
 #include <string>
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/miniz_extension.hpp"
+#include <miniz.h>
+#include <iterator>
 #include <fstream>
+#include <exception>
+#include <ios>
 #include <ostream>
 #include <wx/string.h>
 #include <vector>
@@ -30,6 +36,7 @@ using json = nlohmann::json;
 
 static const char* HMS_PATH = "hms";
 static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";
+static const char* HMS_ZIP_FILE = "hms.zip"; // Orca: written by cmake/modules/PackHmsResources.cmake
 
 // the local HMS info
 // Orca: dev-id-type set trimmed to the devices Orca ships local HMS images for
@@ -110,14 +117,16 @@ int HMSQuery::download_hms_related(const std::string& hms_type, const std::strin
 
 
     bool to_save_local = false;
+    bool answered      = false; // Orca: the server replied with a result, whatever it is
     json j;
 
     BOOST_LOG_TRIVIAL(info) << "hms: download url = " << url;
     Slic3r::Http http = Slic3r::Http::get(url);
-    http.on_complete([receive_json, hms_type, &to_save_local, &j, & local_version](std::string body, unsigned status) {
+    http.on_complete([receive_json, hms_type, &to_save_local, &answered, &j, & local_version](std::string body, unsigned status) {
         try {
             j = json::parse(body);
             if (j.contains("result")) {
+                answered = true;
                 if (j["result"] == 0 && j.contains("data")) {
 
                     if (!j.contains("ver"))
@@ -160,57 +169,155 @@ int HMSQuery::download_hms_related(const std::string& hms_type, const std::strin
         if (to_save_local && !receive_json->empty()) {
             save_to_local(lang, hms_type, dev_id_type, j);
         }
+    return answered ? 0 : -1;
+}
+
+
+// Orca: read a whole file into memory
+static bool read_file(const fs::path& file_path, std::string& content)
+{
+    std::ifstream file(encode_path(fs::path(file_path).make_preferred().string().c_str()), std::ios::binary);
+    if (!file.is_open())
+        return false;
+    content.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    return !file.bad();
+}
+
+// Orca: read a bundled HMS file from hms.zip, or from the plain JSON when there is no zip (source-tree builds).
+// Plain files next to hms.zip are leftovers of an older version and are ignored.
+static bool read_bundled_hms_file(const std::string& filename, std::string& content)
+{
+    const fs::path hms_dir  = fs::path(Slic3r::resources_dir()) / HMS_PATH;
+    const fs::path zip_path = hms_dir / HMS_ZIP_FILE;
+    boost::system::error_code ec;
+    if (!fs::exists(zip_path, ec))
+        return read_file(hms_dir / filename, content);
+
+    mz_zip_archive zip;
+    mz_zip_zero_struct(&zip);
+    if (!open_zip_reader(&zip, zip_path.string())) {
+        BOOST_LOG_TRIVIAL(error) << "HMS: failed to open " << zip_path.string();
+        return false;
+    }
+    bool ok = false;
+    const int index = mz_zip_reader_locate_file(&zip, filename.c_str(), nullptr, 0);
+    size_t size = 0;
+    if (void* data = index >= 0 ? mz_zip_reader_extract_to_heap(&zip, mz_uint(index), &size, 0) : nullptr) {
+        content.assign(static_cast<const char*>(data), size);
+        mz_free(data);
+        ok = true;
+    } else {
+        BOOST_LOG_TRIVIAL(error) << "HMS: failed to extract " << filename << " from " << zip_path.string();
+    }
+    close_zip_reader(&zip);
+    return ok;
+}
+
+// Orca: parse HMS file content into load_json, using the same layout for the bundled and cached copies
+static int parse_hms_file(const std::string& content, const std::string& hms_type, json* load_json, std::string& load_version)
+{
+    load_version = "0";
+    try {
+        const json j = json::parse(content);
+        if (hms_type.compare(QUERY_HMS_INFO) == 0) {
+            if (j.contains("data")) { (*load_json) = j["data"]; }
+        } else if (hms_type.compare(QUERY_HMS_ACTION) == 0) {
+            if (j.contains("data")) { (*load_json)["data"] = j["data"]; }
+        }
+
+        if (j.contains("version")) {
+            load_version = DevJsonValParser::get_longlong_val(j["version"]);
+        } else if (j.contains("ver")) {
+            load_version = DevJsonValParser::get_longlong_val(j["ver"]);
+        } else {
+            BOOST_LOG_TRIVIAL(warning) << "HMS: no version info in the HMS file";
+        }
+    } catch (...) {
+        load_version = "0";
+        BOOST_LOG_TRIVIAL(error) << "HMS: failed to parse the HMS file";
+        return -1;
+    }
     return 0;
 }
 
-
-static void
-_copy_dir(const fs::path& from_dir, const fs::path& to_dir) /* copy and override with local files*/
+// Orca: only the file a connected printer needs is copied out of the install, instead of the whole folder (STUDIO-9512)
+bool HMSQuery::copy_bundled_file_to_local(const std::string& filename)
 {
-    try
-    {
-	    if (!fs::exists(from_dir))
-	    {
-	        return;
-	    }
+    if (data_dir().empty())
+        return false;
 
-	    if (!fs::exists(to_dir))
-	    {
-	        fs::create_directory(to_dir);
-	    }
+    std::string content;
+    if (!read_bundled_hms_file(filename, content))
+        return false;
 
-	    for (const auto &entry : fs::directory_iterator(from_dir))
-	    {
-	        const fs::path &source_path   = entry.path();
-	        const fs::path &relative_path = fs::relative(source_path, from_dir);
-	        const fs::path &dest_path     = to_dir / relative_path;
-
-	        if (fs::is_regular_file(source_path))
-            {
-                if (fs::exists(dest_path))
-                {
-                    fs::remove(dest_path);
-                }
-
-                copy_file(source_path, dest_path);
-            }
-            else if (fs::is_directory(source_path))
-            {
-                _copy_dir(source_path, dest_path);
-            }
-	    }
+    const fs::path to_dir = fs::path(Slic3r::data_dir()) / HMS_PATH;
+    try {
+        if (!fs::exists(to_dir))
+            fs::create_directory(to_dir);
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "HMS: failed to create " << to_dir.string() << ": " << e.what();
+        return false;
     }
-    catch (...)
-    {
-
+    std::ofstream file(encode_path((to_dir / filename).make_preferred().string().c_str()), std::ios::binary | std::ios::trunc);
+    if (!file.is_open() || !file.write(content.data(), std::streamsize(content.size()))) {
+        BOOST_LOG_TRIVIAL(error) << "HMS: failed to write " << (to_dir / filename).string();
+        return false;
     }
+    return true;
 }
 
-void HMSQuery::copy_from_data_dir_to_local()
+int HMSQuery::load_bundled(const std::string& hms_type, const std::string& dev_id_type, const std::string& lang, json* load_json)
 {
-    const fs::path& from_dir = fs::path(Slic3r::resources_dir()) / HMS_PATH;
-    const fs::path& to_dir = fs::path(Slic3r::data_dir()) / HMS_PATH;
-    _copy_dir(from_dir, to_dir);
+    std::string content;
+    if (!read_bundled_hms_file(get_hms_file(hms_type, lang, dev_id_type), content))
+        return 0;
+    std::string version;
+    return parse_hms_file(content, hms_type, load_json, version);
+}
+
+// Orca: on an app version change, remove the cached files the install can regenerate, so the new bundled
+// catalogs are used. Cloud-only catalogs are kept.
+void HMSQuery::remove_bundled_cache()
+{
+    if (data_dir().empty())
+        return;
+    const fs::path cache_dir = fs::path(data_dir()) / HMS_PATH;
+    boost::system::error_code ec;
+    if (!fs::is_directory(cache_dir, ec))
+        return;
+
+    std::vector<fs::path> cached_files;
+    for (fs::directory_iterator it(cache_dir, ec), end; !ec && it != end; it.increment(ec)) {
+        boost::system::error_code file_ec;
+        if (fs::is_regular_file(it->path(), file_ec))
+            cached_files.push_back(it->path());
+    }
+
+    const fs::path hms_dir  = fs::path(Slic3r::resources_dir()) / HMS_PATH;
+    const fs::path zip_path = hms_dir / HMS_ZIP_FILE;
+    mz_zip_archive zip;
+    mz_zip_zero_struct(&zip);
+    const bool use_zip = fs::exists(zip_path, ec);
+    if (use_zip && !open_zip_reader(&zip, zip_path.string())) {
+        BOOST_LOG_TRIVIAL(error) << "HMS: failed to open " << zip_path.string() << ", cache left as is";
+        return;
+    }
+
+    size_t removed = 0;
+    for (const fs::path& file : cached_files) {
+        const std::string name    = file.filename().string();
+        const bool        bundled = use_zip ? mz_zip_reader_locate_file(&zip, name.c_str(), nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE) >= 0 :
+                                              fs::is_regular_file(hms_dir / name, ec);
+        if (bundled && fs::remove(file, ec))
+            ++removed;
+    }
+    if (use_zip)
+        close_zip_reader(&zip);
+
+    // Images are read from resources_dir; this old copy is unused.
+    const auto removed_images = fs::remove_all(fs::path(data_dir()) / HMS_LOCAL_IMG_PATH, ec);
+    BOOST_LOG_TRIVIAL(info) << "HMS: removed " << removed << " bundled catalogs and " << (ec ? 0 : removed_images)
+                            << " entries of the old local_image copy from " << cache_dir.string();
 }
 
 int HMSQuery::load_from_local(const std::string& hms_type, const std::string& dev_id_type, json* load_json, std::string& load_version)
@@ -221,42 +328,11 @@ int HMSQuery::load_from_local(const std::string& hms_type, const std::string& de
         return -1;
     }
     std::string filename = get_hms_file(hms_type, HMSQuery::hms_language_code(), dev_id_type);
-    auto hms_folder = (boost::filesystem::path(data_dir()) / "hms");
-    if (!fs::exists(hms_folder))
-        fs::create_directory(hms_folder);
-
-    std::string dir_str = (hms_folder / filename).make_preferred().string();
-    std::ifstream json_file(encode_path(dir_str.c_str()));
-    try {
-        if (json_file.is_open())
-        {
-            const json &j = json::parse(json_file);
-            if (hms_type.compare(QUERY_HMS_INFO) == 0) {
-                if (j.contains("data")) { (*load_json) = j["data"]; }
-            } else if (hms_type.compare(QUERY_HMS_ACTION) == 0) {
-                if (j.contains("data")) { (*load_json)["data"] = j["data"]; }
-            }
-
-            if (j.contains("version")) {
-                load_version = DevJsonValParser::get_longlong_val(j["version"]);
-            }
-            else if (j.contains("ver")) {
-                load_version = DevJsonValParser::get_longlong_val(j["ver"]);
-            }
-            else
-            {
-                BOOST_LOG_TRIVIAL(warning) << "HMS: load_from_local, no version info";
-            }
-
-            return 0;
-        }
-    } catch(...) {
-        load_version = "0";
-        BOOST_LOG_TRIVIAL(error) << "HMS: load_from_local failed";
-        return -1;
-    }
+    std::string content;
     load_version = "0";
-    return 0;
+    if (!read_file(fs::path(data_dir()) / HMS_PATH / filename, content))
+        return 0;
+    return parse_hms_file(content, hms_type, load_json, load_version);
 }
 
 int HMSQuery::save_to_local(std::string lang, std::string hms_type, std::string dev_id_type, json save_json)
@@ -272,7 +348,7 @@ int HMSQuery::save_to_local(std::string lang, std::string hms_type, std::string 
     std::string dir_str = (hms_folder / filename).make_preferred().string();
     std::ofstream json_file(encode_path(dir_str.c_str()));
     if (json_file.is_open()) {
-        json_file << save_json.dump(1, '\t') << std::endl; // Orca: tab-indented dump
+        json_file << save_json.dump() << std::endl; // Orca: compact dump, indentation only grows the cache
         json_file.close();
         return 0;
     }
@@ -287,6 +363,9 @@ std::string HMSQuery::hms_language_code()
         // set language code to en by default
         return "en";
     std::string lang_code = wxGetApp().app_config->get_language_code();
+    // Orca: get_language_code() keeps only "zh" for zh_TW, but the HMS host publishes Traditional Chinese as "zh-tw"
+    if (wxGetApp().app_config->get("language") == "zh_TW")
+        return "zh-tw";
     // Orca: the HMS host ships no catalog for these locales, so fall back to english to avoid empty texts + retries
     if (lang_code.compare("uk") == 0
         || lang_code.compare("cs") == 0
@@ -384,8 +463,11 @@ wxString HMSQuery::_query_hms_msg(const std::string& dev_id_type, const std::str
         return wxEmptyString;
     }
 
-    const json& device_hms_msg_json = device_hms_json.value(lang_code, json());
-    if (device_hms_msg_json.is_null())
+    // Orca: the bundled English catalog stands in until the user's language has been downloaded
+    auto lang_iter = device_hms_json.find(lang_code);
+    if (lang_iter == device_hms_json.end())
+        lang_iter = device_hms_json.find("en");
+    if (lang_iter == device_hms_json.end())
     {
         BOOST_LOG_TRIVIAL(error) << "hms: query_hms_msg, do not contains lang_code = " << lang_code;
         if (lang_code.empty()) /*traverse all if lang_code is empty*/
@@ -410,7 +492,7 @@ wxString HMSQuery::_query_hms_msg(const std::string& dev_id_type, const std::str
         return wxEmptyString;
     }
 
-    for (const auto& item : device_hms_msg_json)
+    for (const auto& item : *lang_iter)
     {
         if (item.is_object())
         {
@@ -597,7 +679,8 @@ wxImage HMSQuery::query_image_from_local(const wxString& image_name)
 
     if (m_hms_local_images.empty())
     {
-        const fs::path& local_img_dir = fs::path(Slic3r::data_dir()) / HMS_LOCAL_IMG_PATH;
+        // Orca: the images are never updated at runtime, so read them from the install instead of a copy in data_dir
+        const fs::path& local_img_dir = fs::path(Slic3r::resources_dir()) / HMS_LOCAL_IMG_PATH;
         if (fs::exists(local_img_dir))
         {
             for (const auto &entry : fs::directory_iterator(local_img_dir))
@@ -625,6 +708,7 @@ void HMSQuery::clear_hms_info()
     m_hms_info_jsons.clear();
     m_hms_action_jsons.clear();
     m_cloud_hms_last_update_time.clear();
+    m_hms_english_fallback.clear();
 }
 
 void HMSQuery::init_hms_info(const std::string& dev_type_id)
@@ -638,18 +722,21 @@ void HMSQuery::init_hms_info(const std::string& dev_type_id)
             std::string load_version;
             load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);/*load from local first*/
             if (load_version.empty() || load_version == "0") {
-                copy_from_data_dir_to_local(); // STUDIO-9512
-                load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);/*copy files to local, and retry load*/
+                // Orca: without a bundled catalog, use English from memory only, so the download still fetches the full file
+                if (copy_bundled_file_to_local(get_hms_file(QUERY_HMS_INFO, hms_language_code(), dev_type_id)))
+                    load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);
+                else {
+                    load_bundled(QUERY_HMS_INFO, dev_type_id, "en", &m_hms_info_jsons[dev_type_id]);
+                    m_hms_english_fallback.insert(dev_type_id);
+                }
             }
         }
 
         if (m_hms_action_jsons.count(dev_type_id) == 0) {
             std::string load_version;
             load_from_local(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id], load_version);/*load from local first*/
-            if (load_version.empty() || load_version == "0") {
-                copy_from_data_dir_to_local(); // STUDIO-9512
-                load_from_local(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id], load_version);/*copy files to local, and retry load*/
-            }
+            if ((load_version.empty() || load_version == "0") && copy_bundled_file_to_local(get_hms_file(QUERY_HMS_ACTION, "", dev_type_id)))
+                load_from_local(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id], load_version);
         }
     }
 
@@ -658,13 +745,15 @@ void HMSQuery::init_hms_info(const std::string& dev_type_id)
 
     /* check hms is valid or not */
     bool retry = false;
-    if(m_hms_info_jsons[dev_type_id].empty() || m_hms_action_jsons[dev_type_id].empty()){
+    // Orca: the English fallback fills the table, so it needs the retry too, or a failed first download waits a day
+    if(m_hms_info_jsons[dev_type_id].empty() || m_hms_action_jsons[dev_type_id].empty() || m_hms_english_fallback.count(dev_type_id) != 0){
         retry =time(nullptr) - info_last_update_time > (60 * 1); // retry after 1 minute
     }
 
     if (time(nullptr) - info_last_update_time > (60 * 60 * 24) || retry)/*do not update in one day to reduce waiting*/
     {
-        download_hms_related(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id]);
+        if (download_hms_related(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id]) == 0)
+            m_hms_english_fallback.erase(dev_type_id);
         download_hms_related(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id]);
         m_cloud_hms_last_update_time[dev_type_id] = time(nullptr);
     }

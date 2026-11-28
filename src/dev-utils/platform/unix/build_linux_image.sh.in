@@ -195,6 +195,8 @@ echo -n "[9/9] Generating Linux app..."
         rm -f "$APPDIR/resources/profiles"/*.opc
         "${REPO_ROOT}/scripts/build_preset_cache.sh" -b . -c "$CONFIG" "$APPDIR/resources/profiles"
     fi
+    # Orca: ship the HMS catalogs zipped; HMSQuery extracts the one a Bambu Lab printer needs
+    "@CMAKE_COMMAND@" -DHMS_DIR="$APPDIR/resources/hms" -P "@CMAKE_SOURCE_DIR@/cmake/modules/PackHmsResources.cmake"
 
     ORIGINAL_BINARY_LOCATION=""
     if [ -f "src/${CONFIG}/@SLIC3R_APP_CMD@" ]; then
