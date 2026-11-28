@@ -7,8 +7,8 @@
 #include <limits>
 #include <cstdlib>
 #include <optional>
-#include <random>
-#include <thread>
+#include <cstdint>
+#include <cstring>
 #include <utility>
 #include <vector>
 
@@ -28,30 +28,56 @@
 #include "FuzzySkin.hpp"
 
 #include "libnoise/noise.h"
-#include <functional>
 
 // #define DEBUG_FUZZY
 
 namespace Slic3r::Feature::FuzzySkin {
 
-// Produces a random value between 0 and 1. Thread-safe.
-static double random_value() {
-    thread_local std::random_device rd;
-    // Hash thread ID for random number seed if no hardware rng seed is available
-    thread_local std::mt19937 gen(rd.entropy() > 0 ? rd() : std::hash<std::thread::id>()(std::this_thread::get_id()));
-    thread_local std::uniform_real_distribution<double> dist(0.0, 1.0);
-    return dist(gen);
-}
+// Random values for fuzzing one outline, seeded from the outline itself, so slicing the same
+// object again gives the same fuzz on any thread. The slice height is part of the seed: the same
+// outline on neighbouring layers must not repeat its pattern, or the wall shows aligned patches.
+// SplitMix64, whose output is fully specified, unlike the standard distributions.
+class OutlineRandom
+{
+public:
+    OutlineRandom(coordf_t slice_z, const Point &first, size_t count)
+    {
+        uint64_t z_bits;
+        static_assert(sizeof(z_bits) == sizeof(slice_z));
+        std::memcpy(&z_bits, &slice_z, sizeof(z_bits));
+        for (uint64_t part : {z_bits, uint64_t(first.x()), uint64_t(first.y()), uint64_t(count)}) {
+            m_state ^= part;
+            m_state = next_bits();
+        }
+    }
+
+    // A value in [0, 1).
+    double next() { return double(next_bits() >> 11) * 0x1.0p-53; }
+
+private:
+    uint64_t next_bits()
+    {
+        uint64_t z = (m_state += 0x9E3779B97F4A7C15ull);
+        z          = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+        z          = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+        return z ^ (z >> 31);
+    }
+
+    uint64_t m_state = 0;
+};
 
 class UniformNoise: public noise::module::Module {
     public:
-        UniformNoise(): Module (GetSourceModuleCount ()) {};
+        explicit UniformNoise(OutlineRandom &random): Module (GetSourceModuleCount ()), m_random(random) {};
 
         virtual int GetSourceModuleCount() const { return 0; }
-        virtual double GetValue(double x, double y, double z) const { return random_value() * 2 - 1; }
+        virtual double GetValue(double x, double y, double z) const { return m_random.next() * 2 - 1; }
+
+    private:
+        OutlineRandom &m_random;
 };
 
-static std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinConfig& cfg) {
+static std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinConfig& cfg, OutlineRandom& random) {
     if (cfg.noise_type == NoiseType::Perlin) {
         auto perlin_noise = noise::module::Perlin();
         perlin_noise.SetFrequency(1 / cfg.noise_scale);
@@ -75,7 +101,7 @@ static std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinCo
         voronoi_noise.SetDisplacement(1.0);
         return std::make_unique<noise::module::Voronoi>(voronoi_noise);
     } else {
-        return std::make_unique<UniformNoise>();
+        return std::make_unique<UniformNoise>(random);
     }
 }
 
@@ -313,11 +339,14 @@ void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkin
         return;
     }
 
-    std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
+    if (poly.empty())
+        return;
+    OutlineRandom                          random(slice_z, poly.front(), poly.size());
+    std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg, random);
 
     const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     const double range_random_point_dist = cfg.point_distance / 2.;
-    double dist_left_over = random_value() * (min_dist_between_points / 2.); // the distance to be traversed on the line before making the first new point
+    double dist_left_over = random.next() * (min_dist_between_points / 2.); // the distance to be traversed on the line before making the first new point
     Point* p0 = &poly.back();
     Points out;
     out.reserve(poly.size());
@@ -334,7 +363,7 @@ void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkin
         double p0p1_size = p0p1.norm();
         double p0pa_dist = dist_left_over;
         for (; p0pa_dist < p0p1_size;
-            p0pa_dist += min_dist_between_points + random_value() * range_random_point_dist)
+            p0pa_dist += min_dist_between_points + random.next() * range_random_point_dist)
         {
             Point pa = *p0 + (p0p1 * (p0pa_dist / p0p1_size)).cast<coord_t>();
             double r = noise->GetValue(unscale_(pa.x()), unscale_(pa.y()), slice_z) * cfg.thickness;
@@ -365,14 +394,17 @@ void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice
         return;
     }
 
-    std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
+    if (ext_lines.empty())
+        return;
+    OutlineRandom                          random(slice_z, ext_lines.front().p, ext_lines.size());
+    std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg, random);
 
     const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     const double range_random_point_dist = cfg.point_distance / 2.;
     // ExtrusionJunction::w is a scaled coord_t, so this floor must be scaled too.
     // Flow::rounded_rectangle_extrusion_spacing() requires width > height * (1 - 0.25 * PI); keep 5% above it.
     const double min_extrusion_width = scaled<double>(layer_height * (1. - 0.25 * M_PI) * 1.05);
-    double dist_left_over = random_value() * (min_dist_between_points / 2.); // the distance to be traversed on the line before making the first new point
+    double dist_left_over = random.next() * (min_dist_between_points / 2.); // the distance to be traversed on the line before making the first new point
 
     auto* p0 = &ext_lines.front();
     Arachne::ExtrusionJunctions out;
@@ -390,7 +422,7 @@ void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice
         Vec2d  p0p1 = (p1.p - p0->p).cast<double>();
         double p0p1_size = p0p1.norm();
         double p0pa_dist = dist_left_over;
-        for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + random_value() * range_random_point_dist) {
+        for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + random.next() * range_random_point_dist) {
             Point pa = p0->p + (p0p1 * (p0pa_dist / p0p1_size)).cast<coord_t>();
             double r = noise->GetValue(unscale_(pa.x()), unscale_(pa.y()), slice_z) * cfg.thickness;
             switch (cfg.mode) { //the curly code for testing

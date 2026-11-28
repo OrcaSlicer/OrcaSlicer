@@ -807,7 +807,7 @@ TEST_CASE("Infill rotation template random joints vary the angle within their bo
     slice_for_rotate_templates(print, rotate_template_first_layer_height);
     const PrintObject &object = *print.objects().front();
     REQUIRE(object.layers().size() == turn_9_per_layer.size());
-    // Like "+90/10", both turn 90 degrees over every 10 layers, but they draw each angle from rand().
+    // Like "+90/10", both turn 90 degrees over every 10 layers, but each layer draws its angle at random.
     size_t anywhere_off_the_line = 0;
     size_t near_line_off_the_line = 0;
     for (size_t i = 0; i < turn_9_per_layer.size(); ++i) {
@@ -826,6 +826,21 @@ TEST_CASE("Infill rotation template random joints vary the angle within their bo
     }
     CHECK(anywhere_off_the_line > 0);
     CHECK(near_line_off_the_line > 0);
+}
+
+TEST_CASE("Infill rotation template random joints give the same angle every time", "[Fill][RotateTemplate]")
+{
+    Print print;
+    slice_for_rotate_templates(print, rotate_template_first_layer_height);
+    const PrintObject &object = *print.objects().front();
+    const std::string  rotate_template = GENERATE(std::string("+90~10"), std::string("+90^10"));
+    for (size_t i = 0; i < object.layers().size(); ++i) {
+        const size_t layer_id = object.get_layer(i)->id();
+        const double first    = calculate_infill_rotation_angle(&object, layer_id, 0., rotate_template);
+        const double again    = calculate_infill_rotation_angle(&object, layer_id, 0., rotate_template);
+        CAPTURE(rotate_template, i);
+        CHECK_THAT(again, Catch::Matchers::WithinAbs(first, 1e-9));
+    }
 }
 
 TEST_CASE("Infill rotation template minus before the count flips the joint", "[Fill][RotateTemplate]")
