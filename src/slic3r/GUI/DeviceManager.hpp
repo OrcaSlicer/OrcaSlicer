@@ -250,6 +250,13 @@ public:
     // e.g. if the current printer agent is elegoo, we shouldn't show printers connected by BBL printer agent
     // under local machines.
     std::string printer_agent_id;
+    // Whether this device is reached through the Bambu printer agent.
+    // The id of the printer agent that connects this device
+    std::string agent_id() const;
+    bool uses_bambu_agent() const;
+    // Whether this device's printer agent carries out filament Load, Unload and RFID re-read, and slot filament editing
+    bool supports_filament_change() const;
+    bool supports_filament_setting() const;
 
     std::string   get_show_printer_type() const;
     PrinterSeries get_printer_series() const;

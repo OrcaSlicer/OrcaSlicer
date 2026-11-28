@@ -874,6 +874,14 @@ void AMSControl::enable_ams_setting(bool en)
     m_button_ams_setting->Enable(en);
 }
 
+void AMSControl::show_ams_setting(bool show)
+{
+    if (m_button_ams_setting->IsShown() == show)
+        return;
+    m_button_ams_setting->Show(show);
+    m_amswin->Layout();
+}
+
 void AMSControl::show_vams_kn_value(bool show)
 {
     //m_vams_lib->show_kn_value(show);
@@ -1033,11 +1041,23 @@ void AMSControl::UpdateAms(const std::string   &series_name,
         // Orca: gated on the device mode via MachineObject::is_fdm_type(); obj is null for callers that do
         // not supply it, leaving spools editable.
         const bool view_only = obj && !obj->is_fdm_type();
+        // Orca: Edit (ams_filament_setting), Load and Unload (ams_change_filament) are hidden for a printer
+        // whose agent does not carry them out, rather than sending a command it ignores.
+        const bool editable    = !obj || obj->supports_filament_setting();
+        const bool load_unload = !obj || obj->supports_filament_change();
         for (auto ams_item : m_ams_item_list) {
             if (ams_item.second == nullptr) { continue; }
             for (auto lib_it : ams_item.second->get_can_lib_list()) {
-                if (lib_it.second) { lib_it.second->set_view_only(view_only); }
+                if (lib_it.second) {
+                    lib_it.second->set_view_only(view_only);
+                    lib_it.second->set_editable(editable);
+                }
             }
+        }
+        if (m_button_extruder_feed->IsShown() != load_unload) {
+            m_button_extruder_feed->Show(load_unload);
+            m_button_extruder_back->Show(load_unload);
+            m_button_extruder_feed->GetParent()->Layout();
         }
 
         for (auto ams_prv : m_ams_preview_list) {

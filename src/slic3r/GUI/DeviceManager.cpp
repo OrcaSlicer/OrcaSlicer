@@ -2705,6 +2705,37 @@ static bool connects_through_moonraker_agent(const std::string& agent_id)
            agent_id == SNAPMAKER_PRINTER_AGENT_ID || agent_id == CREALITYPRINT_PRINTER_AGENT_ID;
 }
 
+std::string MachineObject::agent_id() const
+{
+    // A local machine saved before agent ids existed belongs to the agent that connects it now.
+    return !printer_agent_id.empty() ? printer_agent_id : m_manager ? m_manager->get_current_printer_agent_id() : std::string();
+}
+
+bool MachineObject::uses_bambu_agent() const
+{
+    return agent_id() == BBL_PRINTER_AGENT_ID;
+}
+
+// Asks the current printer agent when it is the one that connects this device; otherwise only Bambu's agent is known to.
+static bool device_agent_supports(const MachineObject& obj, bool (IPrinterAgent::*query)() const)
+{
+    NetworkAgent* agent         = GUI::wxGetApp().getAgent();
+    const auto    printer_agent = agent ? agent->get_printer_agent() : nullptr;
+    if (printer_agent && printer_agent->get_agent_info().id == obj.agent_id())
+        return ((*printer_agent).*query)();
+    return obj.uses_bambu_agent();
+}
+
+bool MachineObject::supports_filament_change() const
+{
+    return device_agent_supports(*this, &IPrinterAgent::supports_filament_change);
+}
+
+bool MachineObject::supports_filament_setting() const
+{
+    return device_agent_supports(*this, &IPrinterAgent::supports_filament_setting);
+}
+
 int MachineObject::connect()
 {
     if (m_access_revoked || get_dev_ip().empty()) return -1;
@@ -2724,10 +2755,7 @@ int MachineObject::connect()
         Http::get_host_from_url(get_dev_id(), &port);
     // A Bambu printer's CA is chosen per device in the connect dialog. Never take it from the
     // selected preset: it may belong to another printer, or come from an imported profile.
-    // A local machine saved before agent ids existed belongs to the agent that connects it now.
-    const std::string agent_id = !printer_agent_id.empty() ? printer_agent_id :
-                                 m_manager                 ? m_manager->get_current_printer_agent_id() : std::string();
-    const bool  is_bbl  = agent_id == BBL_PRINTER_AGENT_ID;
+    const bool  is_bbl  = uses_bambu_agent();
     std::string ca_file = is_bbl ? get_ca_file() : std::string();
 
     if (wxTheApp && GUI::wxGetApp().preset_bundle) {

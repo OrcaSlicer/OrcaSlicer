@@ -95,6 +95,8 @@ public:
     int set_on_local_message_fn(OnMessageFn fn) override;
     int set_queue_on_main_fn(QueueOnMainFn fn) override;
     FilamentSyncMode get_filament_sync_mode() const override;
+    bool supports_filament_change() const override { return true; }
+    bool supports_filament_setting() const override { return true; }
 
     // Bambu's own catalog ids. Orca content-addresses every system filament, Bambu's included;
     // the printer, the AMS and Bambu's cloud know only Bambu's ids, so this agent translates at

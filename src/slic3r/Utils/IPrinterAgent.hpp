@@ -455,6 +455,18 @@ public:
     virtual CameraStreamMode get_camera_stream_mode() const { return CameraStreamMode::none; }
 
     /**
+     * Whether the agent carries out the Device page's filament Load and Unload (ams_change_filament)
+     * and the slot RFID re-read (command_ams_refresh_rfid). The Device page hides those buttons otherwise.
+     */
+    virtual bool supports_filament_change() const { return false; }
+
+    /**
+     * Whether the agent carries out editing a slot's filament (ams_filament_setting).
+     * The Device page hides the slot edit icon otherwise.
+     */
+    virtual bool supports_filament_setting() const { return false; }
+
+    /**
      * Refresh filament info from the printer synchronously.
      * Should only be called when get_filament_sync_mode() returns FilamentSyncMode::pull.
      * Populates the MachineObject's DevFilaSystem with fetched filament data.
