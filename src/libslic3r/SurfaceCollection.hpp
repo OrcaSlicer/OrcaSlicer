@@ -31,7 +31,9 @@ public:
         return false;
     }
     SurfacesPtr filter_by_type(const SurfaceType type) const;
+    SurfacesPtr filter_by_type_except(const SurfaceType type) const;
     SurfacesPtr filter_by_types(std::initializer_list<SurfaceType> types) const;
+    SurfacesPtr filter_by_types_except(std::initializer_list<SurfaceType> types) const;
     void keep_type(const SurfaceType type);
     void keep_types(std::initializer_list<SurfaceType> types);
     void remove_type(const SurfaceType type);

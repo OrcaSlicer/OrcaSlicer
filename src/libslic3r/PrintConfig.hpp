@@ -1503,6 +1503,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsOrPercentsNullable, bridge_volumetric_flow))
     ((ConfigOptionFloatsOrPercentsNullable, internal_bridge_volumetric_flow))
     ((ConfigOptionEnum<EnsureVerticalShellThickness>,   ensure_vertical_shell_thickness))
+    ((ConfigOptionBool,                 ensure_walls_foundation))
     ((ConfigOptionPercent,              top_surface_density))
     ((ConfigOptionPercent,               bottom_surface_density))
     ((ConfigOptionEnum<InfillPattern>,  top_surface_pattern))
