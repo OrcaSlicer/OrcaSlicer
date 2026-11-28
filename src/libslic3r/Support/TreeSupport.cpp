@@ -1337,7 +1337,8 @@ void TreeSupport::create_tree_support_layers()
     if (m_raft_layers > 0) { //create raft layers
         coordf_t raft_print_z = 0.f;
         coordf_t raft_slice_z = 0.f;
-        {
+        // A one layer raft is only its interface layer.
+        if (m_slicing_params.base_raft_layers > 0) {
             // Do not add the raft contact layer, 1st layer should use first_print_layer_height
             coordf_t height = m_slicing_params.first_print_layer_height;
             raft_print_z += height;
@@ -1573,13 +1574,13 @@ void TreeSupport::generate_toolpaths()
             raft_areas.push_back(expoly);
     }
 
+    // Orca: these styles size every raft layer by the first layer expansion, see ConfigManipulation.
     raft_areas = offset_ex(raft_areas, scale_(object_config.raft_first_layer_expansion));
 
     size_t layer_nr = 0;
     for (; layer_nr < m_slicing_params.base_raft_layers; layer_nr++) {
         SupportLayer *ts_layer = m_object->get_support_layer(layer_nr);
-        coordf_t expand_offset = (layer_nr == 0 ? m_object_config->raft_first_layer_expansion.value : 0.);
-        auto raft_areas1 = offset_ex(raft_areas, scale_(expand_offset));
+        ExPolygons    raft_areas1 = raft_areas;
 
         Flow support_flow = Flow(support_extrusion_width, ts_layer->height, nozzle_diameter);
         Fill* filler_raft = Fill::new_from_type(ipRectilinear);
@@ -3432,6 +3433,13 @@ void TreeSupport::drop_nodes()
                 if (pass2_out.invalidate)
                     nodes_vec[node_idx].second->valid = false;
             }
+        }
+
+        // Layer 0 is never dropped from, so its nodes are not checked at the top of the loop.
+        if (layer_nr_next == 0 && support_on_buildplate_only) {
+            for (SupportNode *node : contact_nodes[layer_nr_next])
+                if (!node->to_buildplate)
+                    unsupported_branch_leaves.push_front({ layer_nr_next, node });
         }
 
 #ifdef SUPPORT_TREE_DEBUG_TO_SVG

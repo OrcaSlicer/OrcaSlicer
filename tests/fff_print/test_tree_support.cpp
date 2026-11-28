@@ -6,6 +6,7 @@
 #include <vector>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -15,6 +16,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -192,6 +195,69 @@ TEST_CASE("A raft is still generated under tree support", "[TreeSupport]")
     REQUIRE(rafted_object->support_layers().size() > unrafted_object->support_layers().size());
     // The raft goes under the object.
     REQUIRE(rafted_object->layers().front()->print_z > unrafted_object->layers().front()->print_z);
+}
+
+// A plate on a column overhangs a slab that covers the whole bed, so support could only land on the slab.
+TEST_CASE("Tree support on the build plate only leaves out branches that land on the first layer of the model", "[TreeSupport][Regression]")
+{
+    const double slab_height = GENERATE(0.2, 0.6);
+    CAPTURE(slab_height);
+    TriangleMesh mesh   = make_cube(80, 80, slab_height);
+    TriangleMesh column = make_cube(6, 6, 5.1 - slab_height);
+    TriangleMesh plate  = make_cube(30, 30, 1);
+    // Each part overlaps the one below rather than resting on it; a coplanar join slices ambiguously.
+    column.translate(37.f, 37.f, float(slab_height) - 0.05f);
+    plate.translate(25.f, 25.f, 5.f);
+    mesh.merge(column);
+    mesh.merge(plate);
+
+    Slic3r::Print print;
+    slice_with_tree_support(mesh, print, "tree_slim", 30, 1);
+    CHECK(support_points(print).empty());
+}
+
+TEST_CASE("A one layer raft under tree support is one first layer below the object", "[TreeSupport][Regression]")
+{
+    Slic3r::Print print;
+    slice_with_tree_support(make_cube(20, 20, 5), print, "tree_hybrid", 30, 0, 1);
+    const PrintObject &object = *print.objects().front();
+    const Layer       &first  = *object.layers().front();
+    const auto        &layers = object.support_layers();
+    REQUIRE_FALSE(layers.empty());
+    CHECK_THAT(layers.front()->print_z, Catch::Matchers::WithinAbs(print.config().initial_layer_print_height.value, EPSILON));
+    CHECK_FALSE(layers.front()->support_fills.entities.empty());
+    // The raft and the gap above it end where the object's first layer starts.
+    for (const SupportLayer *layer : layers)
+        if (layer->print_z < first.print_z + EPSILON)
+            CHECK(layer->print_z < first.print_z - first.height + EPSILON);
+}
+
+// Slim, Strong and Hybrid size their raft by the first layer expansion instead of the raft expansion.
+TEST_CASE("The first layer expansion widens every layer of a tree support raft once", "[TreeSupport][Regression]")
+{
+    // With 4 raft layers, the first two are raft base layers. A one layer raft is an interface layer only.
+    const int raft_layers = GENERATE(1, 4);
+    CAPTURE(raft_layers);
+    auto raft_widths = [raft_layers](double expansion) {
+        Slic3r::Print print;
+        slice_with_tree_support(make_cube(20, 20, 5), print, "tree_hybrid", 30, 0, raft_layers, { { "raft_first_layer_expansion", expansion } });
+        const auto &layers = print.objects().front()->support_layers();
+        REQUIRE(layers.size() > 1);
+        // Along its fill lines, which end at the raft's edge. Across them, sparse lines stop short of it.
+        auto width = [&layers](size_t idx) {
+            Points points;
+            layers[idx]->support_fills.collect_points(points);
+            const Point size = BoundingBox(points).size();
+            return unscaled(std::max(size.x(), size.y()));
+        };
+        return std::make_pair(width(0), raft_layers > 1 ? width(1) : 0.);
+    };
+    const auto [first_narrow, second_narrow] = raft_widths(2.);
+    const auto [first_wide, second_wide]     = raft_widths(6.);
+    // 4 mm more on each side.
+    CHECK_THAT(first_wide - first_narrow, Catch::Matchers::WithinAbs(8., 0.5));
+    if (raft_layers > 1)
+        CHECK_THAT(second_wide - second_narrow, Catch::Matchers::WithinAbs(8., 0.5));
 }
 
 // drop_nodes() decides the node merges and spawns the next layer's nodes in parallel. Every one of

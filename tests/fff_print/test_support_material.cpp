@@ -126,6 +126,41 @@ static TriangleMesh support_capital()
     return model;
 }
 
+TEST_CASE("Normal support expansion does not reach across a thin wall", "[SupportMaterial][Regression]")
+{
+    // An open-bottomed 20 mm box: its lid overhangs inside the box only. A 0.4 mm wall is thinner than a growth step.
+    const float wall = GENERATE(1.f, 0.4f);
+    CAPTURE(wall);
+    TriangleMesh box = make_cube(20, wall, 10);
+    TriangleMesh back = make_cube(20, wall, 10), left = make_cube(wall, 20, 10), right = make_cube(wall, 20, 10), lid = make_cube(20, 20, 1);
+    back.translate(0.f, 20.f - wall, 0.f);
+    right.translate(20.f - wall, 0.f, 0.f);
+    lid.translate(0.f, 0.f, 9.f);
+    for (const TriangleMesh *part : { &back, &left, &right, &lid })
+        box.merge(*part);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support",              1 },
+        { "support_type",                "normal(auto)" },
+        { "support_threshold_angle",     30 },
+        { "support_on_build_plate_only", 0 },
+        { "support_expansion",           3 },
+    });
+    Print print;
+    Test::init_and_process_print({ box }, print, config);
+    const PrintObject &object = *print.objects().front();
+    BoundingBox footprint = get_extents(object.layers().front()->lslices);
+    footprint.offset(scaled<coord_t>(0.1));
+
+    // The first layer of support is widened on purpose.
+    Points points;
+    for (size_t idx = 1; idx < object.support_layers().size(); ++idx)
+        object.support_layers()[idx]->support_fills.collect_points(points);
+    REQUIRE_FALSE(points.empty());
+    CHECK(std::none_of(points.begin(), points.end(), [&footprint](const Point &pt) { return !footprint.contains(pt); }));
+}
+
 TEST_CASE("Top support interfaces cover an overhang with a synchronized variable layer gap", "[SupportMaterial][Regression]")
 {
     const bool independent = GENERATE(false, true);
