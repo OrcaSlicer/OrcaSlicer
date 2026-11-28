@@ -1,0 +1,52 @@
+{
+  "schema": "1.0",
+  "suite": {
+    "started_at": "2026-09-28T16:42:07.123Z",
+    "duration_ns": 14320000000
+  },
+  "measurement": {
+    "affinity": "none",
+    "corpus": "embedded,handy",
+    "iterations": "3",
+    "metrics": "wall,rss,hash,work",
+    "policy": "quick",
+    "sampling": "5ms",
+    "stages": "load,process,export",
+    "threads": "20",
+    "warmup": "1"
+  },
+  "build": {
+    "revision": "a83e6b7b74",
+    "dirty": true,
+    "compiler": "Clang",
+    "compiler_version": "22.1.3",
+    "config": "Release",
+    "flags": "/DWIN32 /D_WINDOWS /GR /EHsc /W4 /MD /O2 /Ob2 /DNDEBUG",
+    "properties": {
+      "pgo": "none"
+    }
+  },
+  "machine": {
+    "host": "BENCH-PC",
+    "os": "Windows 10.0.26200",
+    "cpu": "13th Gen Intel(R) Core(TM) i5-13600K",
+    "logical_cores": 20,
+    "properties": {
+      "cores": "6P+8E"
+    }
+  },
+  "workloads": [
+    {
+      "name": "slice/extruder-idler/standard-0.20",
+      "failed": "threw std::bad_alloc in posSlice"
+    },
+    {
+      "name": "slice/benchy/standard-0.20",
+      "skipped": "fixture not available: corpus 'external' not fetched"
+    },
+    {
+      "name": "slice/overhangs/tree-supports",
+      "failed": "threw std::bad_alloc in posSupportMaterial"
+    }
+  ]
+}

@@ -12,6 +12,7 @@ Rules for writing tests under `tests/`. [CATCH2.md](CATCH2.md) is the Catch2 ref
 - `automation`: the automation core: the command catalog's type, the dispatch core, the MCP protocol and transport, the replay model; no GUI library.
 - `filament_group`: filament-to-extruder grouping, checked against golden files.
 - `cli`: end-to-end runs of the built `orca-slicer` binary, Linux only. These tests carry the `RequiresApp` label, which the CI unit-test job excludes because it receives only `build/tests`; run them with `ctest --test-dir build/tests -C Release -L RequiresApp`.
+- `orcabench`: the benchmarking framework under `benchmarks/`. Built when `ORCA_BENCHMARKS` is on, which the build scripts turn on with the unit tests and which defaults to `BUILD_TESTS` in a new build directory.
 
 ## Building and running
 
@@ -37,7 +38,7 @@ Check these before writing your own setup or output-parsing code.
 
 - `tests/test_utils.hpp` is shared by every suite. `load_model()` loads a mesh from `tests/data/`, and `ScopedTemporaryFile` gives a temp path that removes itself.
 - `fff_print/test_helpers.hpp` builds and slices a `Print` and parses the emitted G-code. Read it before writing an fff_print test rather than assembling a `Print` by hand.
-- The other suites have their own: `sla_print/sla_test_utils.hpp`, `libnest2d/libnest2d_test_utils.hpp`, `slic3rutils/plugin_test_utils.hpp`, `slic3rutils/mcp_test_utils.hpp` (the MCP tests' catalog and call contexts), `automation/automation_test_utils.hpp`, `filament_group/fg_test_utils.hpp`. `libslic3r` has none and uses the shared header.
+- The other suites have their own: `sla_print/sla_test_utils.hpp`, `libnest2d/libnest2d_test_utils.hpp`, `slic3rutils/plugin_test_utils.hpp`, `slic3rutils/mcp_test_utils.hpp` (the MCP tests' catalog and call contexts), `automation/automation_test_utils.hpp`, `filament_group/fg_test_utils.hpp`, `orcabench/orcabench_test_utils.hpp`. `libslic3r` has none and uses the shared header.
 - Test data lives in `tests/data/` and is reached through the `TEST_DATA_DIR` define. Wrap it in `std::string(...)` before joining a path onto it.
 
 ## Writing the test

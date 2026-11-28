@@ -32,7 +32,7 @@ from pathlib import PurePosixPath
 
 SOURCE_EXTENSIONS = {".cpp", ".cc", ".cxx"}
 HEADER_EXTENSIONS = {".hpp", ".h", ".hxx"}
-CHECKED_DIRS = ("src/", "tests/")
+CHECKED_DIRS = ("src/", "tests/", "benchmarks/")
 # Vendored code inside the checked directories.
 EXCLUDED_DIRS = ("src/glad/", "tests/catch2/")
 

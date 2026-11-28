@@ -492,6 +492,11 @@ Model Model::read_from_file(const std::string&                                  
     else
         throw Slic3r::RuntimeError(_L("Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."));
 
+    // A read that gives no model deletes its 3MF backup folder here, since the destructor would hand it to the backup
+    // thread, which can deadlock a process that exits soon after.
+    if (is_cb_cancel || !result || model.objects.empty())
+        model.remove_backup_path_if_exist();
+
     if (is_cb_cancel) {
         Model empty_model;
         return empty_model;

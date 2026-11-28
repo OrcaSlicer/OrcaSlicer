@@ -14,6 +14,7 @@ on:
      - 'version.inc'
      - 'localization/**'
      - 'resources/**'
+     - 'benchmarks/**'
      - ".github/workflows/build_*.yml"
      - ".github/workflows/unit_tests*.yml"
      - ".github/workflows/mcp_sweep.yml"
@@ -43,6 +44,7 @@ on:
      - 'src/**'
      - '**/CMakeLists.txt'
      - 'version.inc'
+     - 'benchmarks/**'
      - ".github/workflows/build_*.yml"
      - ".github/workflows/unit_tests*.yml"
      - ".github/workflows/mcp_sweep.yml"

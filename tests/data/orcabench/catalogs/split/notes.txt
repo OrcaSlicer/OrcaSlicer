@@ -1,0 +1,1 @@
+Not a catalog, so a catalog directory never reads it.

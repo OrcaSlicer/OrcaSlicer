@@ -4,7 +4,7 @@ set -e
 set -o pipefail
 SECONDS=0
 
-while getopts ":dpa:snt:xbc:i:j:Tuh" opt; do
+while getopts ":dpa:snt:xbc:i:j:TBuh" opt; do
   case "${opt}" in
     d )
         export BUILD_TARGET="deps"
@@ -44,6 +44,9 @@ while getopts ":dpa:snt:xbc:i:j:Tuh" opt; do
     T )
         export BUILD_TESTS="1"
         ;;
+    B )
+        export BUILD_BENCH="1"
+        ;;
     u )
         export BUILD_TARGET="universal"
         ;;
@@ -63,6 +66,7 @@ while getopts ":dpa:snt:xbc:i:j:Tuh" opt; do
         echo "   -- CMAKE_ARGS...: pass everything after '--' to the cmake configure step of the deps (-d) and slicer (-s) builds,"
         echo "       e.g. -DDESTDIR=<dir> for the deps, -DCMAKE_PREFIX_PATH=<dir>/usr/local -DSLIC3R_PCH=OFF for the slicer, --fresh."
         echo "       They come last on the cmake command line. Use absolute paths: cmake runs in the build directory."
+        echo "   -B: Build the benchmarking framework (-T builds it too)"
         exit 0
         ;;
     : )
@@ -116,6 +120,14 @@ fi
 
 if [ -z "$OSX_DEPLOYMENT_TARGET" ]; then
   export OSX_DEPLOYMENT_TARGET="12.0"
+fi
+
+# The unit tests include the benchmark framework's, as the CMake default does, and an explicit OFF
+# resets a cached ON.
+if [ -n "$BUILD_BENCH" ] || [ -n "$BUILD_TESTS" ]; then
+  export BENCH_OPTION="ON"
+else
+  export BENCH_OPTION="OFF"
 fi
 
 if [ -z "$CMAKE_IGNORE_PREFIX_PATH" ]; then
@@ -336,6 +348,7 @@ function build_slicer() {
                     -DORCA_TOOLS=ON \
                     ${ORCA_UPDATER_SIG_KEY:+-DORCA_UPDATER_SIG_KEY="$ORCA_UPDATER_SIG_KEY"} \
                     ${BUILD_TESTS:+-DBUILD_TESTS=ON} \
+                    -DORCA_BENCHMARKS="${BENCH_OPTION}" \
                     -DCMAKE_BUILD_TYPE="$BUILD_CONFIG" \
                     -DCMAKE_OSX_ARCHITECTURES="${_ARCH}" \
                     -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}" \

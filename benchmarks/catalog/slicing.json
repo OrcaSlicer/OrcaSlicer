@@ -1,0 +1,162 @@
+{
+  "entries": [
+    {
+      "name": "slice/smoke-cube/standard",
+      "kind": "slice",
+      "fixture": "procedural:smoke-cube",
+      "tags": ["procedural", "smoke"]
+    },
+    {
+      "name": "slice/peg-grid/standard",
+      "kind": "slice",
+      "fixture": "procedural:peg-grid",
+      "tags": ["procedural"]
+    },
+    {
+      "name": "slice/fine-sphere/standard",
+      "kind": "slice",
+      "fixture": "procedural:fine-sphere",
+      "tags": ["procedural"]
+    },
+    {
+      "name": "slice/3dbenchy/classic",
+      "kind": "slice",
+      "fixture": "handy:3DBenchy.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "classic"}
+    },
+    {
+      "name": "slice/3dbenchy/arachne",
+      "kind": "slice",
+      "fixture": "handy:3DBenchy.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "arachne"}
+    },
+    {
+      "name": "slice/3dbenchy/arachne-tree",
+      "kind": "slice",
+      "fixture": "handy:3DBenchy.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "arachne", "enable_support": "1", "support_type": "tree(auto)"}
+    },
+    {
+      "name": "slice/3dbenchy/classic-normal",
+      "kind": "slice",
+      "fixture": "handy:3DBenchy.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "classic", "enable_support": "1", "support_type": "normal(auto)"}
+    },
+    {
+      "name": "slice/stanford-bunny/classic",
+      "kind": "slice",
+      "fixture": "handy:Stanford_Bunny.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "classic"}
+    },
+    {
+      "name": "slice/stanford-bunny/arachne",
+      "kind": "slice",
+      "fixture": "handy:Stanford_Bunny.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "arachne"}
+    },
+    {
+      "name": "slice/stanford-bunny/arachne-tree",
+      "kind": "slice",
+      "fixture": "handy:Stanford_Bunny.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "arachne", "enable_support": "1", "support_type": "tree(auto)"}
+    },
+    {
+      "name": "slice/stanford-bunny/classic-normal",
+      "kind": "slice",
+      "fixture": "handy:Stanford_Bunny.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "classic", "enable_support": "1", "support_type": "normal(auto)"}
+    },
+    {
+      "name": "slice/voron-design-cube-v7/classic",
+      "kind": "slice",
+      "fixture": "handy:Voron_Design_Cube_v7.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "classic"}
+    },
+    {
+      "name": "slice/voron-design-cube-v7/arachne",
+      "kind": "slice",
+      "fixture": "handy:Voron_Design_Cube_v7.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "arachne"}
+    },
+    {
+      "name": "slice/voron-design-cube-v7/arachne-tree",
+      "kind": "slice",
+      "fixture": "handy:Voron_Design_Cube_v7.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "arachne", "enable_support": "1", "support_type": "tree(auto)"}
+    },
+    {
+      "name": "slice/voron-design-cube-v7/classic-normal",
+      "kind": "slice",
+      "fixture": "handy:Voron_Design_Cube_v7.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "classic", "enable_support": "1", "support_type": "normal(auto)"}
+    },
+    {
+      "name": "slice/ksr-fdmtest-v4/classic",
+      "kind": "slice",
+      "fixture": "handy:ksr_fdmtest_v4.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "classic"}
+    },
+    {
+      "name": "slice/ksr-fdmtest-v4/arachne",
+      "kind": "slice",
+      "fixture": "handy:ksr_fdmtest_v4.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "arachne"}
+    },
+    {
+      "name": "slice/ksr-fdmtest-v4/arachne-tree",
+      "kind": "slice",
+      "fixture": "handy:ksr_fdmtest_v4.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "arachne", "enable_support": "1", "support_type": "tree(auto)"}
+    },
+    {
+      "name": "slice/ksr-fdmtest-v4/classic-normal",
+      "kind": "slice",
+      "fixture": "handy:ksr_fdmtest_v4.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "classic", "enable_support": "1", "support_type": "normal(auto)"}
+    },
+    {
+      "name": "slice/orcacube-v2/classic",
+      "kind": "slice",
+      "fixture": "handy:OrcaCube_v2.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "classic"}
+    },
+    {
+      "name": "slice/orcacube-v2/arachne",
+      "kind": "slice",
+      "fixture": "handy:OrcaCube_v2.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "arachne"}
+    },
+    {
+      "name": "slice/orcacube-v2/arachne-tree",
+      "kind": "slice",
+      "fixture": "handy:OrcaCube_v2.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "arachne", "enable_support": "1", "support_type": "tree(auto)"}
+    },
+    {
+      "name": "slice/orcacube-v2/classic-normal",
+      "kind": "slice",
+      "fixture": "handy:OrcaCube_v2.drc",
+      "tags": ["handy"],
+      "config": {"wall_generator": "classic", "enable_support": "1", "support_type": "normal(auto)"}
+    }
+  ]
+}
