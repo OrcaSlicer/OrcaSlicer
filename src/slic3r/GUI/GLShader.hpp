@@ -38,12 +38,27 @@ private:
     unsigned int m_id{ 0 };
     std::vector<std::pair<std::string, int>> m_attrib_location_cache;
     std::vector<std::pair<std::string, int>> m_uniform_location_cache;
+    // The shaders of a program whose build start_init_from_files() began and finish_init() has not checked.
+    std::vector<std::pair<EShaderType, unsigned int>> m_pending_shaders;
+
+    bool start_init_from_texts(const std::string& name, const ShaderSources& sources);
+    // Checks the program start_init_from_texts() began, waiting for the driver if it is not done.
+    bool finish_init();
 
 public:
     ~GLShaderProgram();
 
     bool init_from_files(const std::string& name, const ShaderFilenames& filenames, const std::initializer_list<std::string_view> &defines = {});
     bool init_from_texts(const std::string& name, const ShaderSources& sources);
+    // Begins building the program as init_from_files() does, without waiting for the driver, which may compile
+    // in threads of its own (GL_ARB_parallel_shader_compile). The program is usable once poll_build() returns
+    // true and get_id() is not 0.
+    bool start_init_from_files(const std::string& name, const ShaderFilenames& filenames, const std::initializer_list<std::string_view> &defines = {});
+    // True while the build start_init_from_files() began is not checked yet. Makes no OpenGL call.
+    bool is_building() const { return !m_pending_shaders.empty(); }
+    // Checks the build once the driver is done with it, without waiting for it where the driver can tell, and
+    // returns whether it is checked. A program that failed to build has get_id() 0.
+    bool poll_build();
 
     const std::string& get_name() const { return m_name; }
     unsigned int get_id() const { return m_id; }

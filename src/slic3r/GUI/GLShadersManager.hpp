@@ -19,7 +19,7 @@ public:
     // call this method before to release the OpenGL context
     void shutdown();
 
-    // returns nullptr if not found
+    // returns nullptr if not found. The path tracer's programs may still be building, see GLShaderProgram::is_building().
     GLShaderProgram* get_shader(const std::string& shader_name);
 
     // returns currently active shader, nullptr if none

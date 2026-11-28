@@ -5,7 +5,7 @@
  *
  * Generator: C/C++
  * Specification: gl
- * Extensions: 7
+ * Extensions: 8
  *
  * APIs:
  *  - gl:compatibility=4.6
@@ -19,10 +19,10 @@
  *  - ON_DEMAND = False
  *
  * Commandline:
- *    --api='gl:compatibility=4.6' --extensions='GL_ARB_compatibility,GL_ARB_framebuffer_object,GL_EXT_framebuffer_blit,GL_EXT_framebuffer_multisample,GL_EXT_framebuffer_object,GL_EXT_texture_compression_s3tc,GL_EXT_texture_filter_anisotropic' c --loader
+ *    --api='gl:compatibility=4.6' --extensions='GL_ARB_compatibility,GL_ARB_framebuffer_object,GL_ARB_parallel_shader_compile,GL_EXT_framebuffer_blit,GL_EXT_framebuffer_multisample,GL_EXT_framebuffer_object,GL_EXT_texture_compression_s3tc,GL_EXT_texture_filter_anisotropic' c --loader
  *
  * Online:
- *    http://glad.sh/#api=gl%3Acompatibility%3D4.6&extensions=GL_ARB_compatibility%2CGL_ARB_framebuffer_object%2CGL_EXT_framebuffer_blit%2CGL_EXT_framebuffer_multisample%2CGL_EXT_framebuffer_object%2CGL_EXT_texture_compression_s3tc%2CGL_EXT_texture_filter_anisotropic&generator=c&options=LOADER
+ *    http://glad.sh/#api=gl%3Acompatibility%3D4.6&extensions=GL_ARB_compatibility%2CGL_ARB_framebuffer_object%2CGL_ARB_parallel_shader_compile%2CGL_EXT_framebuffer_blit%2CGL_EXT_framebuffer_multisample%2CGL_EXT_framebuffer_object%2CGL_EXT_texture_compression_s3tc%2CGL_EXT_texture_filter_anisotropic&generator=c&options=LOADER
  *
  */
 
@@ -429,6 +429,7 @@ typedef void (*GLADpostcallback)(void *ret, const char *name, GLADapiproc apipro
 #define GL_COMPILE 0x1300
 #define GL_COMPILE_AND_EXECUTE 0x1301
 #define GL_COMPILE_STATUS 0x8B81
+#define GL_COMPLETION_STATUS_ARB 0x91B1
 #define GL_COMPRESSED_ALPHA 0x84E9
 #define GL_COMPRESSED_INTENSITY 0x84EC
 #define GL_COMPRESSED_LUMINANCE 0x84EA
@@ -1112,6 +1113,7 @@ typedef void (*GLADpostcallback)(void *ret, const char *name, GLADapiproc apipro
 #define GL_MAX_SAMPLES_EXT 0x8D57
 #define GL_MAX_SAMPLE_MASK_WORDS 0x8E59
 #define GL_MAX_SERVER_WAIT_TIMEOUT 0x9111
+#define GL_MAX_SHADER_COMPILER_THREADS_ARB 0x91B0
 #define GL_MAX_SHADER_STORAGE_BLOCK_SIZE 0x90DE
 #define GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS 0x90DD
 #define GL_MAX_SUBROUTINES 0x8DE7
@@ -2157,6 +2159,8 @@ GLAD_API_CALL int GLAD_GL_VERSION_4_6;
 GLAD_API_CALL int GLAD_GL_ARB_compatibility;
 #define GL_ARB_framebuffer_object 1
 GLAD_API_CALL int GLAD_GL_ARB_framebuffer_object;
+#define GL_ARB_parallel_shader_compile 1
+GLAD_API_CALL int GLAD_GL_ARB_parallel_shader_compile;
 #define GL_EXT_framebuffer_blit 1
 GLAD_API_CALL int GLAD_GL_EXT_framebuffer_blit;
 #define GL_EXT_framebuffer_multisample 1
@@ -2683,6 +2687,7 @@ typedef void (GLAD_API_PTR *PFNGLMATERIALFVPROC)(GLenum face, GLenum pname, cons
 typedef void (GLAD_API_PTR *PFNGLMATERIALIPROC)(GLenum face, GLenum pname, GLint param);
 typedef void (GLAD_API_PTR *PFNGLMATERIALIVPROC)(GLenum face, GLenum pname, const GLint * params);
 typedef void (GLAD_API_PTR *PFNGLMATRIXMODEPROC)(GLenum mode);
+typedef void (GLAD_API_PTR *PFNGLMAXSHADERCOMPILERTHREADSARBPROC)(GLuint count);
 typedef void (GLAD_API_PTR *PFNGLMEMORYBARRIERPROC)(GLbitfield barriers);
 typedef void (GLAD_API_PTR *PFNGLMEMORYBARRIERBYREGIONPROC)(GLbitfield barriers);
 typedef void (GLAD_API_PTR *PFNGLMINSAMPLESHADINGPROC)(GLfloat value);
@@ -4265,6 +4270,8 @@ GLAD_API_CALL PFNGLMATERIALIVPROC glad_glMaterialiv;
 #define glMaterialiv glad_glMaterialiv
 GLAD_API_CALL PFNGLMATRIXMODEPROC glad_glMatrixMode;
 #define glMatrixMode glad_glMatrixMode
+GLAD_API_CALL PFNGLMAXSHADERCOMPILERTHREADSARBPROC glad_glMaxShaderCompilerThreadsARB;
+#define glMaxShaderCompilerThreadsARB glad_glMaxShaderCompilerThreadsARB
 GLAD_API_CALL PFNGLMEMORYBARRIERPROC glad_glMemoryBarrier;
 #define glMemoryBarrier glad_glMemoryBarrier
 GLAD_API_CALL PFNGLMEMORYBARRIERBYREGIONPROC glad_glMemoryBarrierByRegion;

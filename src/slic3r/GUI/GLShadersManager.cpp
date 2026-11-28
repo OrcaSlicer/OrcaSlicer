@@ -5,6 +5,7 @@
 #include "GUI_App.hpp"
 
 #include <cassert>
+#include <cstddef>
 #include <algorithm>
 #include <string>
 #include <initializer_list>
@@ -126,6 +127,26 @@ std::pair<bool, std::string> GLShadersManager::init()
     // UV-check overlay for the same gizmo: a procedural checker or a distortion heatmap over the
     // painted patch, to sanity-check the unwrap.
     valid &= append_shader("texture_displacement_uvcheck", { prefix + "texture_displacement_uvcheck.vs", prefix + "texture_displacement_uvcheck.fs" });
+
+#if !SLIC3R_OPENGL_ES
+    if (GUI::OpenGLManager::get_gl_info().is_version_greater_or_equal_to(4, 3)) {
+        // ORCA: the path tracer's programs take the driver seconds to build where it has not cached them. They
+        // are built in its own threads where it can, so that the app starts without waiting for them, see
+        // PathTraceRenderer::poll_shaders().
+        const auto start_shader = [this, &error](const std::string& name, const GLShaderProgram::ShaderFilenames& filenames) {
+            m_shaders.push_back(std::make_unique<GLShaderProgram>());
+            if (!m_shaders.back()->start_init_from_files(name, filenames)) {
+                error += name + "\n";
+                m_shaders.pop_back();
+            }
+        };
+        GLShaderProgram::ShaderFilenames compute_shader{};
+        compute_shader[static_cast<size_t>(GLShaderProgram::EShaderType::Compute)] = "430/pathtrace.comp";
+        start_shader("pathtrace_compute", compute_shader);
+        compute_shader[static_cast<size_t>(GLShaderProgram::EShaderType::Compute)] = "430/pathtrace_denoise.comp";
+        start_shader("pathtrace_denoise", compute_shader);
+    }
+#endif // !SLIC3R_OPENGL_ES
 
     return { valid, error };
 }

@@ -26,6 +26,7 @@
 #include <memory>
 #include <chrono>
 #include <cstdint>
+#include <atomic>
 #include <optional>
 
 #include "GLToolbar.hpp"
@@ -64,7 +65,7 @@ namespace Slic3r { class ColorRGBA; }
 namespace Slic3r { class DynamicPrintConfig; }
 namespace Slic3r { class GLShaderProgram; }
 namespace Slic3r { struct GCodeProcessorResult; }
-namespace Slic3r::GUI { class ImGuiWrapper; }
+namespace Slic3r::GUI { class ImGuiWrapper; class PartPlate; class PartPlateList; }
 namespace libvgcode { struct PathVertex; }
 struct ImVec2;
 
@@ -239,8 +240,12 @@ wxDECLARE_EVENT(EVT_GLCANVAS_ADAPTIVE_LAYER_HEIGHT_PROFILE, Event<float>);
 wxDECLARE_EVENT(EVT_GLCANVAS_SMOOTH_LAYER_HEIGHT_PROFILE, HeightProfileSmoothEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_PRINTABLE, SimpleEvent);
 
+class PathTraceRenderer;
+
 class GLCanvas3D
 {
+    friend class PathTraceRenderer;
+
     static const double DefaultCameraZoomToBoxMarginFactor;
     static const double DefaultCameraZoomToBedMarginFactor;
     static const double DefaultCameraZoomToPlateMarginFactor;
@@ -850,6 +855,9 @@ private:
     GLVolumeCollection m_volumes;
     GCodeViewer m_gcode_viewer;
 
+    // Draws this canvas by path tracing, when that is its shading model.
+    std::unique_ptr<PathTraceRenderer> m_path_tracer;
+
     RenderTimer m_render_timer;
 
     Selection m_selection;
@@ -1142,7 +1150,7 @@ public:
     // draws. Returns whether either slider had moved.
     bool apply_gcode_sliders();
     void init_gcode_viewer(ConfigOptionMode mode, Slic3r::PresetBundle* preset_bundle) { m_gcode_viewer.init(mode, preset_bundle); }
-    void reset_gcode_toolpaths() { _set_shown_canvas_current(); m_gcode_viewer.reset(); }
+    void reset_gcode_toolpaths();
     const GCodeViewer::SequentialView& get_gcode_sequential_view() const { return m_gcode_viewer.get_sequential_view(); }
     void update_gcode_sequential_view_current(unsigned int first, unsigned int last) { m_gcode_viewer.update_sequential_view_current(first, last); }
     const libvgcode::Interval& get_gcode_view_full_range() const { return m_gcode_viewer.get_gcode_view_full_range(); }
@@ -1680,6 +1688,7 @@ private:
     EShadowMode _shadow_mode() const;
     // Direction to the static shadow light in eye space, when it lights the scene.
     std::optional<Vec3d> _static_light_dir_eye() const;
+    Vec3d _key_light_dir_world(const Matrix3d& view_rot) const;
     size_t _shadow_casters_signature(bool toolpath_casters) const;
     bool _is_scene_cache_enabled() const;
     bool _is_scene_cacheable() const;
@@ -1713,7 +1722,13 @@ private:
     // when the bed shape changed.
     void _render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add outline drawing logic
-    void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
+    // The layer editing object, the print volume and the outside state of the volumes, which the
+    // object shaders and the path tracer read.
+    void _update_volumes_state();
+    // The volumes a pass of _render_objects() draws: all of them or, around the path traced image,
+    // those the path tracer leaves out or the print it traces.
+    enum class EObjectsSubset { All, Overlays, Print };
+    void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true, EObjectsSubset subset = EObjectsSubset::All);
     // IMEX ghost volumes owned by PartPlate, drawn through the shader the caller bound:
     // the shaded pass's transparent half, or the X-Ray pass below.
     void _render_imex_ghosts(bool xray_pass = false);

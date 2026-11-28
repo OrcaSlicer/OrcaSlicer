@@ -10,6 +10,7 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/PathTraceRenderer.hpp"
 #include "slic3r/GUI/Mcp/McpEndpoint.hpp"
 #include "slic3r/GUI/Mcp/McpOptions.hpp"
 #include "slic3r/GUI/Plater.hpp"
@@ -439,7 +440,14 @@ std::vector<Preference> build_table()
 
     //// GRAPHICS > Realistic view
     t.section(kGraphics, L("Realistic View"));
-    t.checkbox(SETTING_OPENGL_REALISTIC_PHONG, L("Phong shading"), {L("Uses Phong shading inside realistic view.")});
+    // The dialog offers path tracing only where the graphics card can run it.
+    t.choice(SETTING_OPENGL_SHADING_MODEL, L("Shading model"),
+             {{"gouraud", L("Gouraud")}, {"phong", L("Phong")}, {"pathtrace", L("Path tracing")}},
+             {L("Selects the shading technique used when Realistic View is enabled.\n"
+                "Gouraud: classic per-vertex lighting with cast shadows.\n"
+                "Phong: per-pixel lighting with specular highlights, cast shadows, and SSAO.\n"
+                "Path tracing: physically based GPU ray tracing with ambient occlusion and soft shadows.")})
+        .own_row = true;
     t.checkbox(SETTING_OPENGL_REALISTIC_PREVIEW, L("Enable in Preview"),
                {L("Also applies realistic view to the Preview canvas, not just Prepare.\n"
                   "Preview draws the full toolpath geometry, so shadows and SSAO cost considerably"
@@ -457,6 +465,20 @@ std::vector<Preference> build_table()
     t.checkbox(SETTING_OPENGL_REALISTIC_GLOSS, L("Glossy toolpaths"),
                {L("Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
                   "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view.")});
+
+    //// GRAPHICS > Path tracer: shown only where the graphics card can run it.
+    t.section(kGraphics, L("Path tracer"));
+    Preference& pathtrace_quality = t.choice(SETTING_OPENGL_PATHTRACE_QUALITY, L("Path tracer quality"),
+                                             {{"low", L("Low")}, {"medium", L("Medium")}, {"high", L("High")}},
+                                             {L("Configures the quality and performance of the GPU path tracer.")});
+    pathtrace_quality.own_row = true;
+    pathtrace_quality.shown   = &PathTraceRenderer::is_available;
+    Preference& filament_layers = t.checkbox(
+        SETTING_OPENGL_PATHTRACE_FILAMENT_LAYERS, L("Light through filament layers"),
+        {L("Shows in Preview what lies behind thin layers of opaque filament, so that stacked colors blend as in a"
+           " color-layered print. Applies to the views that color toolpaths by filament.\n"
+           "Costs more rendering time on every print.")});
+    filament_layers.shown = &PathTraceRenderer::is_available;
 
     //// GRAPHICS > Outline
     t.section(kGraphics, L("Outline"));
@@ -821,6 +843,16 @@ void apply_preference(const std::string& key)
             canvas->get_gcode_viewer().set_translucent_filaments(config.get_bool(key));
             redraw_preview(*canvas);
         }
+    } else if (key == SETTING_OPENGL_SHADING_MODEL || key == SETTING_OPENGL_PATHTRACE_QUALITY) {
+        // ORCA: a shading model other than Gouraud turns realistic view on, and both apply to the open canvas at once
+        if (key == SETTING_OPENGL_SHADING_MODEL && config.get(key) != "gouraud")
+            config.set_bool(SETTING_OPENGL_REALISTIC_MODE, true);
+        config.save();
+        if (Plater* plater = app.plater()) {
+            plater->set_current_canvas_as_dirty();
+            if (GLCanvas3D* canvas = plater->get_current_canvas3D())
+                canvas->request_extra_frame();
+        }
     } else if (key == "preview_dim_previous_layers") {
         // ORCA: apply the preview dimming change immediately to the currently loaded preview
         if (GLCanvas3D* canvas = preview_canvas()) {
@@ -915,7 +947,7 @@ const std::vector<std::string>& canvas_preferences()
         SETTING_OPENGL_FXAA_ENABLED,       SETTING_OPENGL_FPS_CAP,           SETTING_OPENGL_SHOW_FPS_OVERLAY,
         SETTING_OPENGL_SHOW_RENDER_TIMINGS, SETTING_OPENGL_SCENE_CACHE,       SETTING_OPENGL_SKIP_IDENTICAL_FRAMES,
         SETTING_OPENGL_REALISTIC_SHADOWS,   SETTING_OPENGL_REALISTIC_GLOSS,   SETTING_OPENGL_OUTLINE_PERSISTENT,
-        SETTING_OPENGL_OUTLINE_COLOR,       SETTING_OPENGL_SELECTION_OUTLINE_COLOR};
+        SETTING_OPENGL_OUTLINE_COLOR,       SETTING_OPENGL_SELECTION_OUTLINE_COLOR, SETTING_OPENGL_PATHTRACE_FILAMENT_LAYERS};
     return keys;
 }
 

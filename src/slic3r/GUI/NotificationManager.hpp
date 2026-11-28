@@ -201,6 +201,11 @@ enum class NotificationType
     // One aggregate notice that installed OrcaCloud plugins have updates. "More" opens the
     // Plugins dialog, where the updates can be installed.
     OrcaCloudPluginUpdateAvailable,
+    // The path tracer's programs are being built; the rasterizer draws the canvas until then.
+    PathTraceBuilding,
+    // The path tracer's program for light through filament layers is being built; Preview shows the
+    // path traced image without it until then.
+    PathTraceFilamentLayersBuilding,
     NotificationTypeCount
 
 };
@@ -1178,6 +1183,10 @@ private:
         NotificationData{NotificationType::UndoDesktopIntegrationFail, NotificationLevel::WarningNotificationLevel, 10,
 		_u8L("Undo integration failed.") },
         NotificationData{NotificationType::ExportOngoing, NotificationLevel::RegularNotificationLevel, 0, _u8L("Exporting")},
+        NotificationData{NotificationType::PathTraceBuilding, NotificationLevel::RegularNotificationLevel, 0,
+                         _u8L("Preparing path tracing. The view switches to it as soon as it is ready.")},
+        NotificationData{NotificationType::PathTraceFilamentLayersBuilding, NotificationLevel::RegularNotificationLevel, 0,
+                         _u8L("Preparing light through filament layers. Preview shows it as soon as it is ready.")},
         NotificationData{NotificationType::NewAppAvailable, NotificationLevel::ImportantNotificationLevel, 20, _u8L("An update is available!"), _u8L("Go to download page"),
                          [](wxEvtHandler *evnthndlr) {
 				//BBS set feishu release page by default

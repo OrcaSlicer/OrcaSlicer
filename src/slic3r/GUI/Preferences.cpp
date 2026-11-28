@@ -1,5 +1,6 @@
 #include "Preferences.hpp"
 #include "slic3r/plugin/host/PluginPages.hpp"
+#include "PathTraceRenderer.hpp"
 #include "CloudProvider.hpp"
 #include "ColorPickerDialog.hpp"
 #include "OptionsGroup.hpp"
@@ -458,9 +459,20 @@ wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString too
 
     auto [sizer, combobox] = create_item_combobox_base(title, tooltip, param, vlist, current_index);
 
+    // ORCA: the path tracer quality is only meaningful while path tracing is the shading model
+    if (param == SETTING_OPENGL_PATHTRACE_QUALITY) {
+        m_pathtrace_quality_combobox = combobox;
+        combobox->Enable(app_config->get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace");
+    }
+
     //// save config
     combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, config_name_index, onchange](wxCommandEvent& e) {
         app_config->set(param, config_name_index[e.GetSelection()]);
+        if (param == SETTING_OPENGL_SHADING_MODEL) {
+            const bool pathtrace = config_name_index[e.GetSelection()] == "pathtrace";
+            if (m_pathtrace_quality_combobox) m_pathtrace_quality_combobox->Enable(pathtrace);
+            if (m_pathtrace_filament_layers_checkbox) m_pathtrace_filament_layers_checkbox->Enable(pathtrace);
+        }
         if (onchange != nullptr) onchange(config_name_index[e.GetSelection()]);
         e.Skip();
     });
@@ -1151,6 +1163,10 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
 
     if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
     if (param == SETTING_OPENGL_SKIP_IDENTICAL_FRAMES) { m_skip_identical_frames_checkbox = checkbox; }
+    if (param == SETTING_OPENGL_PATHTRACE_FILAMENT_LAYERS) {
+        m_pathtrace_filament_layers_checkbox = checkbox;
+        checkbox->Enable(app_config->get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace");
+    }
 
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
 
@@ -2263,6 +2279,26 @@ wxBoxSizer* PreferencesDialog::create_own_row(wxFlexGridSizer* g_sizer, const Op
         return create_item_mcp_port(label, tooltip);
     if (p.key == "backup_switch")
         return create_item_backup(label, tooltip);
+    if (p.key == SETTING_OPENGL_SHADING_MODEL) {
+        // Path tracing is offered only where the graphics card can run it.
+        std::vector<wxString>    labels;
+        std::vector<std::string> values;
+        for (const auto& [value, choice] : p.choices) {
+            if (value == "pathtrace" && !PathTraceRenderer::is_available())
+                continue;
+            values.push_back(value);
+            labels.push_back(translated(choice));
+        }
+        return create_item_combobox(label, tooltip, p.key, labels, values, [key = p.key](std::string) { Ops::apply_preference(key); });
+    }
+    if (p.key == SETTING_OPENGL_PATHTRACE_QUALITY) {
+        // The qualities have a context of their own.
+        std::vector<wxString> labels = {_L_CONTEXT("Low", "Quality"), _L_CONTEXT("Medium", "Quality"), _L_CONTEXT("High", "Quality")};
+        std::vector<std::string> values;
+        for (const auto& choice : p.choices)
+            values.push_back(choice.first);
+        return create_item_combobox(label, tooltip, p.key, labels, values, [key = p.key](std::string) { Ops::apply_preference(key); });
+    }
     if (p.key == "max_recent_count")
         return create_item_input(label, "", tooltip, p.key, [key = p.key](wxString) { Ops::apply_preference(key); });
     if (p.key == "download_path")

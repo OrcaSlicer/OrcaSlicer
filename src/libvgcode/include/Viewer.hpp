@@ -405,6 +405,14 @@ public:
     //
     Color get_vertex_color(const PathVertex& vertex) const;
     //
+    // Return the alpha (opacity) used to render the given vertex with the current settings.
+    //
+    uint8_t get_vertex_alpha(const PathVertex& vertex) const;
+    //
+    // Return how the layers around the ones the sliders show are greyed or dimmed.
+    //
+    LayerShading get_layer_shading() const;
+    //
     // Return the index of the extrusion vertex of the given role that stands for the given
     // layers in the current view, or get_vertices_count() if they have none. Where the view
     // grades by a value, it is the length-weighted median of that value over the role's
