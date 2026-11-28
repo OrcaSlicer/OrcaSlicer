@@ -4,6 +4,7 @@
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include <utility>
 #include "slic3r/GUI/Widgets/DropDown.hpp"
+#include <wx/access.h>
 #include <wx/clntdata.h>
 #include <vector>
 #include <wx/arrstr.h>
@@ -11,6 +12,7 @@
 #include <wx/containr.h>
 #include <wx/dcgraph.h>
 #include <wx/textctrl.h>
+#include <wx/setup.h>
 #include <wx/string.h>
 #include <wx/gdicmn.h>
 #include <wx/event.h>
@@ -59,6 +61,12 @@ ComboBox::ComboBox(wxWindow *parent,
     text_off = style & CB_NO_TEXT;
     TextInput::Create(parent, "", value, (style & CB_NO_DROP_ICON) ? "" : "drop_down", pos, size,
                       style | wxTE_PROCESS_ENTER);
+#if wxUSE_ACCESSIBILITY
+    // ORCA: TextInput (StaticBox-family) already gets a real accessible object;
+    // it just defaults to StaticBox's generic role. A combo box is a distinct,
+    // well-known role screen readers announce specially - use it.
+    SetAccessibleRole(wxROLE_SYSTEM_COMBOBOX);
+#endif
     drop.Create(this, style & DD_STYLE_MASK);
 
     if (style & wxCB_READONLY) {

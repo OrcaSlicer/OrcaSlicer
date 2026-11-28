@@ -3,6 +3,7 @@
 
 #include "../wxExtensions.hpp"
 
+#include <wx/setup.h>
 #include <wx/tglbtn.h>
 
 class wxWindow;
@@ -24,6 +25,13 @@ public:
 
 #ifdef __WXMSW__
     bool MSWCommand(WXUINT param, WXWORD id) override;
+#endif
+
+protected:
+#if wxUSE_ACCESSIBILITY
+    // ORCA: a radio button rendered purely as bitmap swaps has no accessible
+    // role/state/name of its own by default.
+    wxAccessible* CreateAccessible() override;
 #endif
 
 private:

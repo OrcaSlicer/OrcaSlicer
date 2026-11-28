@@ -30,92 +30,6 @@
 #include "slic3r/GUI/Accessibility/AccessibilityMac.h"
 #endif
 
-#if wxUSE_ACCESSIBILITY
-
-namespace {
-
-// Exposes the custom-drawn Button to screen readers. On Windows the base
-// wxWindowAccessible reports every window as a generic client area, so NVDA and
-// Narrator announce the label but not the button role. Overriding these
-// callbacks reports the button as a push button with its name and state, and
-// lets the screen reader activate it through DoDefaultAction.
-class ButtonAccessible : public wxWindowAccessible
-{
-public:
-    explicit ButtonAccessible(Button* btn)
-        : wxWindowAccessible(btn)
-        , m_btn(btn)
-    {
-    }
-
-    wxAccStatus GetName(int childId, wxString* name) override
-    {
-        if (childId != wxACC_SELF)
-            return wxACC_NOT_IMPLEMENTED;
-
-        *name = m_btn->GetLabel();
-        if (name->empty())
-            *name = m_btn->GetToolTipText();
-        return name->empty() ? wxACC_NOT_IMPLEMENTED : wxACC_OK;
-    }
-
-    wxAccStatus GetRole(int childId, wxAccRole* role) override
-    {
-        if (childId != wxACC_SELF)
-            return wxACC_NOT_IMPLEMENTED;
-
-        *role = wxROLE_SYSTEM_PUSHBUTTON;
-        return wxACC_OK;
-    }
-
-    wxAccStatus GetValue(int childId, wxString* strValue) override
-    {
-        if (childId != wxACC_SELF)
-            return wxACC_NOT_IMPLEMENTED;
-
-        // A push button carries no value; expose an explicit empty one.
-        strValue->clear();
-        return wxACC_OK;
-    }
-
-    wxAccStatus GetState(int childId, long* state) override
-    {
-        if (childId != wxACC_SELF)
-            return wxACC_NOT_IMPLEMENTED;
-
-        long st = 0;
-        if (!m_btn->IsEnabled())
-            st |= wxACC_STATE_SYSTEM_UNAVAILABLE;
-        if (!m_btn->IsShown())
-            st |= wxACC_STATE_SYSTEM_INVISIBLE;
-        if (m_btn->IsFocusable())
-            st |= wxACC_STATE_SYSTEM_FOCUSABLE;
-        if (m_btn->HasFocus())
-            st |= wxACC_STATE_SYSTEM_FOCUSED;
-        if (m_btn->GetValue())
-            st |= wxACC_STATE_SYSTEM_PRESSED;
-
-        *state = st;
-        return wxACC_OK;
-    }
-
-    wxAccStatus DoDefaultAction(int childId) override
-    {
-        if (childId != wxACC_SELF)
-            return wxACC_NOT_IMPLEMENTED;
-
-        m_btn->Click();
-        return wxACC_OK;
-    }
-
-private:
-    Button* m_btn;
-};
-
-} // anonymous namespace
-
-#endif // wxUSE_ACCESSIBILITY
-
 BEGIN_EVENT_TABLE(Button, StaticBox)
 
 EVT_LEFT_DOWN(Button::mouseDown)
@@ -156,6 +70,12 @@ bool Button::Create(wxWindow* parent, wxString text, wxString icon, long style, 
     // BBS set default font
     SetFont(Label::Body_14);
     wxWindow::SetLabel(text);
+    // ORCA: derive the accessible name from the visible label by default, so
+    // any Button with real text works without a separate explicit SetName()
+    // call. A caller wanting a different accessible name can still override
+    // this with its own SetName() call afterwards.
+    if (!text.empty())
+        SetName(text);
     if (!icon.IsEmpty()) {
         // BBS set button icon default size to 20
         this->active_icon = ScalableBitmap(this, icon.ToStdString(), iconSize > 0 ? iconSize : 20);
@@ -165,6 +85,13 @@ bool Button::Create(wxWindow* parent, wxString text, wxString icon, long style, 
     applyAccessibility();
     Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent&) { Slic3r::GUI::Accessibility::detach(this); });
 #endif
+#if wxUSE_ACCESSIBILITY
+    // ORCA: default accessible role for a plain button; ButtonsListCtrl/TabCtrl
+    // override this to wxROLE_SYSTEM_PAGETAB when a Button is used as a tab, and
+    // keep the default action, so a screen reader can activate a tab too.
+    SetAccessibleRole(wxROLE_SYSTEM_PUSHBUTTON, [this] { return GetValue() ? wxACC_STATE_SYSTEM_PRESSED : 0; });
+    SetAccessibleDefaultAction({}, [this] { Click(); });
+#endif
     return true;
 }
 
@@ -172,6 +99,8 @@ void Button::SetLabel(const wxString& label)
 {
     if (label != wxWindow::GetLabel()) {
         wxWindow::SetLabel(label);
+        if (!label.empty())
+            SetName(label); // ORCA: keep the accessible name in sync with the visible label, see Create()
         messureSize();
         Refresh();
 #ifdef __WXOSX__
@@ -642,13 +571,6 @@ void Button::applyAccessibility()
     desc.name  = GetLabel();
     desc.press = [this] { Click(); };
     Slic3r::GUI::Accessibility::apply(this, desc);
-}
-#endif
-
-#if wxUSE_ACCESSIBILITY
-wxAccessible* Button::CreateAccessible()
-{
-    return new ButtonAccessible(this);
 }
 #endif
 
