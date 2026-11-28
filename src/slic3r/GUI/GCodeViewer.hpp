@@ -204,6 +204,9 @@ public:
         bool previewing{false};
         // the prime tower was loaded with the objects, for the solid model
         bool with_wipe_tower{false};
+        // per object volume, by index: the world normal z past which the solid model's faces count
+        // as flat; the prime tower's, added after the objects, are past the end
+        std::vector<float> flat_face_normal_z;
     };
     //BBS
     ConflictResultOpt m_conflict_result;
@@ -394,6 +397,9 @@ private:
             std::optional<ColorRGBA> body;
             // the bottom and top caps, then the section view's, sampled over every layer of the solid
             std::array<std::optional<ColorRGBA>, 3> caps;
+            // the faces that point up and down: the top surfaces' and the bridges' or bottom
+            // surfaces', sampled with the body
+            std::array<std::optional<ColorRGBA>, 2> faces;
         };
         std::vector<Body> bodies;
     };

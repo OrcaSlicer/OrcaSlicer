@@ -34,6 +34,13 @@ uniform bool use_color_clip_plane;
 uniform vec4 uniform_color_clip_plane_1;
 uniform vec4 uniform_color_clip_plane_2;
 uniform SlopeDetection slope;
+// The G-code preview's solid model stands in for the toolpaths, so a face that points up or
+// down, past flat_face_normal_z, wears the colour of the top or bottom surface printed there rather
+// than the walls'.
+uniform bool use_flat_face_colors;
+uniform vec4 up_face_color;
+uniform vec4 down_face_color;
+uniform float flat_face_normal_z;
 
 
 
@@ -114,6 +121,13 @@ void main()
     }
     else
 	    color = uniform_color;
+
+    if (use_flat_face_colors) {
+        if (world_normal_z > flat_face_normal_z)
+            color.rgb = up_face_color.rgb;
+        else if (world_normal_z < -flat_face_normal_z)
+            color.rgb = down_face_color.rgb;
+    }
 
     if (slope.actived) {
          if(world_pos.z<0.1&&world_pos.z>-0.1)

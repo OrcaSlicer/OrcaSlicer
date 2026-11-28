@@ -55,6 +55,10 @@ public:
     bool layer_has_sparse_infill(std::size_t layer_id) const {
         return (layer_id < m_items.size()) ? m_items[layer_id].has_sparse_infill : false;
     }
+    // whether the layer has an extrusion of the role
+    bool layer_has_role(std::size_t layer_id, EGCodeExtrusionRole role) const {
+        return (layer_id < m_items.size()) ? (m_items[layer_id].roles & role_bit(role)) != 0 : false;
+    }
     // Whether each layer's infill closes every object printed on it, as the caller knows it from
     // the objects the moves belong to: bit 0 as seen from above, bit 1 as seen from below, see
     // GCodeInputData::layers_closed. Ignored unless there is one entry per layer.
@@ -92,7 +96,11 @@ private:
         bool has_sparse_infill{ false };
         bool closed_from_above{ false };
         bool closed_from_below{ false };
+        // one bit per extrusion role printed on the layer, see role_bit()
+        uint32_t roles{ 0 };
     };
+    static_assert(static_cast<std::size_t>(EGCodeExtrusionRole::COUNT) <= 32, "Item::roles holds one bit per role");
+    static uint32_t role_bit(EGCodeExtrusionRole role) { return uint32_t(1) << static_cast<uint32_t>(role); }
     
     std::vector<Item> m_items;
     Range m_view_range;

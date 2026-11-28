@@ -74,6 +74,8 @@
 #include <wx/string.h>
 #include <wx/slider.h>
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Exception.hpp"
 #include "slic3r/GUI/Event.hpp"
 #include <string_view>
 #include <functional>
@@ -2021,6 +2023,7 @@ void GCodeViewer::set_shell_transparency(float alpha) { m_shells.volumes.set_tra
 void GCodeViewer::reset_shell()
 {
     m_shells.volumes.clear();
+    m_shells.flat_face_normal_z.clear();
     m_shells.print_id = -1;
     m_shells.with_wipe_tower = false;
     m_shell_bounding_box = BoundingBoxf3();
@@ -3432,6 +3435,46 @@ void GCodeViewer::export_toolpaths_to_obj(const char* filename) const
     exporter.export_to(filename);
 }
 
+// The world normal z past which a face of the object counts as flat in the solid model. The strip a
+// layer leaves uncovered by the next is the layer height over the slope's tangent wide, and it
+// prints as a top or bottom surface only where it is wider than the walls that follow the outline.
+// The thinnest layer and the widest walls are taken, so that under a variable layer height a slope
+// that prints as walls on some of its layers keeps the walls' colour. Read from the configuration
+// and the model, which the background slicing does not change, and loaded whatever the drag mode,
+// so a configuration the slicer would reject falls back to the default rather than throwing.
+static float flat_face_normal_z(const PrintObject& object)
+{
+    const float fallback = GLVolumeCollection::FlatFaces().normal_z;
+    double layer_height = object.config().layer_height.value;
+    const ModelObject& model_object = *object.model_object();
+    // the profile holds pairs of z and layer height
+    const std::vector<double> profile = model_object.layer_height_profile.get();
+    for (size_t i = 1; i < profile.size(); i += 2)
+        if (profile[i] > 0.)
+            layer_height = std::min(layer_height, profile[i]);
+    for (const auto& [range, config] : model_object.layer_config_ranges)
+        if (const ConfigOption* height = config.option("layer_height"); height != nullptr && height->getFloat() > 0.)
+            layer_height = std::min(layer_height, height->getFloat());
+    if (layer_height <= 0.)
+        return fallback;
+    double walls = 0.;
+    try {
+        for (const PrintRegion& region : object.all_regions()) {
+            // only_one_wall_top is left out: it drops the inner walls only where the top surface is
+            // wider than min_width_top_surface, which a slope's strip seldom is, and never over a bridge
+            const int    loops = std::max(1, region.config().wall_loops.value);
+            const double outer = region.flow(object, frExternalPerimeter, layer_height).width();
+            const double inner = region.flow(object, frPerimeter, layer_height).spacing();
+            walls              = std::max(walls, outer + (loops - 1) * inner);
+        }
+    } catch (const InvalidArgument&) {
+        return fallback;
+    }
+    if (walls <= 0.)
+        return fallback;
+    return static_cast<float>(walls / std::hypot(walls, layer_height));
+}
+
 void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_previewing)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": initialized=%1%, force_previewing=%2%")%initialized %force_previewing;
@@ -3487,6 +3530,7 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
 
         size_t current_volumes_count = m_shells.volumes.volumes.size();
         m_shells.volumes.load_object(model_obj, object_idx, instance_ids, "object", initialized, false);
+        m_shells.flat_face_normal_z.resize(m_shells.volumes.volumes.size(), flat_face_normal_z(*obj));
 
         // adjust shells' z if raft is present
         const SlicingParameters& slicing_parameters = obj->slicing_parameters();
@@ -3528,6 +3572,9 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
     while (true) {
         GLVolumePtrs::iterator it = std::find_if(m_shells.volumes.volumes.begin(), m_shells.volumes.volumes.end(), [](GLVolume* volume) { return volume->is_modifier; });
         if (it != m_shells.volumes.volumes.end()) {
+            // the cut-offs are kept by volume index, so each goes with its volume
+            if (const size_t index = std::distance(m_shells.volumes.volumes.begin(), it); index < m_shells.flat_face_normal_z.size())
+                m_shells.flat_face_normal_z.erase(m_shells.flat_face_normal_z.begin() + index);
             delete (*it);
             m_shells.volumes.volumes.erase(it);
         }
@@ -3932,6 +3979,7 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     own_colors.reserve(m_shells.volumes.volumes.size());
     // the tower draws itself in its own colours and leaves the volume's at the default; one list per volume
     std::vector<std::vector<ColorRGBA>> own_tower_colors(m_shells.volumes.volumes.size());
+    std::vector<GLVolumeCollection::FlatFaces> flat_faces(m_shells.volumes.volumes.size());
     for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
         GLVolume* volume = m_shells.volumes.volumes[k];
         own_colors.push_back(volume->color);
@@ -3943,7 +3991,14 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
         }
         volume->color = shade(body.value_or(volume->color));
         volume->set_render_color();
+        for (size_t f = 0; f < 2; ++f) {
+            if (const std::optional<ColorRGBA>& face = colors.bodies[k].faces[f]; face.has_value())
+                flat_faces[k].colors[f] = shade(*face);
+        }
+        if (k < m_shells.flat_face_normal_z.size())
+            flat_faces[k].normal_z = m_shells.flat_face_normal_z[k];
     }
+    m_shells.volumes.set_flat_faces(std::move(flat_faces));
     m_shells.volumes.set_z_range(z_bottom, z_top);
     // the section view cuts the solid as it cuts the toolpaths
     m_shells.volumes.set_clipping_plane({ m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2], m_clipping_plane[3] });
@@ -3962,6 +4017,8 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     shader->set_uniform("z_far", camera.get_far_z());
     shader->set_uniform("z_near", camera.get_near_z());
     m_shells.volumes.render(GLVolumeCollection::ERenderType::Opaque, false, camera.get_view_matrix(), camera.get_projection_matrix());
+    // the program keeps the last body's value, and not every user of it goes through the collection
+    shader->set_uniform("use_flat_face_colors", false);
     shader->stop_using();
 
     // The cut faces, one cap of one body at a time. A pixel looks into a body through a cut where,
@@ -4026,6 +4083,7 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     }
 
     m_shells.volumes.set_z_range(-FLT_MAX, FLT_MAX);
+    m_shells.volumes.set_flat_faces({});
     for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
         GLVolume* volume = m_shells.volumes.volumes[k];
         if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr)
@@ -4036,8 +4094,9 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
 }
 
 // The solid stands in for the toolpaths, so it takes their colours in the view that colours them by
-// something other than the filament: each body the outer wall's, each layer cap the infill's of the
-// layer it is cut under, sparse if the layer has any, else solid, the section view's cap the
+// something other than the filament: each body the outer wall's, its faces that point up the top
+// surfaces' and those that point down the bridges' or bottom surfaces', each layer cap the infill's
+// of the layer it is cut under, sparse if the layer has any, else solid, the section view's cap the
 // infill's over all the layers, and the tower its own role's, each from the toolpaths within the
 // body's own footprint, so that objects printed at different grades keep their own. The views that
 // colour by filament leave every body its own colour. The bodies and the section view's cap are
@@ -4076,6 +4135,9 @@ void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_lay
     };
     const std::initializer_list<Role> walls = { Role::ExternalPerimeter, Role::Perimeter, Role::OverhangPerimeter };
     const std::initializer_list<Role> tower_role = { Role::WipeTower };
+    const std::initializer_list<Role> up_faces = { Role::TopSolidInfill };
+    // a face that points down above the first layer is printed over air or over a support
+    const std::initializer_list<Role> down_faces = { Role::BridgeInfill, Role::BottomSurface };
     const std::initializer_list<Role> infill = { Role::InternalInfill, Role::SolidInfill, Role::TopSolidInfill, Role::BottomSurface,
                                                  Role::BridgeInfill, Role::InternalBridgeInfill, Role::Ironing };
     for (size_t n = 0; n < volumes.size(); ++n) {
@@ -4089,6 +4151,8 @@ void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_lay
         SolidModelColors::Body& body = colors.bodies[n];
         if (!held) {
             body.body = sample(whole_layers, tower ? tower_role : walls, box);
+            if (!tower)
+                body.faces = { sample(whole_layers, up_faces, box), sample(whole_layers, down_faces, box) };
             // the section view's cut may cross any of the layers, so it is sampled over all of them, as the body is
             body.caps[2] = tower ? std::nullopt : sample(whole_layers, infill, box);
             if (!body.caps[2].has_value())

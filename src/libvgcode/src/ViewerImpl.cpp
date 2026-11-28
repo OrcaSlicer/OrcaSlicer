@@ -1835,25 +1835,31 @@ std::optional<float> ViewerImpl::get_vertex_value(const PathVertex& v) const
 
 // The extrusion of the role that stands for the layers, or the vertex count. A view that grades
 // by a value takes the length-weighted median of it over the role's extrusions in up to
-// VERTEX_SAMPLE_LAYERS layers spread evenly over the interval, so that neither the ramp a wall
-// starts on nor one odd layer sets the colour; any other view takes the first extrusion found.
-// A layer's vertices lie between its first and last ids, with those of other layers among them
-// in a print by object. Only the extrusions that end inside the box count, so that one object's
-// walls can be told from another's on the same layers.
+// VERTEX_SAMPLE_LAYERS of the interval's layers that have the role, spread evenly over them, so
+// that neither the ramp a wall starts on nor one odd layer sets the colour, or, where none of
+// those has the role inside the box, in the first other layer that has; any other view takes the
+// first extrusion found, see sample_role_layers(). A layer's vertices lie between its first and
+// last ids, with those of other layers among them in a print by object. Only the extrusions that
+// end inside the box count, so that one object's walls can be told from another's on the same
+// layers.
 size_t ViewerImpl::find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role, const XYBox& box) const
 {
+    if (m_layers.empty() || layers[0] > layers[1])
+        return m_vertices.size();
+    const Interval range = { layers[0], std::min(layers[1], m_layers.count() - 1) };
     std::vector<std::pair<float, float>> samples;
     std::vector<size_t> ids;
-    const size_t count = (layers[1] >= layers[0]) ? layers[1] - layers[0] + 1 : 0;
-    const size_t steps = std::min(count, VERTEX_SAMPLE_LAYERS);
     const auto value_of = [this](const PathVertex& v) { return get_vertex_value(v); };
-    for (size_t step = 0; step < steps; ++step) {
-        const size_t layer_id = layers[0] + ((steps > 1) ? step * (count - 1) / (steps - 1) : 0);
-        const std::optional<size_t> first = collect_role_samples(m_vertices, m_layers.get_layer_vertex_range(layer_id),
+    const auto has_role = [this, role](size_t layer_id) { return m_layers.layer_has_role(layer_id, role); };
+    const auto sample_layer = [&](size_t layer_id) {
+        return collect_role_samples(m_vertices, m_layers.get_layer_vertex_range(layer_id),
             static_cast<uint32_t>(layer_id), role, box, value_of, samples, ids);
-        if (first.has_value())
-            return *first;
-    }
+    };
+    const auto has_samples = [&samples]() { return !samples.empty(); };
+    const std::optional<size_t> first = sample_role_layers(range, VERTEX_SAMPLE_LAYERS, has_role, sample_layer,
+        has_samples);
+    if (first.has_value())
+        return *first;
     return samples.empty() ? m_vertices.size() : ids[weighted_median_index(samples)];
 }
 
