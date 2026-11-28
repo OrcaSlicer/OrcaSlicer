@@ -41222,6 +41222,30 @@ msgstr ""
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
 
 # AI Translated
+# Needs human review: The existing Rectilinear control and glossary use “Rechtlijning”; confirm this spelling of the pattern label.
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Het lijkt erop dat de ondersteuning van het type ‘Organisch’ voor object %1% delen bevat die zonder onderliggend materiaal worden geprint, beginnend op de lagen op Z-hoogte (mm): %2%. Overweeg een gevuld basispatroon, zoals ‘Rechtlijning’, in plaats van een hol patroon."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "Diameter eerste laag"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "De diameter die elke tak van organische ondersteuningen op het printbed probeert te bereiken. De takken worden bij het printbed geleidelijk breder om deze diameter te benaderen. Dit verbetert de hechting aan het printbed, maar neemt er meer ruimte in beslag. Een boomondersteuning wordt zo breder totdat de basis even breed is als de ondersteuning hoog is. Een waarde die niet groter is dan de takdiameter schakelt deze verbreding uit. Voor kleine modellen wordt 2 tot 3 mm aanbevolen."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Stamdiameter"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "De diameter van de dikste takken van organische ondersteuningen, inclusief hun bases op het printbed. Een dikkere stam is steviger, een dunnere stam neemt minder ruimte in op het printbed. Bij een waarde kleiner dan de takdiameter behouden alle takken de takdiameter. 0 betekent geen limiet."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Opties tonen bij het importeren van een STEP-bestand"
 

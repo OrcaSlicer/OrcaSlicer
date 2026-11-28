@@ -38785,6 +38785,30 @@ msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
 
+# AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Es scheint, dass die organischen Stützen des Objekts %1% Bereiche enthalten, die ohne Material darunter gedruckt werden, beginnend in den Schichten bei Z (mm): %2%. Erwägen Sie ein gefülltes Basismuster wie Geradlinig anstelle eines hohlen Musters."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "Durchmesser der ersten Schicht"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "Der Durchmesser, den jeder Ast organischer Stützen auf dem Druckbett zu erreichen versucht. In der Nähe des Druckbetts verbreitern sich die Äste in Richtung dieses Durchmessers. Dies verbessert die Haftung am Druckbett, benötigt aber mehr Platz darauf. Ein Baum verbreitert sich nur so weit in Richtung dieses Durchmessers, bis seine Basisbreite seiner Höhe entspricht. Ein Wert, der nicht größer als der Astdurchmesser ist, schaltet diese Verbreiterung aus. Für kleine Modelle werden 2 bis 3 mm empfohlen."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Stammdurchmesser"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "Der Durchmesser der dicksten Äste organischer Stützen, einschließlich ihrer Basen auf dem Druckbett. Ein dickerer Stamm ist stabiler, ein dünnerer benötigt weniger Platz auf dem Druckbett. Bei einem Wert unter dem Astdurchmesser behalten alle Äste den Astdurchmesser. 0 bedeutet keine Begrenzung."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Optionen beim Importieren von STEP-Dateien anzeigen"
 

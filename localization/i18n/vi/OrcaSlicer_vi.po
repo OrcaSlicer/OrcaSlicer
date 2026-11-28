@@ -39970,6 +39970,29 @@ msgstr ""
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
 
 # AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Có vẻ support Hữu cơ của vật thể %1% có những phần được in mà không có gì bên dưới, bắt đầu từ các lớp ở độ cao Z (mm): %2%. Hãy cân nhắc dùng mẫu đế có vật liệu bên trong, chẳng hạn như Thẳng hàng, thay cho mẫu đế rỗng."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "Đường kính lớp đầu tiên"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "Đường kính mà mỗi nhánh support Hữu cơ hướng tới trên bàn in. Gần bàn in, các nhánh nở rộng nhằm đạt đường kính này, giúp tăng độ bám bàn in nhưng chiếm nhiều diện tích trên bàn in hơn. Cấu trúc dạng cây chỉ nở rộng đến khi chiều rộng đế bằng chiều cao của nó. Giá trị nhỏ hơn hoặc bằng đường kính nhánh sẽ tắt tính năng nở rộng này. Với mô hình nhỏ, nên dùng giá trị từ 2 đến 3 mm."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Đường kính thân cây"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "Đường kính lớn nhất của các nhánh support Hữu cơ, bao gồm cả phần đế trên bàn in. Thân cây to hơn sẽ chắc chắn hơn, thân cây nhỏ hơn sẽ chiếm ít diện tích trên bàn in hơn. Giá trị nhỏ hơn đường kính nhánh sẽ giữ đường kính của mọi nhánh ở mức đường kính nhánh. 0 nghĩa là không giới hạn."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Hiện tùy chọn khi nhập file STEP"
 

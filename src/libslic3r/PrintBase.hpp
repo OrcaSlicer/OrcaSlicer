@@ -20,7 +20,7 @@
 #include "Model.hpp"
 #include "PlaceholderParser.hpp"
 #include "PrintConfig.hpp"
-
+#include <algorithm>
 namespace Slic3r {
 
 enum StringExceptionType {
@@ -71,7 +71,8 @@ public:
         SlicingEmptyGcodeLayers,
         SlicingGcodeOverlap,
         SlicingExclusionVolumeToolpath,
-        SlicingPreciseSeamWarning
+        SlicingPreciseSeamWarning,
+        SlicingOrganicSupportWarning
     };
 
     typedef size_t TimeStamp;
@@ -308,7 +309,52 @@ public:
         assert(m_step_active != -1);
         StateWithWarnings &state = m_state[m_step_active];
         assert(state.state == STARTED);
-        std::pair<StepType, bool> retval(static_cast<StepType>(m_step_active), true);
+        return {static_cast<StepType>(m_step_active), update_warning(state, warning_level, message, message_id)};
+    }
+
+    // A downstream check may refine a warning without invalidating an already completed geometry step.
+    // PrintBase::m_state_mutex should be locked at this point, guarding access to m_state.
+    bool update_step_warning_locked(StepType step, PrintStateBase::WarningLevel level, const std::string &message,
+        int message_id)
+    {
+        assert(message_id != 0);
+        StateWithWarnings &state = m_state[step];
+        if (state.state == INVALID)
+            return false;
+        if (!message.empty())
+            return update_warning(state, level, message, message_id);
+        auto it = std::find_if(state.warnings.begin(), state.warnings.end(),
+            [message_id](const auto &warning) { return warning.message_id == message_id; });
+        if (it == state.warnings.end())
+            return false;
+        state.warnings.erase(it);
+        return true;
+    }
+
+    // Rewords the current warning message_id of step with what reword() returns, as for an object renamed.
+    // PrintBase::m_state_mutex should be locked at this point, as Print::apply() holds it. Returns whether the message
+    // changed.
+    template<typename Reword> bool reword_step_warning_locked(StepType step, int message_id, Reword &&reword)
+    {
+        assert(message_id != 0);
+        StateWithWarnings &state = m_state[step];
+        if (state.state == INVALID)
+            return false;
+        for (PrintStateBase::Warning &warning : state.warnings)
+            if (warning.current && warning.message_id == message_id) {
+                std::string message = reword();
+                if (message.empty() || message == warning.message)
+                    return false;
+                warning.message = std::move(message);
+                return true;
+            }
+        return false;
+    }
+
+private:
+    static bool update_warning(StateWithWarnings &state, PrintStateBase::WarningLevel warning_level,
+        const std::string &message, int message_id)
+    {
         // Does a warning of the same level and message or message_id exist already?
         auto it = (message_id == 0) ?
             std::find_if(state.warnings.begin(), state.warnings.end(), [&message](const auto &w) { return w.message_id == 0 && w.message == message; }) :
@@ -323,11 +369,11 @@ public:
             it->current = true;
         } else if (it->current)
             // Yes, and it is current. Don't update UI.
-            retval.second = false;
+            return false;
         else
             // Yes, but it is not current. Mark it as current.
             it->current = true;
-        return retval;
+        return true;
     }
 
 private:
@@ -648,6 +694,29 @@ public:
     bool            is_step_done(PrintObjectStepEnum step) const { return m_state.is_done(step, PrintObjectBase::state_mutex(m_print)); }
     PrintStateBase::StateWithTimeStamp step_state_with_timestamp(PrintObjectStepEnum step) const { return m_state.state_with_timestamp(step, PrintObjectBase::state_mutex(m_print)); }
     PrintStateBase::StateWithWarnings  step_state_with_warnings(PrintObjectStepEnum step) const { return m_state.state_with_warnings(step, PrintObjectBase::state_mutex(m_print)); }
+
+    // Refresh one identified diagnostic after a downstream stage resolves information unavailable during slicing.
+    // compose() returns the message, an empty one to clear the diagnostic. It runs with the state mutex held, as
+    // Print::apply() holds it, so it may read what apply() writes, such as the name of the object.
+    template<typename Compose>
+    void compose_step_warning(PrintObjectStepEnum step, PrintStateBase::WarningLevel level, Compose &&compose,
+        PrintStateBase::SlicingNotificationType message_id)
+    {
+        std::string message;
+        bool        updated = false;
+        {
+            std::scoped_lock<std::mutex> lock(PrintObjectBase::state_mutex(m_print));
+            message = compose();
+            updated = m_state.update_step_warning_locked(step, level, message, int(message_id));
+        }
+        if (updated)
+            this->status_update_warnings(m_print, int(step), level, message, message_id);
+    }
+    void update_step_warning(PrintObjectStepEnum step, PrintStateBase::WarningLevel level, const std::string &message,
+        PrintStateBase::SlicingNotificationType message_id)
+    {
+        this->compose_step_warning(step, level, [&message] { return message; }, message_id);
+    }
 
 protected:
 	PrintObjectBaseWithState(PrintType *print, ModelObject *model_object) : PrintObjectBase(model_object), m_print(print) {}

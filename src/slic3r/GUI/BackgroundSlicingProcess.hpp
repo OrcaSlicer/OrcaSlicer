@@ -9,6 +9,7 @@
 #include <memory>
 #include <functional>
 #include <string>
+#include <atomic>
 #include <condition_variable>
 #include <mutex>
 
@@ -194,7 +195,11 @@ public:
 	};
 	State 	state() 	const { return m_state; }
 	bool    idle() 		const { return m_state == STATE_IDLE; }
-	bool    running() 	const { return m_state == STATE_STARTED || m_state == STATE_RUNNING || m_state == STATE_FINISHED || m_state == STATE_CANCELED; }
+	bool    running() 	const
+	{
+		const State state = m_state;
+		return state == STATE_STARTED || state == STATE_RUNNING || state == STATE_FINISHED || state == STATE_CANCELED;
+	}
     // Returns true if the last step of the active print was finished with success.
     // The "finished" flag is reset by the apply() method, if it changes the state of the print.
     // This "finished" flag does not account for the final export of the output file (.gcode or zipped PNGs),
@@ -273,7 +278,10 @@ private:
 	// Mutex and condition variable to synchronize m_thread with the UI thread.
 	std::mutex 		 			m_mutex;
 	std::condition_variable		m_condition;
-	State 						m_state = STATE_INITIAL;
+	// Atomic, as the UI thread asks for it while the background thread changes it, holding m_mutex: the UI
+	// thread taking m_mutex to ask would make execute_ui_task() take that for a cancellation, see try_lock()
+	// there.
+	std::atomic<State>			m_state { STATE_INITIAL };
 
 	// For executing tasks from the background thread on UI thread synchronously (waiting for result) using wxWidgets CallAfter().
 	// When the background proces is canceled, the UITask has to be invalidated as well, so that it will not be

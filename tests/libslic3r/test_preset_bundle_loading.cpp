@@ -1001,7 +1001,7 @@ TEST_CASE("Listing local bundles returns only ids that reload accepts", "[Preset
     CHECK(bundle.prints.size() == print_count);
     CHECK_FALSE(fs::exists(data_dir.bundle_dir("no-metadata") / PRESET_BUNDLE_METADATA));
 
-    for (const std::string& rejected : {"no-metadata", "wrong-id", "subscribed-folder", "subscribed-registry"})
+    for (const char* rejected : {"no-metadata", "wrong-id", "subscribed-folder", "subscribed-registry"})
         CHECK_FALSE(bundle.reload_local_bundle("", rejected, &error));
 
     REQUIRE(bundle.reload_local_bundle("", "valid-b", &error));

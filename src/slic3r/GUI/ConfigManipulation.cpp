@@ -764,6 +764,20 @@ void ConfigManipulation::apply_null_fff_config(DynamicPrintConfig *config, std::
     }
 }
 
+bool ConfigManipulation::base_pattern_spacing_used(const DynamicPrintConfig &config, const bool is_belt_printer)
+{
+    const bool have_raft    = config.opt_int("raft_layers") > 0 && !is_belt_printer;
+    const bool have_support = config.opt_bool("enable_support");
+    const auto style        = config.opt_enum<SupportMaterialStyle>("support_style");
+    const auto base         = config.opt_enum<SupportMaterialPattern>("support_base_pattern");
+    // A tree support of any style but Slim, Strong and Hybrid is Organic: SupportParameters resolves Snug and Grid left with a
+    // tree support type to Default, and Default to Organic.
+    const bool organic      = is_tree(config.opt_enum<SupportType>("support_type")) && style != smsTreeSlim &&
+        style != smsTreeStrong && style != smsTreeHybrid;
+    const bool hollow       = have_support && organic && (base == smpDefault || base == smpNone) && !have_raft;
+    return (have_support || have_raft) && !hollow;
+}
+
 void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, int variant_index, const bool is_global_config)
 {
     PresetBundle *preset_bundle  = wxGetApp().preset_bundle;
@@ -1076,7 +1090,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_support_soluble = have_support_material && config->opt_float("support_top_z_distance") == 0;
     auto support_style = config->opt_enum<SupportMaterialStyle>("support_style");
     for (auto el : { "support_style", "support_base_pattern",
-        "support_base_pattern_spacing", "support_expansion", "support_angle",
+        "support_expansion", "support_angle",
         "support_interface_pattern", "support_interface_top_layers", "support_interface_bottom_layers",
         "bridge_no_support", "max_bridge_length", "support_top_z_distance", "support_bottom_z_distance",
         "support_type", "support_on_build_plate_only", "support_critical_regions_only", "support_interface_not_for_body",
@@ -1092,13 +1106,17 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool support_is_organic = support_is_tree && (support_style == smsTreeOrganic || support_style == smsDefault);
     bool support_is_normal_tree = support_is_tree && !support_is_organic;
 
+    toggle_field("support_base_pattern_spacing", m_base_pattern_spacing_used || base_pattern_spacing_used(*config, is_belt_printer), -1,
+                 !have_support_material ? support_reason :
+                 _L("Tree supports with the Organic or Default style and the Default or Hollow base pattern print no base pattern lines. Select another base pattern or add raft layers to edit the spacing."));
+
     // hide settings that are not used by tree supports
     toggle_line("support_threshold_overlap", !support_is_tree, -1, _L("Threshold overlap is unavailable for tree supports.")); // ORCA: tree supports do not use Threshold Overlap
     // settings specific to normal trees
     for (auto el : {"tree_support_branch_angle", "tree_support_branch_distance", "tree_support_branch_diameter", "tree_support_auto_brim", "tree_support_brim_width"})
         toggle_line(el, support_is_normal_tree, -1, _L("Enable tree supports and select a style other than Organic or Default to show this setting."));
     // settings specific to organic trees
-    for (auto el : {"tree_support_branch_angle_organic", "tree_support_branch_distance_organic", "tree_support_branch_diameter_organic", "tree_support_angle_slow", "tree_support_tip_diameter", "tree_support_top_rate", "tree_support_branch_diameter_angle"})
+    for (auto el : {"tree_support_branch_angle_organic", "tree_support_branch_distance_organic", "tree_support_branch_diameter_organic", "tree_support_angle_slow", "tree_support_tip_diameter", "tree_support_top_rate", "tree_support_branch_diameter_angle", "tree_support_initial_layer_diameter", "tree_support_trunk_diameter"})
         toggle_line(el, support_is_organic, -1, _L("Enable tree supports with the Organic or Default style to show this setting."));
     // ORCA: Independent support layer height is not compatible with organic tree supports,
     // as they rely on the support layers being the same as the object layers to determine where to place branches.

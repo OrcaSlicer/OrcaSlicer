@@ -9,8 +9,12 @@
 #ifndef slic3r_TreeSupport_hpp
 #define slic3r_TreeSupport_hpp
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "SupportLayer.hpp"
+#include "SupportParameters.hpp"
 #include "TreeModelVolumes.hpp"
 #include "TreeSupportCommon.hpp"
 
@@ -18,9 +22,11 @@
 #include "libslic3r/libslic3r.h"
 
 #include <boost/container/small_vector.hpp>
+#include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <cstddef>
+#include <optional>
 #include <utility>
 #include <deque>
 #include <vector>
@@ -203,11 +209,6 @@ struct SupportElementState : public SupportElementStateBits
     uint32_t    dont_move_until;
 
     /*!
-     * \brief Settings used to increase the influence area to its current state.
-     */
-    AreaIncreaseSettings last_area_increase;
-
-    /*!
      * \brief Number of pending roof/contact recovery slices from this node downward, including this node.
      */
     uint32_t    missing_roof_layers = 0;
@@ -307,6 +308,12 @@ struct SupportElement
 
 using SupportElements = std::deque<SupportElement>;
 
+// Propagate and validate the influence area of one branch for the next layer down.
+[[nodiscard]] std::optional<SupportElementState> increase_single_area(const TreeModelVolumes &volumes,
+    const TreeSupportSettings &config, const AreaIncreaseSettings &settings, LayerIndex layer_idx,
+    const SupportElement &parent, const Polygons &relevant_offset, Polygons &to_bp_data,
+    Polygons &to_model_data, Polygons &increased, coord_t overspeed);
+
 [[nodiscard]] inline coord_t support_element_radius(const TreeSupportSettings &settings, const SupportElement &elem)
 {
     return support_element_radius(settings, elem.state);
@@ -316,6 +323,181 @@ using SupportElements = std::deque<SupportElement>;
 {
     return support_element_collision_radius(settings, elem.state);
 }
+
+// Turn the top layers of a branch path, whose tip could not get its roof layers directly,
+// into roofs. slices holds the branch slices from layer_begin up.
+void recover_pending_branch_roofs(InterfacePlacer &interface_placer, const std::vector<const SupportElement*> &branch_path,
+    LayerIndex layer_begin, std::vector<Polygons> &slices);
+
+// Remove whole roof parts fully covered by a continuing branch, preserving bottom interfaces and walls they carry.
+void organic_remove_roofs_inside_branches(const SupportGeneratorLayersPtr &bottom_contacts,
+    SupportGeneratorLayersPtr &top_contacts, SupportGeneratorLayersPtr &interface_layers,
+    SupportGeneratorLayersPtr &base_interface_layers, const SupportGeneratorLayersPtr &intermediate_layers, coord_t line_width);
+
+// Fill the holes and the slits of the branch bodies where the body of the layer above covers them, with
+// everything inside, away from the model. bodies are sorted by print_z, model holds for each the model grown by the
+// XY distance, together with the model of the layers within the Z distances above and below it.
+void organic_fill_covered_holes(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &model, coord_t line_width);
+
+// Keep a body whole where it splits going down into the branches that merge into it going up, narrowing by move a layer
+// into them, away from the model on the layer and below it. bodies hold a layer each and may hold nullptr; model holds
+// for each layer the model with the gaps around it.
+void organic_keep_merged_bodies_whole(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &model, coord_t move);
+
+// Keep each body that stands on the layer below within half a line_width, or move where that is more, of what it stands
+// on there going up: the body below but its parts narrower than line_width, the roofs, and the model where the support
+// may rest on it, on_model. Where it may not, over the model of any layer below within move. A body standing on none of
+// them is left as it is. bodies, roofs and model hold their layers as for organic_widen_bodies_under_roofs().
+void organic_limit_body_growth(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
+    const std::vector<Polygons> &model, bool on_model, coord_t line_width, coord_t move);
+
+// Keep each hollow body that goes on over a body of the layer below whole there but for a band of step along its outline,
+// away from the model and the roofs of its own layer. A body ending stays ended. bodies, roofs and model hold their layers
+// as for organic_widen_bodies_under_roofs().
+void organic_limit_body_shrink(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
+    const std::vector<Polygons> &model, coord_t step);
+
+// How far a hollow body narrows a layer at most, see organic_limit_body_shrink(): half a line_width, or at layers lower
+// than a sixth of a line a layer_height, 45 degrees, where half a line leans out over the inside far more, 80 degrees
+// at 0.02 mm layers; and never less than move, the branch angle.
+inline coord_t organic_wall_step(const coord_t layer_height, const coord_t line_width, const coord_t move)
+{
+    return std::max(move, 6 * layer_height < line_width ? layer_height : line_width / 2);
+}
+
+// Whether widening by delta keeps the cut of an island as it is but for the points it drops, see offset_input(): a
+// point closer than a fraction of delta to the last one it keeps, which moves the widened outline less than that. With
+// them, though, it may drop a contour it keeps fewer than three points of, turn one it keeps winding the other way
+// round, or twist one where an edge it joins past them crosses or touches another, as of a sharp tip of the island
+// that the cut leaves little of, though the island widened covers it. Where it drops, turns or twists a hole, the
+// widening covers that all the same.
+bool organic_widens_cut_as_it_is(const Polygons &cut, float delta);
+
+// The part of an island of the slices clipped to box, see ClipperUtils::clip_clipper_polygons_with_subject_bbox(),
+// widened round by delta: within box shrunk by delta, the island widened, but for the points the widening drops, see
+// offset_input(). The clip keeps the far corners of the island and joins them outside box, where the contour may wind
+// the other way, so it is cut to box exactly before it is widened, or, where the widening would not keep the cut as it
+// is, see organic_widens_cut_as_it_is(), cut by a box a little larger, a few times, and last larger by delta, reaching
+// out that much farther. None where the island is to be widened whole: where the part lies within box, as it is all of
+// the island, where a larger box takes in extents, those of the contour of the island as Layer::lslices_bboxes holds
+// them, or where the widening keeps none of the cuts as they are. points, if set, is set to the points of the cut
+// widened where the last box, larger by delta, cuts it, else nought.
+std::optional<Polygons> organic_widen_part(const ExPolygon &island, const BoundingBox &extents, const Polygons &part,
+    const BoundingBox &box, float delta, size_t *points = nullptr);
+
+// What organic_model_under() finds the model from, kept from call to call: of one object and its settings, while its
+// slices stay as they are, asked from one thread. It takes up as much as it keeps until let go.
+struct OrganicModelUnderCache
+{
+    // The model under all the areas a branch of a layer may rest on, found once finding it near the boxes asked for has
+    // gone through as many points as finding it all at once does, or near a box half as many; those points, counted
+    // once and then for the islands cut farther out, see organic_model_under(), and the points finding it near the
+    // boxes went through.
+    struct Whole
+    {
+        bool     found = false;
+        Polygons model;
+        size_t   points = 0;
+        size_t   spent  = 0;
+    };
+    // By layer of the support.
+    std::vector<Whole>                 layers;
+    // The islands of the slices widened round by the XY distance, by layer of the object and island, once a box takes
+    // in half the points of one or more, the part of one near a box is not widened as it is cut, see
+    // organic_widen_part(), or the cut of one by a box as much larger as the XY distance takes in half its points or
+    // more, where widening it whole keeps it as it is, until the model under all the areas of that layer is found. A
+    // sliver an island of a few points widened whole drops all of, see offset_input(), is no footing then, though
+    // widened as cut it may be: a strip a few um across; a body standing on it alone then widens as one standing on
+    // none, see organic_widen_bodies_under_roofs(). And whether the points of an island as much farther out than the
+    // box around all the areas as the XY distance count in what finding the model under all of them goes through, once
+    // a cut of it that much larger than a box asked for was widened as it is, which they keep counting where the island
+    // is widened whole later; and whether widening it whole was found not to keep it as it is.
+    std::vector<std::vector<Polygons>> islands;
+    std::vector<std::vector<bool>>     island_known;
+    std::vector<std::vector<bool>>     island_far_counted;
+    std::vector<std::vector<bool>>     island_whole_drops;
+};
+
+// The model a body on the layer above layer_idx stands on where the support may rest on it, within box: the areas a
+// branch of that layer may rest on, see TreeModelVolumes::getPlaceableAreas(), the top of the model of object a bottom
+// Z distance below widened by the least XY distance but for the slice of that layer widened by it and the support
+// blockers, and widened to the XY distance, which a foot dropped beside a slope keeps from the model, but no farther
+// from that top than the XY distance all round. That reaches as far into the gap of the slice and the blockers, where
+// no body lies. The collision of a layer is no material to stand on: it holds the gaps around the model, the model
+// within the Z distances above and below and the support blockers.
+// cache keeps what the model is found from, from call to call; what is found differs with it and without outside box,
+// and by rounding within it, but for a sliver an island widened whole drops all of, see OrganicModelUnderCache.
+Polygons organic_model_under(const PrintObject &object, const TreeModelVolumes &volumes,
+    const TreeSupportSettings &config, size_t layer_idx, const BoundingBox &box,
+    OrganicModelUnderCache *cache = nullptr);
+
+// Widen the top layers of the bodies under the lowest layer of a roof, where the roof hangs over the material below it,
+// by move a layer going up, half a line at most, until it does not, keeping the bodies a line and a half apart but the
+// flares of tips and near where the roof still hangs; where move is less than a 128th of the widest, two and a half
+// lines, in stairs of that 128th, so in no more than 128 steps, and where it is no more than SCALED_EPSILON, not at
+// all. With limit_growth, what a layer adds lies within half a line, or move where that is more, of what its body
+// stands on below: the bodies of that layer as widened, the roofs, and model_under of that layer, see
+// organic_model_under(), unset where the support may not rest on the model; a body standing on none of them, or with no
+// layer right below it, widens as it is. Where the flare unclipped would hold the roof but it then hangs, the bodies
+// widen by a step more, reaching as many layers lower down as the step holds moves, up to the widest, keeping the flare
+// that leaves the least of it hanging. The roof hangs where a line of it in the directions roof_angles, see
+// SupportParameters::support_interface_angle(), or with none, a loop of it along its outline, runs farther from that
+// material than a line between two lines of the base, or along a gap in it narrower than that, or than a line where it
+// ends in the air or a loop bends away from the line between the ends of a stretch of it by more than a line; and a
+// part of it too narrow for a loop where a point of it lies farther than reach from that material. Where base_roofs
+// hold the parts of the roofs of a layer that a base interface prints, those print lines in the directions base_angles,
+// see organic_base_roof_angles(), and the loops of the rest run along its outline.
+// bodies hold a layer each, up to the layer above the top body, and may hold nullptr; roofs and model hold for each
+// layer the roofs printed on it and the model with the gaps around it. The widened tips, and the bands the wider bodies
+// widen by, are added to the solid polygons of their layers. throw_on_cancel, if set, is called at each roof, step and
+// layer a flare is tried on.
+void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
+    const std::vector<Polygons> &model, const std::function<Polygons(size_t, const BoundingBox &)> &model_under,
+    bool limit_growth, coord_t line_width, coord_t tip_radius, coord_t move, coord_t reach,
+    const std::vector<double> &roof_angles = {}, const std::function<void()> &throw_on_cancel = {},
+    const std::vector<Polygons> &base_roofs = {}, const std::vector<double> &base_angles = {});
+
+// Grow trees inside the hollow bodies under what the layer above prints over their inside, roofs, walls and parts
+// printed solid: tips as many as it takes to hold every line or loop of a roof, see organic_roof_angles(), and to bring
+// every point of a roof within reach of what holds it, of a wall within a line and of a solid part within half a line,
+// and below them trees that lean by the branch angle toward the nearest wall until they stand on it, if they reach it
+// before the bed, and otherwise go straight down, merging by the preferred angle. bodies, roofs and model hold their
+// layers as for organic_widen_bodies_under_roofs(). The trees inside a body are added to the inner trees of their
+// layers, those that leave it below to the polygons. On the first layer inner_trees holds the feet of the trees coming
+// down onto it and lone_feet those of the tips grown on it, which start no tree, printed separately from a sparse
+// flange where its lines would not hold what they hold, see organic_fill_first_layer(). first_layer_width is the width
+// of the lines of the first layer.
+// The directions of the lines of the lowest roof layers: an interlaced pattern turns them from layer to layer, and the
+// contact layer of a grid crosses them; a roof printed in loops, concentric or as a spiral, has none, nor does one of
+// the default pattern right under the model, which prints loops there.
+std::vector<double> organic_roof_angles(const PrintObject &object, const SupportParameters &params);
+// The directions of the lines of a base interface under a roof printed in loops, where the support prints one: it
+// prints lines in the direction of the interface whatever the pattern. None where the roof prints lines, as a base
+// interface under it does too, or where the support prints no base interface.
+std::vector<double> organic_base_roof_angles(const PrintObject &object, const SupportParameters &params);
+
+// roof_angles are the directions of the lines of the lowest roof layers, see organic_roof_angles():
+// the trees hold every one of those lines; with none, every loop of a roof printed in loops along its outline. Every
+// point of a roof lies within reach of them as well. base_roofs and base_angles are as for
+// organic_widen_bodies_under_roofs().
+void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
+    const std::vector<Polygons> &model, const TreeSupportSettings &config, coord_t reach, coord_t first_layer_width,
+    const std::vector<double> &roof_angles = {}, const std::function<void()> &throw_on_cancel = {},
+    const std::vector<Polygons> &base_roofs = {}, const std::vector<double> &base_angles = {});
+
+// Points on each of the input lines, the tips of trees along an overhang, distance apart at most and at least that far
+// from each other, both ends of a line among them; at least min_points of them, closer if need be. A short line gets
+// one in its middle.
+[[nodiscard]] Polylines ensure_maximum_distance_polyline(const Polylines &input, double distance, size_t min_points);
+
+// Tips of tip_radius supporting an area interface, connect_length apart but no closer than their diameter and a line:
+// on the outline of the area inset by half a line, one at every sharp convex corner and evenly between the corners;
+// inside, on a hexagonal lattice fixed in the object's coordinates, at least half the spacing from the outline; and one
+// wherever a point of the area is still farther than 0.7 spacing, and than the least distance, from them all. Two points
+// of the outline closer than the least distance share one tip in their middle, so a strip too narrow for two rows of
+// tips gets one along its middle. An area whose inset outline lies within two lines of the disc of one tip in its middle
+// gets only that tip.
+Polylines organic_roof_tips(const Polygons &area, coord_t line_width, coord_t tip_radius, coord_t connect_length);
 
 // Organic specific: Smooth branches and produce one cummulative mesh to be sliced.
 void organic_draw_branches(

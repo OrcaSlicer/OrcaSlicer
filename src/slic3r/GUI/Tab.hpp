@@ -650,6 +650,8 @@ public:
 
 	bool has_key(std::string const &key);
 
+	void toggle_options() override;
+
 protected:
 	virtual void    activate_selected_page(std::function<void()> throw_if_canceled) override;
 
