@@ -61,8 +61,6 @@ static const ColorRGBA DEF_COLOR   = {0.7f, 0.7f, 0.7f, 1.f};
 static const ColorRGBA SELECTED_COLOR = {0.0f, 0.5f, 0.5f, 1.0f};
 static const ColorRGBA ERR_COLOR = {1.0f, 0.3f, 0.3f, 0.5f};
 static const ColorRGBA HOVER_COLOR = {0.7f, 0.7f, 0.7f, 0.5f};
-static constexpr float BRIM_EAR_RADIUS_MIN = 0.1f;
-static constexpr float BRIM_EAR_RADIUS_MAX = 100.f;
 
 static ModelVolume *get_model_volume(const Selection &selection, Model &model)
 {
@@ -803,6 +801,7 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
             ImVec2 min = ImGui::GetItemRectMin();
             ImVec2 max = ImGui::GetItemRectMax();
             ImGui::GetWindowDrawList()->AddLine(ImVec2(min.x, max.y - 2.0f), ImVec2(max.x, max.y - 2.0f), HyperColor);
+            m_imgui->record_named_item("Set brim type to painted", "button", min, max);
 
             if (ImGui::IsMouseHoveringRect(min, max)) {
                 m_link_text_hover = true;
@@ -873,6 +872,13 @@ void GLGizmoBrimEars::update_model_object()
         wxGetApp().plater()->set_plater_dirty(true);
     }
     m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
+}
+
+void GLGizmoBrimEars::reload_on_next_opening()
+{
+    // An invalid id matches no object, so set_brim_data() reloads the cache when the gizmo next turns on.
+    m_old_mo_id = ObjectID();
+    select_point(NoPoints);
 }
 
 // switch gizmos

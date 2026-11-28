@@ -10,6 +10,7 @@
 namespace Slic3r {
 
 class ConfigBase;
+enum class PrintSequence;
 enum class WipeTowerType;
 
 // Pre-slice footprint of the wipe tower, shared by validation (Print), the GUI's placement
@@ -55,12 +56,12 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase               
 // enable_prime_tower before the plate is sliced. This mirrors that rule so pre-slice consumers can
 // ask it without mutating a config, and a test pins the two together.
 //
+// Pass the plate's effective print sequence and its number of printable instances.
 // used_filaments: the plate's filament SLOTS as authored - a mixed slot counts once, matching
 //                 Print::extruders(), which is what normalize_fdm_2 is handed.
-// num_objects:    objects printed on the plate; only ByObject sequencing looks at it.
 // has_mixed_filament: filament_is_mixed is a PROJECT option, so it is passed rather than read -
 //                 `config` only has to carry the print preset's own keys.
-bool prime_tower_is_printed(const ConfigBase &config, int used_filaments, int num_objects, bool has_mixed_filament);
+bool prime_tower_is_printed(const ConfigBase &config, PrintSequence print_sequence, int used_filaments, int num_instances, bool has_mixed_filament);
 
 // Where to put a tower whose saved position no longer fits: of the anchors (the tower's
 // position) inside `anchor_bounds`, the one nearest `target` whose `footprint` touches none of

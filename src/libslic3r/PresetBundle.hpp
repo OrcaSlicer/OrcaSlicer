@@ -574,10 +574,10 @@ public:
     int get_printer_extruder_count() const;
     bool support_different_extruders() const;
 
-    // Orca: Ensure filament_presets has at least min_filament_count() slots on FFF printers.
-    // Called from (load|update)_selections before the parallel project_config arrays
-    // (filament_colour/colour_type/map) are sized off filament_presets.size(), so a
-    // short saved filament list doesn't truncate the loaded colors.
+    // Orca: Ensure filament_presets is not empty on FFF printers. The slot count is independent
+    // of the extruder count, so this only seeds a safe default when nothing is selected; a saved
+    // or imported list of any positive length is left as it is. Called from (load|update)_selections
+    // before the parallel project_config arrays are sized off filament_presets.size().
     void update_filament_count();
 
     // Load user configuration and store it into the user profiles.
@@ -679,6 +679,9 @@ public:
     // based on the user configuration.
     // If the "vendor" section is missing, enable all models and variants of the particular vendor.
     void                        load_installed_printers(const AppConfig &config);
+    // Set the is_visible flag for filaments from the user configuration's filaments section,
+    // first adding there the default filaments of each installed printer that no installed filament fits.
+    void                        load_installed_filaments(AppConfig &config);
 
     const std::string&          get_preset_name_by_alias(const Preset::Type& preset_type, const std::string& alias) const;
 
@@ -741,12 +744,6 @@ public:
         const std::atomic<bool>* cancel = nullptr, std::vector<std::string>* failed = nullptr);
 
 private:
-    // Orca: The fewest filaments the selected FFF printer runs with. A tool changer carries one
-    // filament per tool, so it needs one per nozzle. A printer feeding filaments through shared
-    // nozzles (single_extruder_multi_material, e.g. a Bambu Lab H2D) maps any number of them onto
-    // its nozzles, so one is enough, and the user may delete down to it.
-    size_t min_filament_count() const;
-
     // Move the presets and vendor profiles of `others` into this bundle, in one pass
     // over each collection. A preset whose name this bundle or an earlier one of
     // `others` already has is left out and listed under the bundle that repeats it.
@@ -937,9 +934,8 @@ private:
     // Update renamed_from and alias maps of system profiles.
     void 						update_system_maps();
 
-    // Set the is_visible flag for filaments and sla materials,
-    // apply defaults based on enabled printers when no filaments/materials are installed.
-    void                        load_installed_filaments(AppConfig &config);
+    // Set the is_visible flag for sla materials,
+    // apply defaults based on enabled printers when no materials are installed.
     void                        load_installed_sla_materials(AppConfig &config);
 
     // Load print, filament & printer presets from a config. If it is an external config, then the name is extracted from the external path.

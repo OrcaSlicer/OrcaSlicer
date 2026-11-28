@@ -6,7 +6,10 @@
 #include <algorithm>
 #include <wx/colour.h>
 #include "libslic3r/Config.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <optional>
 #include <vector>
 #include <cstddef>
 #include <string>
@@ -44,75 +47,84 @@ static const wxColour TextErrorColor = wxColour("#E14747");
 
 wxDEFINE_EVENT(wxEVT_INVALID_MANUAL_MAP, wxCommandEvent);
 
+// The edited printer's extruder_max_nozzle_count, none where it lacks the option.
+static std::vector<int> max_nozzle_counts(const PresetBundle &preset_bundle)
+{
+    const auto *opt = preset_bundle.printers.get_edited_preset().config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+    return opt != nullptr ? opt->values : std::vector<int>();
+}
+
 // Orca: whether the edited printer has an extruder that can physically carry several nozzles
 // (only such extruders track a per-volume-type nozzle inventory worth validating against).
 static bool printer_has_multi_nozzle_extruder()
 {
-    auto *max_nozzle_counts_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+    return has_multi_nozzle_extruder(max_nozzle_counts(*wxGetApp().preset_bundle));
+}
+
+bool has_multi_nozzle_extruder(const std::vector<int> &max_nozzle_counts)
+{
     // Skip nil entries: a nullable-int nil is INT_MAX (> 1) and would otherwise falsely pass the gate.
-    return max_nozzle_counts_opt &&
-           std::any_of(max_nozzle_counts_opt->values.begin(), max_nozzle_counts_opt->values.end(),
+    return std::any_of(max_nozzle_counts.begin(), max_nozzle_counts.end(),
                        [](int v) { return v > 1 && v != ConfigOptionIntsNullable::nil_value(); });
+}
+
+NozzleInventory nozzle_inventory(const PresetBundle &preset_bundle)
+{
+    NozzleInventory inventory;
+    inventory.max_nozzle_counts = max_nozzle_counts(preset_bundle);
+    if (const auto *types = preset_bundle.project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type"))
+        inventory.volume_types = types->values;
+    if (const auto *stats = preset_bundle.printers.get_edited_preset().config.option<ConfigOptionStrings>("extruder_nozzle_stats"))
+        inventory.nozzle_counts = get_extruder_nozzle_stats(stats->values);
+    return inventory;
+}
+
+std::optional<NozzleShortage> manual_map_nozzle_shortage(const NozzleInventory  &inventory,
+                                                         const std::vector<int> &filaments,
+                                                         const std::vector<int> &filament_map,
+                                                         const std::vector<int> &filament_volume_map)
+{
+    // Orca: only multi-nozzle extruders carry a meaningful nozzle inventory; validating a plain
+    // dual-extruder printer against it would flag every grouping whenever the stats are stale.
+    if (!has_multi_nozzle_extruder(inventory.max_nozzle_counts))
+        return std::nullopt;
+    const auto nozzle_count = [&inventory](int eid, NozzleVolumeType volume_type) {
+        if (eid >= (int) inventory.nozzle_counts.size())
+            return 0;
+        const auto it = inventory.nozzle_counts[eid].find(volume_type);
+        return it == inventory.nozzle_counts[eid].end() ? 0 : it->second;
+    };
+    // Whether a filament the plate prints goes to extruder `eid`; with `volume_type`, with that nozzle volume type.
+    const auto prints_on = [&](int eid, std::optional<NozzleVolumeType> volume_type) {
+        return std::any_of(filaments.begin(), filaments.end(), [&](int fid) {
+            return fid >= 1 && fid - 1 < (int) filament_map.size() && (filament_map[fid - 1] - 1) == eid &&
+                   (!volume_type || (fid - 1 < (int) filament_volume_map.size() &&
+                                     filament_volume_map[fid - 1] == static_cast<int>(*volume_type)));
+        });
+    };
+    for (int eid = 0; eid < (int) inventory.volume_types.size(); ++eid) {
+        if (!prints_on(eid, std::nullopt))
+            continue;
+        const NozzleVolumeType extruder_volume_type = NozzleVolumeType(inventory.volume_types[eid]);
+        if (extruder_volume_type != nvtHybrid) {
+            if (nozzle_count(eid, extruder_volume_type) == 0)
+                return NozzleShortage{eid, extruder_volume_type};
+            continue;
+        }
+        for (const NozzleVolumeType needed : {NozzleVolumeType::nvtStandard, NozzleVolumeType::nvtHighFlow})
+            if (prints_on(eid, needed) && nozzle_count(eid, needed) == 0)
+                return NozzleShortage{eid, needed};
+    }
+    return std::nullopt;
 }
 
 void FilamentMapManualPanel::OnTimer(wxTimerEvent &)
 {
-    bool             valid          = true;
-    int              invalid_eid    = -1;
-    NozzleVolumeType invalid_nozzle = NozzleVolumeType::nvtStandard;
-    auto             preset_bundle  = wxGetApp().preset_bundle;
-    auto             proj_config    = preset_bundle->project_config;
-    auto             nozzle_volume_values = proj_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
-    std::vector<int> filament_map        = GetFilamentMaps();
-    std::vector<int> filament_volume_map = GetFilamentVolumeMaps();
-    // Orca: only multi-nozzle extruders carry a meaningful nozzle inventory; validating a plain
-    // dual-extruder printer against it would flag every grouping whenever the stats are stale.
-    if (printer_has_multi_nozzle_extruder()) {
-        for (size_t eid = 0; eid < nozzle_volume_values.size(); ++eid) {
-            NozzleVolumeType extruder_volume_type = NozzleVolumeType(nozzle_volume_values[eid]);
-            bool             extruder_used        = std::find_if(m_filament_list.begin(), m_filament_list.end(),
-                                                                 [&filament_map, eid](int fid) {
-                                                        return fid - 1 < (int) filament_map.size() && (filament_map[fid - 1] - 1) == (int) eid;
-                                                    }) != m_filament_list.end();
-
-            if (!extruder_used) {
-                continue;
-            }
-
-            if (extruder_volume_type == nvtHybrid) {
-                int standard_count = getExtruderNozzleCount(preset_bundle, eid, NozzleVolumeType::nvtStandard);
-                int highflow_count = getExtruderNozzleCount(preset_bundle, eid, NozzleVolumeType::nvtHighFlow);
-
-                auto has_material_of_type = [this, eid, &filament_map, &filament_volume_map](NozzleVolumeType volume_type) {
-                    return std::find_if(m_filament_list.begin(), m_filament_list.end(),
-                                        [eid, &filament_map, &filament_volume_map, volume_type](int fid) {
-                                            return fid - 1 < (int) filament_map.size() && (filament_map[fid - 1] - 1) == (int) eid &&
-                                                   fid - 1 < (int) filament_volume_map.size() &&
-                                                   filament_volume_map[fid - 1] == static_cast<int>(volume_type);
-                                        }) != m_filament_list.end();
-                };
-
-                bool has_standard = has_material_of_type(NozzleVolumeType::nvtStandard);
-                bool has_highflow = has_material_of_type(NozzleVolumeType::nvtHighFlow);
-
-                if ((has_standard && standard_count == 0) ||
-                    (has_highflow && highflow_count == 0)) {
-                    valid          = false;
-                    invalid_eid    = eid;
-                    invalid_nozzle = (has_standard && standard_count == 0) ? NozzleVolumeType::nvtStandard : NozzleVolumeType::nvtHighFlow;
-                    break;
-                }
-            } else {
-                int count = getExtruderNozzleCount(preset_bundle, eid, extruder_volume_type);
-                if (count == 0) {
-                    valid          = false;
-                    invalid_eid    = eid;
-                    invalid_nozzle = extruder_volume_type;
-                    break;
-                }
-            }
-        }
-    }
+    const std::optional<NozzleShortage> shortage = manual_map_nozzle_shortage(nozzle_inventory(*wxGetApp().preset_bundle), m_filament_list,
+                                                                              GetFilamentMaps(), GetFilamentVolumeMaps());
+    const bool             valid          = !shortage;
+    const int              invalid_eid    = shortage ? shortage->extruder : -1;
+    const NozzleVolumeType invalid_nozzle = shortage ? shortage->volume_type : NozzleVolumeType::nvtStandard;
 
     bool update_ui  = m_invalid_id != invalid_eid;
     bool send_event = update_ui || m_force_validation;

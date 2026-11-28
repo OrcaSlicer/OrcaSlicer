@@ -7,6 +7,7 @@
 
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Point.hpp"
+#include <functional>
 #include <map>
 #include <memory>
 #include "libslic3r/BoundingBox.hpp"
@@ -245,8 +246,11 @@ public:
     void add_curr_plate();
     void add_object_from_idx(std::vector<int>& object_idxs);
     void remove_curr_plate();
-    void clone(int numbers = 1);
+    // Pastes `numbers` copies of the selection, in one "Selection-clone" undo step. `pasted(done)` is called after each
+    // copy; returning false stops there, and clone() returns false.
+    bool clone(int numbers = 1, const std::function<bool(int done)>& pasted = {});
     void center();
+    bool can_center() const;
     void drop();
     bool can_drop() const;
     // Lowest world Z that drop() moves to the bed; whole objects count model parts only, as auto drop does.

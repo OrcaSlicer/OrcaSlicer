@@ -2176,6 +2176,51 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     if (extruders.empty())
         return { L("No extrusions under current settings.") };
 
+    // Orca: on a printer that addresses a filament slot as a physical tool, a used slot past the
+    // configured tool count can emit a tool the machine does not have. Warn without blocking.
+    // Bambu Lab and single-extruder multi-material printers map several filaments onto a nozzle.
+    const size_t tool_count = nozzles;
+    if (!this->is_BBL_printer() && !m_config.single_extruder_multi_material.value) {
+        // extruders includes the wipe tower. Add plate tool changes that match ToolOrdering's mode,
+        // sequence and index conditions, then expand mixed slots. Layers do not exist yet here, so
+        // a change stored above the final printed layer can still be included.
+        std::vector<unsigned int> used = extruders;
+        const unsigned int         num_filaments = unsigned(m_config.filament_diameter.size());
+        const CustomGCode::Info    custom_gcodes = m_model.get_curr_plate_custom_gcodes();
+        if (num_filaments > 1 && this->object_extruders().size() == 1 &&
+            m_config.print_sequence != PrintSequence::ByObject &&
+            custom_gcodes.mode == CustomGCode::MultiAsSingle) {
+            for (const CustomGCode::Item &item : custom_gcodes.gcodes) {
+                if (item.type != CustomGCode::ToolChange)
+                    continue;
+                // ToolOrdering uses 1-based item.extruder and clamps values above the filament
+                // count to T0; skip invalid or clamped values rather than underflowing.
+                if (item.extruder < 1 || size_t(item.extruder) > num_filaments)
+                    continue;
+                used.push_back(unsigned(item.extruder - 1));
+            }
+        }
+        used = expand_mixed_filaments(used, m_config.filament_is_mixed.values, m_config.filament_mixed_components.values);
+
+        std::vector<unsigned int> missing;
+        for (unsigned int slot : used)
+            if (slot >= tool_count)
+                missing.push_back(slot + 1);
+        std::sort(missing.begin(), missing.end());
+        missing.erase(std::unique(missing.begin(), missing.end()), missing.end());
+        if (!missing.empty()) {
+            std::string slot_list;
+            for (size_t i = 0; i < missing.size(); ++i) {
+                if (i > 0)
+                    slot_list += ", ";
+                slot_list += std::to_string(missing[i]);
+            }
+            // TRN %1% is a comma-separated list of 1-based filament slots, %2% the configured tool count.
+            warn(Slic3r::format(L("The print uses filament slots past the configured tool count (used: %1%; configured: %2%). The generated G-code may use a tool the printer does not have."),
+                               slot_list, tool_count));
+        }
+    }
+
     // A flow ratio of 0 would extrude nothing, and a nil one would write NaN extrusion lengths.
     {
         const std::vector<double> &flow_ratios = m_config.filament_flow_ratio.values;
@@ -2296,7 +2341,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             if (routing.primary_unrouted) {
                 std::string routed_list;
                 for (int head : routing.routed_heads)
-                    routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head);
+                    routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head + 1);
                 // Print::apply() normalises physical_extruder_map through
                 // effective_physical_extruder_map (PrintApply.cpp) before validate() runs, so
                 // an unauthored map arrives here as the identity and every slot is in range.
@@ -2309,13 +2354,13 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                         // TRN %1% is the IDEX/IQEX mode name, %2% the tool number.
                         L("IDEX/IQEX mode \"%1%\" prints with T%2%, but none of this plate's filaments are on a configured tool. "
                           "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
-                        parallel_mode, routing.primary_phys);
+                        parallel_mode, routing.primary_phys + 1);
                 else
                     err.string = Slic3r::format(
                         // TRN %1% is the IDEX/IQEX mode name, %2% the tool number, %3% a list of tools such as "T1, T2".
                         L("IDEX/IQEX mode \"%1%\" prints with T%2%, but this plate's filaments are on %3%. "
                           "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
-                        parallel_mode, routing.primary_phys, routed_list);
+                        parallel_mode, routing.primary_phys + 1, routed_list);
                 // Gives the notification a "Jump to <object>" link, which selects the object
                 // and switches to Prepare -- directly enabling the first suggested remedy.
                 err.object = m_objects.front();
@@ -2521,7 +2566,25 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         // spiral vase cannot print.
         const auto &is_mixed = m_config.filament_is_mixed.values;
         for (const PrintObject *object : m_objects) {
-            const auto used_filament_ids = object->object_extruders();
+            auto used_filament_ids = object->object_extruders();
+            // Painted all over, the object prints only its painted filaments, unless the segmented region
+            // max width or interlocking depth limits the paint to a band and fills the rest with its own filament.
+            // Beam interlocking turns that band off.
+            const PrintObjectConfig &object_config = object->config();
+            const ModelVolumePtrs   &volumes       = object->model_object()->volumes;
+            if ((object_config.interlocking_beam.value ||
+                 (object_config.mmu_segmented_region_max_width.value == 0. &&
+                  object_config.mmu_segmented_region_interlocking_depth.value == 0.)) &&
+                std::all_of(volumes.begin(), volumes.end(), [](const ModelVolume *volume) {
+                    return !volume->is_model_part() || volume->is_mm_painted_everywhere();
+                })) {
+                used_filament_ids.clear();
+                for (const ModelVolume *volume : volumes)
+                    if (volume->is_model_part())
+                        for (size_t filament_id : volume->get_extruders_from_multi_material_painting())
+                            used_filament_ids.push_back(static_cast<unsigned int>(filament_id));
+                sort_remove_duplicates(used_filament_ids);
+            }
             if (used_filament_ids.size() > 1 ||
                 std::any_of(used_filament_ids.begin(), used_filament_ids.end(), [&is_mixed](unsigned int filament_id) {
                     return filament_id < is_mixed.size() && is_mixed[filament_id];

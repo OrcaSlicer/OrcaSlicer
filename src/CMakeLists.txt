@@ -14,6 +14,8 @@ find_package(libnoise REQUIRED)
 add_subdirectory(libslic3r)
 
 if (SLIC3R_GUI)
+    # Before wxWidgets is found, so the automation core builds without wx (see its CMakeLists.txt).
+    add_subdirectory(libslic3r_automation)
     add_subdirectory(glad)
     # imgui, imguizmo, and hidapi are now included from deps_src
     add_subdirectory(libvgcode)

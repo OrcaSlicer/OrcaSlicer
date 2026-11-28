@@ -1,6 +1,7 @@
 #include "AuiMgr.hpp"
 
 #include "GUI_App.hpp"
+#include "Mcp/WindowNames.hpp"
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
 #endif
@@ -11,6 +12,8 @@
 #include <wx/colour.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
+
+#include <cstddef>
 
 namespace Slic3r { namespace GUI {
 
@@ -65,6 +68,21 @@ void AuiMgr::track_docked_size(wxWindow* window)
     });
 }
 
+void AuiMgr::set_docked_width(wxWindow* window, int width)
+{
+    wxAuiPaneInfo& pane = GetPane(window);
+    if (!pane.IsOk())
+        return;
+    pane.BestSize(width, pane.best_size.GetHeight());
+    // A dock keeps its size from layout to layout; one of size 0 takes its panes' best size at the next.
+    for (std::size_t i = 0; i < m_docks.size(); ++i) {
+        wxAuiDockInfo& dock = m_docks[i];
+        if (dock.dock_direction == pane.dock_direction && dock.dock_layer == pane.dock_layer && dock.dock_row == pane.dock_row)
+            dock.size = 0;
+    }
+    Update();
+}
+
 wxAuiPaneInfo AuiMgr::sidebar_pane_info()
 {
     return wxAuiPaneInfo()
@@ -78,7 +96,12 @@ wxAuiPaneInfo AuiMgr::sidebar_pane_info()
 
 wxAuiFloatingFrame* AuiMgr::CreateFloatingFrame(wxWindow* parent, const wxAuiPaneInfo& pane)
 {
-    return new FloatFrame(parent, this, pane);
+    auto* frame = new FloatFrame(parent, this, pane);
+    // A pane kept from the automation (the Run Script panel) floats in a window kept from it too, which captures then
+    // leave out as they leave out the person's own dialogs.
+    if (pane.window != nullptr && pane.window->GetName() == Mcp::kHiddenFromAutomation)
+        frame->SetName(Mcp::kHiddenFromAutomation);
+    return frame;
 }
 
 }} // namespace Slic3r::GUI

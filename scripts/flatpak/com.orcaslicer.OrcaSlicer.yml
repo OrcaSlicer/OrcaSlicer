@@ -119,10 +119,10 @@ modules:
       # submodules (PCRE2, etc.) that are not included in GitHub tarballs.
       - type: git
         url: https://github.com/OrcaSlicer/Orca-deps-wxWidgets.git
-        # flatpak-builder requires a named branch's tip to be the pinned commit, so this names no
-        # branch and clones in full, which git needs to check out a commit that is not a tip.
-        commit: b44c39c100975a0ac0e46f937aa3f3eae5e18631
-        disable-shallow-clone: true
+        # No branch and no tag: flatpak-builder checks that a named branch's tip is the pinned
+        # commit, which fails once the fork's branch moves past it. With the commit alone it
+        # fetches as much history as the commit needs on its own.
+        commit: 89844cb1f80b17a5916d5274cd88317cac3e2a3c
 
   # OrcaSlicer C++ dependencies (built offline with pre-downloaded archives)
   - name: orca_deps
@@ -331,6 +331,12 @@ modules:
         commit: 443f6934d9007eb7076ab7825ba330f355fcbead
         dest: external-packages/DataChannel
 
+      # async_mqtt 10.3.1 (header-only)
+      - type: file
+        url: https://github.com/redboltz/async_mqtt/archive/refs/tags/10.3.1.tar.gz
+        sha256: 0d4796534d1db9fcf948393d46aae9aa636aab3a2eb44843868358623363ae1c
+        dest: external-packages/AsyncMqtt
+
       # ---------------------------------------------------------------
       # Fallback archives for deps normally provided by the GNOME SDK.
       # These are only used if find_package() fails to locate them.
@@ -416,7 +422,7 @@ modules:
       # this build uses the default Makefile generator, so it is not available here.)
       - cmake --build build_flatpak -j"${FLATPAK_BUILDER_N_JOBS:-$(nproc)}" --target
           libslic3r_tests fff_print_tests sla_print_tests libnest2d_tests slic3rutils_tests
-          filament_group_tests
+          automation_tests filament_group_tests
 
     cleanup:
       - /include

@@ -1157,16 +1157,12 @@ Polygon PartPlate::imex_wipe_tower_hull() const
     // for a plate that switched the tower off or prints by object, which would hard-block a
     // plate with nothing drawn on screen to move.
     //
-    // Counts are the ones normalize_fdm_2 is handed: filament slots as authored, so a mixed
-    // slot counts once, and distinct objects rather than instances. filament_is_mixed is a
-    // project option, hence read separately.
+    // Use the plate's effective print sequence and count its printable instances. As in
+    // normalize_fdm_2, each mixed slot counts once. The mixed flags are project settings.
     const auto* mixed_opt = preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed");
     const bool  has_mixed = mixed_opt != nullptr && has_any_mixed_filament(mixed_opt->values);
-    std::set<int> plate_objects;
-    for (const auto& pr : obj_to_instance_set)
-        plate_objects.insert(pr.first);
-    if (!prime_tower_is_printed(print_cfg, (int) get_extruders(true, /*expand_mixed_slots=*/false).size(),
-                                (int) plate_objects.size(), has_mixed))
+    if (!prime_tower_is_printed(print_cfg, get_real_print_seq(), (int) get_extruders(true, /*expand_mixed_slots=*/false).size(),
+                                printable_instance_size(), has_mixed))
         return Polygon();
 
     // The estimate's floor counts what is purged, so a mixed slot counts as its components here.
@@ -4953,13 +4949,10 @@ void PartPlate::set_vase_mode_related_object_config(int obj_id) {
 	//wxGetApp().obj_list()->update_selections();
 }
 
-int PartPlate::printable_instance_size()
+int PartPlate::printable_instance_size() const
 {
     int size = 0;
-    for (std::set<std::pair<int, int>>::iterator it = obj_to_instance_set.begin(); it != obj_to_instance_set.end(); ++it) {
-        int obj_id      = it->first;
-        int instance_id = it->second;
-
+    for (const auto &[obj_id, instance_id] : obj_to_instance_set) {
         if (!valid_instance(obj_id, instance_id))
             continue;
 
@@ -6983,7 +6976,7 @@ int PartPlateList::select_plate(int index)
 	// BBS: erase unnecessary snapshot
 	if (get_curr_plate_index() != index && m_intialized) {
 		if (m_plater)
-			m_plater->take_snapshot("select partplate!");
+			m_plater->take_plate_selection_snapshot();
 	}
 
 	std::vector<PartPlate *>::iterator it = m_plate_list.begin();
